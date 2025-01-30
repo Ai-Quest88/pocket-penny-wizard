@@ -19,6 +19,15 @@ export default {
     },
     extend: {
       colors: {
+        border: {
+          DEFAULT: "hsl(var(--border))",
+        },
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: {
+          DEFAULT: "#FAFAFA",
+          muted: "#F3F4F6",
+        },
         primary: {
           DEFAULT: "#8CA891",
           foreground: "#FAFAFA",
@@ -26,10 +35,6 @@ export default {
         text: {
           DEFAULT: "#2C3333",
           muted: "#6B7280",
-        },
-        background: {
-          DEFAULT: "#FAFAFA",
-          muted: "#F3F4F6",
         },
         accent: {
           DEFAULT: "#E5E7EB",
