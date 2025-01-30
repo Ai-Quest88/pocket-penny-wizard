@@ -28,6 +28,7 @@ export default {
           DEFAULT: "#FAFAFA",
           muted: "#F3F4F6",
         },
+        foreground: "hsl(var(--foreground))",
         primary: {
           DEFAULT: "#8CA891",
           foreground: "#FAFAFA",
