@@ -1,14 +1,25 @@
 import { DashboardCard } from "@/components/DashboardCard";
 import { ExpenseChart } from "@/components/ExpenseChart";
 import { TransactionList } from "@/components/TransactionList";
+import { Button } from "@/components/ui/button";
+import { PlusCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        <header className="space-y-2">
-          <h1 className="text-3xl font-bold text-text">Financial Overview</h1>
-          <p className="text-text-muted">Track your spending and savings</p>
+        <header className="flex justify-between items-center">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold text-text">Financial Overview</h1>
+            <p className="text-text-muted">Track your spending and savings</p>
+          </div>
+          <Button onClick={() => navigate('/import')} className="flex items-center gap-2">
+            <PlusCircle className="h-4 w-4" />
+            Add Transaction
+          </Button>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
