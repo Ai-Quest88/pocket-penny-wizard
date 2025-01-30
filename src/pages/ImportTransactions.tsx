@@ -20,6 +20,9 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Upload } from "lucide-react";
+import { parseCSV, ParsedTransaction } from "@/utils/csvParser";
 
 const formSchema = z.object({
   description: z.string().min(2, {
@@ -59,7 +62,6 @@ export default function ImportTransactions() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // Here we would typically send this to an API
     console.log(values);
     toast({
       title: "Transaction added",
@@ -68,12 +70,68 @@ export default function ImportTransactions() {
     navigate('/');
   }
 
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const content = await file.text();
+      const transactions: ParsedTransaction[] = parseCSV(content);
+
+      if (transactions.length === 0) {
+        toast({
+          title: "Error",
+          description: "No valid transactions found in the CSV file.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // For now, we'll just take the first transaction and populate the form
+      const firstTransaction = transactions[0];
+      form.reset({
+        description: firstTransaction.description,
+        amount: firstTransaction.amount,
+        category: firstTransaction.category.toLowerCase(),
+        date: firstTransaction.date,
+      });
+
+      toast({
+        title: "CSV Imported",
+        description: `Successfully loaded ${transactions.length} transaction(s).`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to parse the CSV file. Please check the format.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="space-y-2">
           <h1 className="text-3xl font-bold">Import Transaction</h1>
           <p className="text-muted-foreground">Add a new transaction to your records</p>
+        </div>
+
+        <Alert>
+          <Upload className="h-4 w-4" />
+          <AlertTitle>CSV Import</AlertTitle>
+          <AlertDescription>
+            Upload a CSV file from your bank with the following columns: Date, Description, Amount
+          </AlertDescription>
+        </Alert>
+
+        <div className="flex items-center space-x-4">
+          <Input
+            type="file"
+            accept=".csv"
+            onChange={handleFileUpload}
+            className="flex-1"
+          />
         </div>
 
         <Form {...form}>
