@@ -3,6 +3,7 @@ export interface ParsedTransaction {
   amount: string;
   category: string;
   date: string;
+  currency: string;
 }
 
 export const parseCSV = (content: string): ParsedTransaction[] => {
@@ -13,12 +14,13 @@ export const parseCSV = (content: string): ParsedTransaction[] => {
   return lines.slice(1)
     .filter(line => line.trim() !== '')
     .map(line => {
-      const [date, description, amount] = line.split(',').map(field => field.trim());
+      const [date, description, amount, currency] = line.split(',').map(field => field.trim());
       return {
         description: description || '',
         amount: amount || '0',
         category: 'Other', // Default category
-        date: date || new Date().toISOString().split('T')[0]
+        date: date || new Date().toISOString().split('T')[0],
+        currency: currency || 'USD' // Default currency
       };
     });
 };

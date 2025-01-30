@@ -8,6 +8,7 @@ interface Transaction {
   amount: number;
   category: string;
   date: string;
+  currency: string;
 }
 
 const transactions: Transaction[] = [
@@ -16,23 +17,33 @@ const transactions: Transaction[] = [
     description: "Grocery Shopping",
     amount: -120.50,
     category: "Food",
-    date: "2024-03-20"
+    date: "2024-03-20",
+    currency: "USD"
   },
   {
     id: 2,
     description: "Salary Deposit",
     amount: 3000.00,
     category: "Income",
-    date: "2024-03-19"
+    date: "2024-03-19",
+    currency: "EUR"
   },
   {
     id: 3,
     description: "Netflix Subscription",
     amount: -15.99,
     category: "Entertainment",
-    date: "2024-03-18"
+    date: "2024-03-18",
+    currency: "GBP"
   },
 ];
+
+const currencySymbols: Record<string, string> = {
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  JPY: "¥"
+};
 
 export const TransactionList = () => {
   return (
@@ -57,7 +68,8 @@ export const TransactionList = () => {
                   transaction.amount > 0 ? "text-success" : "text-text"
                 )}>
                   {transaction.amount > 0 ? "+" : ""}
-                  ${Math.abs(transaction.amount).toFixed(2)}
+                  {currencySymbols[transaction.currency] || "$"}
+                  {Math.abs(transaction.amount).toFixed(2)}
                 </p>
                 <p className="text-sm text-text-muted">{transaction.date}</p>
               </div>
