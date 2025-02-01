@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { useToast } from "@/components/ui/use-toast"
 import { BudgetForecast } from "@/components/budgets/BudgetForecast"
+import { IncomeExpenseAnalysis } from "@/components/budgets/IncomeExpenseAnalysis"
 
 interface Budget {
   id: string
@@ -81,7 +82,7 @@ export default function Budgets() {
   return (
     <div className="p-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        <header className="flex justify-between items-center mb-8">
+        <header className="flex justify-between items-center">
           <div className="space-y-2">
             <h1 className="text-3xl font-bold">Budgets</h1>
             <p className="text-muted-foreground">Manage your budgets and forecasts</p>
@@ -132,6 +133,8 @@ export default function Budgets() {
           </Dialog>
         </header>
 
+        <IncomeExpenseAnalysis />
+        
         <BudgetForecast />
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
