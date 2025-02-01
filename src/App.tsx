@@ -9,6 +9,7 @@ import { AppSidebar } from "./components/AppSidebar"
 import Dashboard from "./pages/Dashboard"
 import Transactions from "./pages/Transactions"
 import Accounts from "./pages/Accounts"
+import Analytics from "./pages/Analytics"
 import NotFound from "./pages/NotFound"
 import Login from "./pages/Login"
 
@@ -60,7 +61,7 @@ const App = () => (
                     path="/analytics"
                     element={
                       <ProtectedRoute>
-                        <div className="p-8">Analytics Page (Coming Soon)</div>
+                        <Analytics />
                       </ProtectedRoute>
                     }
                   />
