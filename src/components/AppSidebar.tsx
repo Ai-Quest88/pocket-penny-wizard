@@ -21,6 +21,11 @@ const menuItems = [
     icon: Home,
   },
   {
+    title: "Analytics",
+    url: "/analytics",
+    icon: BarChart2,
+  },
+  {
     title: "Entities",
     url: "/entities",
     icon: Users,
