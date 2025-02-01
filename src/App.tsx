@@ -19,6 +19,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useNavigate } from "react-router-dom"
+import Dashboard from "./pages/Dashboard"
+import Transactions from "./pages/Transactions"
+import Accounts from "./pages/Accounts"
+import Analytics from "./pages/Analytics"
+import Budgets from "./pages/Budgets"
+import Settings from "./pages/Settings"
+import AssetsLiabilities from "./pages/AssetsLiabilities"
+import Reports from "./pages/Reports"
+import Notifications from "./pages/Notifications"
+import NotFound from "./pages/NotFound"
+import Login from "./pages/Login"
 
 const queryClient = new QueryClient()
 
