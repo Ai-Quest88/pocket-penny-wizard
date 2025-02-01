@@ -1,4 +1,4 @@
-import { BarChart2, CreditCard, DollarSign, List, Settings } from "lucide-react"
+import { BarChart2, CreditCard, DollarSign, Home, List, Settings } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -13,8 +13,13 @@ import { Link, useLocation } from "react-router-dom"
 
 const menuItems = [
   {
-    title: "Transactions",
+    title: "Dashboard",
     url: "/",
+    icon: Home,
+  },
+  {
+    title: "Transactions",
+    url: "/transactions",
     icon: List,
   },
   {

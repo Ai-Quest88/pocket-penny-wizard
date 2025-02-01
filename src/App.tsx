@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import { AuthProvider, useAuth } from "./contexts/AuthContext"
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "./components/AppSidebar"
+import Dashboard from "./pages/Dashboard"
 import Transactions from "./pages/Transactions"
 import Accounts from "./pages/Accounts"
 import NotFound from "./pages/NotFound"
@@ -41,6 +42,14 @@ const App = () => (
                   <Route path="/login" element={<Login />} />
                   <Route
                     path="/"
+                    element={
+                      <ProtectedRoute>
+                        <Dashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/transactions"
                     element={
                       <ProtectedRoute>
                         <Transactions />
