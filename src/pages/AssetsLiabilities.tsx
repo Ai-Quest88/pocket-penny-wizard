@@ -6,6 +6,7 @@ import { LiabilitiesList } from "@/components/assets-liabilities/LiabilitiesList
 import { AddAssetDialog } from "@/components/assets-liabilities/AddAssetDialog"
 import { AddLiabilityDialog } from "@/components/assets-liabilities/AddLiabilityDialog"
 import { HistoricalValueChart } from "@/components/assets-liabilities/HistoricalValueChart"
+import { PropertyValueEstimate } from "@/components/PropertyValueEstimate"
 
 const generateHistoricalData = (startValue: number, variance: number = 0.1) => {
   return Array.from({ length: 12 }, (_, i) => {
@@ -109,7 +110,8 @@ export default function AssetsLiabilities() {
           netWorth={netWorth}
         />
 
-        <div className="w-full h-[400px] mb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <PropertyValueEstimate />
           <HistoricalValueChart
             assetHistory={combinedAssetHistory}
             liabilityHistory={combinedLiabilityHistory}
