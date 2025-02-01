@@ -39,88 +39,35 @@ const App = () => (
         <BrowserRouter>
           <SidebarProvider>
             <div className="min-h-screen flex w-full">
-              <ProtectedRoute>
-                <AppSidebar />
-              </ProtectedRoute>
-              <main className="flex-1">
-                <SidebarTrigger className="m-4" />
-                <Routes>
-                  <Route path="/login" element={<Login />} />
-                  <Route
-                    path="/"
-                    element={
-                      <ProtectedRoute>
-                        <Dashboard />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/transactions"
-                    element={
-                      <ProtectedRoute>
-                        <Transactions />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/analytics"
-                    element={
-                      <ProtectedRoute>
-                        <Analytics />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/accounts"
-                    element={
-                      <ProtectedRoute>
-                        <Accounts />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/assets-liabilities"
-                    element={
-                      <ProtectedRoute>
-                        <AssetsLiabilities />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/budgets"
-                    element={
-                      <ProtectedRoute>
-                        <Budgets />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/reports"
-                    element={
-                      <ProtectedRoute>
-                        <Reports />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/notifications"
-                    element={
-                      <ProtectedRoute>
-                        <Notifications />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/settings"
-                    element={
-                      <ProtectedRoute>
-                        <Settings />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </main>
+              {/* Only show sidebar if authenticated */}
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route
+                  path="/*"
+                  element={
+                    <ProtectedRoute>
+                      <>
+                        <AppSidebar />
+                        <main className="flex-1">
+                          <SidebarTrigger className="m-4" />
+                          <Routes>
+                            <Route path="/" element={<Dashboard />} />
+                            <Route path="/transactions" element={<Transactions />} />
+                            <Route path="/analytics" element={<Analytics />} />
+                            <Route path="/accounts" element={<Accounts />} />
+                            <Route path="/assets-liabilities" element={<AssetsLiabilities />} />
+                            <Route path="/budgets" element={<Budgets />} />
+                            <Route path="/reports" element={<Reports />} />
+                            <Route path="/notifications" element={<Notifications />} />
+                            <Route path="/settings" element={<Settings />} />
+                            <Route path="*" element={<NotFound />} />
+                          </Routes>
+                        </main>
+                      </>
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
             </div>
           </SidebarProvider>
         </BrowserRouter>
