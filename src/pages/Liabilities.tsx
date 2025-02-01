@@ -5,6 +5,36 @@ import { AddLiabilityDialog } from "@/components/assets-liabilities/AddLiability
 import { Liability } from "@/types/assets-liabilities"
 import { v4 as uuidv4 } from 'uuid'
 
+const initialLiabilities: Liability[] = [
+  {
+    id: "1",
+    entityId: "personal",
+    name: "Home Mortgage",
+    amount: 320000,
+    type: "mortgage",
+    category: "home_loan",
+    history: []
+  },
+  {
+    id: "2",
+    entityId: "business",
+    name: "Business Loan",
+    amount: 75000,
+    type: "loan",
+    category: "personal_loan",
+    history: []
+  },
+  {
+    id: "3",
+    entityId: "personal",
+    name: "Car Loan",
+    amount: 25000,
+    type: "loan",
+    category: "auto_loan",
+    history: []
+  }
+]
+
 const Liabilities = () => {
   const [liabilities, setLiabilities] = useState<Liability[]>([])
   const totalLiabilities = liabilities.reduce((sum, liability) => sum + liability.amount, 0)
@@ -14,6 +44,9 @@ const Liabilities = () => {
     const savedLiabilities = localStorage.getItem('liabilities')
     if (savedLiabilities) {
       setLiabilities(JSON.parse(savedLiabilities))
+    } else {
+      setLiabilities(initialLiabilities)
+      localStorage.setItem('liabilities', JSON.stringify(initialLiabilities))
     }
   }, [])
 

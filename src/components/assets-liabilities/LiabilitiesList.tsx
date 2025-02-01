@@ -10,6 +10,17 @@ export function LiabilitiesList({ liabilities }: LiabilitiesListProps) {
     return category.split("_").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")
   }
 
+  const getEntityName = (entityId: string) => {
+    switch (entityId) {
+      case "personal":
+        return "Personal";
+      case "business":
+        return "Business";
+      default:
+        return entityId;
+    }
+  }
+
   return (
     <div className="grid gap-4">
       {liabilities.map((liability) => (
@@ -21,6 +32,8 @@ export function LiabilitiesList({ liabilities }: LiabilitiesListProps) {
                 <span className="text-sm text-muted-foreground capitalize">{liability.type}</span>
                 <span className="text-sm text-muted-foreground">•</span>
                 <span className="text-sm text-muted-foreground">{formatCategory(liability.category)}</span>
+                <span className="text-sm text-muted-foreground">•</span>
+                <span className="text-sm text-muted-foreground">{getEntityName(liability.entityId)}</span>
               </div>
             </div>
             <p className="text-lg font-semibold text-red-600">

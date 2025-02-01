@@ -10,6 +10,17 @@ export function AssetsList({ assets }: AssetsListProps) {
     return category.split("_").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")
   }
 
+  const getEntityName = (entityId: string) => {
+    switch (entityId) {
+      case "personal":
+        return "Personal";
+      case "business":
+        return "Business";
+      default:
+        return entityId;
+    }
+  }
+
   return (
     <div className="grid gap-4">
       {assets.map((asset) => (
@@ -21,6 +32,8 @@ export function AssetsList({ assets }: AssetsListProps) {
                 <span className="text-sm text-muted-foreground capitalize">{asset.type}</span>
                 <span className="text-sm text-muted-foreground">•</span>
                 <span className="text-sm text-muted-foreground">{formatCategory(asset.category)}</span>
+                <span className="text-sm text-muted-foreground">•</span>
+                <span className="text-sm text-muted-foreground">{getEntityName(asset.entityId)}</span>
               </div>
             </div>
             <p className="text-lg font-semibold text-green-600">

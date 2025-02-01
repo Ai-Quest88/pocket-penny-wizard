@@ -5,6 +5,36 @@ import { AddAssetDialog } from "@/components/assets-liabilities/AddAssetDialog"
 import { Asset } from "@/types/assets-liabilities"
 import { v4 as uuidv4 } from 'uuid'
 
+const initialAssets: Asset[] = [
+  {
+    id: "1",
+    entityId: "personal",
+    name: "Primary Residence",
+    value: 450000,
+    type: "property",
+    category: "residential",
+    history: []
+  },
+  {
+    id: "2",
+    entityId: "business",
+    name: "Investment Portfolio",
+    value: 150000,
+    type: "investment",
+    category: "stocks",
+    history: []
+  },
+  {
+    id: "3",
+    entityId: "personal",
+    name: "Savings Account",
+    value: 25000,
+    type: "cash",
+    category: "savings_account",
+    history: []
+  }
+]
+
 const Assets = () => {
   const [assets, setAssets] = useState<Asset[]>([])
   const totalAssets = assets.reduce((sum, asset) => sum + asset.value, 0)
@@ -14,6 +44,9 @@ const Assets = () => {
     const savedAssets = localStorage.getItem('assets')
     if (savedAssets) {
       setAssets(JSON.parse(savedAssets))
+    } else {
+      setAssets(initialAssets)
+      localStorage.setItem('assets', JSON.stringify(initialAssets))
     }
   }, [])
 
