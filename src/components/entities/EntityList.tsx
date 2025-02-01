@@ -1,12 +1,15 @@
 import { Card } from "@/components/ui/card";
 import { FamilyMember, BusinessEntity } from "@/types/entities";
 import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
 
 interface EntityListProps {
   entities: (FamilyMember | BusinessEntity)[];
+  onDeleteEntity: (entityId: string) => void;
 }
 
-export const EntityList = ({ entities }: EntityListProps) => {
+export const EntityList = ({ entities, onDeleteEntity }: EntityListProps) => {
   const getEntityIcon = (type: string) => {
     switch (type) {
       case "individual":
@@ -34,6 +37,14 @@ export const EntityList = ({ entities }: EntityListProps) => {
               </div>
               <p className="text-sm text-muted-foreground capitalize">{entity.type.replace('_', ' ')}</p>
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onDeleteEntity(entity.id)}
+              className="text-red-500 hover:text-red-600 hover:bg-red-50"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
           <div className="text-sm space-y-2">
             <p>Country: {entity.countryOfResidence}</p>
