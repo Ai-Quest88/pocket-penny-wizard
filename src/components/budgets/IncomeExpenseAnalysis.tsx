@@ -172,10 +172,10 @@ export function IncomeExpenseAnalysis() {
                       <Card className="p-2 border bg-background">
                         <p className="font-medium">{label}</p>
                         <p className="text-sm text-muted-foreground">
-                          Income: ${payload[0].value}
+                          Income: ${typeof payload[0].value === 'number' ? payload[0].value.toFixed(2) : payload[0].value}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          Expenses: ${payload[1].value}
+                          Expenses: ${typeof payload[1].value === 'number' ? payload[1].value.toFixed(2) : payload[1].value}
                         </p>
                       </Card>
                     )
@@ -201,7 +201,7 @@ export function IncomeExpenseAnalysis() {
                       <Card className="p-2 border bg-background">
                         <p className="font-medium">{label}</p>
                         <p className="text-sm text-muted-foreground">
-                          Average: ${payload[0].value.toFixed(2)}
+                          Average: ${typeof payload[0].value === 'number' ? payload[0].value.toFixed(2) : payload[0].value}
                         </p>
                       </Card>
                     )
