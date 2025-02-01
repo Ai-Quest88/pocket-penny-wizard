@@ -107,7 +107,7 @@ const App = () => (
       <TooltipProvider>
         <div className="relative min-h-screen bg-gradient-to-br from-background to-background-muted">
           <div 
-            className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1488590528505-98d2b5aba04b')] bg-cover bg-center opacity-5 pointer-events-none"
+            className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1519389950473-47ba0277781c')] bg-cover bg-center opacity-5 pointer-events-none"
             style={{ mixBlendMode: 'overlay' }}
           />
           <Toaster />
@@ -127,7 +127,7 @@ const App = () => (
                             <div className="flex justify-between items-center p-4 bg-card/50 backdrop-blur-sm">
                               <div className="flex items-center gap-4">
                                 <SidebarTrigger />
-                                <img src="/logo.png" alt="PennyWise" className="h-8" />
+                                <img src="/placeholder.svg" alt="PennyWise" className="h-8" />
                               </div>
                               <UserMenu />
                             </div>
