@@ -9,6 +9,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { Link, useLocation } from "react-router-dom"
 
 const menuItems = [
   {
@@ -39,6 +40,8 @@ const menuItems = [
 ]
 
 export function AppSidebar() {
+  const location = useLocation()
+
   return (
     <Sidebar>
       <SidebarContent>
@@ -49,10 +52,14 @@ export function AppSidebar() {
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <a href={item.url}>
+                    <Link 
+                      to={item.url}
+                      className="flex items-center gap-2"
+                      data-active={location.pathname === item.url}
+                    >
                       <item.icon />
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

@@ -55,6 +55,38 @@ const App = () => (
                       </ProtectedRoute>
                     }
                   />
+                  <Route
+                    path="/analytics"
+                    element={
+                      <ProtectedRoute>
+                        <div className="p-8">Analytics Page (Coming Soon)</div>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/accounts"
+                    element={
+                      <ProtectedRoute>
+                        <div className="p-8">Accounts Page (Coming Soon)</div>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/budgets"
+                    element={
+                      <ProtectedRoute>
+                        <div className="p-8">Budgets Page (Coming Soon)</div>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/settings"
+                    element={
+                      <ProtectedRoute>
+                        <div className="p-8">Settings Page (Coming Soon)</div>
+                      </ProtectedRoute>
+                    }
+                  />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
