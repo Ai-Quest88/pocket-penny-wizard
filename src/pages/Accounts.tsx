@@ -1,14 +1,13 @@
 import { AccountManager } from "@/components/AccountManager"
 import { DashboardCard } from "@/components/DashboardCard"
-import { EntityManager } from "@/components/entities/EntityManager"
 
 const Accounts = () => {
   return (
     <div className="p-8">
       <div className="max-w-7xl mx-auto space-y-12">
         <header className="space-y-2">
-          <h1 className="text-3xl font-bold">Accounts & Entities</h1>
-          <p className="text-muted-foreground">Manage your financial accounts and entities</p>
+          <h1 className="text-3xl font-bold">Accounts</h1>
+          <p className="text-muted-foreground">Manage your financial accounts</p>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -28,8 +27,6 @@ const Accounts = () => {
             trend={{ value: 5, isPositive: false }}
           />
         </div>
-
-        <EntityManager />
         
         <AccountManager />
       </div>

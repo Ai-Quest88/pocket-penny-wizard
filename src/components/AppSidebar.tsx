@@ -1,4 +1,4 @@
-import { BarChart2, CreditCard, DollarSign, Home, List, Settings, Wallet, Users } from "lucide-react"
+import { BarChart2, CreditCard, DollarSign, Home, Settings, Users, Wallet } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -8,6 +8,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
 import { Link, useLocation } from "react-router-dom"
 
@@ -18,34 +21,31 @@ const menuItems = [
     icon: Home,
   },
   {
-    title: "Transactions",
-    url: "/transactions",
-    icon: List,
-  },
-  {
-    title: "Analytics",
-    url: "/analytics",
-    icon: BarChart2,
-  },
-  {
-    title: "Accounts",
-    url: "/accounts",
-    icon: CreditCard,
-  },
-  {
     title: "Entities",
     url: "/entities",
     icon: Users,
-  },
-  {
-    title: "Assets & Liabilities",
-    url: "/assets-liabilities",
-    icon: Wallet,
-  },
-  {
-    title: "Budgets",
-    url: "/budgets",
-    icon: DollarSign,
+    submenu: [
+      {
+        title: "Entities Added",
+        items: [
+          {
+            title: "Asset",
+            url: "/assets-liabilities",
+            icon: Wallet,
+          },
+          {
+            title: "Liability",
+            url: "/assets-liabilities",
+            icon: CreditCard,
+          },
+          {
+            title: "Budget",
+            url: "/budgets",
+            icon: DollarSign,
+          },
+        ],
+      },
+    ],
   },
   {
     title: "Settings",
@@ -72,10 +72,34 @@ export function AppSidebar() {
                       className="flex items-center gap-2"
                       data-active={location.pathname === item.url}
                     >
-                      <item.icon />
+                      <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
+                  {item.submenu && (
+                    <SidebarMenuSub>
+                      {item.submenu.map((submenu) => (
+                        <div key={submenu.title}>
+                          <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                            {submenu.title}
+                          </div>
+                          {submenu.items.map((subItem) => (
+                            <SidebarMenuSubItem key={subItem.title}>
+                              <SidebarMenuSubButton
+                                asChild
+                                isActive={location.pathname === subItem.url}
+                              >
+                                <Link to={subItem.url} className="flex items-center gap-2">
+                                  <subItem.icon className="h-4 w-4" />
+                                  <span>{subItem.title}</span>
+                                </Link>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          ))}
+                        </div>
+                      ))}
+                    </SidebarMenuSub>
+                  )}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
