@@ -24,6 +24,13 @@ interface AddAssetDialogProps {
   onAddAsset: (asset: Omit<Asset, "id">) => void
 }
 
+interface PropertyAddress {
+  street: string
+  city: string
+  state: string
+  zipCode: string
+}
+
 export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
   const { toast } = useToast()
   const [newAsset, setNewAsset] = useState<Omit<Asset, "id">>({
@@ -32,6 +39,13 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
     type: "cash",
     category: "savings_account",
     history: [{ date: new Date().toISOString(), value: 0 }]
+  })
+
+  const [propertyAddress, setPropertyAddress] = useState<PropertyAddress>({
+    street: "",
+    city: "",
+    state: "",
+    zipCode: ""
   })
 
   // Update category when type changes
@@ -47,7 +61,8 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
     if (newAsset.name && newAsset.value > 0) {
       const assetWithHistory = {
         ...newAsset,
-        history: [{ date: new Date().toISOString(), value: newAsset.value }]
+        history: [{ date: new Date().toISOString(), value: newAsset.value }],
+        ...(newAsset.type === "property" && { address: propertyAddress })
       }
       onAddAsset(assetWithHistory)
       setNewAsset({
@@ -56,6 +71,12 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
         type: "cash",
         category: "savings_account",
         history: [{ date: new Date().toISOString(), value: 0 }]
+      })
+      setPropertyAddress({
+        street: "",
+        city: "",
+        state: "",
+        zipCode: ""
       })
       toast({
         title: "Asset Added",
@@ -132,6 +153,49 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
               </SelectContent>
             </Select>
           </div>
+
+          {newAsset.type === "property" && (
+            <div className="space-y-4 border-t pt-4">
+              <h3 className="font-medium">Property Address</h3>
+              <div className="space-y-2">
+                <Label htmlFor="street">Street Address</Label>
+                <Input
+                  id="street"
+                  value={propertyAddress.street}
+                  onChange={(e) => setPropertyAddress({ ...propertyAddress, street: e.target.value })}
+                  placeholder="123 Main St"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="city">City</Label>
+                <Input
+                  id="city"
+                  value={propertyAddress.city}
+                  onChange={(e) => setPropertyAddress({ ...propertyAddress, city: e.target.value })}
+                  placeholder="City"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="state">State</Label>
+                <Input
+                  id="state"
+                  value={propertyAddress.state}
+                  onChange={(e) => setPropertyAddress({ ...propertyAddress, state: e.target.value })}
+                  placeholder="State"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="zipCode">ZIP Code</Label>
+                <Input
+                  id="zipCode"
+                  value={propertyAddress.zipCode}
+                  onChange={(e) => setPropertyAddress({ ...propertyAddress, zipCode: e.target.value })}
+                  placeholder="ZIP Code"
+                />
+              </div>
+            </div>
+          )}
+          
           <Button onClick={handleAddAsset} className="w-full">Add Asset</Button>
         </div>
       </DialogContent>

@@ -5,6 +5,12 @@ export interface Asset {
   type: "cash" | "investment" | "property" | "vehicle" | "other"
   category: AssetCategory
   history: ValueHistory[]
+  address?: {
+    street: string
+    city: string
+    state: string
+    zipCode: string
+  }
 }
 
 export interface Liability {
