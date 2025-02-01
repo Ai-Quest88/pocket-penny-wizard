@@ -13,6 +13,8 @@ import Analytics from "./pages/Analytics"
 import Budgets from "./pages/Budgets"
 import Settings from "./pages/Settings"
 import AssetsLiabilities from "./pages/AssetsLiabilities"
+import Reports from "./pages/Reports"
+import Notifications from "./pages/Notifications"
 import NotFound from "./pages/NotFound"
 import Login from "./pages/Login"
 
@@ -89,6 +91,22 @@ const App = () => (
                     element={
                       <ProtectedRoute>
                         <Budgets />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/reports"
+                    element={
+                      <ProtectedRoute>
+                        <Reports />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/notifications"
+                    element={
+                      <ProtectedRoute>
+                        <Notifications />
                       </ProtectedRoute>
                     }
                   />
