@@ -19,31 +19,39 @@ export default {
     },
     extend: {
       colors: {
-        border: {
-          DEFAULT: "hsl(var(--border))",
-        },
+        border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: {
           DEFAULT: "#FAFAFA",
-          muted: "#F3F4F6",
+          muted: "#F1F0FB",
         },
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "#8CA891",
-          foreground: "#FAFAFA",
+          DEFAULT: "#9b87f5",
+          foreground: "#FFFFFF",
+          muted: "#7E69AB",
+        },
+        secondary: {
+          DEFAULT: "#1A1F2C",
+          foreground: "#FFFFFF",
         },
         text: {
-          DEFAULT: "#2C3333",
-          muted: "#6B7280",
+          DEFAULT: "#1A1F2C",
+          muted: "#8A898C",
         },
         accent: {
-          DEFAULT: "#E5E7EB",
-          foreground: "#374151",
+          DEFAULT: "#F97316",
+          foreground: "#FFFFFF",
+          muted: "#F1F0FB",
         },
-        success: "#10B981",
-        warning: "#F59E0B",
-        danger: "#EF4444",
+        success: "#22c55e",
+        warning: "#f59e0b",
+        danger: "#ef4444",
+        card: {
+          DEFAULT: "#FFFFFF",
+          foreground: "#1A1F2C",
+        },
       },
       borderRadius: {
         lg: "0.625rem",
@@ -64,6 +72,9 @@ export default {
         fadeIn: "fadeIn 0.5s ease-out",
         slideIn: "slideIn 0.3s ease-out",
       },
+      boxShadow: {
+        card: "0px 4px 20px rgba(0, 0, 0, 0.05)",
+      }
     },
   },
   plugins: [require("tailwindcss-animate")],
