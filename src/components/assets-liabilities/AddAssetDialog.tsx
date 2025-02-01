@@ -16,8 +16,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Plus } from "lucide-react"
-import { useState } from "react"
-import { Asset } from "@/types/assets-liabilities"
+import { useState, useEffect } from "react"
+import { Asset, AssetCategory, assetCategoryGroups } from "@/types/assets-liabilities"
 import { useToast } from "@/components/ui/use-toast"
 
 interface AddAssetDialogProps {
@@ -30,12 +30,22 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
     name: "",
     value: 0,
     type: "cash",
+    category: "savings_account"
   })
+
+  // Update category when type changes
+  useEffect(() => {
+    const categories = assetCategoryGroups[newAsset.type]
+    setNewAsset(prev => ({
+      ...prev,
+      category: categories[0] as AssetCategory
+    }))
+  }, [newAsset.type])
 
   const handleAddAsset = () => {
     if (newAsset.name && newAsset.value > 0) {
       onAddAsset(newAsset)
-      setNewAsset({ name: "", value: 0, type: "cash" })
+      setNewAsset({ name: "", value: 0, type: "cash", category: "savings_account" })
       toast({
         title: "Asset Added",
         description: "Your new asset has been added successfully.",
@@ -90,6 +100,24 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
                 <SelectItem value="property">Property</SelectItem>
                 <SelectItem value="vehicle">Vehicle</SelectItem>
                 <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="asset-category">Category</Label>
+            <Select
+              value={newAsset.category}
+              onValueChange={(value: AssetCategory) => setNewAsset({ ...newAsset, category: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {assetCategoryGroups[newAsset.type].map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category.split("_").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

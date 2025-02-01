@@ -16,8 +16,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Plus } from "lucide-react"
-import { useState } from "react"
-import { Liability } from "@/types/assets-liabilities"
+import { useState, useEffect } from "react"
+import { Liability, LiabilityCategory, liabilityCategoryGroups } from "@/types/assets-liabilities"
 import { useToast } from "@/components/ui/use-toast"
 
 interface AddLiabilityDialogProps {
@@ -30,12 +30,22 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
     name: "",
     amount: 0,
     type: "credit",
+    category: "credit_card"
   })
+
+  // Update category when type changes
+  useEffect(() => {
+    const categories = liabilityCategoryGroups[newLiability.type]
+    setNewLiability(prev => ({
+      ...prev,
+      category: categories[0] as LiabilityCategory
+    }))
+  }, [newLiability.type])
 
   const handleAddLiability = () => {
     if (newLiability.name && newLiability.amount > 0) {
       onAddLiability(newLiability)
-      setNewLiability({ name: "", amount: 0, type: "credit" })
+      setNewLiability({ name: "", amount: 0, type: "credit", category: "credit_card" })
       toast({
         title: "Liability Added",
         description: "Your new liability has been added successfully.",
@@ -89,6 +99,24 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
                 <SelectItem value="loan">Loan</SelectItem>
                 <SelectItem value="mortgage">Mortgage</SelectItem>
                 <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="liability-category">Category</Label>
+            <Select
+              value={newLiability.category}
+              onValueChange={(value: LiabilityCategory) => setNewLiability({ ...newLiability, category: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {liabilityCategoryGroups[newLiability.type].map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category.split("_").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

@@ -8,13 +8,13 @@ import { AddLiabilityDialog } from "@/components/assets-liabilities/AddLiability
 
 export default function AssetsLiabilities() {
   const [assets, setAssets] = useState<Asset[]>([
-    { id: "1", name: "Savings Account", value: 25000, type: "cash" },
-    { id: "2", name: "Investment Portfolio", value: 50000, type: "investment" },
+    { id: "1", name: "Savings Account", value: 25000, type: "cash", category: "savings_account" },
+    { id: "2", name: "Investment Portfolio", value: 50000, type: "investment", category: "stocks" },
   ])
 
   const [liabilities, setLiabilities] = useState<Liability[]>([
-    { id: "1", name: "Credit Card", amount: 2500, type: "credit" },
-    { id: "2", name: "Car Loan", amount: 15000, type: "loan" },
+    { id: "1", name: "Credit Card", amount: 2500, type: "credit", category: "credit_card" },
+    { id: "2", name: "Car Loan", amount: 15000, type: "loan", category: "auto_loan" },
   ])
 
   const totalAssets = assets.reduce((sum, asset) => sum + asset.value, 0)

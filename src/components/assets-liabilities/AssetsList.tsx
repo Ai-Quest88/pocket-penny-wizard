@@ -6,6 +6,10 @@ interface AssetsListProps {
 }
 
 export function AssetsList({ assets }: AssetsListProps) {
+  const formatCategory = (category: string) => {
+    return category.split("_").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")
+  }
+
   return (
     <div className="grid gap-4">
       {assets.map((asset) => (
@@ -13,7 +17,11 @@ export function AssetsList({ assets }: AssetsListProps) {
           <div className="flex justify-between items-start">
             <div>
               <h3 className="font-medium">{asset.name}</h3>
-              <p className="text-sm text-muted-foreground capitalize">{asset.type}</p>
+              <div className="space-x-2">
+                <span className="text-sm text-muted-foreground capitalize">{asset.type}</span>
+                <span className="text-sm text-muted-foreground">•</span>
+                <span className="text-sm text-muted-foreground">{formatCategory(asset.category)}</span>
+              </div>
             </div>
             <p className="text-lg font-semibold text-green-600">
               ${asset.value.toLocaleString()}
