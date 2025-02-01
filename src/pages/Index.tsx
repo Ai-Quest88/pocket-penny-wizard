@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { PlusCircle } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { AccountManager } from "@/components/AccountManager"
+import { PropertyValueEstimate } from "@/components/PropertyValueEstimate"
 
 const Index = () => {
   const navigate = useNavigate()
@@ -45,8 +46,10 @@ const Index = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <ExpenseChart />
-          <TransactionList />
+          <PropertyValueEstimate />
         </div>
+
+        <TransactionList />
       </div>
     </div>
   )
