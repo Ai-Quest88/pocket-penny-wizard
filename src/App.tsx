@@ -6,6 +6,9 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import { AuthProvider, useAuth } from "./contexts/AuthContext"
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "./components/AppSidebar"
+import { Button } from "@/components/ui/button"
+import { User, LogOut } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
 import Dashboard from "./pages/Dashboard"
 import Transactions from "./pages/Transactions"
 import Accounts from "./pages/Accounts"
@@ -30,6 +33,35 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>
 }
 
+const UserMenu = () => {
+  const { logout } = useAuth()
+  const { toast } = useToast()
+  
+  const handleLogout = () => {
+    logout()
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out",
+    })
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <Button variant="ghost" size="icon">
+        <User className="h-5 w-5" />
+      </Button>
+      <Button 
+        variant="ghost" 
+        size="icon"
+        onClick={handleLogout}
+        className="text-muted-foreground hover:text-foreground"
+      >
+        <LogOut className="h-5 w-5" />
+      </Button>
+    </div>
+  )
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -39,7 +71,6 @@ const App = () => (
         <BrowserRouter>
           <SidebarProvider>
             <div className="min-h-screen flex w-full">
-              {/* Only show sidebar if authenticated */}
               <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route
@@ -49,7 +80,10 @@ const App = () => (
                       <>
                         <AppSidebar />
                         <main className="flex-1">
-                          <SidebarTrigger className="m-4" />
+                          <div className="flex justify-between items-center p-4">
+                            <SidebarTrigger />
+                            <UserMenu />
+                          </div>
                           <Routes>
                             <Route path="/" element={<Dashboard />} />
                             <Route path="/transactions" element={<Transactions />} />
