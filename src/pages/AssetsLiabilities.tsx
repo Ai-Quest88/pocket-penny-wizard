@@ -13,10 +13,10 @@ const generateHistoricalData = (startValue: number, variance: number = 0.1) => {
     const date = new Date()
     date.setMonth(date.getMonth() - (11 - i))
     const randomChange = (Math.random() - 0.5) * 2 * variance
-    const value = startValue * (1 + randomChange)
+    const value = Math.round(startValue * (1 + randomChange))
     return {
       date: date.toISOString(),
-      value: Math.round(value)
+      value: value
     }
   })
 }
@@ -25,6 +25,7 @@ export default function AssetsLiabilities() {
   const [assets, setAssets] = useState<Asset[]>([
     {
       id: "1",
+      entityId: "default",
       name: "Savings Account",
       value: 25000,
       type: "cash",
@@ -33,6 +34,7 @@ export default function AssetsLiabilities() {
     },
     {
       id: "2",
+      entityId: "default",
       name: "Investment Portfolio",
       value: 50000,
       type: "investment",
@@ -44,6 +46,7 @@ export default function AssetsLiabilities() {
   const [liabilities, setLiabilities] = useState<Liability[]>([
     {
       id: "1",
+      entityId: "default",
       name: "Credit Card",
       amount: 2500,
       type: "credit",
@@ -52,6 +55,7 @@ export default function AssetsLiabilities() {
     },
     {
       id: "2",
+      entityId: "default",
       name: "Car Loan",
       amount: 15000,
       type: "loan",

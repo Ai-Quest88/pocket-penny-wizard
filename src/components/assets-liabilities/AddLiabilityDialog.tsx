@@ -34,6 +34,7 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
     amount: 0,
     type: "credit",
     category: "credit_card",
+    entityId: "",
     history: [{ date: new Date().toISOString(), value: 0 }]
   })
 
@@ -66,6 +67,7 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
         amount: 0,
         type: "credit",
         category: "credit_card",
+        entityId: "",
         history: [{ date: new Date().toISOString(), value: 0 }]
       })
       setSelectedEntityId("")

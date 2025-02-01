@@ -25,13 +25,6 @@ interface AddAssetDialogProps {
   onAddAsset: (asset: Omit<Asset, "id">) => void
 }
 
-interface PropertyAddress {
-  street: string
-  city: string
-  state: string
-  zipCode: string
-}
-
 export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
   const { toast } = useToast()
   const [entities, setEntities] = useState<(FamilyMember | BusinessEntity)[]>([])
@@ -41,6 +34,7 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
     value: 0,
     type: "cash",
     category: "savings_account",
+    entityId: "",
     history: [{ date: new Date().toISOString(), value: 0 }]
   })
 
@@ -73,6 +67,7 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
         value: 0,
         type: "cash",
         category: "savings_account",
+        entityId: "",
         history: [{ date: new Date().toISOString(), value: 0 }]
       })
       setSelectedEntityId("")
