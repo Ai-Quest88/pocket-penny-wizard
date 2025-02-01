@@ -1,4 +1,3 @@
-import { DashboardCard } from "@/components/DashboardCard"
 import { TransactionList } from "@/components/TransactionList"
 import { SpendingTrendChart } from "@/components/SpendingTrendChart"
 import { NetWorthWidget } from "@/components/NetWorthWidget"
@@ -16,24 +15,6 @@ const Dashboard = () => {
         </header>
 
         <NetWorthWidget />
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <DashboardCard
-            title="Total Balance"
-            value="$5,240.50"
-            trend={{ value: 12, isPositive: true }}
-          />
-          <DashboardCard
-            title="Monthly Income"
-            value="$3,850.00"
-            trend={{ value: 8, isPositive: true }}
-          />
-          <DashboardCard
-            title="Monthly Expenses"
-            value="$2,120.30"
-            trend={{ value: 5, isPositive: false }}
-          />
-        </div>
 
         <Card className="p-6">
           <Tabs defaultValue="transactions" className="space-y-4">
