@@ -4,6 +4,7 @@ import { CategoryComparisonChart } from "@/components/CategoryComparisonChart"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { IncomeExpenseAnalysis } from "@/components/budgets/IncomeExpenseAnalysis"
 import { SmartInsights } from "@/components/insights/SmartInsights"
+import { FinancialAdvisorChat } from "@/components/insights/FinancialAdvisorChat"
 
 const Analytics = () => {
   return (
@@ -14,7 +15,14 @@ const Analytics = () => {
           <p className="text-text-muted">Track and analyze your financial patterns</p>
         </header>
 
-        <SmartInsights />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
+            <SmartInsights />
+          </div>
+          <div className="lg:col-span-1">
+            <FinancialAdvisorChat />
+          </div>
+        </div>
 
         <Tabs defaultValue="spending" className="space-y-4">
           <TabsList>
