@@ -7,7 +7,6 @@ import { AddAssetDialog } from "@/components/assets-liabilities/AddAssetDialog"
 import { AddLiabilityDialog } from "@/components/assets-liabilities/AddLiabilityDialog"
 import { HistoricalValueChart } from "@/components/assets-liabilities/HistoricalValueChart"
 
-// Helper to generate past 12 months of sample data
 const generateHistoricalData = (startValue: number, variance: number = 0.1) => {
   return Array.from({ length: 12 }, (_, i) => {
     const date = new Date()
@@ -95,7 +94,7 @@ export default function AssetsLiabilities() {
   })) || []
 
   return (
-    <div className="p-8">
+    <div className="container p-8">
       <div className="max-w-7xl mx-auto space-y-12">
         <header className="flex justify-between items-center">
           <div className="space-y-2">
@@ -110,14 +109,14 @@ export default function AssetsLiabilities() {
           netWorth={netWorth}
         />
 
-        <div className="w-full">
+        <div className="w-full h-[400px] mb-12">
           <HistoricalValueChart
             assetHistory={combinedAssetHistory}
             liabilityHistory={combinedLiabilityHistory}
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-8">
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-semibold">Assets</h2>
