@@ -4,6 +4,7 @@ export interface Asset {
   value: number
   type: "cash" | "investment" | "property" | "vehicle" | "other"
   category: AssetCategory
+  history: ValueHistory[]
 }
 
 export interface Liability {
@@ -12,6 +13,12 @@ export interface Liability {
   amount: number
   type: "credit" | "loan" | "mortgage" | "other"
   category: LiabilityCategory
+  history: ValueHistory[]
+}
+
+export interface ValueHistory {
+  date: string // ISO date string
+  value: number
 }
 
 export type AssetCategory =
