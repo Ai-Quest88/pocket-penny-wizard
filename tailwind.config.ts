@@ -53,6 +53,10 @@ export default {
           foreground: "#1A1F2C",
         },
       },
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+        'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
+      },
       borderRadius: {
         lg: "0.625rem",
         md: "0.5rem",
@@ -78,4 +82,4 @@ export default {
     },
   },
   plugins: [require("tailwindcss-animate")],
-} satisfies Config;
+} satisfies Config

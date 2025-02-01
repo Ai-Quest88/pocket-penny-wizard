@@ -105,45 +105,54 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <SidebarProvider>
-            <div className="min-h-screen flex w-full">
-              <Routes>
-                <Route path="/login" element={<Login />} />
-                <Route
-                  path="/*"
-                  element={
-                    <ProtectedRoute>
-                      <>
-                        <AppSidebar />
-                        <main className="flex-1">
-                          <div className="flex justify-between items-center p-4">
-                            <SidebarTrigger />
-                            <UserMenu />
-                          </div>
-                          <Routes>
-                            <Route path="/" element={<Dashboard />} />
-                            <Route path="/transactions" element={<Transactions />} />
-                            <Route path="/analytics" element={<Analytics />} />
-                            <Route path="/accounts" element={<Accounts />} />
-                            <Route path="/assets-liabilities" element={<AssetsLiabilities />} />
-                            <Route path="/budgets" element={<Budgets />} />
-                            <Route path="/reports" element={<Reports />} />
-                            <Route path="/notifications" element={<Notifications />} />
-                            <Route path="/settings" element={<Settings />} />
-                            <Route path="*" element={<NotFound />} />
-                          </Routes>
-                        </main>
-                      </>
-                    </ProtectedRoute>
-                  }
-                />
-              </Routes>
-            </div>
-          </SidebarProvider>
-        </BrowserRouter>
+        <div className="relative min-h-screen bg-gradient-to-br from-background to-background-muted">
+          <div 
+            className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1488590528505-98d2b5aba04b')] bg-cover bg-center opacity-5 pointer-events-none"
+            style={{ mixBlendMode: 'overlay' }}
+          />
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <SidebarProvider>
+              <div className="relative min-h-screen flex w-full">
+                <Routes>
+                  <Route path="/login" element={<Login />} />
+                  <Route
+                    path="/*"
+                    element={
+                      <ProtectedRoute>
+                        <>
+                          <AppSidebar />
+                          <main className="flex-1 relative">
+                            <div className="flex justify-between items-center p-4 bg-card/50 backdrop-blur-sm">
+                              <div className="flex items-center gap-4">
+                                <SidebarTrigger />
+                                <img src="/logo.png" alt="PennyWise" className="h-8" />
+                              </div>
+                              <UserMenu />
+                            </div>
+                            <Routes>
+                              <Route path="/" element={<Dashboard />} />
+                              <Route path="/transactions" element={<Transactions />} />
+                              <Route path="/analytics" element={<Analytics />} />
+                              <Route path="/accounts" element={<Accounts />} />
+                              <Route path="/assets-liabilities" element={<AssetsLiabilities />} />
+                              <Route path="/budgets" element={<Budgets />} />
+                              <Route path="/reports" element={<Reports />} />
+                              <Route path="/notifications" element={<Notifications />} />
+                              <Route path="/settings" element={<Settings />} />
+                              <Route path="*" element={<NotFound />} />
+                            </Routes>
+                          </main>
+                        </>
+                      </ProtectedRoute>
+                    }
+                  />
+                </Routes>
+              </div>
+            </SidebarProvider>
+          </BrowserRouter>
+        </div>
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
