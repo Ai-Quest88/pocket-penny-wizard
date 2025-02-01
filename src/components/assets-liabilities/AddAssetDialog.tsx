@@ -19,6 +19,7 @@ import { Plus } from "lucide-react"
 import { useState, useEffect } from "react"
 import { Asset, AssetCategory, assetCategoryGroups } from "@/types/assets-liabilities"
 import { useToast } from "@/components/ui/use-toast"
+import { FamilyMember, BusinessEntity } from "@/types/entities"
 
 interface AddAssetDialogProps {
   onAddAsset: (asset: Omit<Asset, "id">) => void
@@ -33,6 +34,8 @@ interface PropertyAddress {
 
 export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
   const { toast } = useToast()
+  const [entities, setEntities] = useState<(FamilyMember | BusinessEntity)[]>([])
+  const [selectedEntityId, setSelectedEntityId] = useState<string>("")
   const [newAsset, setNewAsset] = useState<Omit<Asset, "id">>({
     name: "",
     value: 0,
@@ -41,30 +44,30 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
     history: [{ date: new Date().toISOString(), value: 0 }]
   })
 
-  const [propertyAddress, setPropertyAddress] = useState<PropertyAddress>({
-    street: "",
-    city: "",
-    state: "",
-    zipCode: ""
-  })
-
-  // Update category when type changes
   useEffect(() => {
-    const categories = assetCategoryGroups[newAsset.type]
-    setNewAsset(prev => ({
-      ...prev,
-      category: categories[0] as AssetCategory
-    }))
-  }, [newAsset.type])
+    const savedEntities = localStorage.getItem('entities')
+    if (savedEntities) {
+      setEntities(JSON.parse(savedEntities))
+    }
+  }, [])
 
   const handleAddAsset = () => {
+    if (!selectedEntityId) {
+      toast({
+        title: "Error",
+        description: "Please select an entity",
+        variant: "destructive"
+      })
+      return
+    }
+
     if (newAsset.name && newAsset.value > 0) {
-      const assetWithHistory = {
+      const assetWithEntity = {
         ...newAsset,
-        history: [{ date: new Date().toISOString(), value: newAsset.value }],
-        ...(newAsset.type === "property" && { address: propertyAddress })
+        entityId: selectedEntityId,
+        history: [{ date: new Date().toISOString(), value: newAsset.value }]
       }
-      onAddAsset(assetWithHistory)
+      onAddAsset(assetWithEntity)
       setNewAsset({
         name: "",
         value: 0,
@@ -72,12 +75,7 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
         category: "savings_account",
         history: [{ date: new Date().toISOString(), value: 0 }]
       })
-      setPropertyAddress({
-        street: "",
-        city: "",
-        state: "",
-        zipCode: ""
-      })
+      setSelectedEntityId("")
       toast({
         title: "Asset Added",
         description: "Your new asset has been added successfully.",
@@ -99,6 +97,25 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
+            <Label htmlFor="entity">Entity</Label>
+            <Select
+              value={selectedEntityId}
+              onValueChange={setSelectedEntityId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select entity" />
+              </SelectTrigger>
+              <SelectContent>
+                {entities.map((entity) => (
+                  <SelectItem key={entity.id} value={entity.id}>
+                    {entity.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="asset-name">Asset Name</Label>
             <Input
               id="asset-name"
@@ -107,6 +124,7 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
               placeholder="e.g., Savings Account"
             />
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="asset-value">Value</Label>
             <Input
@@ -117,6 +135,7 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
               placeholder="0.00"
             />
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="asset-type">Type</Label>
             <Select
@@ -135,6 +154,7 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
               </SelectContent>
             </Select>
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="asset-category">Category</Label>
             <Select
@@ -153,48 +173,6 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
               </SelectContent>
             </Select>
           </div>
-
-          {newAsset.type === "property" && (
-            <div className="space-y-4 border-t pt-4">
-              <h3 className="font-medium">Property Address</h3>
-              <div className="space-y-2">
-                <Label htmlFor="street">Street Address</Label>
-                <Input
-                  id="street"
-                  value={propertyAddress.street}
-                  onChange={(e) => setPropertyAddress({ ...propertyAddress, street: e.target.value })}
-                  placeholder="123 Main St"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
-                  value={propertyAddress.city}
-                  onChange={(e) => setPropertyAddress({ ...propertyAddress, city: e.target.value })}
-                  placeholder="City"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="state">State</Label>
-                <Input
-                  id="state"
-                  value={propertyAddress.state}
-                  onChange={(e) => setPropertyAddress({ ...propertyAddress, state: e.target.value })}
-                  placeholder="State"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="zipCode">ZIP Code</Label>
-                <Input
-                  id="zipCode"
-                  value={propertyAddress.zipCode}
-                  onChange={(e) => setPropertyAddress({ ...propertyAddress, zipCode: e.target.value })}
-                  placeholder="ZIP Code"
-                />
-              </div>
-            </div>
-          )}
           
           <Button onClick={handleAddAsset} className="w-full">Add Asset</Button>
         </div>

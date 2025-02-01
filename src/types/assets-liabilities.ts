@@ -1,94 +1,66 @@
-export interface Asset {
-  id: string
-  name: string
-  value: number
-  type: "cash" | "investment" | "property" | "vehicle" | "other"
-  category: AssetCategory
-  history: ValueHistory[]
-  address?: {
-    street: string
-    city: string
-    state: string
-    zipCode: string
-  }
-}
-
-export interface Liability {
-  id: string
-  name: string
-  amount: number
-  type: "credit" | "loan" | "mortgage" | "other"
-  category: LiabilityCategory
-  history: ValueHistory[]
-}
-
-export interface ValueHistory {
-  date: string // ISO date string
-  value: number
-}
+export type AssetType = "cash" | "investment" | "property" | "vehicle" | "other";
+export type LiabilityType = "credit" | "loan" | "mortgage" | "other";
 
 export type AssetCategory =
-  // Cash & Bank
   | "savings_account"
   | "checking_account"
   | "term_deposit"
-  | "emergency_fund"
-  // Investments
   | "stocks"
   | "bonds"
   | "mutual_funds"
-  | "etfs"
-  | "cryptocurrency"
-  | "retirement_account"
-  // Property
-  | "primary_residence"
-  | "investment_property"
-  | "vacation_home"
+  | "residential"
+  | "commercial"
   | "land"
-  // Vehicles
   | "car"
   | "motorcycle"
   | "boat"
-  | "rv"
-  // Other
-  | "jewelry"
-  | "art"
-  | "collectibles"
-  | "business_ownership"
-  | "other"
+  | "other_asset";
 
 export type LiabilityCategory =
-  // Credit
   | "credit_card"
-  | "store_card"
-  | "charge_card"
-  // Loans
   | "personal_loan"
   | "student_loan"
   | "auto_loan"
-  | "business_loan"
-  // Mortgages
-  | "primary_mortgage"
-  | "investment_property_loan"
-  | "heloc"
-  | "reverse_mortgage"
-  // Other
-  | "medical_debt"
-  | "tax_debt"
-  | "family_loan"
-  | "other"
+  | "home_loan"
+  | "investment_loan"
+  | "other_liability";
 
-export const assetCategoryGroups = {
-  cash: ["savings_account", "checking_account", "term_deposit", "emergency_fund"],
-  investment: ["stocks", "bonds", "mutual_funds", "etfs", "cryptocurrency", "retirement_account"],
-  property: ["primary_residence", "investment_property", "vacation_home", "land"],
-  vehicle: ["car", "motorcycle", "boat", "rv"],
-  other: ["jewelry", "art", "collectibles", "business_ownership", "other"]
-} as const
+export const assetCategoryGroups: Record<AssetType, AssetCategory[]> = {
+  cash: ["savings_account", "checking_account", "term_deposit"],
+  investment: ["stocks", "bonds", "mutual_funds"],
+  property: ["residential", "commercial", "land"],
+  vehicle: ["car", "motorcycle", "boat"],
+  other: ["other_asset"],
+};
 
-export const liabilityCategoryGroups = {
-  credit: ["credit_card", "store_card", "charge_card"],
-  loan: ["personal_loan", "student_loan", "auto_loan", "business_loan"],
-  mortgage: ["primary_mortgage", "investment_property_loan", "heloc", "reverse_mortgage"],
-  other: ["medical_debt", "tax_debt", "family_loan", "other"]
-} as const
+export const liabilityCategoryGroups: Record<LiabilityType, LiabilityCategory[]> = {
+  credit: ["credit_card"],
+  loan: ["personal_loan", "student_loan", "auto_loan"],
+  mortgage: ["home_loan", "investment_loan"],
+  other: ["other_liability"],
+};
+
+export interface HistoricalValue {
+  date: string;
+  value: number;
+}
+
+export interface Asset {
+  id: string;
+  entityId: string;
+  name: string;
+  value: number;
+  type: AssetType;
+  category: AssetCategory;
+  history: HistoricalValue[];
+}
+
+export interface Liability {
+  id: string;
+  entityId: string;
+  name: string;
+  amount: number;
+  type: LiabilityType;
+  category: LiabilityCategory;
+  history: HistoricalValue[];
+}

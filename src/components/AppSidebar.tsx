@@ -9,35 +9,11 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
-  SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
 import { Link, useLocation } from "react-router-dom"
 import { useEffect, useState } from "react"
 import { FamilyMember, BusinessEntity } from "@/types/entities"
-
-const staticMenuItems = [
-  {
-    title: "Dashboard",
-    url: "/",
-    icon: Home,
-  },
-  {
-    title: "Analytics",
-    url: "/analytics",
-    icon: BarChart2,
-  },
-  {
-    title: "Entities",
-    url: "/entities",
-    icon: Users,
-  },
-  {
-    title: "Settings",
-    url: "/settings",
-    icon: Settings,
-  },
-]
 
 export function AppSidebar() {
   const location = useLocation()
@@ -68,71 +44,96 @@ export function AppSidebar() {
           <SidebarGroupLabel>Menu</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {staticMenuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <Link 
-                      to={item.url}
-                      className="flex items-center gap-2"
-                      data-active={location.pathname === item.url}
-                    >
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                  {item.title === "Entities" && entities.length > 0 && (
-                    <SidebarMenuSub>
-                      <div>
-                        <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                          Entities Added
-                        </div>
-                        {entities.map((entity) => (
-                          <SidebarMenuSubItem key={entity.id}>
-                            <div className="px-2 py-1.5 text-sm">
-                              {entity.name}
-                            </div>
-                            <SidebarMenuSub>
-                              <SidebarMenuSubItem>
-                                <SidebarMenuSubButton
-                                  asChild
-                                  isActive={location.pathname === '/assets-liabilities'}
-                                >
-                                  <Link to="/assets-liabilities" className="flex items-center gap-2">
-                                    <Wallet className="h-4 w-4" />
-                                    <span>Asset</span>
-                                  </Link>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                              <SidebarMenuSubItem>
-                                <SidebarMenuSubButton
-                                  asChild
-                                  isActive={location.pathname === '/assets-liabilities'}
-                                >
-                                  <Link to="/assets-liabilities" className="flex items-center gap-2">
-                                    <CreditCard className="h-4 w-4" />
-                                    <span>Liability</span>
-                                  </Link>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                              <SidebarMenuSubItem>
-                                <SidebarMenuSubButton
-                                  asChild
-                                  isActive={location.pathname === '/budgets'}
-                                >
-                                  <Link to="/budgets" className="flex items-center gap-2">
-                                    <DollarSign className="h-4 w-4" />
-                                    <span>Budget</span>
-                                  </Link>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            </SidebarMenuSub>
-                          </SidebarMenuSubItem>
-                        ))}
-                      </div>
-                    </SidebarMenuSub>
-                  )}
-                </SidebarMenuItem>
-              ))}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link 
+                    to="/"
+                    className="flex items-center gap-2"
+                    data-active={location.pathname === "/"}
+                  >
+                    <Home className="h-4 w-4" />
+                    <span>Dashboard</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link 
+                    to="/analytics"
+                    className="flex items-center gap-2"
+                    data-active={location.pathname === "/analytics"}
+                  >
+                    <BarChart2 className="h-4 w-4" />
+                    <span>Analytics</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link 
+                    to="/entities"
+                    className="flex items-center gap-2"
+                    data-active={location.pathname === "/entities"}
+                  >
+                    <Users className="h-4 w-4" />
+                    <span>Entities</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link 
+                    to="/assets-liabilities"
+                    className="flex items-center gap-2"
+                    data-active={location.pathname === "/assets-liabilities"}
+                  >
+                    <Wallet className="h-4 w-4" />
+                    <span>Assets</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link 
+                    to="/assets-liabilities"
+                    className="flex items-center gap-2"
+                    data-active={location.pathname === "/assets-liabilities"}
+                  >
+                    <CreditCard className="h-4 w-4" />
+                    <span>Liabilities</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link 
+                    to="/budgets"
+                    className="flex items-center gap-2"
+                    data-active={location.pathname === "/budgets"}
+                  >
+                    <DollarSign className="h-4 w-4" />
+                    <span>Budgets</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link 
+                    to="/settings"
+                    className="flex items-center gap-2"
+                    data-active={location.pathname === "/settings"}
+                  >
+                    <Settings className="h-4 w-4" />
+                    <span>Settings</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

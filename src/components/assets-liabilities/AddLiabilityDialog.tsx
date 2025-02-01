@@ -19,6 +19,7 @@ import { Plus } from "lucide-react"
 import { useState, useEffect } from "react"
 import { Liability, LiabilityCategory, liabilityCategoryGroups } from "@/types/assets-liabilities"
 import { useToast } from "@/components/ui/use-toast"
+import { FamilyMember, BusinessEntity } from "@/types/entities"
 
 interface AddLiabilityDialogProps {
   onAddLiability: (liability: Omit<Liability, "id">) => void
@@ -26,6 +27,8 @@ interface AddLiabilityDialogProps {
 
 export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) {
   const { toast } = useToast()
+  const [entities, setEntities] = useState<(FamilyMember | BusinessEntity)[]>([])
+  const [selectedEntityId, setSelectedEntityId] = useState<string>("")
   const [newLiability, setNewLiability] = useState<Omit<Liability, "id">>({
     name: "",
     amount: 0,
@@ -34,22 +37,30 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
     history: [{ date: new Date().toISOString(), value: 0 }]
   })
 
-  // Update category when type changes
   useEffect(() => {
-    const categories = liabilityCategoryGroups[newLiability.type]
-    setNewLiability(prev => ({
-      ...prev,
-      category: categories[0] as LiabilityCategory
-    }))
-  }, [newLiability.type])
+    const savedEntities = localStorage.getItem('entities')
+    if (savedEntities) {
+      setEntities(JSON.parse(savedEntities))
+    }
+  }, [])
 
   const handleAddLiability = () => {
+    if (!selectedEntityId) {
+      toast({
+        title: "Error",
+        description: "Please select an entity",
+        variant: "destructive"
+      })
+      return
+    }
+
     if (newLiability.name && newLiability.amount > 0) {
-      const liabilityWithHistory = {
+      const liabilityWithEntity = {
         ...newLiability,
+        entityId: selectedEntityId,
         history: [{ date: new Date().toISOString(), value: newLiability.amount }]
       }
-      onAddLiability(liabilityWithHistory)
+      onAddLiability(liabilityWithEntity)
       setNewLiability({
         name: "",
         amount: 0,
@@ -57,6 +68,7 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
         category: "credit_card",
         history: [{ date: new Date().toISOString(), value: 0 }]
       })
+      setSelectedEntityId("")
       toast({
         title: "Liability Added",
         description: "Your new liability has been added successfully.",
@@ -78,6 +90,25 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
+            <Label htmlFor="entity">Entity</Label>
+            <Select
+              value={selectedEntityId}
+              onValueChange={setSelectedEntityId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select entity" />
+              </SelectTrigger>
+              <SelectContent>
+                {entities.map((entity) => (
+                  <SelectItem key={entity.id} value={entity.id}>
+                    {entity.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="liability-name">Liability Name</Label>
             <Input
               id="liability-name"
@@ -86,6 +117,7 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
               placeholder="e.g., Credit Card"
             />
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="liability-amount">Amount</Label>
             <Input
@@ -96,6 +128,7 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
               placeholder="0.00"
             />
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="liability-type">Type</Label>
             <Select
@@ -113,6 +146,7 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
               </SelectContent>
             </Select>
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="liability-category">Category</Label>
             <Select
@@ -131,6 +165,7 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
               </SelectContent>
             </Select>
           </div>
+          
           <Button onClick={handleAddLiability} className="w-full">Add Liability</Button>
         </div>
       </DialogContent>
