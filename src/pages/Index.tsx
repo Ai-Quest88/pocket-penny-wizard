@@ -4,6 +4,7 @@ import { TransactionList } from "@/components/TransactionList";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { AccountManager } from "@/components/AccountManager";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -21,6 +22,8 @@ const Index = () => {
             Add Transaction
           </Button>
         </header>
+
+        <AccountManager />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <DashboardCard
