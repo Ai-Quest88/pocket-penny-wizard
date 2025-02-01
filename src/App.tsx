@@ -11,6 +11,7 @@ import Transactions from "./pages/Transactions"
 import Accounts from "./pages/Accounts"
 import Analytics from "./pages/Analytics"
 import Budgets from "./pages/Budgets"
+import Settings from "./pages/Settings"
 import NotFound from "./pages/NotFound"
 import Login from "./pages/Login"
 
@@ -86,7 +87,7 @@ const App = () => (
                     path="/settings"
                     element={
                       <ProtectedRoute>
-                        <div className="p-8">Settings Page (Coming Soon)</div>
+                        <Settings />
                       </ProtectedRoute>
                     }
                   />
