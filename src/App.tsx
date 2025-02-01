@@ -130,7 +130,7 @@ const App = () => (
                                 <img 
                                   src="/logo.svg" 
                                   alt="PennyWise" 
-                                  className="h-8 dark:invert"
+                                  className="h-8 w-auto dark:invert"
                                 />
                               </div>
                               <UserMenu />
