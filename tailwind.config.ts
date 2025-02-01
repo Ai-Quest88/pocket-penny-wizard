@@ -53,6 +53,7 @@ export default {
           foreground: "#1A1F2C",
         },
       },
+      
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
@@ -71,10 +72,20 @@ export default {
           "0%": { transform: "translateX(-100%)" },
           "100%": { transform: "translateX(0)" },
         },
+        spin: {
+          "0%": { transform: "rotate(0deg)" },
+          "100%": { transform: "rotate(360deg)" },
+        },
+        pulse: {
+          "0%, 100%": { opacity: "1", transform: "scale(1)" },
+          "50%": { opacity: "0.5", transform: "scale(1.1)" },
+        },
       },
       animation: {
         fadeIn: "fadeIn 0.5s ease-out",
         slideIn: "slideIn 0.3s ease-out",
+        spin: "spin 3s linear infinite",
+        pulse: "pulse 3s ease-in-out infinite",
       },
       boxShadow: {
         card: "0px 4px 20px rgba(0, 0, 0, 0.05)",
