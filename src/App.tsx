@@ -7,7 +7,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext"
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "./components/AppSidebar"
 import { Button } from "@/components/ui/button"
-import { User, LogOut, Settings, Bell, HelpCircle } from "lucide-react"
+import { User, LogOut, Settings as SettingsIcon, Bell, HelpCircle } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import {
   DropdownMenu,
@@ -82,7 +82,7 @@ const UserMenu = () => {
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuItem onClick={() => navigate('/settings')}>
-              <Settings className="mr-2 h-4 w-4" />
+              <SettingsIcon className="mr-2 h-4 w-4" />
               <span>Settings</span>
             </DropdownMenuItem>
             <DropdownMenuItem>
