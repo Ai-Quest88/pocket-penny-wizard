@@ -3,6 +3,7 @@ import { ExpenseChart } from "@/components/ExpenseChart"
 import { TransactionList } from "@/components/TransactionList"
 import { SpendingTrendChart } from "@/components/SpendingTrendChart"
 import { CategoryComparisonChart } from "@/components/CategoryComparisonChart"
+import { NetWorthWidget } from "@/components/NetWorthWidget"
 
 const Dashboard = () => {
   return (
@@ -32,6 +33,11 @@ const Dashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <NetWorthWidget />
+          <TransactionList />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-semibold mb-4">Spending Trend</h3>
             <SpendingTrendChart />
@@ -40,11 +46,6 @@ const Dashboard = () => {
             <h3 className="text-lg font-semibold mb-4">Category Comparison</h3>
             <CategoryComparisonChart />
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ExpenseChart />
-          <TransactionList />
         </div>
       </div>
     </div>
