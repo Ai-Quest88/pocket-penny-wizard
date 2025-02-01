@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select"
 
 // Sample data - in a real app, this would come from your backend
-const monthlyData = [
+export const monthlyData = [
   {
     month: "Jan",
     income: 5000,

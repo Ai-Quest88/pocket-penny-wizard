@@ -46,16 +46,18 @@ const generateInsights = (data: typeof monthlyData): Insight[] => {
     // Category analysis
     Object.entries(currentMonth.categories).forEach(([category, amount]) => {
       const previousAmount = previousMonth.categories[category]
-      const categoryDiff = amount - previousAmount
-      const categoryChangePercent = (categoryDiff / previousAmount) * 100
-      
-      if (Math.abs(categoryChangePercent) > 10) {
-        insights.push({
-          id: `category-${category}-${i}`,
-          title: `${category} Spending Change`,
-          description: `Spending in ${category} has ${categoryDiff > 0 ? "increased" : "decreased"} by ${Math.abs(categoryChangePercent).toFixed(1)}%`,
-          type: categoryDiff > 0 ? "negative" : "positive"
-        })
+      if (typeof amount === 'number' && typeof previousAmount === 'number') {
+        const categoryDiff = amount - previousAmount
+        const categoryChangePercent = (categoryDiff / previousAmount) * 100
+        
+        if (Math.abs(categoryChangePercent) > 10) {
+          insights.push({
+            id: `category-${category}-${i}`,
+            title: `${category} Spending Change`,
+            description: `Spending in ${category} has ${categoryDiff > 0 ? "increased" : "decreased"} by ${Math.abs(categoryChangePercent).toFixed(1)}%`,
+            type: categoryDiff > 0 ? "negative" : "positive"
+          })
+        }
       }
     })
   }
@@ -99,10 +101,10 @@ export const SmartInsights = () => {
             key={insight.id}
             className={`p-4 border-l-4 ${
               insight.type === "positive"
-                ? "border-l-green-500 bg-green-50"
+                ? "border-l-green-500 bg-green-50/50"
                 : insight.type === "negative"
-                ? "border-l-red-500 bg-red-50"
-                : "border-l-blue-500 bg-blue-50"
+                ? "border-l-red-500 bg-red-50/50"
+                : "border-l-blue-500 bg-blue-50/50"
             }`}
           >
             <h3 className="font-semibold mb-1">{insight.title}</h3>
