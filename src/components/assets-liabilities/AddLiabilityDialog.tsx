@@ -30,7 +30,8 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
     name: "",
     amount: 0,
     type: "credit",
-    category: "credit_card"
+    category: "credit_card",
+    history: [{ date: new Date().toISOString(), value: 0 }]
   })
 
   // Update category when type changes
@@ -44,8 +45,18 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
 
   const handleAddLiability = () => {
     if (newLiability.name && newLiability.amount > 0) {
-      onAddLiability(newLiability)
-      setNewLiability({ name: "", amount: 0, type: "credit", category: "credit_card" })
+      const liabilityWithHistory = {
+        ...newLiability,
+        history: [{ date: new Date().toISOString(), value: newLiability.amount }]
+      }
+      onAddLiability(liabilityWithHistory)
+      setNewLiability({
+        name: "",
+        amount: 0,
+        type: "credit",
+        category: "credit_card",
+        history: [{ date: new Date().toISOString(), value: 0 }]
+      })
       toast({
         title: "Liability Added",
         description: "Your new liability has been added successfully.",

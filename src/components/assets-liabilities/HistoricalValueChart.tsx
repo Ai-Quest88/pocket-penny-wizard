@@ -56,9 +56,7 @@ export function HistoricalValueChart({ assetHistory, liabilityHistory }: Histori
             <YAxis
               tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
             />
-            <ChartTooltip>
-              <ChartTooltipContent />
-            </ChartTooltip>
+            <ChartTooltip content={<ChartTooltipContent />} />
             <Area
               type="monotone"
               dataKey="assets"

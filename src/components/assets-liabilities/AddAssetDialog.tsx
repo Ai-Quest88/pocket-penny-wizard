@@ -30,7 +30,8 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
     name: "",
     value: 0,
     type: "cash",
-    category: "savings_account"
+    category: "savings_account",
+    history: [{ date: new Date().toISOString(), value: 0 }]
   })
 
   // Update category when type changes
@@ -44,8 +45,18 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
 
   const handleAddAsset = () => {
     if (newAsset.name && newAsset.value > 0) {
-      onAddAsset(newAsset)
-      setNewAsset({ name: "", value: 0, type: "cash", category: "savings_account" })
+      const assetWithHistory = {
+        ...newAsset,
+        history: [{ date: new Date().toISOString(), value: newAsset.value }]
+      }
+      onAddAsset(assetWithHistory)
+      setNewAsset({
+        name: "",
+        value: 0,
+        type: "cash",
+        category: "savings_account",
+        history: [{ date: new Date().toISOString(), value: 0 }]
+      })
       toast({
         title: "Asset Added",
         description: "Your new asset has been added successfully.",

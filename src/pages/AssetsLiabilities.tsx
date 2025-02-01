@@ -96,7 +96,7 @@ export default function AssetsLiabilities() {
 
   return (
     <div className="p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-12">
         <header className="flex justify-between items-center">
           <div className="space-y-2">
             <h1 className="text-3xl font-bold">Assets & Liabilities</h1>
@@ -110,10 +110,12 @@ export default function AssetsLiabilities() {
           netWorth={netWorth}
         />
 
-        <HistoricalValueChart
-          assetHistory={combinedAssetHistory}
-          liabilityHistory={combinedLiabilityHistory}
-        />
+        <div className="w-full">
+          <HistoricalValueChart
+            assetHistory={combinedAssetHistory}
+            liabilityHistory={combinedLiabilityHistory}
+          />
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="space-y-6">
