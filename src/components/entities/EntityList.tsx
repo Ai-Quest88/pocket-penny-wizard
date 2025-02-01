@@ -3,13 +3,15 @@ import { FamilyMember, BusinessEntity } from "@/types/entities";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
+import { EditEntityDialog } from "./EditEntityDialog";
 
 interface EntityListProps {
   entities: (FamilyMember | BusinessEntity)[];
   onDeleteEntity: (entityId: string) => void;
+  onEditEntity: (entityId: string, updatedEntity: Omit<FamilyMember | BusinessEntity, "id" | "dateAdded">) => void;
 }
 
-export const EntityList = ({ entities, onDeleteEntity }: EntityListProps) => {
+export const EntityList = ({ entities, onDeleteEntity, onEditEntity }: EntityListProps) => {
   const getEntityIcon = (type: string) => {
     switch (type) {
       case "individual":
@@ -26,9 +28,9 @@ export const EntityList = ({ entities, onDeleteEntity }: EntityListProps) => {
   };
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="space-y-4">
       {entities.map((entity) => (
-        <Card key={entity.id} className="p-6 space-y-4">
+        <Card key={entity.id} className="p-6">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
@@ -37,26 +39,62 @@ export const EntityList = ({ entities, onDeleteEntity }: EntityListProps) => {
               </div>
               <p className="text-sm text-muted-foreground capitalize">{entity.type.replace('_', ' ')}</p>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onDeleteEntity(entity.id)}
-              className="text-red-500 hover:text-red-600 hover:bg-red-50"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <EditEntityDialog entity={entity} onEditEntity={onEditEntity} />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onDeleteEntity(entity.id)}
+                className="text-red-500 hover:text-red-600 hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          <div className="text-sm space-y-2">
-            <p>Country: {entity.countryOfResidence}</p>
-            {entity.type === "individual" && (
-              <p>Relationship: {entity.relationship}</p>
+          <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <p className="font-medium">Country</p>
+              <p className="text-muted-foreground">{entity.countryOfResidence}</p>
+            </div>
+            {entity.type === "individual" ? (
+              <>
+                <div>
+                  <p className="font-medium">Relationship</p>
+                  <p className="text-muted-foreground">{(entity as FamilyMember).relationship || "N/A"}</p>
+                </div>
+                {(entity as FamilyMember).dateOfBirth && (
+                  <div>
+                    <p className="font-medium">Date of Birth</p>
+                    <p className="text-muted-foreground">
+                      {format(new Date((entity as FamilyMember).dateOfBirth!), "MMM d, yyyy")}
+                    </p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div>
+                  <p className="font-medium">Registration Number</p>
+                  <p className="text-muted-foreground">
+                    {(entity as BusinessEntity).registrationNumber || "N/A"}
+                  </p>
+                </div>
+                {(entity as BusinessEntity).incorporationDate && (
+                  <div>
+                    <p className="font-medium">Incorporation Date</p>
+                    <p className="text-muted-foreground">
+                      {format(new Date((entity as BusinessEntity).incorporationDate!), "MMM d, yyyy")}
+                    </p>
+                  </div>
+                )}
+              </>
             )}
-            {(entity.type === "company" || entity.type === "trust" || entity.type === "super_fund") && (
-              <p>Registration: {entity.registrationNumber || "N/A"}</p>
-            )}
-            <p className="text-muted-foreground">
-              Added: {format(new Date(entity.dateAdded), "MMM d, yyyy")}
-            </p>
+            <div>
+              <p className="font-medium">Added</p>
+              <p className="text-muted-foreground">
+                {format(new Date(entity.dateAdded), "MMM d, yyyy")}
+              </p>
+            </div>
           </div>
         </Card>
       ))}
