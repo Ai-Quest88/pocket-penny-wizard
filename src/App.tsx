@@ -6,8 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import { AuthProvider, useAuth } from "./contexts/AuthContext"
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "./components/AppSidebar"
-import Index from "./pages/Index"
-import ImportTransactions from "./pages/ImportTransactions"
+import Transactions from "./pages/Transactions"
 import NotFound from "./pages/NotFound"
 import Login from "./pages/Login"
 
@@ -43,15 +42,7 @@ const App = () => (
                     path="/"
                     element={
                       <ProtectedRoute>
-                        <Index />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/import"
-                    element={
-                      <ProtectedRoute>
-                        <ImportTransactions />
+                        <Transactions />
                       </ProtectedRoute>
                     }
                   />
