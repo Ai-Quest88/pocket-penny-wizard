@@ -10,38 +10,37 @@ interface ChatMessage {
   content: string
 }
 
-// This is a simplified mock of financial advice responses
-// In a real app, this would be connected to an AI service
-const getFinancialAdvice = async (message: string, data: any) => {
+// This is a simplified mock of smart responses
+const getSmartResponse = async (message: string, data: any) => {
   // Mock response based on keywords
   if (message.toLowerCase().includes("debt")) {
-    return `Based on your current financial situation, here are some recommendations for managing your debt:
-1. Consider consolidating your high-interest debts into a single lower-interest loan
-2. Prioritize paying off debts with the highest interest rates first
-3. Create a strict budget to allocate more funds toward debt repayment
-4. Look into balance transfer credit cards with 0% introductory APR`
+    return `Here are some general suggestions about managing expenses:
+1. Consider consolidating multiple payments into a single payment
+2. Create a priority list for your expenses
+3. Set up a monthly budget to track spending
+4. Look for ways to reduce regular expenses`
   }
   
   if (message.toLowerCase().includes("save") || message.toLowerCase().includes("saving")) {
-    return `Looking at your spending patterns, here are ways to increase your savings:
-1. Set up automatic transfers to your savings account
-2. Review and cut unnecessary subscription services
-3. Consider using cash-back credit cards for essential purchases
-4. Look into high-yield savings accounts for better interest rates`
+    return `Here are some general suggestions about saving:
+1. Set up automatic transfers for savings
+2. Review your recurring subscriptions
+3. Look for cashback opportunities on regular purchases
+4. Consider high-interest savings options`
   }
   
-  return `Here are some general financial recommendations:
-1. Maintain an emergency fund of 3-6 months of expenses
-2. Review your investment portfolio regularly
-3. Stay within 30% of your income for housing expenses
-4. Consider increasing your retirement contributions`
+  return `Here are some general financial suggestions:
+1. Track your monthly expenses regularly
+2. Set clear financial goals
+3. Review your spending patterns
+4. Consider setting aside funds for unexpected expenses`
 }
 
-export function FinancialAdvisorChat() {
+export const SmartAssistantChat = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: "assistant",
-      content: "Hello! I'm your financial advisor. Ask me anything about your finances, and I'll provide personalized advice based on your financial data."
+      content: "Hello! I'm your smart assistant. I can help analyze your financial data and provide general suggestions. What would you like to know?"
     }
   ])
   const [input, setInput] = useState("")
@@ -59,12 +58,12 @@ export function FinancialAdvisorChat() {
     setIsLoading(true)
     try {
       // Get AI response
-      const response = await getFinancialAdvice(userMessage, {})
+      const response = await getSmartResponse(userMessage, {})
       
       // Add AI response
       setMessages(prev => [...prev, { role: "assistant", content: response }])
     } catch (error) {
-      console.error("Failed to get financial advice:", error)
+      console.error("Failed to get response:", error)
     } finally {
       setIsLoading(false)
     }
@@ -74,7 +73,7 @@ export function FinancialAdvisorChat() {
     <Card className="p-6 space-y-4">
       <div className="flex items-center gap-2 mb-4">
         <Bot className="h-5 w-5 text-primary" />
-        <h2 className="text-2xl font-semibold">Financial Advisor</h2>
+        <h2 className="text-2xl font-semibold">Smart Assistant</h2>
       </div>
 
       <ScrollArea className="h-[400px] pr-4">
@@ -102,7 +101,7 @@ export function FinancialAdvisorChat() {
 
       <div className="flex gap-2">
         <Input
-          placeholder="Ask about your finances..."
+          placeholder="Ask a question..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
