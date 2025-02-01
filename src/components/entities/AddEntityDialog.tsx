@@ -21,7 +21,7 @@ import { FamilyMember, BusinessEntity, EntityType } from "@/types/entities";
 import { useToast } from "@/components/ui/use-toast";
 
 interface AddEntityDialogProps {
-  onAddEntity: (entity: Omit<FamilyMember | BusinessEntity, "id">) => void;
+  onAddEntity: (entity: Omit<FamilyMember | BusinessEntity, "id" | "dateAdded">) => void;
 }
 
 export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
@@ -60,19 +60,21 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
     };
 
     if (formData.type === "individual") {
-      onAddEntity({
+      const familyMember: Omit<FamilyMember, "id" | "dateAdded"> = {
         ...baseEntity,
         type: "individual",
         relationship: formData.relationship,
         dateOfBirth: formData.dateOfBirth,
-      });
+      };
+      onAddEntity(familyMember);
     } else {
-      onAddEntity({
+      const businessEntity: Omit<BusinessEntity, "id" | "dateAdded"> = {
         ...baseEntity,
         type: formData.type as "company" | "trust" | "super_fund",
         registrationNumber: formData.registrationNumber,
         incorporationDate: formData.incorporationDate,
-      });
+      };
+      onAddEntity(businessEntity);
     }
 
     setFormData({

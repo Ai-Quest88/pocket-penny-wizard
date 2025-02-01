@@ -5,7 +5,7 @@ export interface Entity {
   name: string;
   type: EntityType;
   description?: string;
-  taxIdentifier?: string; // Tax ID, SSN, etc.
+  taxIdentifier?: string;
   countryOfResidence: string;
   dateAdded: string;
 }

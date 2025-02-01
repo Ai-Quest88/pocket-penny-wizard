@@ -8,15 +8,24 @@ import { EntityList } from "./EntityList";
 export const EntityManager = () => {
   const [entities, setEntities] = useState<(FamilyMember | BusinessEntity)[]>([]);
 
-  const handleAddEntity = (newEntity: Omit<FamilyMember | BusinessEntity, "id">) => {
-    setEntities([
-      ...entities,
-      {
-        ...newEntity,
-        id: Date.now().toString(),
-        dateAdded: new Date().toISOString(),
-      },
-    ]);
+  const handleAddEntity = (newEntity: Omit<FamilyMember | BusinessEntity, "id" | "dateAdded">) => {
+    const entityWithMetadata = {
+      ...newEntity,
+      id: Date.now().toString(),
+      dateAdded: new Date().toISOString(),
+    };
+
+    if (newEntity.type === "individual") {
+      setEntities([
+        ...entities,
+        entityWithMetadata as FamilyMember
+      ]);
+    } else {
+      setEntities([
+        ...entities,
+        entityWithMetadata as BusinessEntity
+      ]);
+    }
   };
 
   return (
