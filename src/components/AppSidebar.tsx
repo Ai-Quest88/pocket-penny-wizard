@@ -1,4 +1,4 @@
-import { BarChart2, CreditCard, DollarSign, Home, List, Settings } from "lucide-react"
+import { BarChart2, CreditCard, DollarSign, Home, List, Settings, Wallet } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -31,6 +31,11 @@ const menuItems = [
     title: "Accounts",
     url: "/accounts",
     icon: CreditCard,
+  },
+  {
+    title: "Assets & Liabilities",
+    url: "/assets-liabilities",
+    icon: Wallet,
   },
   {
     title: "Budgets",

@@ -12,6 +12,7 @@ import Accounts from "./pages/Accounts"
 import Analytics from "./pages/Analytics"
 import Budgets from "./pages/Budgets"
 import Settings from "./pages/Settings"
+import AssetsLiabilities from "./pages/AssetsLiabilities"
 import NotFound from "./pages/NotFound"
 import Login from "./pages/Login"
 
@@ -72,6 +73,14 @@ const App = () => (
                     element={
                       <ProtectedRoute>
                         <Accounts />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/assets-liabilities"
+                    element={
+                      <ProtectedRoute>
+                        <AssetsLiabilities />
                       </ProtectedRoute>
                     }
                   />
