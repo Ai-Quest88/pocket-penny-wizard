@@ -4,7 +4,7 @@ import { CategoryComparisonChart } from "@/components/CategoryComparisonChart"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { IncomeExpenseAnalysis } from "@/components/budgets/IncomeExpenseAnalysis"
 import { SmartInsights } from "@/components/insights/SmartInsights"
-import { FinancialAdvisorChat } from "@/components/insights/FinancialAdvisorChat"
+import { SmartAssistantChat } from "@/components/insights/SmartAssistantChat"
 
 const Analytics = () => {
   return (
@@ -20,7 +20,7 @@ const Analytics = () => {
             <SmartInsights />
           </div>
           <div className="lg:col-span-1">
-            <FinancialAdvisorChat />
+            <SmartAssistantChat />
           </div>
         </div>
 
