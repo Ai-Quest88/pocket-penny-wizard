@@ -25,7 +25,8 @@ import Accounts from "./pages/Accounts"
 import Analytics from "./pages/Analytics"
 import Budgets from "./pages/Budgets"
 import Settings from "./pages/Settings"
-import AssetsLiabilities from "./pages/AssetsLiabilities"
+import Assets from "./pages/Assets"
+import Liabilities from "./pages/Liabilities"
 import Reports from "./pages/Reports"
 import Notifications from "./pages/Notifications"
 import NotFound from "./pages/NotFound"
@@ -142,7 +143,8 @@ const App = () => (
                               <Route path="/analytics" element={<Analytics />} />
                               <Route path="/accounts" element={<Accounts />} />
                               <Route path="/entities" element={<Entities />} />
-                              <Route path="/assets-liabilities" element={<AssetsLiabilities />} />
+                              <Route path="/assets" element={<Assets />} />
+                              <Route path="/liabilities" element={<Liabilities />} />
                               <Route path="/budgets" element={<Budgets />} />
                               <Route path="/reports" element={<Reports />} />
                               <Route path="/notifications" element={<Notifications />} />
