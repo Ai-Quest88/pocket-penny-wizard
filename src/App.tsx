@@ -7,19 +7,18 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext"
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "./components/AppSidebar"
 import { Button } from "@/components/ui/button"
-import { User, LogOut } from "lucide-react"
+import { User, LogOut, Settings, Bell, HelpCircle } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
-import Dashboard from "./pages/Dashboard"
-import Transactions from "./pages/Transactions"
-import Accounts from "./pages/Accounts"
-import Analytics from "./pages/Analytics"
-import Budgets from "./pages/Budgets"
-import Settings from "./pages/Settings"
-import AssetsLiabilities from "./pages/AssetsLiabilities"
-import Reports from "./pages/Reports"
-import Notifications from "./pages/Notifications"
-import NotFound from "./pages/NotFound"
-import Login from "./pages/Login"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { useNavigate } from "react-router-dom"
 
 const queryClient = new QueryClient()
 
@@ -36,6 +35,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const UserMenu = () => {
   const { logout } = useAuth()
   const { toast } = useToast()
+  const navigate = useNavigate()
   
   const handleLogout = () => {
     logout()
@@ -46,18 +46,46 @@ const UserMenu = () => {
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <Button variant="ghost" size="icon">
-        <User className="h-5 w-5" />
-      </Button>
+    <div className="flex items-center gap-4">
       <Button 
         variant="ghost" 
         size="icon"
-        onClick={handleLogout}
         className="text-muted-foreground hover:text-foreground"
       >
-        <LogOut className="h-5 w-5" />
+        <Bell className="h-5 w-5" />
       </Button>
+      
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="relative rounded-full">
+            <User className="h-5 w-5" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56" align="end">
+          <DropdownMenuLabel>
+            <div className="flex flex-col space-y-1">
+              <p className="text-sm font-medium leading-none">Admin</p>
+              <p className="text-xs leading-none text-muted-foreground">admin@example.com</p>
+            </div>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
+            <DropdownMenuItem onClick={() => navigate('/settings')}>
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Settings</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <HelpCircle className="mr-2 h-4 w-4" />
+              <span>Help & Support</span>
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>Log out</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   )
 }
