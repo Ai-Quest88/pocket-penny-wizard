@@ -30,6 +30,7 @@ import Reports from "./pages/Reports"
 import Notifications from "./pages/Notifications"
 import NotFound from "./pages/NotFound"
 import Login from "./pages/Login"
+import Entities from "./pages/Entities"
 
 const queryClient = new QueryClient()
 
@@ -140,6 +141,7 @@ const App = () => (
                               <Route path="/transactions" element={<Transactions />} />
                               <Route path="/analytics" element={<Analytics />} />
                               <Route path="/accounts" element={<Accounts />} />
+                              <Route path="/entities" element={<Entities />} />
                               <Route path="/assets-liabilities" element={<AssetsLiabilities />} />
                               <Route path="/budgets" element={<Budgets />} />
                               <Route path="/reports" element={<Reports />} />
