@@ -86,9 +86,9 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link 
-                    to="/assets-liabilities"
+                    to="/assets"
                     className="flex items-center gap-2"
-                    data-active={location.pathname === "/assets-liabilities"}
+                    data-active={location.pathname === "/assets"}
                   >
                     <Wallet className="h-4 w-4" />
                     <span>Assets</span>
@@ -99,9 +99,9 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link 
-                    to="/assets-liabilities"
+                    to="/liabilities"
                     className="flex items-center gap-2"
-                    data-active={location.pathname === "/assets-liabilities"}
+                    data-active={location.pathname === "/liabilities"}
                   >
                     <CreditCard className="h-4 w-4" />
                     <span>Liabilities</span>
