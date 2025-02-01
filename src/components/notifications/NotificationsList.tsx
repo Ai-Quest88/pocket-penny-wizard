@@ -1,5 +1,5 @@
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Bell, ChartLineUp, Wallet } from "lucide-react"
+import { Bell, ChartLine, Wallet } from "lucide-react"
 
 interface Notification {
   id: string
@@ -42,7 +42,7 @@ const getIcon = (type: Notification["type"]) => {
     case "goal":
       return <Bell className="h-5 w-5 text-green-500" />
     case "change":
-      return <ChartLineUp className="h-5 w-5 text-blue-500" />
+      return <ChartLine className="h-5 w-5 text-blue-500" />
     case "alert":
       return <Wallet className="h-5 w-5 text-yellow-500" />
   }
