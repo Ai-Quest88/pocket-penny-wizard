@@ -23,6 +23,7 @@ import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Upload } from "lucide-react";
 import { parseCSV, ParsedTransaction } from "@/utils/csvParser";
+import { categorizeTransaction } from "@/utils/transactionCategories";
 
 const formSchema = z.object({
   description: z.string().min(2, {
@@ -73,6 +74,11 @@ export default function ImportTransactions() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    // Automatically categorize based on description if no category is selected
+    if (!values.category) {
+      values.category = categorizeTransaction(values.description);
+    }
+    
     console.log(values);
     toast({
       title: "Transaction added",
@@ -100,11 +106,14 @@ export default function ImportTransactions() {
 
       // For now, we'll just take the first transaction and populate the form
       const firstTransaction = transactions[0];
+      const suggestedCategory = categorizeTransaction(firstTransaction.description);
+      
       form.reset({
         description: firstTransaction.description,
         amount: firstTransaction.amount,
-        category: firstTransaction.category.toLowerCase(),
+        category: suggestedCategory,
         date: firstTransaction.date,
+        currency: firstTransaction.currency || "USD",
       });
 
       toast({
