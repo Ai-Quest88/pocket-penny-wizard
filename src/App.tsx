@@ -127,7 +127,11 @@ const App = () => (
                             <div className="flex justify-between items-center p-4 bg-card/50 backdrop-blur-sm">
                               <div className="flex items-center gap-4">
                                 <SidebarTrigger />
-                                <img src="/placeholder.svg" alt="PennyWise" className="h-8" />
+                                <img 
+                                  src="/logo.svg" 
+                                  alt="PennyWise" 
+                                  className="h-8 dark:invert"
+                                />
                               </div>
                               <UserMenu />
                             </div>
