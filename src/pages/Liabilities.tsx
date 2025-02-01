@@ -1,10 +1,31 @@
+import { useState, useEffect } from "react"
 import { DashboardCard } from "@/components/DashboardCard"
 import { LiabilitiesList } from "@/components/assets-liabilities/LiabilitiesList"
 import { AddLiabilityDialog } from "@/components/assets-liabilities/AddLiabilityDialog"
+import { Liability } from "@/types/assets-liabilities"
+import { v4 as uuidv4 } from 'uuid'
 
 const Liabilities = () => {
-  const totalLiabilities = 38500;
-  const monthlyChange = -1.5;
+  const [liabilities, setLiabilities] = useState<Liability[]>([])
+  const totalLiabilities = liabilities.reduce((sum, liability) => sum + liability.amount, 0)
+  const monthlyChange = -1.5 // This could be calculated based on historical data
+
+  useEffect(() => {
+    const savedLiabilities = localStorage.getItem('liabilities')
+    if (savedLiabilities) {
+      setLiabilities(JSON.parse(savedLiabilities))
+    }
+  }, [])
+
+  const handleAddLiability = (newLiability: Omit<Liability, "id">) => {
+    const liabilityWithId = {
+      ...newLiability,
+      id: uuidv4()
+    }
+    const updatedLiabilities = [...liabilities, liabilityWithId]
+    setLiabilities(updatedLiabilities)
+    localStorage.setItem('liabilities', JSON.stringify(updatedLiabilities))
+  }
 
   return (
     <div className="p-8">
@@ -14,7 +35,7 @@ const Liabilities = () => {
             <h1 className="text-3xl font-bold">Liabilities</h1>
             <p className="text-muted-foreground">Manage your liabilities</p>
           </div>
-          <AddLiabilityDialog />
+          <AddLiabilityDialog onAddLiability={handleAddLiability} />
         </header>
 
         <DashboardCard
@@ -24,7 +45,7 @@ const Liabilities = () => {
           className="bg-card"
         />
 
-        <LiabilitiesList />
+        <LiabilitiesList liabilities={liabilities} />
       </div>
     </div>
   )
