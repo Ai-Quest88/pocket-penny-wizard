@@ -1,6 +1,8 @@
 import { DashboardCard } from "@/components/DashboardCard"
 import { ExpenseChart } from "@/components/ExpenseChart"
 import { TransactionList } from "@/components/TransactionList"
+import { SpendingTrendChart } from "@/components/SpendingTrendChart"
+import { CategoryComparisonChart } from "@/components/CategoryComparisonChart"
 
 const Dashboard = () => {
   return (
@@ -27,6 +29,17 @@ const Dashboard = () => {
             value="$2,120.30"
             trend={{ value: 5, isPositive: false }}
           />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h3 className="text-lg font-semibold mb-4">Spending Trend</h3>
+            <SpendingTrendChart />
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h3 className="text-lg font-semibold mb-4">Category Comparison</h3>
+            <CategoryComparisonChart />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
