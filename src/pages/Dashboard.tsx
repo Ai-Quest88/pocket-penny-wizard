@@ -5,6 +5,20 @@ import { IncomeExpenseAnalysis } from "@/components/budgets/IncomeExpenseAnalysi
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card } from "@/components/ui/card"
 import { CategoryComparisonChart } from "@/components/CategoryComparisonChart"
+import { HistoricalValueChart } from "@/components/assets-liabilities/HistoricalValueChart"
+
+const mockData = {
+  assetHistory: [
+    { date: "2024-01-01", value: 50000 },
+    { date: "2024-02-01", value: 52000 },
+    { date: "2024-03-01", value: 55000 },
+  ],
+  liabilityHistory: [
+    { date: "2024-01-01", value: 20000 },
+    { date: "2024-02-01", value: 19500 },
+    { date: "2024-03-01", value: 19000 },
+  ],
+};
 
 const Dashboard = () => {
   return (
@@ -24,6 +38,7 @@ const Dashboard = () => {
               <TabsTrigger value="income-expense">Income & Expense</TabsTrigger>
               <TabsTrigger value="spending-trend">Spending Trend</TabsTrigger>
               <TabsTrigger value="categories">Categories</TabsTrigger>
+              <TabsTrigger value="historical">Historical Net Worth</TabsTrigger>
             </TabsList>
             
             <TabsContent value="transactions" className="mt-4">
@@ -46,6 +61,13 @@ const Dashboard = () => {
                 <h3 className="text-lg font-semibold mb-4">Category Breakdown</h3>
                 <CategoryComparisonChart />
               </div>
+            </TabsContent>
+
+            <TabsContent value="historical" className="mt-4">
+              <HistoricalValueChart 
+                assetHistory={mockData.assetHistory}
+                liabilityHistory={mockData.liabilityHistory}
+              />
             </TabsContent>
           </Tabs>
         </Card>
