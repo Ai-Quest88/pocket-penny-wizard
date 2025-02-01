@@ -95,44 +95,63 @@ export default function AssetsLiabilities() {
   })) || []
 
   return (
-    <div className="container p-8">
-      <div className="max-w-7xl mx-auto space-y-12">
-        <header className="flex justify-between items-center">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold">Assets & Liabilities</h1>
-            <p className="text-muted-foreground">Track your net worth</p>
-          </div>
-        </header>
-
-        <NetWorthSummary
-          totalAssets={totalAssets}
-          totalLiabilities={totalLiabilities}
-          netWorth={netWorth}
-        />
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <PropertyValueEstimate />
-          <HistoricalValueChart
-            assetHistory={combinedAssetHistory}
-            liabilityHistory={combinedLiabilityHistory}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-8">
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-semibold">Assets</h2>
-              <AddAssetDialog onAddAsset={handleAddAsset} />
+    <div className="relative min-h-screen bg-gradient-to-br from-background to-background-muted">
+      {/* Decorative background elements */}
+      <div 
+        className="absolute inset-0 bg-[url('/photo-1487058792275-0ad4aaf24ca7')] bg-cover bg-center opacity-5 pointer-events-none"
+        style={{ mixBlendMode: 'overlay' }}
+      />
+      <div className="relative container p-8">
+        <div className="max-w-7xl mx-auto space-y-12">
+          <header className="flex justify-between items-center bg-card/50 backdrop-blur-sm rounded-lg p-6 shadow-lg">
+            <div className="space-y-2">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                Assets & Liabilities
+              </h1>
+              <p className="text-muted-foreground">Track your net worth</p>
             </div>
-            <AssetsList assets={assets} />
+          </header>
+
+          <div className="backdrop-blur-sm">
+            <NetWorthSummary
+              totalAssets={totalAssets}
+              totalLiabilities={totalLiabilities}
+              netWorth={netWorth}
+            />
           </div>
 
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-semibold">Liabilities</h2>
-              <AddLiabilityDialog onAddLiability={handleAddLiability} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="backdrop-blur-sm">
+              <PropertyValueEstimate />
             </div>
-            <LiabilitiesList liabilities={liabilities} />
+            <div className="backdrop-blur-sm">
+              <HistoricalValueChart
+                assetHistory={combinedAssetHistory}
+                liabilityHistory={combinedLiabilityHistory}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-8">
+            <div className="space-y-6 backdrop-blur-sm">
+              <div className="flex justify-between items-center bg-card/50 p-4 rounded-lg">
+                <h2 className="text-2xl font-semibold bg-gradient-to-r from-success to-primary bg-clip-text text-transparent">
+                  Assets
+                </h2>
+                <AddAssetDialog onAddAsset={handleAddAsset} />
+              </div>
+              <AssetsList assets={assets} />
+            </div>
+
+            <div className="space-y-6 backdrop-blur-sm">
+              <div className="flex justify-between items-center bg-card/50 p-4 rounded-lg">
+                <h2 className="text-2xl font-semibold bg-gradient-to-r from-danger to-warning bg-clip-text text-transparent">
+                  Liabilities
+                </h2>
+                <AddLiabilityDialog onAddLiability={handleAddLiability} />
+              </div>
+              <LiabilitiesList liabilities={liabilities} />
+            </div>
           </div>
         </div>
       </div>
