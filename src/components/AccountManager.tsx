@@ -13,7 +13,11 @@ interface Account {
   balance: number;
 }
 
-export const AccountManager = () => {
+interface AccountManagerProps {
+  onAccountAdded?: () => void;
+}
+
+export const AccountManager = ({ onAccountAdded }: AccountManagerProps) => {
   const [accounts, setAccounts] = useState<Account[]>([
     { id: "1", name: "Main Savings", type: "savings", balance: 12500.00 },
     { id: "2", name: "Everyday Spending", type: "checking", balance: 3250.50 },
@@ -42,6 +46,7 @@ export const AccountManager = () => {
       ]);
       setNewAccount({ name: "", type: "checking", balance: 0 });
       setShowAddForm(false);
+      onAccountAdded?.();
     }
   };
 

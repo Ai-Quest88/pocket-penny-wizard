@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext"
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "./components/AppSidebar"
 import Transactions from "./pages/Transactions"
+import Accounts from "./pages/Accounts"
 import NotFound from "./pages/NotFound"
 import Login from "./pages/Login"
 
@@ -58,7 +59,7 @@ const App = () => (
                     path="/accounts"
                     element={
                       <ProtectedRoute>
-                        <div className="p-8">Accounts Page (Coming Soon)</div>
+                        <Accounts />
                       </ProtectedRoute>
                     }
                   />
