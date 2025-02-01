@@ -3,6 +3,7 @@ import { SpendingTrendChart } from "@/components/SpendingTrendChart"
 import { CategoryComparisonChart } from "@/components/CategoryComparisonChart"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { IncomeExpenseAnalysis } from "@/components/budgets/IncomeExpenseAnalysis"
+import { SmartInsights } from "@/components/insights/SmartInsights"
 
 const Analytics = () => {
   return (
@@ -12,6 +13,8 @@ const Analytics = () => {
           <h1 className="text-3xl font-bold text-text">Analytics</h1>
           <p className="text-text-muted">Track and analyze your financial patterns</p>
         </header>
+
+        <SmartInsights />
 
         <Tabs defaultValue="spending" className="space-y-4">
           <TabsList>
