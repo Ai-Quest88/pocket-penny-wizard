@@ -21,9 +21,13 @@ export const AccountManager = () => {
   ]);
 
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newAccount, setNewAccount] = useState({
+  const [newAccount, setNewAccount] = useState<{
+    name: string;
+    type: Account["type"];
+    balance: number;
+  }>({
     name: "",
-    type: "checking" as const,
+    type: "checking",
     balance: 0,
   });
 
@@ -71,7 +75,7 @@ export const AccountManager = () => {
             <Label htmlFor="account-type">Account Type</Label>
             <Select
               value={newAccount.type}
-              onValueChange={(value: "savings" | "checking" | "credit" | "investment") =>
+              onValueChange={(value: Account["type"]) =>
                 setNewAccount({ ...newAccount, type: value })
               }
             >
