@@ -1,16 +1,16 @@
-import { DashboardCard } from "@/components/DashboardCard";
-import { ExpenseChart } from "@/components/ExpenseChart";
-import { TransactionList } from "@/components/TransactionList";
-import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { AccountManager } from "@/components/AccountManager";
+import { DashboardCard } from "@/components/DashboardCard"
+import { ExpenseChart } from "@/components/ExpenseChart"
+import { TransactionList } from "@/components/TransactionList"
+import { Button } from "@/components/ui/button"
+import { PlusCircle } from "lucide-react"
+import { useNavigate } from "react-router-dom"
+import { AccountManager } from "@/components/AccountManager"
 
 const Index = () => {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   return (
-    <div className="min-h-screen bg-background p-8">
+    <div className="p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         <header className="flex justify-between items-center">
           <div className="space-y-2">
@@ -49,7 +49,7 @@ const Index = () => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Index;
+export default Index
