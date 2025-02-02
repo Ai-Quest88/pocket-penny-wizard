@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { DashboardCard } from "@/components/DashboardCard"
+import { BudgetProgressCard } from "./BudgetProgressCard"
 
 export const monthlyData = [
   {
@@ -126,6 +126,12 @@ export function IncomeExpenseAnalysis({ entityId }: IncomeExpenseAnalysisProps) 
     ? monthlyData.filter(data => data.entityId === entityId)
     : monthlyData;
 
+  const budgetCategories = [
+    { category: "Groceries", spent: 350, total: 500 },
+    { category: "Entertainment", spent: 150, total: 200 },
+    { category: "Transportation", spent: 200, total: 300 },
+  ]
+
   const getAnalytics = () => {
     const totalIncome = filteredMonthlyData.reduce((sum, month) => sum + month.income, 0)
     const totalExpenses = filteredMonthlyData.reduce((sum, month) => sum + month.expenses, 0)
@@ -192,6 +198,7 @@ export function IncomeExpenseAnalysis({ entityId }: IncomeExpenseAnalysisProps) 
         </div>
       </div>
 
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="p-4">
           <p className="text-sm text-muted-foreground">Average Monthly Income</p>
@@ -211,21 +218,19 @@ export function IncomeExpenseAnalysis({ entityId }: IncomeExpenseAnalysisProps) 
         </Card>
       </div>
 
-      {/* New Category Cards Section */}
+      {/* Budget Progress Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {categoryAverages.map((category) => (
-          <DashboardCard
-            key={category.name}
-            title={category.name}
-            value={`$${category.average.toFixed(2)}`}
-            trend={{
-              value: ((category.average / analytics.averageExpenses) * 100),
-              isPositive: category.name.toLowerCase() === 'salary' || category.name.toLowerCase() === 'freelance'
-            }}
+        {budgetCategories.map((budget) => (
+          <BudgetProgressCard
+            key={budget.category}
+            category={budget.category}
+            spent={budget.spent}
+            total={budget.total}
           />
         ))}
       </div>
 
+      {/* Charts Section */}
       <div className="h-[400px]">
         {viewType === "overview" ? (
           <ResponsiveContainer width="100%" height="100%">
