@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-// Sample data - in a real app, this would come from your backend
+// Sample data with more entity-specific entries
 export const monthlyData = [
   {
     month: "Jan",
@@ -54,7 +54,7 @@ export const monthlyData = [
     month: "Mar",
     income: 5100,
     expenses: 3600,
-    entityId: "2",
+    entityId: "1",
     categories: {
       Salary: 4500,
       Freelance: 600,
@@ -65,7 +65,53 @@ export const monthlyData = [
       Others: 500,
     },
   },
-]
+  // Data for entity 2
+  {
+    month: "Jan",
+    income: 8000,
+    expenses: 6000,
+    entityId: "2",
+    categories: {
+      Salary: 7000,
+      Freelance: 1000,
+      Housing: 2500,
+      Food: 1200,
+      Transport: 800,
+      Entertainment: 700,
+      Others: 800,
+    },
+  },
+  {
+    month: "Feb",
+    income: 8500,
+    expenses: 6200,
+    entityId: "2",
+    categories: {
+      Salary: 7000,
+      Freelance: 1500,
+      Housing: 2500,
+      Food: 1300,
+      Transport: 850,
+      Entertainment: 750,
+      Others: 800,
+    },
+  },
+  {
+    month: "Mar",
+    income: 8300,
+    expenses: 6100,
+    entityId: "2",
+    categories: {
+      Salary: 7000,
+      Freelance: 1300,
+      Housing: 2500,
+      Food: 1250,
+      Transport: 800,
+      Entertainment: 750,
+      Others: 800,
+    },
+  },
+}
 
 const categoryColors = {
   Salary: "#8884d8",
