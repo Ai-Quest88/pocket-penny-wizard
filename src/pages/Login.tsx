@@ -76,64 +76,76 @@ const Login = () => {
         </div>
       </div>
 
-      {/* Login form container */}
-      <div className="w-full max-w-md space-y-8 p-8 relative">
-        {/* Glassmorphism effect for form background */}
-        <div className="absolute inset-0 bg-white/30 backdrop-blur-md rounded-2xl border border-white/20 shadow-lg" />
-        
-        <div className="relative space-y-8">
-          {/* Logo and heading */}
-          <div className="text-center">
-            <img 
-              src="/logo.svg" 
-              alt="FinSight" 
-              className="h-12 mx-auto mb-4 dark:invert animate-fadeIn"
-            />
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              Welcome Back
-            </h2>
-            <p className="text-muted-foreground mt-2 animate-fadeIn">
-              Please sign in to your account
+      {/* Main content container with two columns */}
+      <div className="container mx-auto px-4 flex flex-col lg:flex-row items-center justify-between gap-8 relative z-10">
+        {/* Left column - AI Image */}
+        <div className="w-full lg:w-1/2 flex justify-center lg:justify-end">
+          <img 
+            src="/lovable-uploads/422cbd9a-d7b1-4e06-83ab-3b705ffa7b76.png"
+            alt="AI Financial Analysis"
+            className="max-w-full lg:max-w-[600px] h-auto rounded-lg shadow-2xl animate-fadeIn"
+          />
+        </div>
+
+        {/* Right column - Login Form */}
+        <div className="w-full lg:w-1/2 max-w-md space-y-8 p-8 relative">
+          {/* Glassmorphism effect for form background */}
+          <div className="absolute inset-0 bg-white/30 backdrop-blur-md rounded-2xl border border-white/20 shadow-lg" />
+          
+          <div className="relative space-y-8">
+            {/* Logo and heading */}
+            <div className="text-center">
+              <img 
+                src="/logo.svg" 
+                alt="FinSight" 
+                className="h-12 mx-auto mb-4 dark:invert animate-fadeIn"
+              />
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                Welcome Back
+              </h2>
+              <p className="text-muted-foreground mt-2 animate-fadeIn">
+                Please sign in to your account
+              </p>
+            </div>
+            
+            {/* Login form */}
+            <form onSubmit={handleSubmit} className="space-y-6 animate-fadeIn">
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="admin"
+                  required
+                  className="bg-white/50 backdrop-blur-sm border-white/20 focus:border-primary/50"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className="bg-white/50 backdrop-blur-sm border-white/20 focus:border-primary/50"
+                />
+              </div>
+              <Button 
+                type="submit" 
+                className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity"
+              >
+                Sign in
+              </Button>
+            </form>
+            
+            <p className="text-center text-sm text-muted-foreground animate-fadeIn">
+              Default credentials: admin/admin
             </p>
           </div>
-          
-          {/* Login form */}
-          <form onSubmit={handleSubmit} className="space-y-6 animate-fadeIn">
-            <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
-              <Input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="admin"
-                required
-                className="bg-white/50 backdrop-blur-sm border-white/20 focus:border-primary/50"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                className="bg-white/50 backdrop-blur-sm border-white/20 focus:border-primary/50"
-              />
-            </div>
-            <Button 
-              type="submit" 
-              className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity"
-            >
-              Sign in
-            </Button>
-          </form>
-          
-          <p className="text-center text-sm text-muted-foreground animate-fadeIn">
-            Default credentials: admin/admin
-          </p>
         </div>
       </div>
     </div>
