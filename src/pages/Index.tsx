@@ -30,7 +30,7 @@ const Index = () => {
         <AccountManager />
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList>
+          <TabsList className="w-full justify-start">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="spending">Spending Analysis</TabsTrigger>
             <TabsTrigger value="assets">Assets & Net Worth</TabsTrigger>
