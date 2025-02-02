@@ -1,16 +1,5 @@
 import { Card } from "@/components/ui/card"
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from "recharts"
-import { useState } from "react"
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -121,7 +110,6 @@ export function IncomeExpenseAnalysis({ entityId }: IncomeExpenseAnalysisProps) 
   const [timeframe, setTimeframe] = useState("3m")
   const [viewType, setViewType] = useState("overview")
 
-  // Filter data based on entityId
   const filteredMonthlyData = entityId
     ? monthlyData.filter(data => data.entityId === entityId)
     : monthlyData;
@@ -150,30 +138,12 @@ export function IncomeExpenseAnalysis({ entityId }: IncomeExpenseAnalysisProps) 
     }
   }
 
-  const getCategoryAverages = () => {
-    const categories: { [key: string]: number } = {}
-    let totalMonths = filteredMonthlyData.length
-
-    filteredMonthlyData.forEach((month) => {
-      Object.entries(month.categories).forEach(([category, amount]) => {
-        categories[category] = (categories[category] || 0) + amount
-      })
-    })
-
-    return Object.entries(categories).map(([name, total]) => ({
-      name,
-      average: total / totalMonths,
-      total,
-    }))
-  }
-
   const analytics = getAnalytics()
-  const categoryAverages = getCategoryAverages()
 
   return (
     <Card className="p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-semibold">Income & Expense Analysis</h2>
+        <h2 className="text-2xl font-semibold">Budget Overview</h2>
         <div className="flex gap-4">
           <Select value={timeframe} onValueChange={setTimeframe}>
             <SelectTrigger className="w-32">
@@ -184,15 +154,6 @@ export function IncomeExpenseAnalysis({ entityId }: IncomeExpenseAnalysisProps) 
               <SelectItem value="3m">3 Months</SelectItem>
               <SelectItem value="6m">6 Months</SelectItem>
               <SelectItem value="12m">12 Months</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={viewType} onValueChange={setViewType}>
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder="Select view" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="overview">Overview</SelectItem>
-              <SelectItem value="categories">Categories</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -228,68 +189,6 @@ export function IncomeExpenseAnalysis({ entityId }: IncomeExpenseAnalysisProps) 
             total={budget.total}
           />
         ))}
-      </div>
-
-      {/* Charts Section */}
-      <div className="h-[400px]">
-        {viewType === "overview" ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={filteredMonthlyData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip
-                content={({ active, payload, label }) => {
-                  if (active && payload && payload.length) {
-                    return (
-                      <Card className="p-2 border bg-background">
-                        <p className="font-medium">{label}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Income: ${typeof payload[0].value === 'number' ? payload[0].value.toFixed(2) : payload[0].value}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Expenses: ${typeof payload[1].value === 'number' ? payload[1].value.toFixed(2) : payload[1].value}
-                        </p>
-                      </Card>
-                    )
-                  }
-                  return null
-                }}
-              />
-              <Legend />
-              <Bar dataKey="income" fill="#8884d8" name="Income" />
-              <Bar dataKey="expenses" fill="#82ca9d" name="Expenses" />
-            </BarChart>
-          </ResponsiveContainer>
-        ) : (
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={categoryAverages}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip
-                content={({ active, payload, label }) => {
-                  if (active && payload && payload.length) {
-                    return (
-                      <Card className="p-2 border bg-background">
-                        <p className="font-medium">{label}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Average: ${typeof payload[0].value === 'number' ? payload[0].value.toFixed(2) : payload[0].value}
-                        </p>
-                      </Card>
-                    )
-                  }
-                  return null
-                }}
-              />
-              <Bar
-                dataKey="average"
-                fill="#8884d8"
-                name="Average Monthly Amount"
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        )}
       </div>
     </Card>
   )
