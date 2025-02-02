@@ -77,18 +77,18 @@ const Login = () => {
       </div>
 
       {/* Main content container with two columns */}
-      <div className="container mx-auto px-4 flex flex-col lg:flex-row items-center justify-between gap-8 relative z-10">
+      <div className="container max-w-7xl mx-auto px-8 md:px-12 lg:px-16 flex flex-col lg:flex-row items-center justify-center gap-12 relative z-10">
         {/* Left column - AI Image */}
         <div className="w-full lg:w-1/2 flex justify-center lg:justify-end">
           <img 
             src="/lovable-uploads/422cbd9a-d7b1-4e06-83ab-3b705ffa7b76.png"
             alt="AI Financial Analysis"
-            className="max-w-full lg:max-w-[600px] h-auto rounded-lg shadow-2xl animate-fadeIn"
+            className="max-w-full lg:max-w-[500px] h-auto rounded-lg shadow-2xl animate-fadeIn"
           />
         </div>
 
         {/* Right column - Login Form */}
-        <div className="w-full lg:w-1/2 max-w-md space-y-8 p-8 relative">
+        <div className="w-full lg:w-1/2 max-w-md p-8 relative">
           {/* Glassmorphism effect for form background */}
           <div className="absolute inset-0 bg-white/30 backdrop-blur-md rounded-2xl border border-white/20 shadow-lg" />
           
