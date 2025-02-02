@@ -17,8 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { DashboardCard } from "@/components/DashboardCard"
 
-// Sample data with more entity-specific entries
 export const monthlyData = [
   {
     month: "Jan",
@@ -113,16 +113,6 @@ export const monthlyData = [
   }
 ]
 
-const categoryColors = {
-  Salary: "#8884d8",
-  Freelance: "#82ca9d",
-  Housing: "#ffc658",
-  Food: "#ff7300",
-  Transport: "#00C49F",
-  Entertainment: "#FFBB28",
-  Others: "#FF8042",
-}
-
 interface IncomeExpenseAnalysisProps {
   entityId?: string;
 }
@@ -154,20 +144,25 @@ export function IncomeExpenseAnalysis({ entityId }: IncomeExpenseAnalysisProps) 
     }
   }
 
-  const analytics = getAnalytics()
-
-  const getCategoryData = () => {
+  const getCategoryAverages = () => {
     const categories: { [key: string]: number } = {}
+    let totalMonths = filteredMonthlyData.length
+
     filteredMonthlyData.forEach((month) => {
       Object.entries(month.categories).forEach(([category, amount]) => {
         categories[category] = (categories[category] || 0) + amount
       })
     })
-    return Object.entries(categories).map(([name, value]) => ({
+
+    return Object.entries(categories).map(([name, total]) => ({
       name,
-      value: value / filteredMonthlyData.length, // Average per month
+      average: total / totalMonths,
+      total,
     }))
   }
+
+  const analytics = getAnalytics()
+  const categoryAverages = getCategoryAverages()
 
   return (
     <Card className="p-6 space-y-6">
@@ -216,6 +211,21 @@ export function IncomeExpenseAnalysis({ entityId }: IncomeExpenseAnalysisProps) 
         </Card>
       </div>
 
+      {/* New Category Cards Section */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {categoryAverages.map((category) => (
+          <DashboardCard
+            key={category.name}
+            title={category.name}
+            value={`$${category.average.toFixed(2)}`}
+            trend={{
+              value: ((category.average / analytics.averageExpenses) * 100),
+              isPositive: category.name.toLowerCase() === 'salary' || category.name.toLowerCase() === 'freelance'
+            }}
+          />
+        ))}
+      </div>
+
       <div className="h-[400px]">
         {viewType === "overview" ? (
           <ResponsiveContainer width="100%" height="100%">
@@ -248,7 +258,7 @@ export function IncomeExpenseAnalysis({ entityId }: IncomeExpenseAnalysisProps) 
           </ResponsiveContainer>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={getCategoryData()}>
+            <BarChart data={categoryAverages}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
               <YAxis />
@@ -268,7 +278,7 @@ export function IncomeExpenseAnalysis({ entityId }: IncomeExpenseAnalysisProps) 
                 }}
               />
               <Bar
-                dataKey="value"
+                dataKey="average"
                 fill="#8884d8"
                 name="Average Monthly Amount"
               />
