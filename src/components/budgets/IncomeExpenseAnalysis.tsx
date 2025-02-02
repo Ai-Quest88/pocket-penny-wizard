@@ -74,7 +74,11 @@ const categoryColors = {
   Others: "#FF8042",
 }
 
-export function IncomeExpenseAnalysis() {
+interface IncomeExpenseAnalysisProps {
+  entityId?: string;
+}
+
+export function IncomeExpenseAnalysis({ entityId }: IncomeExpenseAnalysisProps) {
   const [timeframe, setTimeframe] = useState("3m")
   const [viewType, setViewType] = useState("overview")
 

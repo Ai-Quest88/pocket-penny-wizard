@@ -9,6 +9,10 @@ import {
   ResponsiveContainer,
 } from "recharts"
 
+interface CategoryComparisonChartProps {
+  entityId?: string;
+}
+
 const data = [
   { category: "Food", thisMonth: 4000, lastMonth: 2400 },
   { category: "Transport", thisMonth: 3000, lastMonth: 1398 },
@@ -17,7 +21,7 @@ const data = [
   { category: "Entertainment", thisMonth: 1890, lastMonth: 4800 },
 ]
 
-export const CategoryComparisonChart = () => {
+export const CategoryComparisonChart = ({ entityId }: CategoryComparisonChartProps) => {
   return (
     <div className="h-[400px] w-full">
       <ResponsiveContainer width="100%" height="100%">

@@ -21,6 +21,10 @@ interface Transaction {
   currency: string;
 }
 
+interface TransactionListProps {
+  entityId?: string;
+}
+
 const transactions: Transaction[] = [
   {
     id: 1,
@@ -55,7 +59,7 @@ const currencySymbols: Record<string, string> = {
   JPY: "¥"
 };
 
-export const TransactionList = () => {
+export const TransactionList = ({ entityId }: TransactionListProps) => {
   const [displayCurrency, setDisplayCurrency] = useState("USD");
 
   const { data: exchangeRates, isLoading: ratesLoading } = useQuery({

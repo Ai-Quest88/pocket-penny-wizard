@@ -13,6 +13,7 @@ import { format } from "date-fns"
 interface HistoricalValueChartProps {
   assetHistory: Array<{ date: string; value: number }>
   liabilityHistory: Array<{ date: string; value: number }>
+  entityId?: string;
 }
 
 const ChartTooltipContent = ({
@@ -59,6 +60,7 @@ const ChartTooltipContent = ({
 export function HistoricalValueChart({
   assetHistory,
   liabilityHistory,
+  entityId,
 }: HistoricalValueChartProps) {
   const chartData = assetHistory.map((item, index) => ({
     date: item.date,

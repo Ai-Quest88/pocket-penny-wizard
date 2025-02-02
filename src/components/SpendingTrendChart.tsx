@@ -9,6 +9,10 @@ import {
   ResponsiveContainer,
 } from "recharts"
 
+interface SpendingTrendChartProps {
+  entityId?: string;
+}
+
 const data = [
   { month: "Jan", amount: 2400 },
   { month: "Feb", amount: 1398 },
@@ -19,7 +23,7 @@ const data = [
   { month: "Jul", amount: 4300 },
 ]
 
-export const SpendingTrendChart = () => {
+export const SpendingTrendChart = ({ entityId }: SpendingTrendChartProps) => {
   return (
     <div className="h-[400px] w-full">
       <ResponsiveContainer width="100%" height="100%">
