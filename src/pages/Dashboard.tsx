@@ -59,7 +59,7 @@ const Dashboard = () => {
           </div>
         </header>
 
-        <NetWorthWidget />
+        <NetWorthWidget entityId={selectedEntityType === "all" ? undefined : selectedEntityType} />
 
         <Card className="p-6">
           <Tabs defaultValue="transactions" className="space-y-4">
@@ -72,24 +72,24 @@ const Dashboard = () => {
             </TabsList>
             
             <TabsContent value="transactions" className="mt-4">
-              <TransactionList />
+              <TransactionList entityId={selectedEntityType === "all" ? undefined : selectedEntityType} />
             </TabsContent>
             
             <TabsContent value="income-expense" className="mt-4">
-              <IncomeExpenseAnalysis />
+              <IncomeExpenseAnalysis entityId={selectedEntityType === "all" ? undefined : selectedEntityType} />
             </TabsContent>
             
             <TabsContent value="spending-trend" className="mt-4">
               <div className="bg-white rounded-lg">
                 <h3 className="text-lg font-semibold mb-4">Spending Trend</h3>
-                <SpendingTrendChart />
+                <SpendingTrendChart entityId={selectedEntityType === "all" ? undefined : selectedEntityType} />
               </div>
             </TabsContent>
 
             <TabsContent value="categories" className="mt-4">
               <div className="bg-white rounded-lg">
                 <h3 className="text-lg font-semibold mb-4">Category Breakdown</h3>
-                <CategoryComparisonChart />
+                <CategoryComparisonChart entityId={selectedEntityType === "all" ? undefined : selectedEntityType} />
               </div>
             </TabsContent>
 
@@ -97,6 +97,7 @@ const Dashboard = () => {
               <HistoricalValueChart 
                 assetHistory={mockData.assetHistory}
                 liabilityHistory={mockData.liabilityHistory}
+                entityId={selectedEntityType === "all" ? undefined : selectedEntityType}
               />
             </TabsContent>
           </Tabs>

@@ -2,23 +2,28 @@ import { Card } from "@/components/ui/card"
 import { DollarSign, TrendingUp, TrendingDown } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 
+interface NetWorthWidgetProps {
+  entityId?: string;
+}
+
 // Simulated data fetch function - replace with actual API call later
-const fetchNetWorthData = async () => {
+const fetchNetWorthData = async (entityId?: string) => {
   // Simulating API call delay
   await new Promise(resolve => setTimeout(resolve, 500))
   
+  // In a real implementation, this would filter data based on entityId
   return {
-    totalAssets: 1250000,
-    totalLiabilities: 450000,
-    netWorth: 800000,
-    previousNetWorth: 750000
+    totalAssets: entityId ? 450000 : 1250000,
+    totalLiabilities: entityId ? 150000 : 450000,
+    netWorth: entityId ? 300000 : 800000,
+    previousNetWorth: entityId ? 280000 : 750000
   }
 }
 
-export function NetWorthWidget() {
+export function NetWorthWidget({ entityId }: NetWorthWidgetProps) {
   const { data, isLoading } = useQuery({
-    queryKey: ['netWorth'],
-    queryFn: fetchNetWorthData,
+    queryKey: ['netWorth', entityId],
+    queryFn: () => fetchNetWorthData(entityId),
   })
 
   if (isLoading) {
