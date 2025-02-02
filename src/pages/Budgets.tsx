@@ -4,7 +4,7 @@ import { IncomeExpenseAnalysis } from "@/components/budgets/IncomeExpenseAnalysi
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function Budgets() {
-  const [selectedEntityId, setSelectedEntityId] = useState<string>("")
+  const [selectedEntityId, setSelectedEntityId] = useState<string>("all")
   
   // Fetch entities from localStorage
   const entities = JSON.parse(localStorage.getItem('entities') || '[]')
@@ -24,6 +24,7 @@ export default function Budgets() {
               <SelectValue placeholder="Select entity" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">All Entities</SelectItem>
               {entities.map((entity: any) => (
                 <SelectItem key={entity.id} value={entity.id}>
                   {entity.name}
@@ -33,8 +34,8 @@ export default function Budgets() {
           </Select>
         </div>
 
-        <IncomeExpenseAnalysis entityId={selectedEntityId} />
-        <BudgetForecast entityId={selectedEntityId} />
+        <IncomeExpenseAnalysis entityId={selectedEntityId === "all" ? undefined : selectedEntityId} />
+        <BudgetForecast entityId={selectedEntityId === "all" ? undefined : selectedEntityId} />
       </div>
     </div>
   )
