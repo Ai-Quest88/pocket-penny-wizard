@@ -46,6 +46,7 @@ export function IncomeExpenseAnalysis({ entityId }: IncomeExpenseAnalysisProps) 
     return dummyBudgetData[entityId as keyof typeof dummyBudgetData] || dummyBudgetData.default;
   };
 
+  // Get the current budget data based on selected entity
   const budgetCategories = getBudgetCategories(entityId);
 
   return (
