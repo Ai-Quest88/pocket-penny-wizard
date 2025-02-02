@@ -35,31 +35,51 @@ const Login = () => {
       {/* Dynamic background with multiple layers */}
       <div className="absolute inset-0 overflow-hidden">
         {/* Base gradient layer */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-secondary/10" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-secondary/20" />
         
         {/* Background image layer with overlay */}
         <div 
-          className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d')] bg-cover bg-center opacity-5"
+          className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d')] bg-cover bg-center opacity-10"
           style={{ mixBlendMode: 'overlay' }}
         />
         
         {/* Animated gradient orbs */}
         <div className="absolute -top-1/2 -left-1/2 w-full h-full animate-[spin_100s_linear_infinite]">
-          <div className="absolute inset-0 bg-gradient-radial from-primary/5 to-transparent opacity-30" />
+          <div className="absolute inset-0 bg-gradient-radial from-primary/10 to-transparent opacity-50" />
         </div>
         <div className="absolute -bottom-1/2 -right-1/2 w-full h-full animate-[spin_80s_linear_infinite]">
-          <div className="absolute inset-0 bg-gradient-radial from-secondary/5 to-transparent opacity-30" />
+          <div className="absolute inset-0 bg-gradient-radial from-secondary/10 to-transparent opacity-50" />
         </div>
         
-        {/* Floating shapes */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full mix-blend-multiply animate-[pulse_10s_ease-in-out_infinite] blur-xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary/5 rounded-full mix-blend-multiply animate-[pulse_15s_ease-in-out_infinite] blur-xl" />
+        {/* Additional animated elements */}
+        <div className="absolute inset-0">
+          <div className="absolute top-[20%] left-[15%] w-64 h-64 bg-primary/10 rounded-full mix-blend-multiply animate-[pulse_8s_ease-in-out_infinite] blur-xl" />
+          <div className="absolute top-[40%] right-[15%] w-72 h-72 bg-secondary/10 rounded-full mix-blend-multiply animate-[pulse_12s_ease-in-out_infinite] blur-xl" />
+          <div className="absolute bottom-[20%] left-[25%] w-80 h-80 bg-accent/10 rounded-full mix-blend-multiply animate-[pulse_10s_ease-in-out_infinite] blur-xl" />
+          <div className="absolute top-[60%] right-[25%] w-96 h-96 bg-primary/5 rounded-full mix-blend-multiply animate-[pulse_15s_ease-in-out_infinite] blur-xl" />
+        </div>
+
+        {/* Floating particles */}
+        <div className="absolute inset-0">
+          {[...Array(5)].map((_, i) => (
+            <div
+              key={i}
+              className={`absolute w-2 h-2 bg-primary/20 rounded-full
+                animate-[pulse_${3 + i}s_ease-in-out_infinite]`}
+              style={{
+                top: `${Math.random() * 100}%`,
+                left: `${Math.random() * 100}%`,
+                animationDelay: `${i * 0.5}s`
+              }}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Login form container */}
       <div className="w-full max-w-md space-y-8 p-8 relative">
         {/* Glassmorphism effect for form background */}
-        <div className="absolute inset-0 bg-white/50 backdrop-blur-sm rounded-2xl border border-white/10 shadow-lg" />
+        <div className="absolute inset-0 bg-white/30 backdrop-blur-md rounded-2xl border border-white/20 shadow-lg" />
         
         <div className="relative space-y-8">
           {/* Logo and heading */}
