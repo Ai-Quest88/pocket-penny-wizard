@@ -71,11 +71,7 @@ export const EntityManager = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-semibold">Entities</h2>
-          <p className="text-muted-foreground">Manage family members and business entities</p>
-        </div>
+      <div className="flex justify-end">
         <AddEntityDialog onAddEntity={handleAddEntity} />
       </div>
 
