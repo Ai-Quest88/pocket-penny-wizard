@@ -110,8 +110,8 @@ export const monthlyData = [
       Entertainment: 750,
       Others: 800,
     },
-  },
-}
+  }
+]
 
 const categoryColors = {
   Salary: "#8884d8",
