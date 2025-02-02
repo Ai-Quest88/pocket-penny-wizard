@@ -33,7 +33,7 @@ const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden">
       {/* Dynamic background with multiple layers */}
-      <div className="absolute inset-0 overflow-hidden">
+      <div className="fixed inset-0 w-full h-full overflow-hidden">
         {/* Base gradient layer */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-secondary/20" />
         
