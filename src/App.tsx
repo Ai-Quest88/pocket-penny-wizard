@@ -45,6 +45,16 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>
 }
 
+const PublicRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated } = useAuth()
+  
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  return <>{children}</>
+}
+
 const UserMenu = () => {
   const { logout } = useAuth()
   const { toast } = useToast()
@@ -118,7 +128,27 @@ const App = () => (
             <SidebarProvider>
               <div className="relative min-h-screen flex w-full">
                 <Routes>
-                  <Route path="/login" element={<Login />} />
+                  {/* Redirect root to dashboard or login based on auth status */}
+                  <Route 
+                    path="/" 
+                    element={
+                      <ProtectedRoute>
+                        <Navigate to="/dashboard" replace />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  
+                  {/* Public routes */}
+                  <Route 
+                    path="/login" 
+                    element={
+                      <PublicRoute>
+                        <Login />
+                      </PublicRoute>
+                    } 
+                  />
+                  
+                  {/* Protected routes */}
                   <Route
                     path="/*"
                     element={
@@ -138,7 +168,7 @@ const App = () => (
                               <UserMenu />
                             </div>
                             <Routes>
-                              <Route path="/" element={<Dashboard />} />
+                              <Route path="/dashboard" element={<Dashboard />} />
                               <Route path="/transactions" element={<Transactions />} />
                               <Route path="/analytics" element={<Analytics />} />
                               <Route path="/accounts" element={<Accounts />} />
