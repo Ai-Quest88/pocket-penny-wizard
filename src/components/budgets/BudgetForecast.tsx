@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -48,56 +48,14 @@ interface BudgetForecastProps {
   entityId?: string;
 }
 
-const getInitialValues = (entityId?: string) => {
-  // Default values for entity 1
-  if (entityId === "1") {
-    return {
-      startingBalance: 5000,
-      monthlyIncome: 4000,
-      monthlyExpenses: 3000
-    }
-  }
-  // Values for entity 2
-  else if (entityId === "2") {
-    return {
-      startingBalance: 8000,
-      monthlyIncome: 7000,
-      monthlyExpenses: 6000
-    }
-  }
-  // Default values if no entity is selected
-  return {
-    startingBalance: 5000,
-    monthlyIncome: 4000,
-    monthlyExpenses: 3000
-  }
-}
-
 export function BudgetForecast({ entityId }: BudgetForecastProps) {
-  const initialValues = getInitialValues(entityId);
-  const [startingBalance, setStartingBalance] = useState(initialValues.startingBalance)
-  const [monthlyIncome, setMonthlyIncome] = useState(initialValues.monthlyIncome)
-  const [monthlyExpenses, setMonthlyExpenses] = useState(initialValues.monthlyExpenses)
+  const [startingBalance, setStartingBalance] = useState(5000)
+  const [monthlyIncome, setMonthlyIncome] = useState(4000)
+  const [monthlyExpenses, setMonthlyExpenses] = useState(3000)
   const [forecastMonths, setForecastMonths] = useState("6")
   const [forecastData, setForecastData] = useState<ForecastData[]>(
     generateForecastData(startingBalance, monthlyIncome, monthlyExpenses, 6, entityId)
   )
-
-  useEffect(() => {
-    const newValues = getInitialValues(entityId);
-    setStartingBalance(newValues.startingBalance);
-    setMonthlyIncome(newValues.monthlyIncome);
-    setMonthlyExpenses(newValues.monthlyExpenses);
-    setForecastData(
-      generateForecastData(
-        newValues.startingBalance,
-        newValues.monthlyIncome,
-        newValues.monthlyExpenses,
-        parseInt(forecastMonths),
-        entityId
-      )
-    );
-  }, [entityId]);
 
   const handleUpdateForecast = () => {
     const newData = generateForecastData(
