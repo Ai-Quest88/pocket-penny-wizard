@@ -83,7 +83,7 @@ const Login = () => {
           <img 
             src="/lovable-uploads/422cbd9a-d7b1-4e06-83ab-3b705ffa7b76.png"
             alt="AI Financial Analysis"
-            className="max-w-full lg:max-w-[500px] h-auto rounded-lg shadow-2xl animate-fadeIn"
+            className="max-w-full lg:max-w-[600px] h-auto rounded-lg shadow-2xl animate-fadeIn"
           />
         </div>
 
