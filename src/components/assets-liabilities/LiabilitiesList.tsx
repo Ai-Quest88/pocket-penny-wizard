@@ -2,12 +2,14 @@ import { Card } from "@/components/ui/card"
 import { Liability } from "@/types/assets-liabilities"
 import { useState, useEffect } from "react"
 import { FamilyMember, BusinessEntity } from "@/types/entities"
+import { EditLiabilityDialog } from "./EditLiabilityDialog"
 
 interface LiabilitiesListProps {
   liabilities: Liability[]
+  onEditLiability?: (id: string, updatedLiability: Omit<Liability, "id">) => void
 }
 
-export function LiabilitiesList({ liabilities }: LiabilitiesListProps) {
+export function LiabilitiesList({ liabilities, onEditLiability }: LiabilitiesListProps) {
   const [entities, setEntities] = useState<(FamilyMember | BusinessEntity)[]>([])
 
   useEffect(() => {
@@ -41,9 +43,17 @@ export function LiabilitiesList({ liabilities }: LiabilitiesListProps) {
                 <span className="text-sm text-muted-foreground">{getEntityName(liability.entityId)}</span>
               </div>
             </div>
-            <p className="text-lg font-semibold text-red-600">
-              ${liability.amount.toLocaleString()}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-lg font-semibold text-red-600">
+                ${liability.amount.toLocaleString()}
+              </p>
+              {onEditLiability && (
+                <EditLiabilityDialog 
+                  liability={liability} 
+                  onEditLiability={onEditLiability}
+                />
+              )}
+            </div>
           </div>
         </Card>
       ))}

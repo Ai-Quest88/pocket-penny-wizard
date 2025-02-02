@@ -4,6 +4,7 @@ import { LiabilitiesList } from "@/components/assets-liabilities/LiabilitiesList
 import { AddLiabilityDialog } from "@/components/assets-liabilities/AddLiabilityDialog"
 import { Liability } from "@/types/assets-liabilities"
 import { v4 as uuidv4 } from 'uuid'
+import { useToast } from "@/components/ui/use-toast"
 
 const initialLiabilities: Liability[] = [
   {
@@ -36,6 +37,7 @@ const initialLiabilities: Liability[] = [
 ]
 
 const Liabilities = () => {
+  const { toast } = useToast()
   const [liabilities, setLiabilities] = useState<Liability[]>([])
   const totalLiabilities = liabilities.reduce((sum, liability) => sum + liability.amount, 0)
   const monthlyChange = -1.5 // This could be calculated based on historical data
@@ -60,6 +62,18 @@ const Liabilities = () => {
     localStorage.setItem('liabilities', JSON.stringify(updatedLiabilities))
   }
 
+  const handleEditLiability = (id: string, updatedLiability: Omit<Liability, "id">) => {
+    const updatedLiabilities = liabilities.map(liability =>
+      liability.id === id ? { ...updatedLiability, id } : liability
+    )
+    setLiabilities(updatedLiabilities)
+    localStorage.setItem('liabilities', JSON.stringify(updatedLiabilities))
+    toast({
+      title: "Liability Updated",
+      description: "Your liability has been updated successfully.",
+    })
+  }
+
   return (
     <div className="p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -78,7 +92,10 @@ const Liabilities = () => {
           className="bg-card"
         />
 
-        <LiabilitiesList liabilities={liabilities} />
+        <LiabilitiesList 
+          liabilities={liabilities} 
+          onEditLiability={handleEditLiability}
+        />
       </div>
     </div>
   )
