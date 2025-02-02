@@ -9,98 +9,27 @@ import {
 } from "@/components/ui/select"
 import { BudgetProgressCard } from "./BudgetProgressCard"
 
-export const monthlyData = [
-  {
-    month: "Jan",
-    income: 5000,
-    expenses: 3500,
-    entityId: "1",
-    categories: {
-      Salary: 4500,
-      Freelance: 500,
-      Housing: 1500,
-      Food: 800,
-      Transport: 400,
-      Entertainment: 300,
-      Others: 500,
-    },
-  },
-  {
-    month: "Feb",
-    income: 5200,
-    expenses: 3800,
-    entityId: "1",
-    categories: {
-      Salary: 4500,
-      Freelance: 700,
-      Housing: 1500,
-      Food: 900,
-      Transport: 450,
-      Entertainment: 400,
-      Others: 550,
-    },
-  },
-  {
-    month: "Mar",
-    income: 5100,
-    expenses: 3600,
-    entityId: "1",
-    categories: {
-      Salary: 4500,
-      Freelance: 600,
-      Housing: 1500,
-      Food: 850,
-      Transport: 400,
-      Entertainment: 350,
-      Others: 500,
-    },
-  },
-  {
-    month: "Jan",
-    income: 8000,
-    expenses: 6000,
-    entityId: "2",
-    categories: {
-      Salary: 7000,
-      Freelance: 1000,
-      Housing: 2500,
-      Food: 1200,
-      Transport: 800,
-      Entertainment: 700,
-      Others: 800,
-    },
-  },
-  {
-    month: "Feb",
-    income: 8500,
-    expenses: 6200,
-    entityId: "2",
-    categories: {
-      Salary: 7000,
-      Freelance: 1500,
-      Housing: 2500,
-      Food: 1300,
-      Transport: 850,
-      Entertainment: 750,
-      Others: 800,
-    },
-  },
-  {
-    month: "Mar",
-    income: 8300,
-    expenses: 6100,
-    entityId: "2",
-    categories: {
-      Salary: 7000,
-      Freelance: 1300,
-      Housing: 2500,
-      Food: 1250,
-      Transport: 800,
-      Entertainment: 750,
-      Others: 800,
-    },
-  }
-]
+// Dummy data for different entities
+const dummyBudgetData = {
+  "1": [
+    { category: "Housing", spent: 1500, total: 2000 },
+    { category: "Food", spent: 800, total: 1000 },
+    { category: "Transport", spent: 400, total: 600 },
+    { category: "Entertainment", spent: 300, total: 500 }
+  ],
+  "2": [
+    { category: "Housing", spent: 2500, total: 3000 },
+    { category: "Food", spent: 1200, total: 1500 },
+    { category: "Transport", spent: 800, total: 1000 },
+    { category: "Entertainment", spent: 700, total: 1000 }
+  ],
+  "default": [
+    { category: "Housing", spent: 1000, total: 1500 },
+    { category: "Food", spent: 500, total: 800 },
+    { category: "Transport", spent: 300, total: 500 },
+    { category: "Entertainment", spent: 200, total: 400 }
+  ]
+};
 
 interface IncomeExpenseAnalysisProps {
   entityId?: string;
@@ -108,38 +37,16 @@ interface IncomeExpenseAnalysisProps {
 
 export function IncomeExpenseAnalysis({ entityId }: IncomeExpenseAnalysisProps) {
   const [timeframe, setTimeframe] = useState("3m")
-  const [viewType, setViewType] = useState("overview")
 
-  const filteredMonthlyData = entityId
-    ? monthlyData.filter(data => data.entityId === entityId)
-    : monthlyData;
-
-  // Get the latest month's data for the selected entity
-  const currentMonthData = filteredMonthlyData[filteredMonthlyData.length - 1];
-
-  // Define budget categories based on the current entity's data
-  const budgetCategories = currentMonthData ? [
-    { 
-      category: "Housing", 
-      spent: currentMonthData.categories.Housing, 
-      total: currentMonthData.categories.Housing * 1.2 // 20% buffer for budget
-    },
-    { 
-      category: "Food", 
-      spent: currentMonthData.categories.Food, 
-      total: currentMonthData.categories.Food * 1.2
-    },
-    { 
-      category: "Transport", 
-      spent: currentMonthData.categories.Transport, 
-      total: currentMonthData.categories.Transport * 1.2
-    },
-    { 
-      category: "Entertainment", 
-      spent: currentMonthData.categories.Entertainment, 
-      total: currentMonthData.categories.Entertainment * 1.2
+  // Get budget categories based on entity ID
+  const getBudgetCategories = (entityId?: string) => {
+    if (!entityId || entityId === "all") {
+      return dummyBudgetData.default;
     }
-  ] : [];
+    return dummyBudgetData[entityId as keyof typeof dummyBudgetData] || dummyBudgetData.default;
+  };
+
+  const budgetCategories = getBudgetCategories(entityId);
 
   return (
     <Card className="p-6 space-y-6">
