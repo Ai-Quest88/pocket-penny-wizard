@@ -1,24 +1,29 @@
 import { Card } from "@/components/ui/card"
 import { Liability } from "@/types/assets-liabilities"
+import { useState, useEffect } from "react"
+import { FamilyMember, BusinessEntity } from "@/types/entities"
 
 interface LiabilitiesListProps {
   liabilities: Liability[]
 }
 
 export function LiabilitiesList({ liabilities }: LiabilitiesListProps) {
+  const [entities, setEntities] = useState<(FamilyMember | BusinessEntity)[]>([])
+
+  useEffect(() => {
+    const savedEntities = localStorage.getItem('entities')
+    if (savedEntities) {
+      setEntities(JSON.parse(savedEntities))
+    }
+  }, [])
+
   const formatCategory = (category: string) => {
     return category.split("_").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")
   }
 
   const getEntityName = (entityId: string) => {
-    switch (entityId) {
-      case "personal":
-        return "Personal";
-      case "business":
-        return "Business";
-      default:
-        return entityId;
-    }
+    const entity = entities.find(e => e.id === entityId)
+    return entity ? entity.name : entityId
   }
 
   return (
