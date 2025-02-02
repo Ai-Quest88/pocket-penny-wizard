@@ -23,6 +23,10 @@ const mockData = {
   ],
 };
 
+interface DashboardProps {
+  entityId?: string;
+}
+
 const Dashboard = () => {
   const [selectedEntityType, setSelectedEntityType] = useState<string>("all")
   const [entities, setEntities] = useState<(FamilyMember | BusinessEntity)[]>([])

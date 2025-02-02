@@ -22,11 +22,17 @@ const data = [
 ]
 
 export const CategoryComparisonChart = ({ entityId }: CategoryComparisonChartProps) => {
+  // Filter data based on entityId if needed
+  const filteredData = entityId ? data.filter(item => {
+    // Add your filtering logic here based on entityId
+    return true; // Placeholder - implement actual filtering
+  }) : data;
+
   return (
     <div className="h-[400px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
-          data={data}
+          data={filteredData}
           margin={{
             top: 5,
             right: 30,
