@@ -13,9 +13,14 @@ export function AssetsList({ assets, onEditAsset }: AssetsListProps) {
   }
 
   const getEntityName = (entityId: string) => {
-    const entities = JSON.parse(localStorage.getItem('entities') || '[]')
-    const entity = entities.find((e: any) => e.id === entityId)
-    return entity ? entity.name : entityId
+    try {
+      const entities = JSON.parse(localStorage.getItem('entities') || '[]')
+      const entity = entities.find((e: any) => e.id === entityId)
+      return entity ? entity.name : 'Unknown Entity'
+    } catch (error) {
+      console.error('Error parsing entities:', error)
+      return 'Unknown Entity'
+    }
   }
 
   return (
@@ -30,7 +35,7 @@ export function AssetsList({ assets, onEditAsset }: AssetsListProps) {
                 <span className="text-sm text-muted-foreground">•</span>
                 <span className="text-sm text-muted-foreground">{formatCategory(asset.category)}</span>
                 <span className="text-sm text-muted-foreground">•</span>
-                <span className="text-sm text-muted-foreground">{getEntityName(asset.entityId)}</span>
+                <span className="text-sm text-muted-foreground font-medium">{getEntityName(asset.entityId)}</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
