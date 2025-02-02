@@ -4,6 +4,7 @@ import { AssetsList } from "@/components/assets-liabilities/AssetsList"
 import { AddAssetDialog } from "@/components/assets-liabilities/AddAssetDialog"
 import { Asset } from "@/types/assets-liabilities"
 import { v4 as uuidv4 } from 'uuid'
+import { useToast } from "@/components/ui/use-toast"
 
 const initialAssets: Asset[] = [
   {
@@ -36,6 +37,7 @@ const initialAssets: Asset[] = [
 ]
 
 const Assets = () => {
+  const { toast } = useToast()
   const [assets, setAssets] = useState<Asset[]>([])
   const totalAssets = assets.reduce((sum, asset) => sum + asset.value, 0)
   const monthlyChange = 3.2 // This could be calculated based on historical data
@@ -60,6 +62,18 @@ const Assets = () => {
     localStorage.setItem('assets', JSON.stringify(updatedAssets))
   }
 
+  const handleEditAsset = (id: string, updatedAsset: Omit<Asset, "id">) => {
+    const updatedAssets = assets.map(asset => 
+      asset.id === id ? { ...updatedAsset, id } : asset
+    )
+    setAssets(updatedAssets)
+    localStorage.setItem('assets', JSON.stringify(updatedAssets))
+    toast({
+      title: "Asset Updated",
+      description: "The asset has been updated successfully.",
+    })
+  }
+
   return (
     <div className="p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -78,7 +92,7 @@ const Assets = () => {
           className="bg-card"
         />
 
-        <AssetsList assets={assets} />
+        <AssetsList assets={assets} onEditAsset={handleEditAsset} />
       </div>
     </div>
   )
