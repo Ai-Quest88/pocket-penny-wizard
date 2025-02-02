@@ -7,7 +7,8 @@ import { Card } from "@/components/ui/card"
 import { CategoryComparisonChart } from "@/components/CategoryComparisonChart"
 import { HistoricalValueChart } from "@/components/assets-liabilities/HistoricalValueChart"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { FamilyMember, BusinessEntity } from "@/types/entities"
 
 const mockData = {
   assetHistory: [
@@ -24,6 +25,14 @@ const mockData = {
 
 const Dashboard = () => {
   const [selectedEntityType, setSelectedEntityType] = useState<string>("all")
+  const [entities, setEntities] = useState<(FamilyMember | BusinessEntity)[]>([])
+
+  useEffect(() => {
+    const savedEntities = localStorage.getItem('entities')
+    if (savedEntities) {
+      setEntities(JSON.parse(savedEntities))
+    }
+  }, [])
 
   return (
     <div className="p-8">
@@ -36,14 +45,15 @@ const Dashboard = () => {
             </div>
             <Select value={selectedEntityType} onValueChange={setSelectedEntityType}>
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by entity type" />
+                <SelectValue placeholder="Filter by entity" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Entities</SelectItem>
-                <SelectItem value="individual">Individual</SelectItem>
-                <SelectItem value="company">Company</SelectItem>
-                <SelectItem value="trust">Trust</SelectItem>
-                <SelectItem value="super_fund">Super Fund</SelectItem>
+                {entities.map((entity) => (
+                  <SelectItem key={entity.id} value={entity.id}>
+                    {entity.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
