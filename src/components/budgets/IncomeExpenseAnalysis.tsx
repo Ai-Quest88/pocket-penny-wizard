@@ -114,31 +114,32 @@ export function IncomeExpenseAnalysis({ entityId }: IncomeExpenseAnalysisProps) 
     ? monthlyData.filter(data => data.entityId === entityId)
     : monthlyData;
 
-  const budgetCategories = [
-    { category: "Groceries", spent: 350, total: 500 },
-    { category: "Entertainment", spent: 150, total: 200 },
-    { category: "Transportation", spent: 200, total: 300 },
-  ]
+  // Get the latest month's data for the selected entity
+  const currentMonthData = filteredMonthlyData[filteredMonthlyData.length - 1];
 
-  const getAnalytics = () => {
-    const totalIncome = filteredMonthlyData.reduce((sum, month) => sum + month.income, 0)
-    const totalExpenses = filteredMonthlyData.reduce((sum, month) => sum + month.expenses, 0)
-    const averageIncome = totalIncome / filteredMonthlyData.length
-    const averageExpenses = totalExpenses / filteredMonthlyData.length
-    const savings = totalIncome - totalExpenses
-    const savingsRate = ((savings / totalIncome) * 100).toFixed(1)
-
-    return {
-      totalIncome,
-      totalExpenses,
-      averageIncome,
-      averageExpenses,
-      savings,
-      savingsRate,
+  // Define budget categories based on the current entity's data
+  const budgetCategories = currentMonthData ? [
+    { 
+      category: "Housing", 
+      spent: currentMonthData.categories.Housing, 
+      total: currentMonthData.categories.Housing * 1.2 // 20% buffer for budget
+    },
+    { 
+      category: "Food", 
+      spent: currentMonthData.categories.Food, 
+      total: currentMonthData.categories.Food * 1.2
+    },
+    { 
+      category: "Transport", 
+      spent: currentMonthData.categories.Transport, 
+      total: currentMonthData.categories.Transport * 1.2
+    },
+    { 
+      category: "Entertainment", 
+      spent: currentMonthData.categories.Entertainment, 
+      total: currentMonthData.categories.Entertainment * 1.2
     }
-  }
-
-  const analytics = getAnalytics()
+  ] : [];
 
   return (
     <Card className="p-6 space-y-6">
@@ -159,28 +160,8 @@ export function IncomeExpenseAnalysis({ entityId }: IncomeExpenseAnalysisProps) 
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-4">
-          <p className="text-sm text-muted-foreground">Average Monthly Income</p>
-          <p className="text-2xl font-bold">${analytics.averageIncome.toFixed(2)}</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-sm text-muted-foreground">Average Monthly Expenses</p>
-          <p className="text-2xl font-bold">${analytics.averageExpenses.toFixed(2)}</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-sm text-muted-foreground">Total Savings</p>
-          <p className="text-2xl font-bold">${analytics.savings.toFixed(2)}</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-sm text-muted-foreground">Savings Rate</p>
-          <p className="text-2xl font-bold">{analytics.savingsRate}%</p>
-        </Card>
-      </div>
-
       {/* Budget Progress Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {budgetCategories.map((budget) => (
           <BudgetProgressCard
             key={budget.category}
