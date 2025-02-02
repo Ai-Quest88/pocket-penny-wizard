@@ -1,105 +1,76 @@
-import { useState, useEffect } from "react"
-import { DashboardCard } from "@/components/DashboardCard"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { TransactionList } from "@/components/TransactionList"
+import { SpendingTrendChart } from "@/components/SpendingTrendChart"
+import { NetWorthWidget } from "@/components/NetWorthWidget"
+import { IncomeExpenseAnalysis } from "@/components/budgets/IncomeExpenseAnalysis"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card } from "@/components/ui/card"
+import { CategoryComparisonChart } from "@/components/CategoryComparisonChart"
+import { HistoricalValueChart } from "@/components/assets-liabilities/HistoricalValueChart"
+
+const mockData = {
+  assetHistory: [
+    { date: "2024-01-01", value: 50000 },
+    { date: "2024-02-01", value: 52000 },
+    { date: "2024-03-01", value: 55000 },
+  ],
+  liabilityHistory: [
+    { date: "2024-01-01", value: 20000 },
+    { date: "2024-02-01", value: 19500 },
+    { date: "2024-03-01", value: 19000 },
+  ],
+};
 
 const Dashboard = () => {
-  const [selectedEntity, setSelectedEntity] = useState<string>("all")
-  const [entities, setEntities] = useState<any[]>([])
-
-  useEffect(() => {
-    // Load entities from localStorage
-    const savedEntities = localStorage.getItem('entities')
-    if (savedEntities) {
-      setEntities(JSON.parse(savedEntities))
-    }
-  }, [])
-
-  // Calculate totals based on selected entity
-  const calculateTotals = () => {
-    try {
-      const assets = JSON.parse(localStorage.getItem('assets') || '[]')
-      const liabilities = JSON.parse(localStorage.getItem('liabilities') || '[]')
-
-      const filteredAssets = selectedEntity === "all" 
-        ? assets 
-        : assets.filter((asset: any) => asset.entityId === selectedEntity)
-      
-      const filteredLiabilities = selectedEntity === "all"
-        ? liabilities
-        : liabilities.filter((liability: any) => liability.entityId === selectedEntity)
-
-      const totalAssets = filteredAssets.reduce((sum: number, asset: any) => sum + asset.value, 0)
-      const totalLiabilities = filteredLiabilities.reduce((sum: number, liability: any) => sum + liability.amount, 0)
-      const netWorth = totalAssets - totalLiabilities
-
-      return {
-        assets: totalAssets,
-        liabilities: totalLiabilities,
-        netWorth
-      }
-    } catch (error) {
-      console.error('Error calculating totals:', error)
-      return {
-        assets: 0,
-        liabilities: 0,
-        netWorth: 0
-      }
-    }
-  }
-
-  const totals = calculateTotals()
-
   return (
     <div className="p-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        <header className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold">Dashboard</h1>
-            <p className="text-muted-foreground">Welcome back!</p>
-          </div>
-          <Select
-            value={selectedEntity}
-            onValueChange={setSelectedEntity}
-          >
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Filter by Entity" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Entities</SelectItem>
-              {entities.map((entity) => (
-                <SelectItem key={entity.id} value={entity.id}>
-                  {entity.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <header className="space-y-2">
+          <h1 className="text-3xl font-bold text-text">Financial Overview</h1>
+          <p className="text-text-muted">Track your spending and savings</p>
         </header>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          <DashboardCard
-            title="Total Assets"
-            value={`$${totals.assets.toLocaleString()}`}
-            trend={{ value: 2.5, isPositive: true }}
-          />
-          <DashboardCard
-            title="Total Liabilities"
-            value={`$${totals.liabilities.toLocaleString()}`}
-            trend={{ value: 1.2, isPositive: false }}
-          />
-          <DashboardCard
-            title="Net Worth"
-            value={`$${totals.netWorth.toLocaleString()}`}
-            trend={{ value: 3.8, isPositive: true }}
-          />
-        </div>
+        <NetWorthWidget />
 
-        {/* Add other dashboard components here */}
+        <Card className="p-6">
+          <Tabs defaultValue="transactions" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="transactions">Transactions</TabsTrigger>
+              <TabsTrigger value="income-expense">Income & Expense</TabsTrigger>
+              <TabsTrigger value="spending-trend">Spending Trend</TabsTrigger>
+              <TabsTrigger value="categories">Categories</TabsTrigger>
+              <TabsTrigger value="historical">Historical Net Worth</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="transactions" className="mt-4">
+              <TransactionList />
+            </TabsContent>
+            
+            <TabsContent value="income-expense" className="mt-4">
+              <IncomeExpenseAnalysis />
+            </TabsContent>
+            
+            <TabsContent value="spending-trend" className="mt-4">
+              <div className="bg-white rounded-lg">
+                <h3 className="text-lg font-semibold mb-4">Spending Trend</h3>
+                <SpendingTrendChart />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="categories" className="mt-4">
+              <div className="bg-white rounded-lg">
+                <h3 className="text-lg font-semibold mb-4">Category Breakdown</h3>
+                <CategoryComparisonChart />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="historical" className="mt-4">
+              <HistoricalValueChart 
+                assetHistory={mockData.assetHistory}
+                liabilityHistory={mockData.liabilityHistory}
+              />
+            </TabsContent>
+          </Tabs>
+        </Card>
       </div>
     </div>
   )

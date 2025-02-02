@@ -4,11 +4,6 @@ import { TransactionList } from "@/components/TransactionList"
 import { PlusCircle } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { AccountManager } from "@/components/AccountManager"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { SpendingTrendChart } from "@/components/SpendingTrendChart"
-import { CategoryComparisonChart } from "@/components/CategoryComparisonChart"
-import { NetWorthWidget } from "@/components/NetWorthWidget"
-import { PropertyValueEstimate } from "@/components/PropertyValueEstimate"
 
 const Index = () => {
   const navigate = useNavigate()
@@ -27,36 +22,12 @@ const Index = () => {
           </Button>
         </header>
 
+        <AccountManager />
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <NetWorthWidget />
-          <PropertyValueEstimate />
+          <ExpenseChart />
+          <TransactionList />
         </div>
-
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="w-full justify-start">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="spending">Spending Analysis</TabsTrigger>
-            <TabsTrigger value="assets">Assets & Net Worth</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <ExpenseChart />
-              <TransactionList />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="spending" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <SpendingTrendChart />
-              <CategoryComparisonChart />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="assets" className="space-y-6">
-            <AccountManager />
-          </TabsContent>
-        </Tabs>
       </div>
     </div>
   )
