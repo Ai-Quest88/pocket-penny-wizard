@@ -27,7 +27,10 @@ const Index = () => {
           </Button>
         </header>
 
-        <AccountManager />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <NetWorthWidget />
+          <PropertyValueEstimate />
+        </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList className="w-full justify-start">
@@ -51,10 +54,7 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="assets" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <NetWorthWidget />
-              <PropertyValueEstimate />
-            </div>
+            <AccountManager />
           </TabsContent>
         </Tabs>
       </div>
