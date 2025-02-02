@@ -32,31 +32,44 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden">
-      {/* Modern gradient background */}
+      {/* Dynamic background with multiple layers */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1EAEDB]/10 to-[#9b87f5]/10" />
+        {/* Base gradient layer */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-secondary/10" />
+        
+        {/* Background image layer with overlay */}
+        <div 
+          className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d')] bg-cover bg-center opacity-5"
+          style={{ mixBlendMode: 'overlay' }}
+        />
+        
+        {/* Animated gradient orbs */}
         <div className="absolute -top-1/2 -left-1/2 w-full h-full animate-[spin_100s_linear_infinite]">
-          <div className="absolute inset-0 bg-gradient-radial from-[#1EAEDB]/5 to-transparent opacity-30" />
+          <div className="absolute inset-0 bg-gradient-radial from-primary/5 to-transparent opacity-30" />
         </div>
         <div className="absolute -bottom-1/2 -right-1/2 w-full h-full animate-[spin_80s_linear_infinite]">
-          <div className="absolute inset-0 bg-gradient-radial from-[#9b87f5]/5 to-transparent opacity-30" />
+          <div className="absolute inset-0 bg-gradient-radial from-secondary/5 to-transparent opacity-30" />
         </div>
+        
         {/* Floating shapes */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#1EAEDB]/5 rounded-full mix-blend-multiply animate-[pulse_10s_ease-in-out_infinite] blur-xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#9b87f5]/5 rounded-full mix-blend-multiply animate-[pulse_15s_ease-in-out_infinite] blur-xl" />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full mix-blend-multiply animate-[pulse_10s_ease-in-out_infinite] blur-xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary/5 rounded-full mix-blend-multiply animate-[pulse_15s_ease-in-out_infinite] blur-xl" />
       </div>
 
+      {/* Login form container */}
       <div className="w-full max-w-md space-y-8 p-8 relative">
+        {/* Glassmorphism effect for form background */}
         <div className="absolute inset-0 bg-white/50 backdrop-blur-sm rounded-2xl border border-white/10 shadow-lg" />
         
         <div className="relative space-y-8">
+          {/* Logo and heading */}
           <div className="text-center">
             <img 
               src="/logo.svg" 
               alt="FinSight" 
               className="h-12 mx-auto mb-4 dark:invert animate-fadeIn"
             />
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-[#1EAEDB] to-[#9b87f5] bg-clip-text text-transparent">
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               Welcome Back
             </h2>
             <p className="text-muted-foreground mt-2 animate-fadeIn">
@@ -64,6 +77,7 @@ const Login = () => {
             </p>
           </div>
           
+          {/* Login form */}
           <form onSubmit={handleSubmit} className="space-y-6 animate-fadeIn">
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
@@ -74,7 +88,7 @@ const Login = () => {
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="admin"
                 required
-                className="bg-white/50 backdrop-blur-sm border-white/20 focus:border-[#1EAEDB]/50"
+                className="bg-white/50 backdrop-blur-sm border-white/20 focus:border-primary/50"
               />
             </div>
             <div className="space-y-2">
@@ -86,12 +100,12 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="bg-white/50 backdrop-blur-sm border-white/20 focus:border-[#1EAEDB]/50"
+                className="bg-white/50 backdrop-blur-sm border-white/20 focus:border-primary/50"
               />
             </div>
             <Button 
               type="submit" 
-              className="w-full bg-gradient-to-r from-[#1EAEDB] to-[#9b87f5] hover:opacity-90 transition-opacity"
+              className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity"
             >
               Sign in
             </Button>
