@@ -5,6 +5,13 @@ import { AddAssetDialog } from "@/components/assets-liabilities/AddAssetDialog"
 import { Asset } from "@/types/assets-liabilities"
 import { v4 as uuidv4 } from 'uuid'
 import { useToast } from "@/components/ui/use-toast"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 const initialAssets: Asset[] = [
   {
@@ -39,8 +46,12 @@ const initialAssets: Asset[] = [
 const Assets = () => {
   const { toast } = useToast()
   const [assets, setAssets] = useState<Asset[]>([])
-  const totalAssets = assets.reduce((sum, asset) => sum + asset.value, 0)
-  const monthlyChange = 3.2 // This could be calculated based on historical data
+  const [selectedEntity, setSelectedEntity] = useState<string>("all")
+  const [entities, setEntities] = useState<any[]>([])
+  const totalAssets = assets
+    .filter(asset => selectedEntity === "all" || asset.entityId === selectedEntity)
+    .reduce((sum, asset) => sum + asset.value, 0)
+  const monthlyChange = 3.2
 
   useEffect(() => {
     const savedAssets = localStorage.getItem('assets')
@@ -49,6 +60,12 @@ const Assets = () => {
     } else {
       setAssets(initialAssets)
       localStorage.setItem('assets', JSON.stringify(initialAssets))
+    }
+
+    // Load entities
+    const savedEntities = localStorage.getItem('entities')
+    if (savedEntities) {
+      setEntities(JSON.parse(savedEntities))
     }
   }, [])
 
@@ -74,6 +91,10 @@ const Assets = () => {
     })
   }
 
+  const filteredAssets = assets.filter(
+    asset => selectedEntity === "all" || asset.entityId === selectedEntity
+  )
+
   return (
     <div className="p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -85,14 +106,33 @@ const Assets = () => {
           <AddAssetDialog onAddAsset={handleAddAsset} />
         </header>
 
-        <DashboardCard
-          title="Total Assets"
-          value={`$${totalAssets.toLocaleString()}`}
-          trend={{ value: monthlyChange, isPositive: true }}
-          className="bg-card"
-        />
+        <div className="flex items-center justify-between">
+          <DashboardCard
+            title="Total Assets"
+            value={`$${totalAssets.toLocaleString()}`}
+            trend={{ value: monthlyChange, isPositive: true }}
+            className="flex-1 mr-4"
+          />
+          
+          <Select
+            value={selectedEntity}
+            onValueChange={setSelectedEntity}
+          >
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Filter by Entity" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Entities</SelectItem>
+              {entities.map((entity) => (
+                <SelectItem key={entity.id} value={entity.id}>
+                  {entity.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <AssetsList assets={assets} onEditAsset={handleEditAsset} />
+        <AssetsList assets={filteredAssets} onEditAsset={handleEditAsset} />
       </div>
     </div>
   )

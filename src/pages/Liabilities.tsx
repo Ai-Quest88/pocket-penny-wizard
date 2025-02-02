@@ -4,49 +4,33 @@ import { LiabilitiesList } from "@/components/assets-liabilities/LiabilitiesList
 import { AddLiabilityDialog } from "@/components/assets-liabilities/AddLiabilityDialog"
 import { Liability } from "@/types/assets-liabilities"
 import { v4 as uuidv4 } from 'uuid'
-
-const initialLiabilities: Liability[] = [
-  {
-    id: "1",
-    entityId: "personal",
-    name: "Home Mortgage",
-    amount: 320000,
-    type: "mortgage",
-    category: "home_loan",
-    history: []
-  },
-  {
-    id: "2",
-    entityId: "business",
-    name: "Business Loan",
-    amount: 75000,
-    type: "loan",
-    category: "personal_loan",
-    history: []
-  },
-  {
-    id: "3",
-    entityId: "personal",
-    name: "Car Loan",
-    amount: 25000,
-    type: "loan",
-    category: "auto_loan",
-    history: []
-  }
-]
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 const Liabilities = () => {
   const [liabilities, setLiabilities] = useState<Liability[]>([])
-  const totalLiabilities = liabilities.reduce((sum, liability) => sum + liability.amount, 0)
-  const monthlyChange = -1.5 // This could be calculated based on historical data
+  const [selectedEntity, setSelectedEntity] = useState<string>("all")
+  const [entities, setEntities] = useState<any[]>([])
+  
+  const totalLiabilities = liabilities
+    .filter(liability => selectedEntity === "all" || liability.entityId === selectedEntity)
+    .reduce((sum, liability) => sum + liability.amount, 0)
 
   useEffect(() => {
     const savedLiabilities = localStorage.getItem('liabilities')
     if (savedLiabilities) {
       setLiabilities(JSON.parse(savedLiabilities))
-    } else {
-      setLiabilities(initialLiabilities)
-      localStorage.setItem('liabilities', JSON.stringify(initialLiabilities))
+    }
+
+    // Load entities
+    const savedEntities = localStorage.getItem('entities')
+    if (savedEntities) {
+      setEntities(JSON.parse(savedEntities))
     }
   }, [])
 
@@ -60,6 +44,10 @@ const Liabilities = () => {
     localStorage.setItem('liabilities', JSON.stringify(updatedLiabilities))
   }
 
+  const filteredLiabilities = liabilities.filter(
+    liability => selectedEntity === "all" || liability.entityId === selectedEntity
+  )
+
   return (
     <div className="p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -71,14 +59,33 @@ const Liabilities = () => {
           <AddLiabilityDialog onAddLiability={handleAddLiability} />
         </header>
 
-        <DashboardCard
-          title="Total Liabilities"
-          value={`$${totalLiabilities.toLocaleString()}`}
-          trend={{ value: Math.abs(monthlyChange), isPositive: false }}
-          className="bg-card"
-        />
+        <div className="flex items-center justify-between">
+          <DashboardCard
+            title="Total Liabilities"
+            value={`$${totalLiabilities.toLocaleString()}`}
+            trend={{ value: 2.5, isPositive: false }}
+            className="flex-1 mr-4"
+          />
+          
+          <Select
+            value={selectedEntity}
+            onValueChange={setSelectedEntity}
+          >
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Filter by Entity" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Entities</SelectItem>
+              {entities.map((entity) => (
+                <SelectItem key={entity.id} value={entity.id}>
+                  {entity.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <LiabilitiesList liabilities={liabilities} />
+        <LiabilitiesList liabilities={filteredLiabilities} />
       </div>
     </div>
   )
