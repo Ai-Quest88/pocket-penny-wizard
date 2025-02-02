@@ -32,6 +32,7 @@ import Notifications from "./pages/Notifications"
 import NotFound from "./pages/NotFound"
 import Login from "./pages/Login"
 import Entities from "./pages/Entities"
+import Index from "./pages/Index"
 
 const queryClient = new QueryClient()
 
@@ -138,7 +139,8 @@ const App = () => (
                               <UserMenu />
                             </div>
                             <Routes>
-                              <Route path="/" element={<Dashboard />} />
+                              <Route path="/" element={<Index />} />
+                              <Route path="/dashboard" element={<Dashboard />} />
                               <Route path="/transactions" element={<Transactions />} />
                               <Route path="/analytics" element={<Analytics />} />
                               <Route path="/accounts" element={<Accounts />} />
