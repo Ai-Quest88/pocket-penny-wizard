@@ -24,6 +24,7 @@ export const monthlyData = [
     month: "Jan",
     income: 5000,
     expenses: 3500,
+    entityId: "1",
     categories: {
       Salary: 4500,
       Freelance: 500,
@@ -38,6 +39,7 @@ export const monthlyData = [
     month: "Feb",
     income: 5200,
     expenses: 3800,
+    entityId: "1",
     categories: {
       Salary: 4500,
       Freelance: 700,
@@ -52,6 +54,7 @@ export const monthlyData = [
     month: "Mar",
     income: 5100,
     expenses: 3600,
+    entityId: "2",
     categories: {
       Salary: 4500,
       Freelance: 600,
@@ -82,11 +85,16 @@ export function IncomeExpenseAnalysis({ entityId }: IncomeExpenseAnalysisProps) 
   const [timeframe, setTimeframe] = useState("3m")
   const [viewType, setViewType] = useState("overview")
 
+  // Filter data based on entityId
+  const filteredMonthlyData = entityId
+    ? monthlyData.filter(data => data.entityId === entityId)
+    : monthlyData;
+
   const getAnalytics = () => {
-    const totalIncome = monthlyData.reduce((sum, month) => sum + month.income, 0)
-    const totalExpenses = monthlyData.reduce((sum, month) => sum + month.expenses, 0)
-    const averageIncome = totalIncome / monthlyData.length
-    const averageExpenses = totalExpenses / monthlyData.length
+    const totalIncome = filteredMonthlyData.reduce((sum, month) => sum + month.income, 0)
+    const totalExpenses = filteredMonthlyData.reduce((sum, month) => sum + month.expenses, 0)
+    const averageIncome = totalIncome / filteredMonthlyData.length
+    const averageExpenses = totalExpenses / filteredMonthlyData.length
     const savings = totalIncome - totalExpenses
     const savingsRate = ((savings / totalIncome) * 100).toFixed(1)
 
@@ -104,14 +112,14 @@ export function IncomeExpenseAnalysis({ entityId }: IncomeExpenseAnalysisProps) 
 
   const getCategoryData = () => {
     const categories: { [key: string]: number } = {}
-    monthlyData.forEach((month) => {
+    filteredMonthlyData.forEach((month) => {
       Object.entries(month.categories).forEach(([category, amount]) => {
         categories[category] = (categories[category] || 0) + amount
       })
     })
     return Object.entries(categories).map(([name, value]) => ({
       name,
-      value: value / monthlyData.length, // Average per month
+      value: value / filteredMonthlyData.length, // Average per month
     }))
   }
 
@@ -165,7 +173,7 @@ export function IncomeExpenseAnalysis({ entityId }: IncomeExpenseAnalysisProps) 
       <div className="h-[400px]">
         {viewType === "overview" ? (
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={monthlyData}>
+            <BarChart data={filteredMonthlyData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis />

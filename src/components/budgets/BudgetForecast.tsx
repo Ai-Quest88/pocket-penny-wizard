@@ -10,13 +10,15 @@ interface ForecastData {
   month: string
   projected: number
   actual?: number
+  entityId?: string; // Added entityId to the ForecastData interface
 }
 
 const generateForecastData = (
   startingBalance: number,
   monthlyIncome: number,
   monthlyExpenses: number,
-  months: number
+  months: number,
+  entityId?: string // Added entityId parameter
 ): ForecastData[] => {
   const data: ForecastData[] = []
   let balance = startingBalance
@@ -34,20 +36,25 @@ const generateForecastData = (
     data.push({
       month: monthNames[monthIndex],
       projected: Math.round(balance),
-      actual: i === 0 ? startingBalance : undefined
+      actual: i === 0 ? startingBalance : undefined,
+      entityId // Assign entityId to the data
     })
   }
 
   return data
 }
 
-export function BudgetForecast() {
+interface BudgetForecastProps {
+  entityId?: string;
+}
+
+export function BudgetForecast({ entityId }: BudgetForecastProps) {
   const [startingBalance, setStartingBalance] = useState(5000)
   const [monthlyIncome, setMonthlyIncome] = useState(4000)
   const [monthlyExpenses, setMonthlyExpenses] = useState(3000)
   const [forecastMonths, setForecastMonths] = useState("6")
   const [forecastData, setForecastData] = useState<ForecastData[]>(
-    generateForecastData(startingBalance, monthlyIncome, monthlyExpenses, 6)
+    generateForecastData(startingBalance, monthlyIncome, monthlyExpenses, 6, entityId)
   )
 
   const handleUpdateForecast = () => {
@@ -55,10 +62,16 @@ export function BudgetForecast() {
       startingBalance,
       monthlyIncome,
       monthlyExpenses,
-      parseInt(forecastMonths)
+      parseInt(forecastMonths),
+      entityId // Pass entityId to the function
     )
     setForecastData(newData)
   }
+
+  // Filter data based on entityId if needed
+  const filteredForecastData = entityId 
+    ? forecastData.filter(data => data.entityId === entityId)
+    : forecastData;
 
   return (
     <Card className="p-6 space-y-6">
@@ -118,7 +131,7 @@ export function BudgetForecast() {
 
       <div className="h-[400px] mt-6">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={forecastData}>
+          <LineChart data={filteredForecastData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="month" />
             <YAxis />
