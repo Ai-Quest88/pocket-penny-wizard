@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import {
   Select,
@@ -54,7 +55,6 @@ export const monthlyData = [
       Others: 500,
     },
   },
-  // Data for entity 2
   {
     month: "Jan",
     income: 8000,
