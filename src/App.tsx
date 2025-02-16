@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster"
 import { Toaster as Sonner } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -115,16 +116,16 @@ const UserMenu = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <div className="relative min-h-screen bg-gradient-to-br from-background to-background-muted">
-          <div 
-            className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1519389950473-47ba0277781c')] bg-cover bg-center opacity-5 pointer-events-none"
-            style={{ mixBlendMode: 'overlay' }}
-          />
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
+        <TooltipProvider>
+          <div className="relative min-h-screen bg-gradient-to-br from-background to-background-muted">
+            <div 
+              className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1519389950473-47ba0277781c')] bg-cover bg-center opacity-5 pointer-events-none"
+              style={{ mixBlendMode: 'overlay' }}
+            />
+            <Toaster />
+            <Sonner />
             <SidebarProvider>
               <div className="relative min-h-screen flex w-full">
                 <Routes>
@@ -189,10 +190,10 @@ const App = () => (
                 </Routes>
               </div>
             </SidebarProvider>
-          </BrowserRouter>
-        </div>
-      </TooltipProvider>
-    </AuthProvider>
+          </div>
+        </TooltipProvider>
+      </AuthProvider>
+    </BrowserRouter>
   </QueryClientProvider>
 )
 
