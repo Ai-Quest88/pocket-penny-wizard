@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -11,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Transaction {
   id: number;
@@ -25,33 +27,6 @@ interface TransactionListProps {
   entityId?: string;
 }
 
-const transactions: Transaction[] = [
-  {
-    id: 1,
-    description: "Grocery Shopping",
-    amount: -120.50,
-    category: "Food",
-    date: "2024-03-20",
-    currency: "USD"
-  },
-  {
-    id: 2,
-    description: "Salary Deposit",
-    amount: 3000.00,
-    category: "Income",
-    date: "2024-03-19",
-    currency: "EUR"
-  },
-  {
-    id: 3,
-    description: "Netflix Subscription",
-    amount: -15.99,
-    category: "Entertainment",
-    date: "2024-03-18",
-    currency: "GBP"
-  },
-];
-
 const currencySymbols: Record<string, string> = {
   USD: "$",
   EUR: "€",
@@ -61,6 +36,19 @@ const currencySymbols: Record<string, string> = {
 
 export const TransactionList = ({ entityId }: TransactionListProps) => {
   const [displayCurrency, setDisplayCurrency] = useState("USD");
+
+  const { data: transactions = [], isLoading } = useQuery({
+    queryKey: ['transactions'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .order('date', { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const { data: exchangeRates, isLoading: ratesLoading } = useQuery({
     queryKey: ["exchangeRates", displayCurrency],
@@ -73,6 +61,10 @@ export const TransactionList = ({ entityId }: TransactionListProps) => {
     const rate = exchangeRates[fromCurrency];
     return amount / rate * exchangeRates[displayCurrency];
   };
+
+  if (isLoading) {
+    return <div>Loading transactions...</div>;
+  }
 
   return (
     <Card className="animate-fadeIn">

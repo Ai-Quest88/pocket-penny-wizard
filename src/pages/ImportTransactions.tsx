@@ -1,3 +1,4 @@
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -24,6 +25,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Upload } from "lucide-react";
 import { parseCSV, ParsedTransaction } from "@/utils/csvParser";
 import { categorizeTransaction } from "@/utils/transactionCategories";
+import { linkYodleeAccount } from "@/utils/yodlee";
 
 interface ImportTransactionsProps {
   onSuccess?: () => void;
@@ -77,17 +79,32 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!values.category) {
-      values.category = categorizeTransaction(values.description);
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      if (!values.category) {
+        values.category = categorizeTransaction(values.description);
+      }
+
+      // Link a new Yodlee account
+      await linkYodleeAccount({
+        id: "manual",
+        accountName: "Manual Transactions",
+        accountType: "manual",
+        providerName: "Manual Entry"
+      });
+      
+      toast({
+        title: "Transaction added",
+        description: "Your transaction has been successfully recorded.",
+      });
+      onSuccess?.();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add transaction. Please try again.",
+        variant: "destructive"
+      });
     }
-    
-    console.log(values);
-    toast({
-      title: "Transaction added",
-      description: "Your transaction has been successfully recorded.",
-    });
-    onSuccess?.();
   }
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
