@@ -10,12 +10,29 @@ import { useToast } from "@/hooks/use-toast";
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState<{password?: string}>({});
   const { login } = useAuth();
   const { toast } = useToast();
   const [isSigningUp, setIsSigningUp] = useState(false);
 
+  const validateForm = () => {
+    const newErrors: {password?: string} = {};
+    
+    if (password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters long";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
     try {
       if (isSigningUp) {
         const { error } = await supabase.auth.signUp({
@@ -138,8 +155,13 @@ const Login = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="bg-white/50 backdrop-blur-sm border-white/20 focus:border-primary/50"
+                  className={`bg-white/50 backdrop-blur-sm border-white/20 focus:border-primary/50 ${
+                    errors.password ? "border-red-500" : ""
+                  }`}
                 />
+                {errors.password && (
+                  <p className="text-sm text-red-500 mt-1">{errors.password}</p>
+                )}
               </div>
               <Button 
                 type="submit" 
@@ -152,7 +174,10 @@ const Login = () => {
             <div className="text-center space-y-4">
               <button
                 type="button"
-                onClick={() => setIsSigningUp(!isSigningUp)}
+                onClick={() => {
+                  setIsSigningUp(!isSigningUp);
+                  setErrors({});
+                }}
                 className="text-sm text-muted-foreground hover:text-primary transition-colors"
               >
                 {isSigningUp
