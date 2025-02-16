@@ -114,6 +114,75 @@ const UserMenu = () => {
   )
 }
 
+const AppRoutes = () => {
+  const { isAuthenticated } = useAuth();
+  
+  return (
+    <Routes>
+      {/* Root redirect */}
+      <Route 
+        path="/" 
+        element={
+          isAuthenticated ? (
+            <Navigate to="/dashboard" replace />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        } 
+      />
+      
+      {/* Public routes */}
+      <Route 
+        path="/login" 
+        element={
+          <PublicRoute>
+            <Login />
+          </PublicRoute>
+        } 
+      />
+      
+      {/* Protected routes */}
+      <Route
+        path="/*"
+        element={
+          <ProtectedRoute>
+            <>
+              <AppSidebar />
+              <main className="flex-1 relative">
+                <div className="flex justify-between items-center p-4 bg-card/50 backdrop-blur-sm">
+                  <div className="flex items-center gap-4">
+                    <SidebarTrigger />
+                    <img 
+                      src="/logo.svg" 
+                      alt="PennyWise" 
+                      className="h-8 w-auto dark:invert"
+                    />
+                  </div>
+                  <UserMenu />
+                </div>
+                <Routes>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/transactions" element={<Transactions />} />
+                  <Route path="/analytics" element={<Analytics />} />
+                  <Route path="/accounts" element={<Accounts />} />
+                  <Route path="/entities" element={<Entities />} />
+                  <Route path="/assets" element={<Assets />} />
+                  <Route path="/liabilities" element={<Liabilities />} />
+                  <Route path="/budgets" element={<Budgets />} />
+                  <Route path="/reports" element={<Reports />} />
+                  <Route path="/notifications" element={<Notifications />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </main>
+            </>
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <BrowserRouter>
@@ -128,66 +197,7 @@ const App = () => (
             <Sonner />
             <SidebarProvider>
               <div className="relative min-h-screen flex w-full">
-                <Routes>
-                  {/* Redirect root to dashboard or login based on auth status */}
-                  <Route 
-                    path="/" 
-                    element={
-                      <ProtectedRoute>
-                        <Navigate to="/dashboard" replace />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  
-                  {/* Public routes */}
-                  <Route 
-                    path="/login" 
-                    element={
-                      <PublicRoute>
-                        <Login />
-                      </PublicRoute>
-                    } 
-                  />
-                  
-                  {/* Protected routes */}
-                  <Route
-                    path="/*"
-                    element={
-                      <ProtectedRoute>
-                        <>
-                          <AppSidebar />
-                          <main className="flex-1 relative">
-                            <div className="flex justify-between items-center p-4 bg-card/50 backdrop-blur-sm">
-                              <div className="flex items-center gap-4">
-                                <SidebarTrigger />
-                                <img 
-                                  src="/logo.svg" 
-                                  alt="PennyWise" 
-                                  className="h-8 w-auto dark:invert"
-                                />
-                              </div>
-                              <UserMenu />
-                            </div>
-                            <Routes>
-                              <Route path="/dashboard" element={<Dashboard />} />
-                              <Route path="/transactions" element={<Transactions />} />
-                              <Route path="/analytics" element={<Analytics />} />
-                              <Route path="/accounts" element={<Accounts />} />
-                              <Route path="/entities" element={<Entities />} />
-                              <Route path="/assets" element={<Assets />} />
-                              <Route path="/liabilities" element={<Liabilities />} />
-                              <Route path="/budgets" element={<Budgets />} />
-                              <Route path="/reports" element={<Reports />} />
-                              <Route path="/notifications" element={<Notifications />} />
-                              <Route path="/settings" element={<Settings />} />
-                              <Route path="*" element={<NotFound />} />
-                            </Routes>
-                          </main>
-                        </>
-                      </ProtectedRoute>
-                    }
-                  />
-                </Routes>
+                <AppRoutes />
               </div>
             </SidebarProvider>
           </div>
