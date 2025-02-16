@@ -1,1 +1,4 @@
+
 project_id = "nqqbvlvuzyctmysablzw"
+[functions.yodlee]
+verify_jwt = true
