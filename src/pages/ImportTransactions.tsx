@@ -26,6 +26,10 @@ import { Upload } from "lucide-react";
 import { parseCSV, ParsedTransaction } from "@/utils/csvParser";
 import { categorizeTransaction } from "@/utils/transactionCategories";
 import { linkYodleeAccount } from "@/utils/yodlee";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ImportTransactionsProps {
   onSuccess?: () => void;
@@ -67,6 +71,9 @@ const currencies = [
 export default function ImportTransactions({ onSuccess }: ImportTransactionsProps) {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { session } = useAuth();
+  const [isUploading, setIsUploading] = useState(false);
+  const queryClient = useQueryClient();
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -81,8 +88,33 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
+      if (!session?.user?.id) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to add transactions.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       if (!values.category) {
         values.category = categorizeTransaction(values.description);
+      }
+
+      const { error } = await supabase
+        .from('transactions')
+        .insert([{
+          user_id: session.user.id,
+          description: values.description,
+          amount: parseFloat(values.amount),
+          category: values.category,
+          date: values.date,
+          currency: values.currency
+        }]);
+
+      if (error) {
+        console.error('Error inserting transaction:', error);
+        throw error;
       }
 
       // Link a new Yodlee account
@@ -92,13 +124,19 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
         accountType: "manual",
         providerName: "Manual Entry"
       });
+
+      // Invalidate and refetch transactions
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       
       toast({
         title: "Transaction added",
         description: "Your transaction has been successfully recorded.",
       });
+      
+      form.reset();
       onSuccess?.();
     } catch (error) {
+      console.error('Error adding transaction:', error);
       toast({
         title: "Error",
         description: "Failed to add transaction. Please try again.",
@@ -111,6 +149,17 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
     const file = event.target.files?.[0];
     if (!file) return;
 
+    if (!session?.user?.id) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to upload transactions.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUploading(true);
+
     try {
       const content = await file.text();
       const transactions: ParsedTransaction[] = parseCSV(content);
@@ -121,9 +170,44 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
           description: "No valid transactions found in the CSV file.",
           variant: "destructive",
         });
+        setIsUploading(false);
         return;
       }
 
+      console.log(`Uploading ${transactions.length} transactions...`);
+
+      // Prepare transactions for database insertion
+      const transactionsToInsert = transactions.map(transaction => ({
+        user_id: session.user.id,
+        description: transaction.description,
+        amount: parseFloat(transaction.amount),
+        category: transaction.category || categorizeTransaction(transaction.description),
+        date: transaction.date,
+        currency: transaction.currency || "USD"
+      }));
+
+      // Insert all transactions in bulk
+      const { error } = await supabase
+        .from('transactions')
+        .insert(transactionsToInsert);
+
+      if (error) {
+        console.error('Error bulk inserting transactions:', error);
+        throw error;
+      }
+
+      // Invalidate and refetch transactions to show updated list
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+
+      toast({
+        title: "CSV Upload Successful",
+        description: `Successfully imported ${transactions.length} transaction(s) to your account.`,
+      });
+
+      // Clear the file input
+      event.target.value = '';
+      
+      // Optionally populate the form with the first transaction for preview
       const firstTransaction = transactions[0];
       const suggestedCategory = categorizeTransaction(firstTransaction.description);
       
@@ -135,16 +219,15 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
         currency: firstTransaction.currency || "USD",
       });
 
-      toast({
-        title: "CSV Imported",
-        description: `Successfully loaded ${transactions.length} transaction(s).`,
-      });
     } catch (error) {
+      console.error('Error processing CSV file:', error);
       toast({
-        title: "Error",
-        description: "Failed to parse the CSV file. Please check the format.",
+        title: "Upload Failed",
+        description: "Failed to process the CSV file. Please check the format and try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -154,7 +237,7 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
         <Upload className="h-4 w-4" />
         <AlertTitle>CSV Import</AlertTitle>
         <AlertDescription>
-          Upload a CSV file from your bank with the following columns: Date, Description, Amount
+          Upload a CSV file from your bank with the following columns: Date, Description, Amount, Currency (optional)
         </AlertDescription>
       </Alert>
 
@@ -164,7 +247,13 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
           accept=".csv"
           onChange={handleFileUpload}
           className="flex-1"
+          disabled={isUploading}
         />
+        {isUploading && (
+          <div className="text-sm text-muted-foreground">
+            Uploading transactions...
+          </div>
+        )}
       </div>
 
       <Form {...form}>
