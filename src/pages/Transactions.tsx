@@ -13,6 +13,8 @@ const Transactions = () => {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
+  console.log("Transactions component - isAuthenticated:", isAuthenticated);
+
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login');
@@ -20,8 +22,11 @@ const Transactions = () => {
   }, [isAuthenticated, navigate]);
 
   if (!isAuthenticated) {
+    console.log("Not authenticated, returning null");
     return null;
   }
+
+  console.log("Rendering Transactions component");
 
   return (
     <div className="p-8">
@@ -31,22 +36,27 @@ const Transactions = () => {
             <h1 className="text-3xl font-bold">Transactions</h1>
             <p className="text-muted-foreground">Manage your transactions</p>
           </div>
-          <Sheet open={isAddingTransaction} onOpenChange={setIsAddingTransaction}>
-            <SheetTrigger asChild>
-              <Button className="flex items-center gap-2">
-                <PlusCircle className="h-4 w-4" />
-                Add Transaction
-              </Button>
-            </SheetTrigger>
-            <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
-              <SheetHeader>
-                <SheetTitle>Add New Transaction</SheetTitle>
-              </SheetHeader>
-              <div className="mt-6">
-                <ImportTransactions onSuccess={() => setIsAddingTransaction(false)} />
-              </div>
-            </SheetContent>
-          </Sheet>
+          <div className="flex items-center">
+            <Sheet open={isAddingTransaction} onOpenChange={setIsAddingTransaction}>
+              <SheetTrigger asChild>
+                <Button 
+                  className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+                  onClick={() => console.log("Add Transaction button clicked")}
+                >
+                  <PlusCircle className="h-4 w-4" />
+                  Add Transaction
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
+                <SheetHeader>
+                  <SheetTitle>Add New Transaction</SheetTitle>
+                </SheetHeader>
+                <div className="mt-6">
+                  <ImportTransactions onSuccess={() => setIsAddingTransaction(false)} />
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
         </header>
 
         <TransactionList />
