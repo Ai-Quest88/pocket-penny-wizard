@@ -7,15 +7,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { categories } from "@/types/transaction-forms";
 
 const editTransactionSchema = z.object({
-  description: z.string().min(2, "Description must be at least 2 characters"),
   category: z.string().min(1, "Please select a category"),
+  comment: z.string().optional(),
 });
 
 type EditTransactionData = z.infer<typeof editTransactionSchema>;
@@ -27,6 +27,7 @@ interface Transaction {
   category: string;
   date: string;
   currency: string;
+  comment?: string;
 }
 
 interface EditTransactionDialogProps {
@@ -43,8 +44,8 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
   const form = useForm<EditTransactionData>({
     resolver: zodResolver(editTransactionSchema),
     defaultValues: {
-      description: transaction?.description || "",
       category: transaction?.category || "",
+      comment: transaction?.comment || "",
     },
   });
 
@@ -52,8 +53,8 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
   useState(() => {
     if (transaction) {
       form.reset({
-        description: transaction.description,
         category: transaction.category,
+        comment: transaction.comment || "",
       });
     }
   });
@@ -67,8 +68,8 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
       const { error } = await supabase
         .from('transactions')
         .update({
-          description: data.description,
           category: data.category,
+          comment: data.comment || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', transaction.id);
@@ -126,19 +127,10 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
                 </div>
               </div>
 
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Transaction description" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="bg-muted p-3 rounded-lg mb-4">
+                <p className="text-sm text-muted-foreground">Description</p>
+                <p className="font-medium">{transaction.description}</p>
+              </div>
 
               <FormField
                 control={form.control}
@@ -160,6 +152,24 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
                         ))}
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="comment"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Comment (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Add a comment about this transaction..."
+                        className="min-h-[80px]"
+                        {...field}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
