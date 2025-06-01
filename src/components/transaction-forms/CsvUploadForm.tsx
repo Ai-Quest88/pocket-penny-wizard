@@ -1,9 +1,9 @@
-
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,6 +28,8 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
   const [showCurrencySelector, setShowCurrencySelector] = useState(false);
   const [pendingTransactions, setPendingTransactions] = useState<any[]>([]);
   const queryClient = useQueryClient();
+
+  console.log("CsvUploadForm component rendering");
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -240,13 +242,13 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
             </Select>
           </div>
 
-          <button
+          <Button
             onClick={handleCurrencyConfirmation}
             className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 rounded-md text-sm font-medium"
             disabled={!selectedCurrency}
           >
             Upload {pendingTransactions.length} Transactions
-          </button>
+          </Button>
         </div>
       )}
 
