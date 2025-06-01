@@ -1,26 +1,12 @@
 
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { fetchExchangeRates } from "@/utils/currencyUtils";
 import { useState } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
+import { TransactionListHeader } from "./transactions/TransactionListHeader";
+import { TransactionTable } from "./transactions/TransactionTable";
 
 interface Transaction {
   id: number;
@@ -120,28 +106,11 @@ export const TransactionList = ({ entityId }: TransactionListProps) => {
 
   return (
     <Card className="animate-fadeIn">
-      <div className="p-6 border-b border-accent">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold text-text">Recent Transactions</h3>
-          <div className="w-32">
-            <Select
-              value={displayCurrency}
-              onValueChange={setDisplayCurrency}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select currency" />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.keys(currencySymbols).map((currency) => (
-                  <SelectItem key={currency} value={currency}>
-                    {currencySymbols[currency]} {currency}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
+      <TransactionListHeader
+        displayCurrency={displayCurrency}
+        onCurrencyChange={setDisplayCurrency}
+        currencySymbols={currencySymbols}
+      />
       <ScrollArea className="h-[400px]">
         <div className="p-4">
           {transactions.length === 0 ? (
@@ -152,66 +121,13 @@ export const TransactionList = ({ entityId }: TransactionListProps) => {
               </p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-right">Balance</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transactions.map((transaction, index) => {
-                  const convertedAmount = convertAmount(
-                    transaction.amount,
-                    transaction.currency
-                  );
-                  const balance = calculateBalance(index);
-                  
-                  return (
-                    <TableRow key={transaction.id}>
-                      <TableCell className="font-medium">
-                        {new Date(transaction.date).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{transaction.description}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              {transaction.category}
-                            </span>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div>
-                          <p className={cn(
-                            "font-semibold",
-                            convertedAmount > 0 ? "text-green-600" : "text-red-600"
-                          )}>
-                            {convertedAmount > 0 ? "+" : ""}
-                            {currencySymbols[displayCurrency]}
-                            {Math.abs(convertedAmount).toFixed(2)}
-                          </p>
-                          {transaction.currency !== displayCurrency && (
-                            <p className="text-xs text-muted-foreground">
-                              {currencySymbols[transaction.currency]}{Math.abs(transaction.amount).toFixed(2)}
-                            </p>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <p className="font-semibold">
-                          {currencySymbols[displayCurrency]}
-                          {Math.abs(balance).toFixed(2)}
-                        </p>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+            <TransactionTable
+              transactions={transactions}
+              convertAmount={convertAmount}
+              calculateBalance={calculateBalance}
+              displayCurrency={displayCurrency}
+              currencySymbols={currencySymbols}
+            />
           )}
         </div>
       </ScrollArea>
