@@ -30,10 +30,45 @@ const categoryRules: CategoryRule[] = [
     keywords: ['netflix', 'spotify', 'hbo', 'cinema', 'movie', 'theatre', 'concert', 'entertainment', 'disney', 'youtube', 'apple music', 'amazon prime', 'gaming', 'music'],
     category: 'Entertainment'
   },
+  // Health
+  {
+    keywords: ['doctor', 'dentist', 'pharmacy', 'medical', 'health', 'hospital', 'clinic', 'physiotherapy', 'gym', 'fitness'],
+    category: 'Health'
+  },
+  // Travel
+  {
+    keywords: ['hotel', 'flight', 'airline', 'booking', 'airbnb', 'travel', 'vacation', 'holiday', 'accommodation'],
+    category: 'Travel'
+  },
+  // Education
+  {
+    keywords: ['school', 'university', 'course', 'education', 'tuition', 'books', 'learning', 'training'],
+    category: 'Education'
+  },
   // Income
   {
     keywords: ['salary', 'wage', 'pay', 'deposit', 'dividend', 'interest', 'refund', 'cashback', 'income', 'bonus'],
     category: 'Income'
+  },
+  // Investment
+  {
+    keywords: ['investment', 'stock', 'share', 'etf', 'fund', 'crypto', 'bitcoin', 'trading'],
+    category: 'Investment'
+  },
+  // Insurance
+  {
+    keywords: ['insurance', 'premium', 'policy', 'cover', 'life insurance', 'car insurance', 'home insurance'],
+    category: 'Insurance'
+  },
+  // Gifts
+  {
+    keywords: ['gift', 'present', 'birthday', 'wedding', 'anniversary', 'donation'],
+    category: 'Gifts'
+  },
+  // Charity
+  {
+    keywords: ['charity', 'donation', 'fundraising', 'sponsor', 'support'],
+    category: 'Charity'
   },
   // Banking and Credit Cards
   {

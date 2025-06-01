@@ -20,16 +20,32 @@ export const transactionFormSchema = z.object({
 
 export type TransactionFormData = z.infer<typeof transactionFormSchema>;
 
-export const categories = [
-  "Food",
-  "Transport", 
-  "Entertainment",
-  "Shopping",
-  "Bills",
-  "Income",
-  "Banking",
-  "Other",
+export interface CategoryBucket {
+  name: string;
+  categories: string[];
+}
+
+export const categoryBuckets: CategoryBucket[] = [
+  {
+    name: "Living Expenses",
+    categories: ["Food", "Transport", "Bills", "Shopping"]
+  },
+  {
+    name: "Lifestyle",
+    categories: ["Entertainment", "Health", "Travel", "Education"]
+  },
+  {
+    name: "Financial",
+    categories: ["Income", "Banking", "Investment", "Insurance"]
+  },
+  {
+    name: "Other",
+    categories: ["Other", "Gifts", "Charity"]
+  }
 ];
+
+// Flatten all categories for backward compatibility
+export const categories = categoryBuckets.flatMap(bucket => bucket.categories);
 
 export const currencies = [
   { code: "USD", symbol: "$", name: "US Dollar" },
