@@ -38,6 +38,7 @@ export const TransactionTable = ({
         <TableRow>
           <TableHead>Date</TableHead>
           <TableHead>Description</TableHead>
+          <TableHead>Category</TableHead>
           <TableHead className="text-right">Amount</TableHead>
           <TableHead className="text-right">Balance</TableHead>
         </TableRow>

@@ -1,5 +1,6 @@
 
 import { TableCell, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 interface Transaction {
@@ -35,12 +36,12 @@ export const TransactionTableRow = ({
       <TableCell>
         <div>
           <p className="font-medium">{transaction.description}</p>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-              {transaction.category}
-            </span>
-          </div>
         </div>
+      </TableCell>
+      <TableCell>
+        <Badge variant="secondary" className="text-xs">
+          {transaction.category}
+        </Badge>
       </TableCell>
       <TableCell className="text-right">
         <div>
