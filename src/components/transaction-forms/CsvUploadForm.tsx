@@ -2,6 +2,8 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { Upload } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,7 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { parseCSV } from "@/utils/csvParser";
 import { categorizeTransaction } from "@/utils/transactionCategories";
 import { supabase } from "@/integrations/supabase/client";
-import { TransactionFormData } from "@/types/transaction-forms";
+import { TransactionFormData, currencies } from "@/types/transaction-forms";
 
 interface CsvUploadFormProps {
   onTransactionParsed?: (transaction: TransactionFormData) => void;
@@ -20,6 +22,11 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
   const { session } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string>('');
+  const [detectedCurrency, setDetectedCurrency] = useState<string>('');
+  const [selectedCurrency, setSelectedCurrency] = useState<string>('');
+  const [selectedAccount, setSelectedAccount] = useState<string>('');
+  const [showCurrencySelector, setShowCurrencySelector] = useState(false);
+  const [pendingTransactions, setPendingTransactions] = useState<any[]>([]);
   const queryClient = useQueryClient();
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -43,9 +50,10 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
       console.log('CSV file content:', content.substring(0, 200) + '...');
       
       setUploadProgress('Parsing transactions...');
-      const { transactions, errors } = parseCSV(content);
+      const { transactions, errors, detectedCurrency: csvCurrency } = parseCSV(content);
 
       console.log(`Parsed ${transactions.length} transactions with ${errors.length} errors`);
+      console.log('Detected currency:', csvCurrency);
 
       if (errors.length > 0) {
         console.warn('CSV parsing errors:', errors);
@@ -70,6 +78,42 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
         return;
       }
 
+      // Store pending transactions
+      setPendingTransactions(transactions);
+
+      // If currency wasn't detected, show currency selector
+      if (!csvCurrency) {
+        setShowCurrencySelector(true);
+        setUploadProgress('Please select currency for your transactions');
+        toast({
+          title: "Currency Selection Required",
+          description: "Could not detect currency from CSV. Please select the currency below.",
+        });
+        return;
+      } else {
+        setDetectedCurrency(csvCurrency);
+        await processPendingTransactions(transactions, csvCurrency);
+      }
+
+    } catch (error) {
+      console.error('Error processing CSV file:', error);
+      toast({
+        title: "Upload Failed",
+        description: "Failed to process the CSV file. Please check the format and try again.",
+        variant: "destructive",
+      });
+    } finally {
+      if (!showCurrencySelector) {
+        setIsUploading(false);
+        setUploadProgress('');
+      }
+    }
+  };
+
+  const processPendingTransactions = async (transactions: any[], currency: string) => {
+    if (!session?.user?.id) return;
+
+    try {
       setUploadProgress(`Uploading ${transactions.length} transactions...`);
 
       const transactionsToInsert = transactions.map(transaction => ({
@@ -78,7 +122,8 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
         amount: parseFloat(transaction.amount),
         category: transaction.category || categorizeTransaction(transaction.description),
         date: transaction.date,
-        currency: transaction.currency || "USD"
+        currency: currency,
+        yodlee_account_id: selectedAccount || null
       }));
 
       console.log('Inserting transactions:', transactionsToInsert);
@@ -97,10 +142,15 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
 
       toast({
         title: "CSV Upload Successful",
-        description: `Successfully imported ${transactions.length} transaction(s) to your account.${errors.length > 0 ? ` ${errors.length} rows had errors and were skipped.` : ''}`,
+        description: `Successfully imported ${transactions.length} transaction(s) to your account.`,
       });
 
-      event.target.value = '';
+      // Reset form
+      setPendingTransactions([]);
+      setShowCurrencySelector(false);
+      setSelectedCurrency('');
+      setSelectedAccount('');
+      setDetectedCurrency('');
       
       if (transactions.length > 0 && onTransactionParsed) {
         const firstTransaction = transactions[0];
@@ -111,21 +161,35 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
           amount: firstTransaction.amount,
           category: suggestedCategory,
           date: firstTransaction.date,
-          currency: firstTransaction.currency || "USD",
+          currency: currency,
+          account_id: selectedAccount,
         });
       }
 
     } catch (error) {
-      console.error('Error processing CSV file:', error);
+      console.error('Error processing transactions:', error);
       toast({
         title: "Upload Failed",
-        description: "Failed to process the CSV file. Please check the format and try again.",
+        description: "Failed to save transactions. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsUploading(false);
       setUploadProgress('');
     }
+  };
+
+  const handleCurrencyConfirmation = async () => {
+    if (!selectedCurrency) {
+      toast({
+        title: "Currency Required",
+        description: "Please select a currency before proceeding.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await processPendingTransactions(pendingTransactions, selectedCurrency);
   };
 
   return (
@@ -144,20 +208,79 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
         </AlertDescription>
       </Alert>
 
-      <div className="flex items-center space-x-4">
-        <Input
-          type="file"
-          accept=".csv"
-          onChange={handleFileUpload}
-          className="flex-1"
-          disabled={isUploading}
-        />
-        {isUploading && (
-          <div className="text-sm text-muted-foreground">
-            {uploadProgress}
+      {showCurrencySelector && (
+        <div className="p-4 border rounded-lg bg-muted/50 space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="currency-select">Select Currency</Label>
+            <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choose currency for your transactions" />
+              </SelectTrigger>
+              <SelectContent>
+                {currencies.map((currency) => (
+                  <SelectItem key={currency.code} value={currency.code}>
+                    {currency.symbol} {currency.code} - {currency.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        )}
-      </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="account-select">Select Account (Optional)</Label>
+            <Select value={selectedAccount} onValueChange={setSelectedAccount}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choose account (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">No specific account</SelectItem>
+                {/* We'll add actual accounts from the database later */}
+                <SelectItem value="default">Default Account</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <button
+            onClick={handleCurrencyConfirmation}
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 rounded-md text-sm font-medium"
+            disabled={!selectedCurrency}
+          >
+            Upload {pendingTransactions.length} Transactions
+          </button>
+        </div>
+      )}
+
+      {!showCurrencySelector && (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="account-select">Select Account (Optional)</Label>
+            <Select value={selectedAccount} onValueChange={setSelectedAccount}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choose account (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">No specific account</SelectItem>
+                <SelectItem value="default">Default Account</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            <Input
+              type="file"
+              accept=".csv"
+              onChange={handleFileUpload}
+              className="flex-1"
+              disabled={isUploading}
+            />
+            {isUploading && (
+              <div className="text-sm text-muted-foreground">
+                {uploadProgress}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

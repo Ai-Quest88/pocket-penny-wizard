@@ -17,6 +17,13 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
 
   return (
     <div className="space-y-6">
+      <div className="space-y-2">
+        <h2 className="text-2xl font-semibold">Import Transactions</h2>
+        <p className="text-muted-foreground">
+          Upload a CSV file or manually add transactions. Currency will be automatically detected from your CSV file.
+        </p>
+      </div>
+      
       <CsvUploadForm onTransactionParsed={handleTransactionParsed} />
       <ManualTransactionForm 
         onSuccess={onSuccess} 

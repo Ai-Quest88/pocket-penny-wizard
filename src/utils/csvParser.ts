@@ -17,6 +17,7 @@ export interface ParseError {
 export interface ParseResult {
   transactions: ParsedTransaction[];
   errors: ParseError[];
+  detectedCurrency?: string;
 }
 
 const parseDate = (dateStr: string): string | null => {
@@ -34,7 +35,7 @@ const parseDate = (dateStr: string): string | null => {
     }
   }
 
-  // Try DD/MM/YYYY format (European format) - this matches your data
+  // Try DD/MM/YYYY format (European format)
   const euroMatch = cleanDate.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
   if (euroMatch) {
     const [, day, month, year] = euroMatch;
@@ -67,6 +68,34 @@ const parseAmount = (amountStr: string): number | null => {
   return isNaN(amount) ? null : amount;
 };
 
+const detectCurrency = (content: string): string | null => {
+  const lines = content.split('\n').slice(0, 10); // Check first 10 lines
+  
+  // Currency symbols and codes to look for
+  const currencyPatterns = [
+    { pattern: /\$/, currency: 'USD' },
+    { pattern: /€/, currency: 'EUR' },
+    { pattern: /£/, currency: 'GBP' },
+    { pattern: /¥/, currency: 'JPY' },
+    { pattern: /\bUSD\b/i, currency: 'USD' },
+    { pattern: /\bEUR\b/i, currency: 'EUR' },
+    { pattern: /\bGBP\b/i, currency: 'GBP' },
+    { pattern: /\bAUD\b/i, currency: 'AUD' },
+    { pattern: /\bCAD\b/i, currency: 'CAD' },
+    { pattern: /\bJPY\b/i, currency: 'JPY' },
+  ];
+
+  for (const line of lines) {
+    for (const { pattern, currency } of currencyPatterns) {
+      if (pattern.test(line)) {
+        return currency;
+      }
+    }
+  }
+
+  return null;
+};
+
 const parseCsvLine = (line: string): string[] => {
   const result: string[] = [];
   let current = '';
@@ -90,19 +119,15 @@ const parseCsvLine = (line: string): string[] => {
 };
 
 const detectCsvFormat = (fields: string[]): 'format1' | 'format2' | 'unknown' => {
-  // Format 1: Date, Description, Amount, Currency (original expected format)
-  // Format 2: Date, Amount, Description, Balance (user's format)
-  
   if (fields.length >= 4) {
-    // Check if second field looks like an amount (starts with + or - and contains numbers)
     const secondField = fields[1].trim().replace(/"/g, '');
     if (/^[+-]?\d+\.?\d*$/.test(secondField)) {
-      return 'format2'; // User's format: Date, Amount, Description, Balance
+      return 'format2'; // Date, Amount, Description, Balance
     }
   }
   
   if (fields.length >= 3) {
-    return 'format1'; // Original format: Date, Description, Amount, Currency
+    return 'format1'; // Date, Description, Amount, Currency
   }
   
   return 'unknown';
@@ -123,7 +148,9 @@ export const parseCSV = (content: string): ParseResult => {
     return { transactions, errors };
   }
 
-  // Process each line (no header expected for the user's format)
+  // Detect currency from CSV content
+  const detectedCurrency = detectCurrency(content);
+
   const startIndex = 0;
   
   for (let i = startIndex; i < lines.length; i++) {
@@ -148,10 +175,10 @@ export const parseCSV = (content: string): ParseResult => {
     if (format === 'format2') {
       // User's format: Date, Amount, Description, Balance
       [date, amount, description] = fields;
-      currency = 'AUD'; // Default currency for Australian bank format
+      currency = detectedCurrency || 'AUD'; // Default to AUD for Australian bank format
     } else if (format === 'format1') {
       // Original format: Date, Description, Amount, Currency
-      [date, description, amount, currency = 'USD'] = fields;
+      [date, description, amount, currency = detectedCurrency || 'USD'] = fields;
     } else {
       errors.push({
         row: i + 1,
@@ -198,12 +225,12 @@ export const parseCSV = (content: string): ParseResult => {
       transactions.push({
         description: description.trim().replace(/"/g, ''),
         amount: parsedAmount.toString(),
-        category: 'other', // Default category
+        category: 'other',
         date: parsedDate,
-        currency: currency?.trim() || 'AUD'
+        currency: currency?.trim() || detectedCurrency || 'USD'
       });
     }
   }
 
-  return { transactions, errors };
+  return { transactions, errors, detectedCurrency };
 };

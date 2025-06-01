@@ -15,17 +15,19 @@ export const transactionFormSchema = z.object({
   currency: z.string().min(1, {
     message: "Please select a currency.",
   }),
+  account_id: z.string().optional(),
 });
 
 export type TransactionFormData = z.infer<typeof transactionFormSchema>;
 
 export const categories = [
   "Food",
-  "Transportation", 
+  "Transport", 
   "Entertainment",
   "Shopping",
   "Bills",
   "Income",
+  "Banking",
   "Other",
 ];
 
@@ -34,4 +36,6 @@ export const currencies = [
   { code: "EUR", symbol: "€", name: "Euro" },
   { code: "GBP", symbol: "£", name: "British Pound" },
   { code: "JPY", symbol: "¥", name: "Japanese Yen" },
+  { code: "AUD", symbol: "$", name: "Australian Dollar" },
+  { code: "CAD", symbol: "$", name: "Canadian Dollar" },
 ];
