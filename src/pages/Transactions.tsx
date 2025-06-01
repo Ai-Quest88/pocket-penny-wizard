@@ -1,7 +1,8 @@
+
 import { Button } from "@/components/ui/button"
 import { PlusCircle } from "lucide-react"
 import { useState, useEffect } from "react"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import ImportTransactions from "./ImportTransactions"
 import { TransactionList } from "@/components/TransactionList"
 import { useAuth } from "@/contexts/AuthContext"
@@ -32,8 +33,8 @@ const Transactions = () => {
             <p className="text-muted-foreground">Manage your transactions</p>
           </div>
           <div className="flex items-center">
-            <Sheet open={isAddingTransaction} onOpenChange={setIsAddingTransaction}>
-              <SheetTrigger asChild>
+            <Dialog open={isAddingTransaction} onOpenChange={setIsAddingTransaction}>
+              <DialogTrigger asChild>
                 <Button 
                   className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
                   onClick={() => console.log("Add Transaction button clicked")}
@@ -41,16 +42,16 @@ const Transactions = () => {
                   <PlusCircle className="h-4 w-4" />
                   Add Transaction
                 </Button>
-              </SheetTrigger>
-              <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
-                <SheetHeader>
-                  <SheetTitle>Add New Transaction</SheetTitle>
-                </SheetHeader>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Add New Transaction</DialogTitle>
+                </DialogHeader>
                 <div className="mt-6">
                   <ImportTransactions onSuccess={() => setIsAddingTransaction(false)} />
                 </div>
-              </SheetContent>
-            </Sheet>
+              </DialogContent>
+            </Dialog>
           </div>
         </header>
 
