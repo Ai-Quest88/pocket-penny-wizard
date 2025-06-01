@@ -6,6 +6,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { TransactionListHeader } from "./transactions/TransactionListHeader";
 import { TransactionTable } from "./transactions/TransactionTable";
+import { categorizeTransaction } from "@/utils/transactionCategories";
 
 interface Transaction {
   id: string; // Changed from number to string to match UUID
@@ -46,6 +47,39 @@ export const TransactionList = ({ entityId }: TransactionListProps) => {
       }
       
       console.log('Fetched transactions:', data);
+
+      // Auto-categorize transactions that have 'Other' or missing categories
+      const transactionsToUpdate = data.filter(
+        transaction => !transaction.category || transaction.category === 'Other'
+      );
+
+      if (transactionsToUpdate.length > 0) {
+        console.log(`Auto-categorizing ${transactionsToUpdate.length} transactions...`);
+        
+        const updatedTransactions = transactionsToUpdate.map(transaction => ({
+          ...transaction,
+          category: categorizeTransaction(transaction.description)
+        }));
+
+        // Update the transactions in the database
+        for (const transaction of updatedTransactions) {
+          const { error: updateError } = await supabase
+            .from('transactions')
+            .update({ category: transaction.category })
+            .eq('id', transaction.id);
+
+          if (updateError) {
+            console.error('Error updating transaction category:', updateError);
+          }
+        }
+
+        // Return the updated data with new categories
+        return data.map(transaction => {
+          const updatedTransaction = updatedTransactions.find(ut => ut.id === transaction.id);
+          return updatedTransaction || transaction;
+        });
+      }
+      
       return data;
     },
   });
