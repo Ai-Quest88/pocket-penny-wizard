@@ -5,70 +5,40 @@ type CategoryRule = {
 };
 
 const categoryRules: CategoryRule[] = [
-  // Banking and Credit Cards
+  // Food - matches the category breakdown chart
   {
-    keywords: ['citibank', 'creditcards', 'credit card', 'bpay', 'visa', 'mastercard', 'amex'],
-    category: 'Credit Card Payment'
+    keywords: ['grocery', 'food', 'restaurant', 'cafe', 'coffee', 'market', 'supermarket', 'woolworths', 'coles', 'aldi', 'iga', 'takeaway', 'mcdonald', 'kfc', 'subway', 'pizza', 'dining', 'meal'],
+    category: 'Food'
   },
-  // Transfers
+  // Transport - matches the category breakdown chart
   {
-    keywords: ['transfer to', 'transfer from', 'netbank', 'commbank app', 'savings', 'cheque'],
-    category: 'Transfer'
+    keywords: ['uber', 'lyft', 'taxi', 'bus', 'train', 'metro', 'transport', 'opal', 'myki', 'fuel', 'petrol', 'shell', 'bp', 'caltex', 'parking', 'linkt', 'toll', 'etag', 'roam', 'transurban'],
+    category: 'Transport'
   },
-  // Salary and Income
+  // Shopping - matches the category breakdown chart
   {
-    keywords: ['salary', 'wage', 'pay', 'deposit', 'dividend', 'interest', 'refund', 'cashback'],
-    category: 'Income'
-  },
-  // Food and Dining
-  {
-    keywords: ['grocery', 'food', 'restaurant', 'cafe', 'coffee', 'market', 'supermarket', 'woolworths', 'coles', 'aldi', 'iga', 'takeaway', 'mcdonald', 'kfc', 'subway', 'pizza'],
-    category: 'Food & Dining'
-  },
-  // Transportation and Tolls
-  {
-    keywords: ['uber', 'lyft', 'taxi', 'bus', 'train', 'metro', 'transport', 'opal', 'myki', 'fuel', 'petrol', 'shell', 'bp', 'caltex', 'parking', 'direct debit', 'linkt', 'toll', 'etag', 'roam'],
-    category: 'Transportation'
-  },
-  // Tolls (specific category for toll roads)
-  {
-    keywords: ['linkt', 'toll', 'etag', 'roam', 'direct debit.*linkt', 'transurban'],
-    category: 'Tolls'
-  },
-  // Entertainment
-  {
-    keywords: ['netflix', 'spotify', 'hbo', 'cinema', 'movie', 'theatre', 'concert', 'entertainment', 'disney', 'youtube', 'apple music', 'amazon prime'],
-    category: 'Entertainment'
-  },
-  // Shopping
-  {
-    keywords: ['amazon', 'walmart', 'target', 'shop', 'store', 'mall', 'kmart', 'big w', 'harvey norman', 'jb hi-fi', 'bunnings', 'officeworks'],
+    keywords: ['amazon', 'walmart', 'target', 'shop', 'store', 'mall', 'kmart', 'big w', 'harvey norman', 'jb hi-fi', 'bunnings', 'officeworks', 'shopping', 'purchase', 'buy'],
     category: 'Shopping'
   },
-  // Bills and Utilities
+  // Bills - matches the category breakdown chart
   {
-    keywords: ['rent', 'electricity', 'water', 'gas', 'internet', 'phone', 'utility', 'telstra', 'optus', 'vodafone', 'agl', 'origin', 'council', 'rates'],
-    category: 'Bills & Utilities'
+    keywords: ['rent', 'electricity', 'water', 'gas', 'internet', 'phone', 'utility', 'telstra', 'optus', 'vodafone', 'agl', 'origin', 'council', 'rates', 'bill', 'insurance', 'premium'],
+    category: 'Bills'
   },
-  // Healthcare
+  // Entertainment - matches the category breakdown chart
   {
-    keywords: ['medical', 'doctor', 'dentist', 'pharmacy', 'chemist', 'hospital', 'medicare', 'health', 'physio'],
-    category: 'Healthcare'
+    keywords: ['netflix', 'spotify', 'hbo', 'cinema', 'movie', 'theatre', 'concert', 'entertainment', 'disney', 'youtube', 'apple music', 'amazon prime', 'gaming', 'music'],
+    category: 'Entertainment'
   },
-  // ATM and Banking Fees
+  // Income
   {
-    keywords: ['atm', 'withdrawal', 'fee', 'charge', 'service fee', 'monthly fee', 'account fee'],
-    category: 'Banking Fees'
+    keywords: ['salary', 'wage', 'pay', 'deposit', 'dividend', 'interest', 'refund', 'cashback', 'income', 'bonus'],
+    category: 'Income'
   },
-  // Investment and Savings
+  // Banking and Credit Cards
   {
-    keywords: ['investment', 'shares', 'stock', 'bond', 'mutual fund', 'etf', 'superannuation', 'super'],
-    category: 'Investment'
-  },
-  // Insurance
-  {
-    keywords: ['insurance', 'premium', 'cover', 'policy'],
-    category: 'Insurance'
+    keywords: ['citibank', 'creditcards', 'credit card', 'bpay', 'visa', 'mastercard', 'amex', 'transfer to', 'transfer from', 'netbank', 'commbank app', 'savings', 'cheque', 'atm', 'withdrawal', 'fee', 'charge', 'service fee', 'monthly fee', 'account fee'],
+    category: 'Banking'
   }
 ];
 

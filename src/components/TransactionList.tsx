@@ -47,41 +47,43 @@ export const TransactionList = ({ entityId }: TransactionListProps) => {
       }
       
       console.log('Fetched transactions:', data);
-      console.log('Sample transaction for categorization test:', data[0]);
 
-      // Force re-categorize ALL transactions to test the logic
-      console.log(`Re-categorizing ALL ${data.length} transactions...`);
-      
-      const updatedTransactions = data.map(transaction => {
-        const originalCategory = transaction.category;
-        const newCategory = categorizeTransaction(transaction.description);
-        console.log(`Transaction "${transaction.description}" - Original: ${originalCategory}, New: ${newCategory}`);
-        return {
-          ...transaction,
-          category: newCategory
-        };
-      });
+      // Only re-categorize transactions that have 'Other' or empty categories
+      const transactionsToUpdate = data.filter(
+        transaction => !transaction.category || transaction.category === 'Other'
+      );
 
-      // Update the transactions in the database
-      for (const transaction of updatedTransactions) {
-        console.log(`Updating transaction ${transaction.id} with category: ${transaction.category}`);
-        const { data: updateData, error: updateError } = await supabase
-          .from('transactions')
-          .update({ category: transaction.category })
-          .eq('id', transaction.id)
-          .select();
+      console.log(`Found ${transactionsToUpdate.length} transactions to re-categorize`);
 
-        if (updateError) {
-          console.error('Error updating transaction category:', updateError);
-          console.error('Failed transaction ID:', transaction.id);
-          console.error('Failed transaction description:', transaction.description);
-        } else {
-          console.log('Successfully updated transaction:', updateData);
+      if (transactionsToUpdate.length > 0) {
+        // Update only the transactions that need re-categorization
+        for (const transaction of transactionsToUpdate) {
+          const newCategory = categorizeTransaction(transaction.description);
+          console.log(`Re-categorizing "${transaction.description}" as: ${newCategory}`);
+          
+          const { error: updateError } = await supabase
+            .from('transactions')
+            .update({ category: newCategory })
+            .eq('id', transaction.id);
+
+          if (updateError) {
+            console.error('Error updating transaction category:', updateError);
+          }
         }
+
+        // Return updated data
+        return data.map(transaction => {
+          if (transactionsToUpdate.find(t => t.id === transaction.id)) {
+            return {
+              ...transaction,
+              category: categorizeTransaction(transaction.description)
+            };
+          }
+          return transaction;
+        });
       }
 
-      // Return the updated data with new categories
-      return updatedTransactions;
+      return data;
     },
   });
 
