@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery } from "@tanstack/react-query";
@@ -6,10 +7,11 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { TransactionListHeader } from "./transactions/TransactionListHeader";
 import { TransactionTable } from "./transactions/TransactionTable";
+import { EditTransactionDialog } from "./transactions/EditTransactionDialog";
 import { categorizeTransaction } from "@/utils/transactionCategories";
 
 interface Transaction {
-  id: string; // Changed from number to string to match UUID
+  id: string;
   description: string;
   amount: number;
   category: string;
@@ -31,6 +33,8 @@ const currencySymbols: Record<string, string> = {
 
 export const TransactionList = ({ entityId }: TransactionListProps) => {
   const [displayCurrency, setDisplayCurrency] = useState("USD");
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const { data: transactions = [], isLoading, error } = useQuery({
     queryKey: ['transactions'],
@@ -109,6 +113,11 @@ export const TransactionList = ({ entityId }: TransactionListProps) => {
     return balance;
   };
 
+  const handleTransactionClick = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setEditDialogOpen(true);
+  };
+
   if (isLoading) {
     return (
       <Card className="animate-fadeIn">
@@ -141,32 +150,41 @@ export const TransactionList = ({ entityId }: TransactionListProps) => {
   }
 
   return (
-    <Card className="animate-fadeIn">
-      <TransactionListHeader
-        displayCurrency={displayCurrency}
-        onCurrencyChange={setDisplayCurrency}
-        currencySymbols={currencySymbols}
+    <>
+      <Card className="animate-fadeIn">
+        <TransactionListHeader
+          displayCurrency={displayCurrency}
+          onCurrencyChange={setDisplayCurrency}
+          currencySymbols={currencySymbols}
+        />
+        <ScrollArea className="h-[400px]">
+          <div className="p-4">
+            {transactions.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No transactions found</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Add your first transaction or upload a CSV file to get started
+                </p>
+              </div>
+            ) : (
+              <TransactionTable
+                transactions={transactions}
+                convertAmount={convertAmount}
+                calculateBalance={calculateBalance}
+                displayCurrency={displayCurrency}
+                currencySymbols={currencySymbols}
+                onTransactionClick={handleTransactionClick}
+              />
+            )}
+          </div>
+        </ScrollArea>
+      </Card>
+
+      <EditTransactionDialog
+        transaction={selectedTransaction}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
       />
-      <ScrollArea className="h-[400px]">
-        <div className="p-4">
-          {transactions.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">No transactions found</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Add your first transaction or upload a CSV file to get started
-              </p>
-            </div>
-          ) : (
-            <TransactionTable
-              transactions={transactions}
-              convertAmount={convertAmount}
-              calculateBalance={calculateBalance}
-              displayCurrency={displayCurrency}
-              currencySymbols={currencySymbols}
-            />
-          )}
-        </div>
-      </ScrollArea>
-    </Card>
+    </>
   );
 };

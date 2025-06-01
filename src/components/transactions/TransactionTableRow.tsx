@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 interface Transaction {
-  id: string; // Changed from number to string to match UUID
+  id: string;
   description: string;
   amount: number;
   category: string;
@@ -19,6 +19,7 @@ interface TransactionTableRowProps {
   balance: number;
   displayCurrency: string;
   currencySymbols: Record<string, string>;
+  onTransactionClick: (transaction: Transaction) => void;
 }
 
 export const TransactionTableRow = ({
@@ -27,9 +28,14 @@ export const TransactionTableRow = ({
   balance,
   displayCurrency,
   currencySymbols,
+  onTransactionClick,
 }: TransactionTableRowProps) => {
   return (
-    <TableRow key={transaction.id}>
+    <TableRow 
+      key={transaction.id} 
+      className="cursor-pointer hover:bg-muted/50 transition-colors"
+      onClick={() => onTransactionClick(transaction)}
+    >
       <TableCell className="font-medium">
         {new Date(transaction.date).toLocaleDateString()}
       </TableCell>

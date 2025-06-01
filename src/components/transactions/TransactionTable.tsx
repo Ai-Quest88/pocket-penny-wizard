@@ -9,7 +9,7 @@ import {
 import { TransactionTableRow } from "./TransactionTableRow";
 
 interface Transaction {
-  id: string; // Changed from number to string to match UUID
+  id: string;
   description: string;
   amount: number;
   category: string;
@@ -23,6 +23,7 @@ interface TransactionTableProps {
   calculateBalance: (index: number) => number;
   displayCurrency: string;
   currencySymbols: Record<string, string>;
+  onTransactionClick: (transaction: Transaction) => void;
 }
 
 export const TransactionTable = ({
@@ -31,6 +32,7 @@ export const TransactionTable = ({
   calculateBalance,
   displayCurrency,
   currencySymbols,
+  onTransactionClick,
 }: TransactionTableProps) => {
   return (
     <Table>
@@ -60,6 +62,7 @@ export const TransactionTable = ({
               balance={balance}
               displayCurrency={displayCurrency}
               currencySymbols={currencySymbols}
+              onTransactionClick={onTransactionClick}
             />
           );
         })}
