@@ -12,6 +12,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Transaction {
@@ -31,7 +39,8 @@ const currencySymbols: Record<string, string> = {
   USD: "$",
   EUR: "€",
   GBP: "£",
-  JPY: "¥"
+  JPY: "¥",
+  AUD: "$"
 };
 
 export const TransactionList = ({ entityId }: TransactionListProps) => {
@@ -66,6 +75,16 @@ export const TransactionList = ({ entityId }: TransactionListProps) => {
     if (!exchangeRates || fromCurrency === displayCurrency) return amount;
     const rate = exchangeRates[fromCurrency];
     return amount / rate * exchangeRates[displayCurrency];
+  };
+
+  // Calculate running balance
+  const calculateBalance = (index: number): number => {
+    let balance = 0;
+    for (let i = transactions.length - 1; i >= index; i--) {
+      const convertedAmount = convertAmount(transactions[i].amount, transactions[i].currency);
+      balance += convertedAmount;
+    }
+    return balance;
   };
 
   if (isLoading) {
@@ -123,8 +142,8 @@ export const TransactionList = ({ entityId }: TransactionListProps) => {
           </div>
         </div>
       </div>
-      <ScrollArea className="h-[300px]">
-        <div className="p-4 space-y-4">
+      <ScrollArea className="h-[400px]">
+        <div className="p-4">
           {transactions.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">No transactions found</p>
@@ -133,40 +152,64 @@ export const TransactionList = ({ entityId }: TransactionListProps) => {
               </p>
             </div>
           ) : (
-            transactions.map((transaction) => {
-              const convertedAmount = convertAmount(
-                transaction.amount,
-                transaction.currency
-              );
-              
-              return (
-                <div
-                  key={transaction.id}
-                  className="flex items-center justify-between p-3 rounded-md hover:bg-background-muted transition-colors"
-                >
-                  <div>
-                    <p className="font-medium text-text">{transaction.description}</p>
-                    <p className="text-sm text-text-muted">
-                      {transaction.category}
-                      <span className="ml-2 text-xs">
-                        (Original: {currencySymbols[transaction.currency]}{Math.abs(transaction.amount).toFixed(2)})
-                      </span>
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className={cn(
-                      "font-semibold",
-                      convertedAmount > 0 ? "text-success" : "text-text"
-                    )}>
-                      {convertedAmount > 0 ? "+" : ""}
-                      {currencySymbols[displayCurrency]}
-                      {Math.abs(convertedAmount).toFixed(2)}
-                    </p>
-                    <p className="text-sm text-text-muted">{transaction.date}</p>
-                  </div>
-                </div>
-              );
-            })
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead className="text-right">Balance</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {transactions.map((transaction, index) => {
+                  const convertedAmount = convertAmount(
+                    transaction.amount,
+                    transaction.currency
+                  );
+                  const balance = calculateBalance(index);
+                  
+                  return (
+                    <TableRow key={transaction.id}>
+                      <TableCell className="font-medium">
+                        {new Date(transaction.date).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{transaction.description}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {transaction.category}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div>
+                          <p className={cn(
+                            "font-semibold",
+                            convertedAmount > 0 ? "text-green-600" : "text-red-600"
+                          )}>
+                            {convertedAmount > 0 ? "+" : ""}
+                            {currencySymbols[displayCurrency]}
+                            {Math.abs(convertedAmount).toFixed(2)}
+                          </p>
+                          {transaction.currency !== displayCurrency && (
+                            <p className="text-xs text-muted-foreground">
+                              {currencySymbols[transaction.currency]}{Math.abs(transaction.amount).toFixed(2)}
+                            </p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <p className="font-semibold">
+                          {currencySymbols[displayCurrency]}
+                          {Math.abs(balance).toFixed(2)}
+                        </p>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           )}
         </div>
       </ScrollArea>
