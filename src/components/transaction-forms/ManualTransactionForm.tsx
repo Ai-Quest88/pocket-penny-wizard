@@ -1,121 +1,102 @@
 
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { categorizeTransaction } from "@/utils/transactionCategories";
-import { linkYodleeAccount } from "@/utils/yodlee";
-import { 
-  transactionFormSchema, 
-  TransactionFormData, 
-  categories, 
-  currencies 
-} from "@/types/transaction-forms";
+import { transactionFormSchema, TransactionFormData, categories, currencies } from "@/types/transaction-forms";
 
 interface ManualTransactionFormProps {
   onSuccess?: () => void;
   initialValues?: Partial<TransactionFormData>;
 }
 
-export const ManualTransactionForm = ({ onSuccess, initialValues }: ManualTransactionFormProps) => {
+export const ManualTransactionForm = ({ onSuccess, initialValues = {} }: ManualTransactionFormProps) => {
   const { toast } = useToast();
   const { session } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
-  
+
+  console.log("ManualTransactionForm component rendering");
+
   const form = useForm<TransactionFormData>({
     resolver: zodResolver(transactionFormSchema),
     defaultValues: {
-      description: initialValues?.description || "",
-      amount: initialValues?.amount || "",
-      category: initialValues?.category || "",
-      date: initialValues?.date || new Date().toISOString().split('T')[0],
-      currency: initialValues?.currency || "USD",
+      description: initialValues.description || "",
+      amount: initialValues.amount || "",
+      category: initialValues.category || "",
+      date: initialValues.date || new Date().toISOString().split('T')[0],
+      currency: initialValues.currency || "USD",
+      account_id: initialValues.account_id || "",
     },
   });
 
-  async function onSubmit(values: TransactionFormData) {
+  const onSubmit = async (data: TransactionFormData) => {
+    if (!session?.user?.id) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to add transactions.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
-      if (!session?.user?.id) {
-        toast({
-          title: "Error",
-          description: "You must be logged in to add transactions.",
-          variant: "destructive"
-        });
-        return;
-      }
+      const transactionData = {
+        user_id: session.user.id,
+        description: data.description,
+        amount: parseFloat(data.amount),
+        category: data.category || categorizeTransaction(data.description),
+        date: data.date,
+        currency: data.currency,
+        yodlee_account_id: data.account_id || null,
+      };
 
-      console.log('Adding single transaction:', values);
-
-      if (!values.category) {
-        values.category = categorizeTransaction(values.description);
-      }
+      console.log("Submitting transaction:", transactionData);
 
       const { error } = await supabase
         .from('transactions')
-        .insert([{
-          user_id: session.user.id,
-          description: values.description,
-          amount: parseFloat(values.amount),
-          category: values.category,
-          date: values.date,
-          currency: values.currency
-        }]);
+        .insert([transactionData]);
 
       if (error) {
-        console.error('Error inserting transaction:', error);
+        console.error("Error inserting transaction:", error);
         throw error;
       }
 
-      console.log('Transaction added successfully');
-
-      await linkYodleeAccount({
-        id: "manual",
-        accountName: "Manual Transactions",
-        accountType: "manual",
-        providerName: "Manual Entry"
-      });
-
+      console.log("Transaction inserted successfully");
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      
+
       toast({
-        title: "Transaction added",
-        description: "Your transaction has been successfully recorded.",
+        title: "Transaction Added",
+        description: "Your transaction has been added successfully.",
       });
-      
+
       form.reset();
       onSuccess?.();
     } catch (error) {
-      console.error('Error adding transaction:', error);
+      console.error("Error adding transaction:", error);
       toast({
         title: "Error",
         description: "Failed to add transaction. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="description"
@@ -123,53 +104,26 @@ export const ManualTransactionForm = ({ onSuccess, initialValues }: ManualTransa
             <FormItem>
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <Input placeholder="Grocery shopping" {...field} />
+                <Input placeholder="Transaction description" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="amount"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Amount</FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.01" placeholder="0.00" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="currency"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Currency</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a currency" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {currencies.map((currency) => (
-                      <SelectItem key={currency.code} value={currency.code}>
-                        {currency.symbol} {currency.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="amount"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Amount</FormLabel>
+              <FormControl>
+                <Input type="number" step="0.01" placeholder="0.00" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}
@@ -185,7 +139,7 @@ export const ManualTransactionForm = ({ onSuccess, initialValues }: ManualTransa
                 </FormControl>
                 <SelectContent>
                   {categories.map((category) => (
-                    <SelectItem key={category} value={category.toLowerCase()}>
+                    <SelectItem key={category} value={category}>
                       {category}
                     </SelectItem>
                   ))}
@@ -210,12 +164,56 @@ export const ManualTransactionForm = ({ onSuccess, initialValues }: ManualTransa
           )}
         />
 
-        <div className="flex gap-4">
-          <Button type="submit">Add Transaction</Button>
-          <Button type="button" variant="outline" onClick={() => onSuccess?.()}>
-            Cancel
-          </Button>
-        </div>
+        <FormField
+          control={form.control}
+          name="currency"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Currency</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {currencies.map((currency) => (
+                    <SelectItem key={currency.code} value={currency.code}>
+                      {currency.symbol} {currency.code} - {currency.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="account_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Account (Optional)</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select account" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="">No specific account</SelectItem>
+                  <SelectItem value="default">Default Account</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? "Adding..." : "Add Transaction"}
+        </Button>
       </form>
     </Form>
   );

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -236,7 +237,6 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">No specific account</SelectItem>
-                {/* We'll add actual accounts from the database later */}
                 <SelectItem value="default">Default Account</SelectItem>
               </SelectContent>
             </Select>
@@ -244,7 +244,7 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
 
           <Button
             onClick={handleCurrencyConfirmation}
-            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 rounded-md text-sm font-medium"
+            className="w-full"
             disabled={!selectedCurrency}
           >
             Upload {pendingTransactions.length} Transactions
