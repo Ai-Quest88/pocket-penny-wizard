@@ -25,10 +25,15 @@ const categoryRules: CategoryRule[] = [
     keywords: ['grocery', 'food', 'restaurant', 'cafe', 'coffee', 'market', 'supermarket', 'woolworths', 'coles', 'aldi', 'iga', 'takeaway', 'mcdonald', 'kfc', 'subway', 'pizza'],
     category: 'Food & Dining'
   },
-  // Transportation
+  // Transportation and Tolls
   {
-    keywords: ['uber', 'lyft', 'taxi', 'bus', 'train', 'metro', 'transport', 'opal', 'myki', 'fuel', 'petrol', 'shell', 'bp', 'caltex', 'parking'],
+    keywords: ['uber', 'lyft', 'taxi', 'bus', 'train', 'metro', 'transport', 'opal', 'myki', 'fuel', 'petrol', 'shell', 'bp', 'caltex', 'parking', 'direct debit', 'linkt', 'toll', 'etag', 'roam'],
     category: 'Transportation'
+  },
+  // Tolls (specific category for toll roads)
+  {
+    keywords: ['linkt', 'toll', 'etag', 'roam', 'direct debit.*linkt', 'transurban'],
+    category: 'Tolls'
   },
   // Entertainment
   {

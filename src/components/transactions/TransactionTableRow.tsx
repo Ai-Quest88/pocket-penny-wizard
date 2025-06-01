@@ -3,7 +3,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
 interface Transaction {
-  id: number;
+  id: string; // Changed from number to string to match UUID
   description: string;
   amount: number;
   category: string;

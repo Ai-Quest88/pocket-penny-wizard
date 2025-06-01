@@ -9,7 +9,7 @@ import {
 import { TransactionTableRow } from "./TransactionTableRow";
 
 interface Transaction {
-  id: number;
+  id: string; // Changed from number to string to match UUID
   description: string;
   amount: number;
   category: string;

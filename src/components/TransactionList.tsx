@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery } from "@tanstack/react-query";
@@ -9,7 +8,7 @@ import { TransactionListHeader } from "./transactions/TransactionListHeader";
 import { TransactionTable } from "./transactions/TransactionTable";
 
 interface Transaction {
-  id: number;
+  id: string; // Changed from number to string to match UUID
   description: string;
   amount: number;
   category: string;
