@@ -24,18 +24,6 @@ const parseDate = (dateStr: string): string | null => {
   
   const cleanDate = dateStr.trim().replace(/"/g, '');
   
-  // Try different date formats
-  const formats = [
-    // DD/MM/YYYY or DD-MM-YYYY
-    /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/,
-    // MM/DD/YYYY or MM-DD-YYYY  
-    /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/,
-    // YYYY-MM-DD
-    /^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/,
-    // YYYY/MM/DD
-    /^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/
-  ];
-
   // Try YYYY-MM-DD format first (ISO format)
   const isoMatch = cleanDate.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
   if (isoMatch) {
@@ -46,7 +34,7 @@ const parseDate = (dateStr: string): string | null => {
     }
   }
 
-  // Try DD/MM/YYYY format (European format)
+  // Try DD/MM/YYYY format (European format) - this matches your data
   const euroMatch = cleanDate.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
   if (euroMatch) {
     const [, day, month, year] = euroMatch;
@@ -72,7 +60,8 @@ const parseDate = (dateStr: string): string | null => {
 const parseAmount = (amountStr: string): number | null => {
   if (!amountStr || amountStr.trim() === '') return null;
   
-  const cleanAmount = amountStr.trim().replace(/"/g, '').replace(/,/g, '');
+  // Remove quotes, commas, and any currency symbols
+  const cleanAmount = amountStr.trim().replace(/[",+]/g, '');
   const amount = parseFloat(cleanAmount);
   
   return isNaN(amount) ? null : amount;
@@ -100,24 +89,47 @@ const parseCsvLine = (line: string): string[] => {
   return result;
 };
 
+const detectCsvFormat = (fields: string[]): 'format1' | 'format2' | 'unknown' => {
+  // Format 1: Date, Description, Amount, Currency (original expected format)
+  // Format 2: Date, Amount, Description, Balance (user's format)
+  
+  if (fields.length >= 4) {
+    // Check if second field looks like an amount (starts with + or - and contains numbers)
+    const secondField = fields[1].trim().replace(/"/g, '');
+    if (/^[+-]?\d+\.?\d*$/.test(secondField)) {
+      return 'format2'; // User's format: Date, Amount, Description, Balance
+    }
+  }
+  
+  if (fields.length >= 3) {
+    return 'format1'; // Original format: Date, Description, Amount, Currency
+  }
+  
+  return 'unknown';
+};
+
 export const parseCSV = (content: string): ParseResult => {
   const lines = content.split('\n').filter(line => line.trim() !== '');
   const transactions: ParsedTransaction[] = [];
   const errors: ParseError[] = [];
 
-  if (lines.length < 2) {
+  if (lines.length === 0) {
     errors.push({
       row: 0,
       field: 'file',
       value: 'empty',
-      message: 'CSV file appears to be empty or has no data rows'
+      message: 'CSV file appears to be empty'
     });
     return { transactions, errors };
   }
 
-  // Skip header row and process data rows
-  for (let i = 1; i < lines.length; i++) {
+  // Process each line (no header expected for the user's format)
+  const startIndex = 0;
+  
+  for (let i = startIndex; i < lines.length; i++) {
     const line = lines[i];
+    if (!line.trim()) continue;
+    
     const fields = parseCsvLine(line);
     
     if (fields.length < 3) {
@@ -125,12 +137,31 @@ export const parseCSV = (content: string): ParseResult => {
         row: i + 1,
         field: 'line',
         value: line,
-        message: 'Insufficient columns. Expected at least: Date, Description, Amount'
+        message: 'Insufficient columns. Expected at least: Date, Amount/Description, Description/Amount'
       });
       continue;
     }
 
-    const [date, description, amount, currency] = fields;
+    const format = detectCsvFormat(fields);
+    let date: string, description: string, amount: string, currency: string;
+
+    if (format === 'format2') {
+      // User's format: Date, Amount, Description, Balance
+      [date, amount, description] = fields;
+      currency = 'AUD'; // Default currency for Australian bank format
+    } else if (format === 'format1') {
+      // Original format: Date, Description, Amount, Currency
+      [date, description, amount, currency = 'USD'] = fields;
+    } else {
+      errors.push({
+        row: i + 1,
+        field: 'format',
+        value: line,
+        message: 'Unable to detect CSV format'
+      });
+      continue;
+    }
+
     const parsedDate = parseDate(date);
     const parsedAmount = parseAmount(amount);
 
@@ -163,13 +194,13 @@ export const parseCSV = (content: string): ParseResult => {
     }
 
     // Only add transaction if all required fields are valid
-    if (parsedDate && description.trim() && parsedAmount !== null) {
+    if (parsedDate && description && description.trim() && parsedAmount !== null) {
       transactions.push({
-        description: description.trim(),
+        description: description.trim().replace(/"/g, ''),
         amount: parsedAmount.toString(),
         category: 'other', // Default category
         date: parsedDate,
-        currency: currency?.trim() || 'USD' // Default currency
+        currency: currency?.trim() || 'AUD'
       });
     }
   }

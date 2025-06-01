@@ -134,9 +134,13 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
         <Upload className="h-4 w-4" />
         <AlertTitle>CSV Import</AlertTitle>
         <AlertDescription>
-          Upload a CSV file with columns: Date (DD/MM/YYYY, MM/DD/YYYY, or YYYY-MM-DD), Description, Amount, Currency (optional).
+          Upload a CSV file. Supports two formats:
           <br />
-          Example: "20/11/2024,Grocery Shopping,-50.00,USD"
+          <strong>Format 1:</strong> Date,Description,Amount,Currency
+          <br />
+          <strong>Format 2:</strong> Date,Amount,Description,Balance (Australian bank format)
+          <br />
+          Example: "28/03/2025,-14000.00,CITIBANK CREDITCARDS,+8002.48"
         </AlertDescription>
       </Alert>
 
