@@ -73,6 +73,7 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
   const navigate = useNavigate();
   const { session } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string>('');
   const queryClient = useQueryClient();
   
   const form = useForm<z.infer<typeof formSchema>>({
@@ -97,6 +98,8 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
         return;
       }
 
+      console.log('Adding single transaction:', values);
+
       if (!values.category) {
         values.category = categorizeTransaction(values.description);
       }
@@ -116,6 +119,8 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
         console.error('Error inserting transaction:', error);
         throw error;
       }
+
+      console.log('Transaction added successfully');
 
       // Link a new Yodlee account
       await linkYodleeAccount({
@@ -159,22 +164,44 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
     }
 
     setIsUploading(true);
+    setUploadProgress('Reading file...');
 
     try {
       const content = await file.text();
-      const transactions: ParsedTransaction[] = parseCSV(content);
+      console.log('CSV file content:', content.substring(0, 200) + '...');
+      
+      setUploadProgress('Parsing transactions...');
+      const { transactions, errors } = parseCSV(content);
+
+      console.log(`Parsed ${transactions.length} transactions with ${errors.length} errors`);
+
+      if (errors.length > 0) {
+        console.warn('CSV parsing errors:', errors);
+        
+        // Show errors to user but continue if we have some valid transactions
+        const errorMessage = errors.slice(0, 3).map(e => 
+          `Row ${e.row}: ${e.message}`
+        ).join('\n');
+        
+        toast({
+          title: `Found ${errors.length} parsing error(s)`,
+          description: errorMessage + (errors.length > 3 ? '\n...and more' : ''),
+          variant: "destructive",
+        });
+      }
 
       if (transactions.length === 0) {
         toast({
-          title: "Error",
-          description: "No valid transactions found in the CSV file.",
+          title: "No valid transactions",
+          description: "No valid transactions found in the CSV file. Please check the format and try again.",
           variant: "destructive",
         });
         setIsUploading(false);
+        setUploadProgress('');
         return;
       }
 
-      console.log(`Uploading ${transactions.length} transactions...`);
+      setUploadProgress(`Uploading ${transactions.length} transactions...`);
 
       // Prepare transactions for database insertion
       const transactionsToInsert = transactions.map(transaction => ({
@@ -186,6 +213,8 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
         currency: transaction.currency || "USD"
       }));
 
+      console.log('Inserting transactions:', transactionsToInsert);
+
       // Insert all transactions in bulk
       const { error } = await supabase
         .from('transactions')
@@ -196,28 +225,32 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
         throw error;
       }
 
+      console.log('Bulk insert successful');
+
       // Invalidate and refetch transactions to show updated list
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
 
       toast({
         title: "CSV Upload Successful",
-        description: `Successfully imported ${transactions.length} transaction(s) to your account.`,
+        description: `Successfully imported ${transactions.length} transaction(s) to your account.${errors.length > 0 ? ` ${errors.length} rows had errors and were skipped.` : ''}`,
       });
 
       // Clear the file input
       event.target.value = '';
       
       // Optionally populate the form with the first transaction for preview
-      const firstTransaction = transactions[0];
-      const suggestedCategory = categorizeTransaction(firstTransaction.description);
-      
-      form.reset({
-        description: firstTransaction.description,
-        amount: firstTransaction.amount,
-        category: suggestedCategory,
-        date: firstTransaction.date,
-        currency: firstTransaction.currency || "USD",
-      });
+      if (transactions.length > 0) {
+        const firstTransaction = transactions[0];
+        const suggestedCategory = categorizeTransaction(firstTransaction.description);
+        
+        form.reset({
+          description: firstTransaction.description,
+          amount: firstTransaction.amount,
+          category: suggestedCategory,
+          date: firstTransaction.date,
+          currency: firstTransaction.currency || "USD",
+        });
+      }
 
     } catch (error) {
       console.error('Error processing CSV file:', error);
@@ -228,6 +261,7 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
       });
     } finally {
       setIsUploading(false);
+      setUploadProgress('');
     }
   };
 
@@ -237,7 +271,9 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
         <Upload className="h-4 w-4" />
         <AlertTitle>CSV Import</AlertTitle>
         <AlertDescription>
-          Upload a CSV file from your bank with the following columns: Date, Description, Amount, Currency (optional)
+          Upload a CSV file with columns: Date (DD/MM/YYYY, MM/DD/YYYY, or YYYY-MM-DD), Description, Amount, Currency (optional).
+          <br />
+          Example: "20/11/2024,Grocery Shopping,-50.00,USD"
         </AlertDescription>
       </Alert>
 
@@ -251,7 +287,7 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
         />
         {isUploading && (
           <div className="text-sm text-muted-foreground">
-            Uploading transactions...
+            {uploadProgress}
           </div>
         )}
       </div>

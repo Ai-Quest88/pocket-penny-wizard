@@ -37,15 +37,21 @@ const currencySymbols: Record<string, string> = {
 export const TransactionList = ({ entityId }: TransactionListProps) => {
   const [displayCurrency, setDisplayCurrency] = useState("USD");
 
-  const { data: transactions = [], isLoading } = useQuery({
+  const { data: transactions = [], isLoading, error } = useQuery({
     queryKey: ['transactions'],
     queryFn: async () => {
+      console.log('Fetching transactions...');
       const { data, error } = await supabase
         .from('transactions')
         .select('*')
         .order('date', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching transactions:', error);
+        throw error;
+      }
+      
+      console.log('Fetched transactions:', data);
       return data;
     },
   });
@@ -63,7 +69,34 @@ export const TransactionList = ({ entityId }: TransactionListProps) => {
   };
 
   if (isLoading) {
-    return <div>Loading transactions...</div>;
+    return (
+      <Card className="animate-fadeIn">
+        <div className="p-6">
+          <div className="flex items-center justify-center h-32">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+              <p className="mt-2 text-sm text-muted-foreground">Loading transactions...</p>
+            </div>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  if (error) {
+    console.error('Transaction loading error:', error);
+    return (
+      <Card className="animate-fadeIn">
+        <div className="p-6">
+          <div className="text-center">
+            <p className="text-destructive">Error loading transactions</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              {error instanceof Error ? error.message : 'Unknown error occurred'}
+            </p>
+          </div>
+        </div>
+      </Card>
+    );
   }
 
   return (
@@ -92,40 +125,49 @@ export const TransactionList = ({ entityId }: TransactionListProps) => {
       </div>
       <ScrollArea className="h-[300px]">
         <div className="p-4 space-y-4">
-          {transactions.map((transaction) => {
-            const convertedAmount = convertAmount(
-              transaction.amount,
-              transaction.currency
-            );
-            
-            return (
-              <div
-                key={transaction.id}
-                className="flex items-center justify-between p-3 rounded-md hover:bg-background-muted transition-colors"
-              >
-                <div>
-                  <p className="font-medium text-text">{transaction.description}</p>
-                  <p className="text-sm text-text-muted">
-                    {transaction.category}
-                    <span className="ml-2 text-xs">
-                      (Original: {currencySymbols[transaction.currency]}{Math.abs(transaction.amount).toFixed(2)})
-                    </span>
-                  </p>
+          {transactions.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No transactions found</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Add your first transaction or upload a CSV file to get started
+              </p>
+            </div>
+          ) : (
+            transactions.map((transaction) => {
+              const convertedAmount = convertAmount(
+                transaction.amount,
+                transaction.currency
+              );
+              
+              return (
+                <div
+                  key={transaction.id}
+                  className="flex items-center justify-between p-3 rounded-md hover:bg-background-muted transition-colors"
+                >
+                  <div>
+                    <p className="font-medium text-text">{transaction.description}</p>
+                    <p className="text-sm text-text-muted">
+                      {transaction.category}
+                      <span className="ml-2 text-xs">
+                        (Original: {currencySymbols[transaction.currency]}{Math.abs(transaction.amount).toFixed(2)})
+                      </span>
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className={cn(
+                      "font-semibold",
+                      convertedAmount > 0 ? "text-success" : "text-text"
+                    )}>
+                      {convertedAmount > 0 ? "+" : ""}
+                      {currencySymbols[displayCurrency]}
+                      {Math.abs(convertedAmount).toFixed(2)}
+                    </p>
+                    <p className="text-sm text-text-muted">{transaction.date}</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className={cn(
-                    "font-semibold",
-                    convertedAmount > 0 ? "text-success" : "text-text"
-                  )}>
-                    {convertedAmount > 0 ? "+" : ""}
-                    {currencySymbols[displayCurrency]}
-                    {Math.abs(convertedAmount).toFixed(2)}
-                  </p>
-                  <p className="text-sm text-text-muted">{transaction.date}</p>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </ScrollArea>
     </Card>

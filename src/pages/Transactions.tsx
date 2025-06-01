@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button"
 import { PlusCircle } from "lucide-react"
 import { useState, useEffect } from "react"
@@ -10,52 +9,16 @@ import { useNavigate } from "react-router-dom"
 
 const Transactions = () => {
   const [isAddingTransaction, setIsAddingTransaction] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, session } = useAuth();
   const navigate = useNavigate();
 
-  console.log("Transactions component - isAuthenticated:", isAuthenticated);
+  console.log("Transactions component - isAuthenticated:", isAuthenticated, "session:", !!session);
 
-  useEffect(() => {
-    // Add a small delay to allow auth context to initialize
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-      if (!isAuthenticated) {
-        console.log("Not authenticated, navigating to login");
-        navigate('/login');
-      }
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [isAuthenticated, navigate]);
-
-  // Show loading state while checking authentication
-  if (isLoading) {
-    console.log("Still loading authentication state");
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-lg">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show login prompt if not authenticated
+  // Redirect to login if not authenticated
   if (!isAuthenticated) {
-    console.log("Not authenticated, showing login prompt");
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Please Log In</h1>
-          <p className="text-muted-foreground mb-4">You need to be logged in to view transactions.</p>
-          <Button onClick={() => navigate('/login')}>
-            Go to Login
-          </Button>
-        </div>
-      </div>
-    );
+    console.log("Not authenticated, navigating to login");
+    navigate('/login');
+    return null;
   }
 
   console.log("Rendering Transactions component");
