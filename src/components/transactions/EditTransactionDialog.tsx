@@ -44,16 +44,17 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
   const form = useForm<EditTransactionData>({
     resolver: zodResolver(editTransactionSchema),
     defaultValues: {
-      category: transaction?.category || "",
-      comment: transaction?.comment || "",
+      category: "",
+      comment: "",
     },
   });
 
   // Reset form when transaction changes
   useEffect(() => {
     if (transaction) {
+      console.log("Resetting form with transaction:", transaction);
       form.reset({
-        category: transaction.category,
+        category: transaction.category || "",
         comment: transaction.comment || "",
       });
     }
@@ -62,24 +63,30 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
   const onSubmit = async (data: EditTransactionData) => {
     if (!transaction) return;
 
+    console.log("Submitting transaction update:", data);
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase
+      const updateData = {
+        category: data.category,
+        comment: data.comment || null,
+        updated_at: new Date().toISOString(),
+      };
+
+      console.log("Update data:", updateData);
+
+      const { data: result, error } = await supabase
         .from('transactions')
-        .update({
-          category: data.category,
-          comment: data.comment || null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', transaction.id);
+        .update(updateData)
+        .eq('id', transaction.id)
+        .select();
 
       if (error) {
-        console.error("Error updating transaction:", error);
+        console.error("Supabase error updating transaction:", error);
         throw error;
       }
 
-      console.log("Transaction updated successfully");
+      console.log("Transaction updated successfully:", result);
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
 
       toast({
@@ -92,7 +99,7 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
       console.error("Error updating transaction:", error);
       toast({
         title: "Error",
-        description: "Failed to update transaction. Please try again.",
+        description: `Failed to update transaction: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
     } finally {
