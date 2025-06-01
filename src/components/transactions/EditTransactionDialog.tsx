@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -50,14 +50,14 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
   });
 
   // Reset form when transaction changes
-  useState(() => {
+  useEffect(() => {
     if (transaction) {
       form.reset({
         category: transaction.category,
         comment: transaction.comment || "",
       });
     }
-  });
+  }, [transaction, form]);
 
   const onSubmit = async (data: EditTransactionData) => {
     if (!transaction) return;
