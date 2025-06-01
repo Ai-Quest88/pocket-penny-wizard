@@ -126,7 +126,7 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
         category: transaction.category || categorizeTransaction(transaction.description),
         date: transaction.date,
         currency: currency,
-        yodlee_account_id: selectedAccount || null
+        yodlee_account_id: selectedAccount === "none" ? null : selectedAccount
       }));
 
       console.log('Inserting transactions:', transactionsToInsert);
@@ -165,7 +165,7 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
           category: suggestedCategory,
           date: firstTransaction.date,
           currency: currency,
-          account_id: selectedAccount,
+          account_id: selectedAccount === "none" ? "" : selectedAccount,
         });
       }
 
@@ -236,7 +236,7 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
                 <SelectValue placeholder="Choose account (optional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No specific account</SelectItem>
+                <SelectItem value="none">No specific account</SelectItem>
                 <SelectItem value="default">Default Account</SelectItem>
               </SelectContent>
             </Select>
@@ -261,7 +261,7 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
                 <SelectValue placeholder="Choose account (optional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No specific account</SelectItem>
+                <SelectItem value="none">No specific account</SelectItem>
                 <SelectItem value="default">Default Account</SelectItem>
               </SelectContent>
             </Select>

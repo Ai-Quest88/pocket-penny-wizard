@@ -58,7 +58,7 @@ export const ManualTransactionForm = ({ onSuccess, initialValues = {} }: ManualT
         category: data.category || categorizeTransaction(data.description),
         date: data.date,
         currency: data.currency,
-        yodlee_account_id: data.account_id || null,
+        yodlee_account_id: data.account_id === "none" ? null : data.account_id,
       };
 
       console.log("Submitting transaction:", transactionData);
@@ -202,7 +202,7 @@ export const ManualTransactionForm = ({ onSuccess, initialValues = {} }: ManualT
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">No specific account</SelectItem>
+                  <SelectItem value="none">No specific account</SelectItem>
                   <SelectItem value="default">Default Account</SelectItem>
                 </SelectContent>
               </Select>
