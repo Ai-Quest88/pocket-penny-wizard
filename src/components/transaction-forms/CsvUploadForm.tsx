@@ -13,6 +13,7 @@ import { parseCSV } from "@/utils/csvParser";
 import { categorizeTransaction } from "@/utils/transactionCategories";
 import { supabase } from "@/integrations/supabase/client";
 import { TransactionFormData, currencies } from "@/types/transaction-forms";
+import { useAccounts } from "@/hooks/useAccounts";
 
 interface CsvUploadFormProps {
   onTransactionParsed?: (transaction: TransactionFormData) => void;
@@ -29,6 +30,7 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
   const [showCurrencySelector, setShowCurrencySelector] = useState(false);
   const [pendingTransactions, setPendingTransactions] = useState<any[]>([]);
   const queryClient = useQueryClient();
+  const accounts = useAccounts();
 
   console.log("CsvUploadForm component rendering");
 
@@ -237,7 +239,11 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">No specific account</SelectItem>
-                <SelectItem value="default">Default Account</SelectItem>
+                {accounts.map((account) => (
+                  <SelectItem key={account.id} value={account.id}>
+                    {account.name} ({account.type})
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -262,7 +268,11 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">No specific account</SelectItem>
-                <SelectItem value="default">Default Account</SelectItem>
+                {accounts.map((account) => (
+                  <SelectItem key={account.id} value={account.id}>
+                    {account.name} ({account.type})
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

@@ -12,6 +12,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { categorizeTransaction } from "@/utils/transactionCategories";
 import { transactionFormSchema, TransactionFormData, categories, currencies } from "@/types/transaction-forms";
+import { useAccounts } from "@/hooks/useAccounts";
 
 interface ManualTransactionFormProps {
   onSuccess?: () => void;
@@ -23,6 +24,7 @@ export const ManualTransactionForm = ({ onSuccess, initialValues = {} }: ManualT
   const { session } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
+  const accounts = useAccounts();
 
   console.log("ManualTransactionForm component rendering");
 
@@ -203,7 +205,11 @@ export const ManualTransactionForm = ({ onSuccess, initialValues = {} }: ManualT
                 </FormControl>
                 <SelectContent>
                   <SelectItem value="none">No specific account</SelectItem>
-                  <SelectItem value="default">Default Account</SelectItem>
+                  {accounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.name} ({account.type})
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <FormMessage />
