@@ -59,7 +59,7 @@ export const AddCategoryDialog = ({ open, onOpenChange, onAddCategory }: AddCate
                   <SelectItem 
                     key={bucket.name} 
                     value={bucket.name}
-                    className="hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700"
+                    className="hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700 text-gray-900 dark:text-gray-100"
                   >
                     {bucket.name}
                   </SelectItem>
