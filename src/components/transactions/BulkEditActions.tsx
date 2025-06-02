@@ -40,7 +40,7 @@ export const BulkEditActions = ({
 }: BulkEditActionsProps) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [newCategory, setNewCategory] = useState("");
+  const [newCategory, setNewCategory] = useState("select");
   const { toast } = useToast();
 
   const handleBulkDelete = async () => {
@@ -83,7 +83,7 @@ export const BulkEditActions = ({
   };
 
   const handleBulkCategoryUpdate = async () => {
-    if (!newCategory) {
+    if (!newCategory || newCategory === "select") {
       toast({
         title: "Error",
         description: "Please select a category.",
@@ -118,7 +118,7 @@ export const BulkEditActions = ({
 
       onBulkUpdate();
       onClearSelection();
-      setNewCategory("");
+      setNewCategory("select");
     } catch (error) {
       console.error('Error updating transactions:', error);
       toast({
@@ -157,6 +157,7 @@ export const BulkEditActions = ({
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="select">Select category</SelectItem>
                 <SelectItem value="Food & Dining">Food & Dining</SelectItem>
                 <SelectItem value="Transportation">Transportation</SelectItem>
                 <SelectItem value="Shopping">Shopping</SelectItem>
@@ -171,7 +172,7 @@ export const BulkEditActions = ({
             <Button
               size="sm"
               onClick={handleBulkCategoryUpdate}
-              disabled={isUpdating || !newCategory}
+              disabled={isUpdating || !newCategory || newCategory === "select"}
               className="h-8"
             >
               <Edit className="h-3 w-3 mr-1" />

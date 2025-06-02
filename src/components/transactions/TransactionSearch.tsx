@@ -58,12 +58,12 @@ export const TransactionSearch = ({ onFiltersChange, totalResults }: Transaction
           />
         </div>
         
-        <Select value={filters.category} onValueChange={(value) => updateFilters({ category: value })}>
+        <Select value={filters.category || "all"} onValueChange={(value) => updateFilters({ category: value === "all" ? "" : value })}>
           <SelectTrigger className="w-[160px]">
             <SelectValue placeholder="Category" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Categories</SelectItem>
+            <SelectItem value="all">All Categories</SelectItem>
             <SelectItem value="Food & Dining">Food & Dining</SelectItem>
             <SelectItem value="Transportation">Transportation</SelectItem>
             <SelectItem value="Shopping">Shopping</SelectItem>
@@ -75,12 +75,12 @@ export const TransactionSearch = ({ onFiltersChange, totalResults }: Transaction
           </SelectContent>
         </Select>
 
-        <Select value={filters.dateRange} onValueChange={(value) => updateFilters({ dateRange: value })}>
+        <Select value={filters.dateRange || "all"} onValueChange={(value) => updateFilters({ dateRange: value === "all" ? "" : value })}>
           <SelectTrigger className="w-[140px]">
             <SelectValue placeholder="Date Range" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Dates</SelectItem>
+            <SelectItem value="all">All Dates</SelectItem>
             <SelectItem value="today">Today</SelectItem>
             <SelectItem value="week">This Week</SelectItem>
             <SelectItem value="month">This Month</SelectItem>
@@ -89,12 +89,12 @@ export const TransactionSearch = ({ onFiltersChange, totalResults }: Transaction
           </SelectContent>
         </Select>
 
-        <Select value={filters.amountRange} onValueChange={(value) => updateFilters({ amountRange: value })}>
+        <Select value={filters.amountRange || "all"} onValueChange={(value) => updateFilters({ amountRange: value === "all" ? "" : value })}>
           <SelectTrigger className="w-[140px]">
             <SelectValue placeholder="Amount" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Amounts</SelectItem>
+            <SelectItem value="all">All Amounts</SelectItem>
             <SelectItem value="income">Income Only</SelectItem>
             <SelectItem value="expense">Expenses Only</SelectItem>
             <SelectItem value="small">Under $100</SelectItem>

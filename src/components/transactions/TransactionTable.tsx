@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TransactionTableRow } from "./TransactionTableRow";
+import { useEffect, useRef } from "react";
 
 interface Transaction {
   id: string;
@@ -45,6 +46,16 @@ export const TransactionTable = ({
 }: TransactionTableProps) => {
   const allSelected = transactions.length > 0 && selectedTransactions.length === transactions.length;
   const someSelected = selectedTransactions.length > 0 && selectedTransactions.length < transactions.length;
+  const checkboxRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (checkboxRef.current) {
+      const inputElement = checkboxRef.current.querySelector('input[type="checkbox"]') as HTMLInputElement;
+      if (inputElement) {
+        inputElement.indeterminate = someSelected;
+      }
+    }
+  }, [someSelected]);
 
   return (
     <Table>
@@ -52,10 +63,8 @@ export const TransactionTable = ({
         <TableRow>
           <TableHead className="w-8">
             <Checkbox
+              ref={checkboxRef}
               checked={allSelected}
-              ref={(el) => {
-                if (el) el.indeterminate = someSelected;
-              }}
               onCheckedChange={onSelectAll}
               aria-label="Select all transactions"
             />
