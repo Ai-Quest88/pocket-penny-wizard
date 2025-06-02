@@ -2,6 +2,7 @@
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { Trash2 } from "lucide-react";
 import { 
@@ -37,6 +38,8 @@ interface TransactionTableRowProps {
   currencySymbols: Record<string, string>;
   onTransactionClick: (transaction: Transaction) => void;
   onTransactionDeleted?: () => void;
+  isSelected: boolean;
+  onSelectionChange: (transactionId: string, isSelected: boolean) => void;
 }
 
 export const TransactionTableRow = ({
@@ -47,6 +50,8 @@ export const TransactionTableRow = ({
   currencySymbols,
   onTransactionClick,
   onTransactionDeleted,
+  isSelected,
+  onSelectionChange,
 }: TransactionTableRowProps) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
@@ -91,8 +96,20 @@ export const TransactionTableRow = ({
   return (
     <TableRow 
       key={transaction.id} 
-      className="hover:bg-muted/50 transition-colors group"
+      className={cn(
+        "hover:bg-muted/50 transition-colors group",
+        isSelected && "bg-blue-50 hover:bg-blue-100"
+      )}
     >
+      <TableCell className="w-8">
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={(checked) => 
+            onSelectionChange(transaction.id, checked as boolean)
+          }
+          aria-label="Select transaction"
+        />
+      </TableCell>
       <TableCell className="font-medium">
         {new Date(transaction.date).toLocaleDateString()}
       </TableCell>

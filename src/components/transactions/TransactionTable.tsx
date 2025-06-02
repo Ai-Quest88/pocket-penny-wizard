@@ -6,6 +6,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { TransactionTableRow } from "./TransactionTableRow";
 
 interface Transaction {
@@ -25,6 +26,9 @@ interface TransactionTableProps {
   currencySymbols: Record<string, string>;
   onTransactionClick: (transaction: Transaction) => void;
   onTransactionDeleted?: () => void;
+  selectedTransactions: string[];
+  onSelectionChange: (transactionId: string, isSelected: boolean) => void;
+  onSelectAll: (isSelected: boolean) => void;
 }
 
 export const TransactionTable = ({
@@ -35,11 +39,27 @@ export const TransactionTable = ({
   currencySymbols,
   onTransactionClick,
   onTransactionDeleted,
+  selectedTransactions,
+  onSelectionChange,
+  onSelectAll,
 }: TransactionTableProps) => {
+  const allSelected = transactions.length > 0 && selectedTransactions.length === transactions.length;
+  const someSelected = selectedTransactions.length > 0 && selectedTransactions.length < transactions.length;
+
   return (
     <Table>
       <TableHeader>
         <TableRow>
+          <TableHead className="w-8">
+            <Checkbox
+              checked={allSelected}
+              ref={(el) => {
+                if (el) el.indeterminate = someSelected;
+              }}
+              onCheckedChange={onSelectAll}
+              aria-label="Select all transactions"
+            />
+          </TableHead>
           <TableHead>Date</TableHead>
           <TableHead>Description</TableHead>
           <TableHead>Category</TableHead>
@@ -67,6 +87,8 @@ export const TransactionTable = ({
               currencySymbols={currencySymbols}
               onTransactionClick={onTransactionClick}
               onTransactionDeleted={onTransactionDeleted}
+              isSelected={selectedTransactions.includes(transaction.id)}
+              onSelectionChange={onSelectionChange}
             />
           );
         })}
