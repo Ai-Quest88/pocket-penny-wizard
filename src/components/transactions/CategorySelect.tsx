@@ -49,15 +49,23 @@ export const CategorySelect = <T extends FieldValues>({
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
               </FormControl>
-              <SelectContent className="max-h-80">
+              <SelectContent 
+                className="max-h-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-[60]"
+                position="popper"
+                sideOffset={4}
+              >
                 {availableBuckets.map((bucket, bucketIndex) => (
                   <div key={bucket.name}>
-                    {bucketIndex > 0 && <div className="h-px bg-border my-1" />}
-                    <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide bg-muted/30">
+                    {bucketIndex > 0 && <div className="h-px bg-gray-200 dark:bg-gray-600 my-1 mx-2" />}
+                    <div className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-600">
                       {bucket.name}
                     </div>
                     {bucket.categories.map((category) => (
-                      <SelectItem key={category} value={category} className="pl-6">
+                      <SelectItem 
+                        key={category} 
+                        value={category} 
+                        className="pl-6 hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700"
+                      >
                         {category}
                       </SelectItem>
                     ))}
