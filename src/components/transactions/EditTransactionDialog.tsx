@@ -187,13 +187,14 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="max-h-80">
-                          {availableBuckets.map((bucket) => (
+                          {availableBuckets.map((bucket, bucketIndex) => (
                             <div key={bucket.name}>
-                              <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground bg-muted/50 sticky top-0">
+                              {bucketIndex > 0 && <div className="h-px bg-border my-1" />}
+                              <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide bg-muted/30">
                                 {bucket.name}
                               </div>
                               {bucket.categories.map((category) => (
-                                <SelectItem key={category} value={category} className="pl-4">
+                                <SelectItem key={category} value={category} className="pl-6">
                                   {category}
                                 </SelectItem>
                               ))}
