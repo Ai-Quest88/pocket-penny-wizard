@@ -47,6 +47,16 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
       return;
     }
 
+    // Check if account is selected
+    if (!selectedAccount) {
+      toast({
+        title: "Account Required",
+        description: "Please select an account before uploading transactions.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsUploading(true);
     setUploadProgress('Reading file...');
 
@@ -128,7 +138,7 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
         category: transaction.category || categorizeTransaction(transaction.description),
         date: transaction.date,
         currency: currency,
-        yodlee_account_id: (!selectedAccount || selectedAccount === "none") ? null : selectedAccount
+        yodlee_account_id: selectedAccount || null
       }));
 
       console.log('Inserting transactions:', transactionsToInsert);
@@ -167,7 +177,7 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
           category: suggestedCategory,
           date: firstTransaction.date,
           currency: currency,
-          account_id: (!selectedAccount || selectedAccount === "none") ? "" : selectedAccount,
+          account_id: selectedAccount || "",
         });
       }
 
@@ -230,23 +240,6 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
               </SelectContent>
             </Select>
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="account-select">Select Account (Optional)</Label>
-            <Select value={selectedAccount} onValueChange={setSelectedAccount}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose account (optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No specific account</SelectItem>
-                {accounts.map((account) => (
-                  <SelectItem key={account.id} value={account.id}>
-                    {account.name} ({account.type})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
 
           <Button
             onClick={handleCurrencyConfirmation}
@@ -261,13 +254,12 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
       {!showCurrencySelector && (
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="account-select">Select Account (Optional)</Label>
+            <Label htmlFor="account-select">Select Account *</Label>
             <Select value={selectedAccount} onValueChange={setSelectedAccount}>
               <SelectTrigger>
-                <SelectValue placeholder="Choose account (optional)" />
+                <SelectValue placeholder="Choose account (required)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">No specific account</SelectItem>
                 {accounts.map((account) => (
                   <SelectItem key={account.id} value={account.id}>
                     {account.name} ({account.type})
@@ -283,7 +275,7 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
               accept=".csv"
               onChange={handleFileUpload}
               className="flex-1"
-              disabled={isUploading}
+              disabled={isUploading || !selectedAccount}
             />
             {isUploading && (
               <div className="text-sm text-muted-foreground">
