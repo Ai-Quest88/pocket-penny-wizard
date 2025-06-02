@@ -1,5 +1,5 @@
 
-import { BarChart2, CreditCard, DollarSign, Home, Settings, Users, Wallet, List } from "lucide-react"
+import { BarChart2, CreditCard, DollarSign, Home, Settings, Users, Wallet, List, Upload } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -9,8 +9,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
 import { Link, useLocation } from "react-router-dom"
 import { useEffect, useState } from "react"
@@ -42,7 +40,7 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Menu</SidebarGroupLabel>
+          <SidebarGroupLabel>Overview</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
@@ -70,7 +68,14 @@ export function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
+        <SidebarGroup>
+          <SidebarGroupLabel>Transactions</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link 
@@ -79,7 +84,7 @@ export function AppSidebar() {
                     data-active={location.pathname === "/transactions"}
                   >
                     <List className="h-4 w-4" />
-                    <span>Transactions</span>
+                    <span>All Transactions</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -87,12 +92,32 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link 
-                    to="/entities"
+                    to="/import-transactions"
                     className="flex items-center gap-2"
-                    data-active={location.pathname === "/entities"}
+                    data-active={location.pathname === "/import-transactions"}
                   >
-                    <Users className="h-4 w-4" />
-                    <span>Entities</span>
+                    <Upload className="h-4 w-4" />
+                    <span>Import Transactions</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Financial Management</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link 
+                    to="/budgets"
+                    className="flex items-center gap-2"
+                    data-active={location.pathname === "/budgets"}
+                  >
+                    <DollarSign className="h-4 w-4" />
+                    <span>Budgets</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -122,16 +147,23 @@ export function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
+        <SidebarGroup>
+          <SidebarGroupLabel>Configuration</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link 
-                    to="/budgets"
+                    to="/entities"
                     className="flex items-center gap-2"
-                    data-active={location.pathname === "/budgets"}
+                    data-active={location.pathname === "/entities"}
                   >
-                    <DollarSign className="h-4 w-4" />
-                    <span>Budgets</span>
+                    <Users className="h-4 w-4" />
+                    <span>Entities</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
