@@ -74,7 +74,6 @@ export const TransactionTable = ({
           <TableHead>Category</TableHead>
           <TableHead className="text-right">Amount</TableHead>
           <TableHead className="text-right">Balance</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>

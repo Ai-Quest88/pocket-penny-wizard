@@ -13,6 +13,18 @@ import { categoryBuckets, CategoryBucket } from "@/types/transaction-forms";
 import { TransactionInfo } from "./TransactionInfo";
 import { CategorySelect } from "./CategorySelect";
 import { CommentField } from "./CommentField";
+import { Trash2 } from "lucide-react";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle, 
+  AlertDialogTrigger 
+} from "@/components/ui/alert-dialog";
 
 const editTransactionSchema = z.object({
   category: z.string().min(1, "Please select a category"),
@@ -40,6 +52,7 @@ interface EditTransactionDialogProps {
 export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditTransactionDialogProps) => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [availableBuckets, setAvailableBuckets] = useState<CategoryBucket[]>(categoryBuckets);
   const queryClient = useQueryClient();
 
@@ -78,6 +91,45 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
       title: "Category Added",
       description: `"${categoryName}" has been added to ${bucketName}.`,
     });
+  };
+
+  const handleDelete = async () => {
+    if (!transaction) return;
+
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('id', transaction.id);
+
+      if (error) {
+        console.error('Error deleting transaction:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete transaction. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "Transaction deleted successfully.",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete transaction. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const onSubmit = async (data: EditTransactionData) => {
@@ -133,7 +185,46 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Edit Transaction</DialogTitle>
+          <DialogTitle className="flex items-center justify-between">
+            Edit Transaction
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  disabled={isDeleting}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Transaction</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete this transaction? This action cannot be undone.
+                    <br />
+                    <br />
+                    <strong>{transaction.description}</strong>
+                    <br />
+                    Amount: ${Math.abs(transaction.amount).toFixed(2)}
+                    <br />
+                    Date: {new Date(transaction.date).toLocaleDateString()}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDelete}
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? "Deleting..." : "Delete"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </DialogTitle>
         </DialogHeader>
         <div className="mt-6">
           <Form {...form}>
