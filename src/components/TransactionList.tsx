@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -41,7 +40,7 @@ const currencySymbols: Record<string, string> = {
 };
 
 export const TransactionList = ({ entityId }: TransactionListProps) => {
-  const [displayCurrency, setDisplayCurrency] = useState("USD");
+  const [displayCurrency, setDisplayCurrency] = useState("AUD");
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedTransactions, setSelectedTransactions] = useState<string[]>([]);
