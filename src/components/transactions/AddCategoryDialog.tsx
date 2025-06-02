@@ -50,9 +50,17 @@ export const AddCategoryDialog = ({ open, onOpenChange, onAddCategory }: AddCate
               <SelectTrigger>
                 <SelectValue placeholder="Select a bucket" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent
+                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-[70]"
+                position="popper"
+                sideOffset={4}
+              >
                 {categoryBuckets.map((bucket) => (
-                  <SelectItem key={bucket.name} value={bucket.name}>
+                  <SelectItem 
+                    key={bucket.name} 
+                    value={bucket.name}
+                    className="hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700"
+                  >
                     {bucket.name}
                   </SelectItem>
                 ))}
