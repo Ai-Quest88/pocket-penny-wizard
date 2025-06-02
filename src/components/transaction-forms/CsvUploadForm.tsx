@@ -231,9 +231,17 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
               <SelectTrigger>
                 <SelectValue placeholder="Choose currency for your transactions" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent 
+                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-[70]"
+                position="popper"
+                sideOffset={4}
+              >
                 {currencies.map((currency) => (
-                  <SelectItem key={currency.code} value={currency.code}>
+                  <SelectItem 
+                    key={currency.code} 
+                    value={currency.code}
+                    className="hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  >
                     {currency.symbol} {currency.code} - {currency.name}
                   </SelectItem>
                 ))}
@@ -259,9 +267,17 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
               <SelectTrigger>
                 <SelectValue placeholder="Choose account (required)" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent 
+                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-[70]"
+                position="popper"
+                sideOffset={4}
+              >
                 {accounts.map((account) => (
-                  <SelectItem key={account.id} value={account.id}>
+                  <SelectItem 
+                    key={account.id} 
+                    value={account.id}
+                    className="hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  >
                     {account.name} ({account.type})
                   </SelectItem>
                 ))}
