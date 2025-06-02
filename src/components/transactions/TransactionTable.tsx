@@ -24,6 +24,7 @@ interface TransactionTableProps {
   displayCurrency: string;
   currencySymbols: Record<string, string>;
   onTransactionClick: (transaction: Transaction) => void;
+  onTransactionDeleted?: () => void;
 }
 
 export const TransactionTable = ({
@@ -33,6 +34,7 @@ export const TransactionTable = ({
   displayCurrency,
   currencySymbols,
   onTransactionClick,
+  onTransactionDeleted,
 }: TransactionTableProps) => {
   return (
     <Table>
@@ -43,6 +45,7 @@ export const TransactionTable = ({
           <TableHead>Category</TableHead>
           <TableHead className="text-right">Amount</TableHead>
           <TableHead className="text-right">Balance</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -63,6 +66,7 @@ export const TransactionTable = ({
               displayCurrency={displayCurrency}
               currencySymbols={currencySymbols}
               onTransactionClick={onTransactionClick}
+              onTransactionDeleted={onTransactionDeleted}
             />
           );
         })}

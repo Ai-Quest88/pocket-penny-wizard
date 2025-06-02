@@ -1,7 +1,7 @@
 
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchExchangeRates } from "@/utils/currencyUtils";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +35,7 @@ export const TransactionList = ({ entityId }: TransactionListProps) => {
   const [displayCurrency, setDisplayCurrency] = useState("USD");
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data: transactions = [], isLoading, error } = useQuery({
     queryKey: ['transactions'],
@@ -118,6 +119,11 @@ export const TransactionList = ({ entityId }: TransactionListProps) => {
     setEditDialogOpen(true);
   };
 
+  const handleTransactionDeleted = () => {
+    // Invalidate and refetch the transactions query
+    queryClient.invalidateQueries({ queryKey: ['transactions'] });
+  };
+
   if (isLoading) {
     return (
       <Card className="animate-fadeIn">
@@ -174,6 +180,7 @@ export const TransactionList = ({ entityId }: TransactionListProps) => {
                 displayCurrency={displayCurrency}
                 currencySymbols={currencySymbols}
                 onTransactionClick={handleTransactionClick}
+                onTransactionDeleted={handleTransactionDeleted}
               />
             )}
           </div>
