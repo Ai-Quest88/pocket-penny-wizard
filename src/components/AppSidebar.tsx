@@ -1,4 +1,5 @@
 
+
 import { BarChart2, CreditCard, DollarSign, Home, Settings, Users, Wallet, List, Upload } from "lucide-react"
 import {
   Sidebar,
@@ -40,7 +41,6 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Overview</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
@@ -59,65 +59,12 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link 
-                    to="/analytics"
+                    to="/entities"
                     className="flex items-center gap-2"
-                    data-active={location.pathname === "/analytics"}
+                    data-active={location.pathname === "/entities"}
                   >
-                    <BarChart2 className="h-4 w-4" />
-                    <span>Analytics</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Transactions</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link 
-                    to="/transactions"
-                    className="flex items-center gap-2"
-                    data-active={location.pathname === "/transactions"}
-                  >
-                    <List className="h-4 w-4" />
-                    <span>All Transactions</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link 
-                    to="/import-transactions"
-                    className="flex items-center gap-2"
-                    data-active={location.pathname === "/import-transactions"}
-                  >
-                    <Upload className="h-4 w-4" />
-                    <span>Import Transactions</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Financial Management</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link 
-                    to="/budgets"
-                    className="flex items-center gap-2"
-                    data-active={location.pathname === "/budgets"}
-                  >
-                    <DollarSign className="h-4 w-4" />
-                    <span>Budgets</span>
+                    <Users className="h-4 w-4" />
+                    <span>Entities</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -147,23 +94,29 @@ export function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Configuration</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link 
-                    to="/entities"
+                    to="/budgets"
                     className="flex items-center gap-2"
-                    data-active={location.pathname === "/entities"}
+                    data-active={location.pathname === "/budgets"}
                   >
-                    <Users className="h-4 w-4" />
-                    <span>Entities</span>
+                    <DollarSign className="h-4 w-4" />
+                    <span>Budgets</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link 
+                    to="/transactions"
+                    className="flex items-center gap-2"
+                    data-active={location.pathname === "/transactions"}
+                  >
+                    <List className="h-4 w-4" />
+                    <span>Transactions</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -187,3 +140,4 @@ export function AppSidebar() {
     </Sidebar>
   )
 }
+
