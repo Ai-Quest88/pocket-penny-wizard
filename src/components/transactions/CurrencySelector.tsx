@@ -18,6 +18,9 @@ export const CurrencySelector = ({
   onCurrencyChange,
   currencySymbols,
 }: CurrencySelectorProps) => {
+  // Filter out any empty currency keys
+  const validCurrencies = Object.keys(currencySymbols).filter(currency => currency && currency.trim() !== "");
+
   return (
     <div className="w-32">
       <Select
@@ -28,7 +31,7 @@ export const CurrencySelector = ({
           <SelectValue placeholder="Select currency" />
         </SelectTrigger>
         <SelectContent>
-          {Object.keys(currencySymbols).map((currency) => (
+          {validCurrencies.map((currency) => (
             <SelectItem key={currency} value={currency}>
               {currencySymbols[currency]} {currency}
             </SelectItem>
