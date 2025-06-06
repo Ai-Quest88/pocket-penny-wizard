@@ -1,3 +1,4 @@
+
 import { TransactionList } from "@/components/TransactionList"
 import { SpendingTrendChart } from "@/components/SpendingTrendChart"
 import { NetWorthWidget } from "@/components/NetWorthWidget"
@@ -65,19 +66,23 @@ const Dashboard = () => {
 
         <NetWorthWidget entityId={selectedEntityType === "all" ? undefined : selectedEntityType} />
 
+        {/* Transactions List Section */}
         <Card className="p-6">
-          <Tabs defaultValue="transactions" className="space-y-4">
+          <h2 className="text-xl font-semibold mb-4">Recent Transactions</h2>
+          <TransactionList 
+            entityId={selectedEntityType === "all" ? undefined : selectedEntityType}
+            showBalance={false}
+          />
+        </Card>
+
+        <Card className="p-6">
+          <Tabs defaultValue="income-expense" className="space-y-4">
             <TabsList>
-              <TabsTrigger value="transactions">Transactions</TabsTrigger>
               <TabsTrigger value="income-expense">Income & Expense</TabsTrigger>
               <TabsTrigger value="spending-trend">Spending Trend</TabsTrigger>
               <TabsTrigger value="categories">Categories</TabsTrigger>
               <TabsTrigger value="historical">Historical Net Worth</TabsTrigger>
             </TabsList>
-            
-            <TabsContent value="transactions" className="mt-4">
-              <TransactionList entityId={selectedEntityType === "all" ? undefined : selectedEntityType} />
-            </TabsContent>
             
             <TabsContent value="income-expense" className="mt-4">
               <IncomeExpenseAnalysis entityId={selectedEntityType === "all" ? undefined : selectedEntityType} />

@@ -24,6 +24,7 @@ interface TransactionTableRowProps {
   onTransactionDeleted?: () => void;
   isSelected: boolean;
   onSelectionChange: (transactionId: string, isSelected: boolean) => void;
+  showBalance?: boolean;
 }
 
 export const TransactionTableRow = ({
@@ -35,6 +36,7 @@ export const TransactionTableRow = ({
   onTransactionClick,
   isSelected,
   onSelectionChange,
+  showBalance = true,
 }: TransactionTableRowProps) => {
   return (
     <TableRow 
@@ -86,12 +88,14 @@ export const TransactionTableRow = ({
           )}
         </div>
       </TableCell>
-      <TableCell className="text-right">
-        <p className="font-semibold">
-          {currencySymbols[displayCurrency]}
-          {Math.abs(balance).toFixed(2)}
-        </p>
-      </TableCell>
+      {showBalance && (
+        <TableCell className="text-right">
+          <p className="font-semibold">
+            {currencySymbols[displayCurrency]}
+            {Math.abs(balance).toFixed(2)}
+          </p>
+        </TableCell>
+      )}
     </TableRow>
   );
 };

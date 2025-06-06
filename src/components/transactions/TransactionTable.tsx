@@ -22,7 +22,7 @@ interface Transaction {
 interface TransactionTableProps {
   transactions: Transaction[];
   convertAmount: (amount: number, fromCurrency: string) => number;
-  calculateBalance: (index: number) => number;
+  calculateBalance?: (index: number) => number;
   displayCurrency: string;
   currencySymbols: Record<string, string>;
   onTransactionClick: (transaction: Transaction) => void;
@@ -30,6 +30,7 @@ interface TransactionTableProps {
   selectedTransactions: string[];
   onSelectionChange: (transactionId: string, isSelected: boolean) => void;
   onSelectAll: (isSelected: boolean) => void;
+  showBalance?: boolean;
 }
 
 export const TransactionTable = ({
@@ -43,6 +44,7 @@ export const TransactionTable = ({
   selectedTransactions,
   onSelectionChange,
   onSelectAll,
+  showBalance = true,
 }: TransactionTableProps) => {
   const allSelected = transactions.length > 0 && selectedTransactions.length === transactions.length;
   const someSelected = selectedTransactions.length > 0 && selectedTransactions.length < transactions.length;
@@ -73,7 +75,7 @@ export const TransactionTable = ({
           <TableHead>Description</TableHead>
           <TableHead>Category</TableHead>
           <TableHead className="text-right">Amount</TableHead>
-          <TableHead className="text-right">Balance</TableHead>
+          {showBalance && <TableHead className="text-right">Balance</TableHead>}
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -82,7 +84,7 @@ export const TransactionTable = ({
             transaction.amount,
             transaction.currency
           );
-          const balance = calculateBalance(index);
+          const balance = showBalance && calculateBalance ? calculateBalance(index) : 0;
           
           return (
             <TransactionTableRow
@@ -97,6 +99,7 @@ export const TransactionTable = ({
               onTransactionDeleted={onTransactionDeleted}
               isSelected={selectedTransactions.includes(transaction.id)}
               onSelectionChange={onSelectionChange}
+              showBalance={showBalance}
             />
           );
         })}

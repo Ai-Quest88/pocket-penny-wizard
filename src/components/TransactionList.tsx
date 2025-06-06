@@ -22,6 +22,7 @@ interface Transaction {
 
 interface TransactionListProps {
   entityId?: string;
+  showBalance?: boolean;
 }
 
 interface SearchFilters {
@@ -39,7 +40,7 @@ const currencySymbols: Record<string, string> = {
   AUD: "$"
 };
 
-export const TransactionList = ({ entityId }: TransactionListProps) => {
+export const TransactionList = ({ entityId, showBalance = true }: TransactionListProps) => {
   const [displayCurrency, setDisplayCurrency] = useState("AUD");
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -269,11 +270,13 @@ export const TransactionList = ({ entityId }: TransactionListProps) => {
   return (
     <>
       <Card className="animate-fadeIn">
-        <TransactionListHeader
-          displayCurrency={displayCurrency}
-          onCurrencyChange={setDisplayCurrency}
-          currencySymbols={currencySymbols}
-        />
+        {showBalance && (
+          <TransactionListHeader
+            displayCurrency={displayCurrency}
+            onCurrencyChange={setDisplayCurrency}
+            currencySymbols={currencySymbols}
+          />
+        )}
         <TransactionSearch
           onFiltersChange={setSearchFilters}
           totalResults={filteredTransactions.length}
@@ -301,7 +304,7 @@ export const TransactionList = ({ entityId }: TransactionListProps) => {
               <TransactionTable
                 transactions={filteredTransactions}
                 convertAmount={convertAmount}
-                calculateBalance={calculateBalance}
+                calculateBalance={showBalance ? calculateBalance : undefined}
                 displayCurrency={displayCurrency}
                 currencySymbols={currencySymbols}
                 onTransactionClick={handleTransactionClick}
@@ -309,6 +312,7 @@ export const TransactionList = ({ entityId }: TransactionListProps) => {
                 selectedTransactions={selectedTransactions}
                 onSelectionChange={handleSelectionChange}
                 onSelectAll={handleSelectAll}
+                showBalance={showBalance}
               />
             )}
           </div>
