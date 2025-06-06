@@ -401,7 +401,7 @@ export const parseCsvFile = async (
 };
 
 // Keep legacy export for compatibility
-export const parseCsvFile as parseCSVFile = parseCsvFile;
+export const parseCSVFile = parseCsvFile;
 
 export const parseExcelFile = async (
   file: File,
