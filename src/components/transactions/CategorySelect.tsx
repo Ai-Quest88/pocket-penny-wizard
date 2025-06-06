@@ -60,15 +60,18 @@ export const CategorySelect = <T extends FieldValues>({
                     <div className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-600">
                       {bucket.name}
                     </div>
-                    {bucket.categories.map((category) => (
-                      <SelectItem 
-                        key={category} 
-                        value={category} 
-                        className="pl-6 hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700"
-                      >
-                        {category}
-                      </SelectItem>
-                    ))}
+                    {bucket.categories
+                      .filter(category => category && category.trim() !== "") // Filter out empty strings
+                      .map((category) => (
+                        <SelectItem 
+                          key={category} 
+                          value={category} 
+                          className="pl-6 hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700"
+                        >
+                          {category}
+                        </SelectItem>
+                      ))
+                    }
                   </div>
                 ))}
               </SelectContent>
