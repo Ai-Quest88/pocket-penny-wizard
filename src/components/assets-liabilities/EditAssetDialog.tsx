@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -16,10 +17,12 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Pencil } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Asset, AssetCategory, assetCategoryGroups } from "@/types/assets-liabilities"
 import { useToast } from "@/components/ui/use-toast"
 import { FamilyMember, BusinessEntity } from "@/types/entities"
+import { supabase } from "@/integrations/supabase/client"
+import { useQuery } from "@tanstack/react-query"
 
 interface EditAssetDialogProps {
   asset: Asset;
@@ -28,7 +31,6 @@ interface EditAssetDialogProps {
 
 export function EditAssetDialog({ asset, onEditAsset }: EditAssetDialogProps) {
   const { toast } = useToast()
-  const [entities, setEntities] = useState<(FamilyMember | BusinessEntity)[]>([])
   const [open, setOpen] = useState(false)
   const [formData, setFormData] = useState<Omit<Asset, "id">>({
     name: asset.name,
@@ -39,12 +41,35 @@ export function EditAssetDialog({ asset, onEditAsset }: EditAssetDialogProps) {
     history: asset.history
   })
 
-  useEffect(() => {
-    const savedEntities = localStorage.getItem('entities')
-    if (savedEntities) {
-      setEntities(JSON.parse(savedEntities))
-    }
-  }, [])
+  // Fetch entities from Supabase
+  const { data: entities = [] } = useQuery({
+    queryKey: ['entities'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('entities')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching entities:', error);
+        throw error;
+      }
+
+      return data.map(entity => ({
+        id: entity.id,
+        name: entity.name,
+        type: entity.type,
+        description: entity.description || '',
+        taxIdentifier: entity.tax_identifier || '',
+        countryOfResidence: entity.country_of_residence,
+        dateAdded: entity.date_added,
+        relationship: entity.relationship || '',
+        dateOfBirth: entity.date_of_birth || '',
+        registrationNumber: entity.registration_number || '',
+        incorporationDate: entity.incorporation_date || '',
+      })) as (FamilyMember | BusinessEntity)[];
+    },
+  });
 
   const handleSubmit = () => {
     if (formData.name && formData.value > 0) {
