@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -23,6 +24,7 @@ interface Transaction {
 interface TransactionListProps {
   entityId?: string;
   showBalance?: boolean;
+  readOnly?: boolean;
 }
 
 interface SearchFilters {
@@ -40,7 +42,7 @@ const currencySymbols: Record<string, string> = {
   AUD: "$"
 };
 
-export const TransactionList = ({ entityId, showBalance = true }: TransactionListProps) => {
+export const TransactionList = ({ entityId, showBalance = true, readOnly = false }: TransactionListProps) => {
   const [displayCurrency, setDisplayCurrency] = useState("AUD");
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -201,8 +203,10 @@ export const TransactionList = ({ entityId, showBalance = true }: TransactionLis
   };
 
   const handleTransactionClick = (transaction: Transaction) => {
-    setSelectedTransaction(transaction);
-    setEditDialogOpen(true);
+    if (!readOnly) {
+      setSelectedTransaction(transaction);
+      setEditDialogOpen(true);
+    }
   };
 
   const handleTransactionDeleted = () => {
@@ -213,15 +217,19 @@ export const TransactionList = ({ entityId, showBalance = true }: TransactionLis
   };
 
   const handleSelectionChange = (transactionId: string, isSelected: boolean) => {
-    setSelectedTransactions(prev => 
-      isSelected 
-        ? [...prev, transactionId]
-        : prev.filter(id => id !== transactionId)
-    );
+    if (!readOnly) {
+      setSelectedTransactions(prev => 
+        isSelected 
+          ? [...prev, transactionId]
+          : prev.filter(id => id !== transactionId)
+      );
+    }
   };
 
   const handleSelectAll = (isSelected: boolean) => {
-    setSelectedTransactions(isSelected ? filteredTransactions.map(t => t.id) : []);
+    if (!readOnly) {
+      setSelectedTransactions(isSelected ? filteredTransactions.map(t => t.id) : []);
+    }
   };
 
   const handleClearSelection = () => {
@@ -281,11 +289,13 @@ export const TransactionList = ({ entityId, showBalance = true }: TransactionLis
           onFiltersChange={setSearchFilters}
           totalResults={filteredTransactions.length}
         />
-        <BulkEditActions
-          selectedTransactions={selectedTransactionObjects}
-          onClearSelection={handleClearSelection}
-          onBulkUpdate={handleBulkUpdate}
-        />
+        {!readOnly && (
+          <BulkEditActions
+            selectedTransactions={selectedTransactionObjects}
+            onClearSelection={handleClearSelection}
+            onBulkUpdate={handleBulkUpdate}
+          />
+        )}
         <ScrollArea className="h-[400px]">
           <div className="p-4">
             {filteredTransactions.length === 0 ? (
@@ -309,21 +319,24 @@ export const TransactionList = ({ entityId, showBalance = true }: TransactionLis
                 currencySymbols={currencySymbols}
                 onTransactionClick={handleTransactionClick}
                 onTransactionDeleted={handleTransactionDeleted}
-                selectedTransactions={selectedTransactions}
+                selectedTransactions={readOnly ? [] : selectedTransactions}
                 onSelectionChange={handleSelectionChange}
                 onSelectAll={handleSelectAll}
                 showBalance={showBalance}
+                readOnly={readOnly}
               />
             )}
           </div>
         </ScrollArea>
       </Card>
 
-      <EditTransactionDialog
-        transaction={selectedTransaction}
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-      />
+      {!readOnly && (
+        <EditTransactionDialog
+          transaction={selectedTransaction}
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+        />
+      )}
     </>
   );
 };

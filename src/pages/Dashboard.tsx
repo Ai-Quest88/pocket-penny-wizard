@@ -82,6 +82,7 @@ const Dashboard = () => {
                 <TransactionList 
                   entityId={selectedEntityType === "all" ? undefined : selectedEntityType}
                   showBalance={false}
+                  readOnly={true}
                 />
               </div>
             </TabsContent>

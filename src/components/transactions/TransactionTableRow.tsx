@@ -25,6 +25,7 @@ interface TransactionTableRowProps {
   isSelected: boolean;
   onSelectionChange: (transactionId: string, isSelected: boolean) => void;
   showBalance?: boolean;
+  readOnly?: boolean;
 }
 
 export const TransactionTableRow = ({
@@ -37,31 +38,34 @@ export const TransactionTableRow = ({
   isSelected,
   onSelectionChange,
   showBalance = true,
+  readOnly = false,
 }: TransactionTableRowProps) => {
   return (
     <TableRow 
       key={transaction.id} 
       className={cn(
-        "hover:bg-muted/50 transition-colors group",
+        readOnly ? "hover:bg-muted/30" : "hover:bg-muted/50 transition-colors group",
         isSelected && "bg-blue-50 hover:bg-blue-100"
       )}
     >
-      <TableCell className="w-8">
-        <Checkbox
-          checked={isSelected}
-          onCheckedChange={(checked) => 
-            onSelectionChange(transaction.id, checked as boolean)
-          }
-          aria-label="Select transaction"
-        />
-      </TableCell>
+      {!readOnly && (
+        <TableCell className="w-8">
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={(checked) => 
+              onSelectionChange(transaction.id, checked as boolean)
+            }
+            aria-label="Select transaction"
+          />
+        </TableCell>
+      )}
       <TableCell className="font-medium">
         {new Date(transaction.date).toLocaleDateString()}
       </TableCell>
       <TableCell>
         <div 
-          className="cursor-pointer"
-          onClick={() => onTransactionClick(transaction)}
+          className={readOnly ? "" : "cursor-pointer"}
+          onClick={() => !readOnly && onTransactionClick(transaction)}
         >
           <p className="font-medium">{transaction.description}</p>
         </div>

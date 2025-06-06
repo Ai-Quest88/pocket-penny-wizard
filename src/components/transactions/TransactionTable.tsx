@@ -31,6 +31,7 @@ interface TransactionTableProps {
   onSelectionChange: (transactionId: string, isSelected: boolean) => void;
   onSelectAll: (isSelected: boolean) => void;
   showBalance?: boolean;
+  readOnly?: boolean;
 }
 
 export const TransactionTable = ({
@@ -45,6 +46,7 @@ export const TransactionTable = ({
   onSelectionChange,
   onSelectAll,
   showBalance = true,
+  readOnly = false,
 }: TransactionTableProps) => {
   const allSelected = transactions.length > 0 && selectedTransactions.length === transactions.length;
   const someSelected = selectedTransactions.length > 0 && selectedTransactions.length < transactions.length;
@@ -63,14 +65,16 @@ export const TransactionTable = ({
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-8">
-            <Checkbox
-              ref={checkboxRef}
-              checked={allSelected}
-              onCheckedChange={onSelectAll}
-              aria-label="Select all transactions"
-            />
-          </TableHead>
+          {!readOnly && (
+            <TableHead className="w-8">
+              <Checkbox
+                ref={checkboxRef}
+                checked={allSelected}
+                onCheckedChange={onSelectAll}
+                aria-label="Select all transactions"
+              />
+            </TableHead>
+          )}
           <TableHead>Date</TableHead>
           <TableHead>Description</TableHead>
           <TableHead>Category</TableHead>
@@ -100,6 +104,7 @@ export const TransactionTable = ({
               isSelected={selectedTransactions.includes(transaction.id)}
               onSelectionChange={onSelectionChange}
               showBalance={showBalance}
+              readOnly={readOnly}
             />
           );
         })}
