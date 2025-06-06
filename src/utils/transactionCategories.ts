@@ -77,6 +77,9 @@ const categoryRules: CategoryRule[] = [
   }
 ];
 
+// Export the categories array
+export const categories = categoryRules.map(rule => rule.category);
+
 export const categorizeTransaction = (description: string): string => {
   const lowerDescription = description.toLowerCase();
   

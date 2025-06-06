@@ -51,7 +51,6 @@ export type Database = {
           id: string
           updated_at: string | null
           user_id: string
-          yodlee_account_id: string | null
         }
         Insert: {
           amount: number
@@ -64,7 +63,6 @@ export type Database = {
           id?: string
           updated_at?: string | null
           user_id: string
-          yodlee_account_id?: string | null
         }
         Update: {
           amount?: number
@@ -77,51 +75,6 @@ export type Database = {
           id?: string
           updated_at?: string | null
           user_id?: string
-          yodlee_account_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "transactions_yodlee_account_id_fkey"
-            columns: ["yodlee_account_id"]
-            isOneToOne: false
-            referencedRelation: "yodlee_accounts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      yodlee_accounts: {
-        Row: {
-          account_name: string
-          account_type: string
-          created_at: string | null
-          id: string
-          last_sync_time: string | null
-          provider_name: string
-          updated_at: string | null
-          user_id: string
-          yodlee_account_id: string
-        }
-        Insert: {
-          account_name: string
-          account_type: string
-          created_at?: string | null
-          id?: string
-          last_sync_time?: string | null
-          provider_name: string
-          updated_at?: string | null
-          user_id: string
-          yodlee_account_id: string
-        }
-        Update: {
-          account_name?: string
-          account_type?: string
-          created_at?: string | null
-          id?: string
-          last_sync_time?: string | null
-          provider_name?: string
-          updated_at?: string | null
-          user_id?: string
-          yodlee_account_id?: string
         }
         Relationships: []
       }
