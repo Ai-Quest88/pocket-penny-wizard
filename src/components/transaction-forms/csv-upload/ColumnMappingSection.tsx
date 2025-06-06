@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 interface ColumnMappingSectionProps {
   headers: string[]
   mapping: Record<string, string>
-  onMappingChange: (csvColumn: string, targetField: string) => void
+  onMappingChange: (field: string, column: string) => void
 }
 
 export const ColumnMappingSection: React.FC<ColumnMappingSectionProps> = ({
@@ -33,7 +33,7 @@ export const ColumnMappingSection: React.FC<ColumnMappingSectionProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="date-mapping">Date *</Label>
-          <Select value={mapping.date || ''} onValueChange={(value) => onMappingChange(value, 'date')}>
+          <Select value={mapping.date || ''} onValueChange={(value) => onMappingChange('date', value)}>
             <SelectTrigger>
               <SelectValue placeholder="Select date column" />
             </SelectTrigger>
@@ -47,7 +47,7 @@ export const ColumnMappingSection: React.FC<ColumnMappingSectionProps> = ({
 
         <div>
           <Label htmlFor="amount-mapping">Amount *</Label>
-          <Select value={mapping.amount || ''} onValueChange={(value) => onMappingChange(value, 'amount')}>
+          <Select value={mapping.amount || ''} onValueChange={(value) => onMappingChange('amount', value)}>
             <SelectTrigger>
               <SelectValue placeholder="Select amount column" />
             </SelectTrigger>
@@ -61,7 +61,7 @@ export const ColumnMappingSection: React.FC<ColumnMappingSectionProps> = ({
 
         <div>
           <Label htmlFor="description-mapping">Description *</Label>
-          <Select value={mapping.description || ''} onValueChange={(value) => onMappingChange(value, 'description')}>
+          <Select value={mapping.description || ''} onValueChange={(value) => onMappingChange('description', value)}>
             <SelectTrigger>
               <SelectValue placeholder="Select description column" />
             </SelectTrigger>
@@ -75,7 +75,7 @@ export const ColumnMappingSection: React.FC<ColumnMappingSectionProps> = ({
 
         <div>
           <Label htmlFor="category-mapping">Category</Label>
-          <Select value={mapping.category || ''} onValueChange={(value) => onMappingChange(value, 'category')}>
+          <Select value={mapping.category || ''} onValueChange={(value) => onMappingChange('category', value)}>
             <SelectTrigger>
               <SelectValue placeholder="Select category column (optional)" />
             </SelectTrigger>
@@ -90,7 +90,7 @@ export const ColumnMappingSection: React.FC<ColumnMappingSectionProps> = ({
 
         <div>
           <Label htmlFor="account-mapping">Account</Label>
-          <Select value={mapping.account || ''} onValueChange={(value) => onMappingChange(value, 'account')}>
+          <Select value={mapping.account || ''} onValueChange={(value) => onMappingChange('account', value)}>
             <SelectTrigger>
               <SelectValue placeholder="Select account column (optional)" />
             </SelectTrigger>
@@ -105,7 +105,7 @@ export const ColumnMappingSection: React.FC<ColumnMappingSectionProps> = ({
 
         <div>
           <Label htmlFor="currency-mapping">Currency</Label>
-          <Select value={mapping.currency || ''} onValueChange={(value) => onMappingChange(value, 'currency')}>
+          <Select value={mapping.currency || ''} onValueChange={(value) => onMappingChange('currency', value)}>
             <SelectTrigger>
               <SelectValue placeholder="Select currency column (optional)" />
             </SelectTrigger>

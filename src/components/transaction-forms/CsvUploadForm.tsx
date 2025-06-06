@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, Upload } from "lucide-react"
-import { parseCSVFile } from "@/utils/csvParser"
+import { parseCsvFile } from "@/utils/csvParser"
 import { FileUploadSection } from "./csv-upload/FileUploadSection"
 import { AutoMappingAlert } from "./csv-upload/AutoMappingAlert"
 import { ColumnMappingSection } from "./csv-upload/ColumnMappingSection"
@@ -35,7 +35,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
     setError(null)
 
     try {
-      const result = await parseCSVFile(selectedFile)
+      const result = await parseCsvFile(selectedFile)
       
       if (!result.success) {
         setError(result.error || 'Unknown error occurred')
@@ -83,7 +83,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
     setError(null)
 
     try {
-      const result = await parseCSVFile(file, columnMappings, {
+      const result = await parseCsvFile(file, columnMappings, {
         defaultCurrency,
         defaultAccount
       })
@@ -158,17 +158,15 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
 
             <ColumnMappingSection
               headers={headers}
-              columnMappings={columnMappings}
+              mapping={columnMappings}
               onMappingChange={handleMappingChange}
-              requiredFields={requiredFields}
-              optionalFields={optionalFields}
             />
 
             <DefaultSettingsSection
               defaultCurrency={defaultCurrency}
+              setDefaultCurrency={setDefaultCurrency}
               defaultAccount={defaultAccount}
-              onCurrencyChange={setDefaultCurrency}
-              onAccountChange={setDefaultAccount}
+              setDefaultAccount={setDefaultAccount}
             />
 
             <PreviewTable 

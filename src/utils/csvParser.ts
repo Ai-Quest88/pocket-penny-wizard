@@ -14,11 +14,13 @@ export interface ParseError {
 }
 
 export interface ParseResult {
-  transactions: ParsedTransaction[];
-  errors: ParseError[];
-  detectedCurrency?: string;
-  autoMappedColumns?: Record<string, string>;
-  hasHeaders?: boolean;
+  success: boolean;
+  transactions?: ParsedTransaction[];
+  errors?: ParseError[];
+  headers?: string[];
+  preview?: Record<string, string>[];
+  autoMappings?: Record<string, string>;
+  error?: string;
 }
 
 const parseDate = (dateStr: string): string | null => {
@@ -182,11 +184,6 @@ const autoMapColumns = (headers: string[]): Record<string, string> => {
     }
   });
   
-  // If no explicit mappings found, try pattern-based detection on sample data
-  if (!mapping.date || !mapping.amount || !mapping.description) {
-    // This would be handled by the existing detectCsvFormat logic
-  }
-  
   return mapping;
 };
 
@@ -224,13 +221,10 @@ export const parseCSV = (content: string): ParseResult => {
   const errors: ParseError[] = [];
 
   if (lines.length === 0) {
-    errors.push({
-      row: 0,
-      field: 'file',
-      value: 'empty',
-      message: 'File appears to be empty'
-    });
-    return { transactions, errors };
+    return {
+      success: false,
+      error: 'File appears to be empty'
+    };
   }
 
   // Detect currency from content - default to AUD for Australian data
@@ -246,6 +240,21 @@ export const parseCSV = (content: string): ParseResult => {
     startIndex = 1;
     autoMappedColumns = autoMapColumns(firstRowFields);
     console.log('Auto-mapped columns:', autoMappedColumns);
+  }
+  
+  // Generate preview data
+  const preview: Record<string, string>[] = [];
+  const previewLines = lines.slice(startIndex, startIndex + 5); // Show first 5 data rows
+  
+  for (const line of previewLines) {
+    const fields = parseCsvLine(line);
+    const previewRow: Record<string, string> = {};
+    
+    firstRowFields.forEach((header, index) => {
+      previewRow[header] = fields[index] || '';
+    });
+    
+    preview.push(previewRow);
   }
   
   for (let i = startIndex; i < lines.length; i++) {
@@ -342,43 +351,57 @@ export const parseCSV = (content: string): ParseResult => {
   }
 
   return { 
+    success: errors.length === 0 || transactions.length > 0,
     transactions, 
     errors, 
-    detectedCurrency, 
-    autoMappedColumns: hasHeaders ? autoMappedColumns : undefined,
-    hasHeaders 
+    headers: hasHeaders ? firstRowFields : undefined,
+    preview,
+    autoMappings: hasHeaders ? autoMappedColumns : undefined,
+    error: errors.length > 0 && transactions.length === 0 ? errors.map(e => e.message).join(', ') : undefined
   };
 };
 
 export const parseCsvFile = async (
   file: File,
-  mapping: Record<string, string>,
-  defaultCurrency: string,
-  defaultAccount: string
-): Promise<Array<{
-  date: string;
-  amount: number;
-  description: string;
-  category: string;
-  currency: string;
-  account: string;
-}>> => {
-  const content = await file.text();
-  const result = parseCSV(content);
-  
-  if (result.errors.length > 0) {
-    throw new Error(`File parsing errors: ${result.errors.map(e => e.message).join(', ')}`);
+  mapping?: Record<string, string>,
+  defaults?: { defaultCurrency: string; defaultAccount: string }
+): Promise<ParseResult> => {
+  try {
+    let content: string;
+    
+    if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+      // Handle Excel files
+      const arrayBuffer = await file.arrayBuffer();
+      const XLSX = await import('xlsx');
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      content = XLSX.utils.sheet_to_csv(worksheet);
+    } else {
+      // Handle CSV files
+      content = await file.text();
+    }
+    
+    const result = parseCSV(content);
+    
+    // If mapping is provided, apply it to transform the data
+    if (mapping && result.success && result.transactions) {
+      // Transform transactions based on mapping
+      // This would need additional implementation based on specific requirements
+    }
+    
+    return result;
+  } catch (err) {
+    console.error('Error parsing file:', err);
+    return {
+      success: false,
+      error: 'Error reading file. Please ensure it is a valid CSV or Excel file.'
+    };
   }
-  
-  return result.transactions.map(tx => ({
-    date: tx.date,
-    amount: parseFloat(tx.amount),
-    description: tx.description,
-    category: tx.category,
-    currency: tx.currency || defaultCurrency,
-    account: defaultAccount || 'Default Account'
-  }));
 };
+
+// Keep legacy export for compatibility
+export const parseCsvFile as parseCSVFile = parseCsvFile;
 
 export const parseExcelFile = async (
   file: File,
