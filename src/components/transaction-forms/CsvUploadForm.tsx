@@ -60,7 +60,6 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
     }
 
     console.log("Starting file upload with account:", selectedAccount);
-    console.log("Account validation - is UUID?", /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedAccount));
 
     setIsUploading(true);
     setUploadProgress('Reading file...');
@@ -137,18 +136,6 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
       setUploadProgress(`Uploading ${transactions.length} transactions...`);
 
       console.log("Processing transactions with account ID:", selectedAccount);
-      
-      // Validate that selectedAccount is a valid UUID or null
-      let accountId = null;
-      if (selectedAccount) {
-        const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedAccount);
-        if (isValidUUID) {
-          accountId = selectedAccount;
-        } else {
-          console.error("Invalid UUID format for account:", selectedAccount);
-          throw new Error(`Invalid account ID format: ${selectedAccount}`);
-        }
-      }
 
       const transactionsToInsert = transactions.map(transaction => ({
         user_id: session.user.id,
@@ -157,10 +144,9 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
         category: transaction.category || categorizeTransaction(transaction.description),
         date: transaction.date,
         currency: currency,
-        yodlee_account_id: accountId
       }));
 
-      console.log('Inserting transactions with validated account ID:', transactionsToInsert);
+      console.log('Inserting transactions:', transactionsToInsert);
 
       const { error } = await supabase
         .from('transactions')
@@ -196,7 +182,7 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
           category: suggestedCategory,
           date: firstTransaction.date,
           currency: currency,
-          account_id: accountId || "",
+          account_id: "",
         });
       }
 
