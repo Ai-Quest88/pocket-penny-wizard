@@ -1,4 +1,3 @@
-
 import { useState } from "react"
 import { BudgetForecast } from "@/components/budgets/BudgetForecast"
 import { IncomeExpenseAnalysis } from "@/components/budgets/IncomeExpenseAnalysis"

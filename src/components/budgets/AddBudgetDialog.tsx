@@ -43,7 +43,7 @@ const categories = [
 export function AddBudgetDialog({ onAddBudget }: AddBudgetDialogProps) {
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
-  const [selectedEntityId, setSelectedEntityId] = useState<string>("")
+  const [selectedEntityId, setSelectedEntityId] = useState<string>("all")
   const [newBudget, setNewBudget] = useState<Omit<Budget, "id" | "userId" | "createdAt" | "updatedAt">>({
     category: "",
     amount: 0,
@@ -96,7 +96,7 @@ export function AddBudgetDialog({ onAddBudget }: AddBudgetDialogProps) {
 
     const budgetWithEntity = {
       ...newBudget,
-      entityId: selectedEntityId || undefined,
+      entityId: selectedEntityId === "all" ? undefined : selectedEntityId,
     }
     
     onAddBudget(budgetWithEntity)
@@ -111,7 +111,7 @@ export function AddBudgetDialog({ onAddBudget }: AddBudgetDialogProps) {
       entityId: undefined,
       endDate: undefined
     })
-    setSelectedEntityId("")
+    setSelectedEntityId("all")
     setOpen(false)
     
     toast({
@@ -143,7 +143,7 @@ export function AddBudgetDialog({ onAddBudget }: AddBudgetDialogProps) {
                 <SelectValue placeholder="Select entity (optional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Entities</SelectItem>
+                <SelectItem value="all">All Entities</SelectItem>
                 {entities.map((entity) => (
                   <SelectItem key={entity.id} value={entity.id}>
                     {entity.name}
