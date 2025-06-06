@@ -1,15 +1,16 @@
+
 import React, { useState, useCallback } from 'react'
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { AlertCircle, Upload, Download, CheckCircle } from "lucide-react"
+import { AlertCircle, Upload } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { parseCSV } from "@/utils/csvParser"
-import { categories } from "@/types/transaction-forms"
-import { useAccounts } from "@/hooks/useAccounts"
 import type { Transaction, CsvUploadProps } from "@/types/transaction-forms"
+import { FileUploadSection } from "./csv-upload/FileUploadSection"
+import { AutoMappingAlert } from "./csv-upload/AutoMappingAlert"
+import { ColumnMappingSection } from "./csv-upload/ColumnMappingSection"
+import { PreviewTable } from "./csv-upload/PreviewTable"
+import { DefaultSettingsSection } from "./csv-upload/DefaultSettingsSection"
 
 export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded }) => {
   const [file, setFile] = useState<File | null>(null)
@@ -23,8 +24,6 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
   const [autoMapped, setAutoMapped] = useState<Record<string, string>>({})
   const [hasHeaders, setHasHeaders] = useState(false)
   const [showMapping, setShowMapping] = useState(false)
-  
-  const { accounts, isLoading: accountsLoading } = useAccounts()
 
   const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFile = event.target.files?.[0]
@@ -227,41 +226,16 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
     }
   }
 
-  const downloadTemplate = () => {
-    const template = 'Date,Amount,Description,Category,Account\n2024-01-01,-50.00,Coffee Shop,Food & Dining,Main Account\n2024-01-02,2000.00,Salary,Income,Main Account'
-    const blob = new Blob([template], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'transaction_template.csv'
-    a.click()
-    URL.revokeObjectURL(url)
+  const resetForm = () => {
+    setFile(null)
+    setMapping({})
+    setHeaders([])
+    setPreview([])
+    setErrors([])
+    setAutoMapped({})
+    setHasHeaders(false)
+    setShowMapping(false)
   }
-
-  // Enhanced filtering for headers with additional safety checks
-  const validHeaders = headers.filter(header => {
-    const isValid = header && 
-                   typeof header === 'string' && 
-                   header.trim() !== '' && 
-                   header.trim() !== 'undefined' && 
-                   header.trim() !== 'null' &&
-                   header.length > 0
-    return isValid
-  })
-  
-  // Enhanced filtering for accounts with additional safety checks
-  const validAccounts = accounts.filter(account => {
-    const isValid = account && 
-                   account.name && 
-                   typeof account.name === 'string' && 
-                   account.name.trim() !== '' &&
-                   account.name.trim() !== 'undefined' &&
-                   account.name.trim() !== 'null' &&
-                   account.id &&
-                   typeof account.id === 'string' &&
-                   account.id.trim() !== ''
-    return isValid
-  })
 
   const hasRequiredMappings = mapping.date && mapping.amount && mapping.description
 
@@ -290,227 +264,40 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
           </Alert>
         )}
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="file-upload">Select File</Label>
-            <Button variant="outline" size="sm" onClick={downloadTemplate}>
-              <Download className="h-4 w-4 mr-2" />
-              Download CSV Template
-            </Button>
-          </div>
-          
-          <Input
-            id="file-upload"
-            type="file"
-            accept=".csv,.xlsx,.xls"
-            onChange={handleFileUpload}
-            disabled={isProcessing}
+        <FileUploadSection 
+          onFileUpload={handleFileUpload}
+          isProcessing={isProcessing}
+        />
+
+        {file && hasHeaders && (
+          <AutoMappingAlert 
+            autoMapped={autoMapped}
+            hasRequiredMappings={hasRequiredMappings}
           />
-          <p className="text-sm text-muted-foreground">
-            Supported formats: CSV (.csv), Excel (.xlsx), Excel 97-2003 (.xls)
-          </p>
-        </div>
-
-        {file && hasHeaders && Object.keys(autoMapped).length > 0 && (
-          <Alert>
-            <CheckCircle className="h-4 w-4" />
-            <AlertDescription>
-              <div className="space-y-2">
-                <p className="font-medium">Headers detected and automatically mapped:</p>
-                <ul className="text-sm space-y-1">
-                  {Object.entries(autoMapped).map(([field, column]) => (
-                    <li key={field}>
-                      <strong>{field}:</strong> {column}
-                    </li>
-                  ))}
-                </ul>
-                {hasRequiredMappings ? (
-                  <p className="text-green-600 font-medium">✓ All required fields mapped successfully!</p>
-                ) : (
-                  <p className="text-amber-600">Some required fields need manual mapping below.</p>
-                )}
-              </div>
-            </AlertDescription>
-          </Alert>
         )}
 
-        {file && validHeaders.length > 0 && showMapping && (
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Map File Columns</h3>
-            <p className="text-sm text-muted-foreground">
-              Map your file columns to transaction fields. Required fields are marked with *
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="date-mapping">Date *</Label>
-                <Select value={mapping.date || ''} onValueChange={(value) => handleMappingChange(value, 'date')}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select date column" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {validHeaders.map(header => (
-                      <SelectItem key={`date-${header}`} value={header}>{header}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="amount-mapping">Amount *</Label>
-                <Select value={mapping.amount || ''} onValueChange={(value) => handleMappingChange(value, 'amount')}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select amount column" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {validHeaders.map(header => (
-                      <SelectItem key={`amount-${header}`} value={header}>{header}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="description-mapping">Description *</Label>
-                <Select value={mapping.description || ''} onValueChange={(value) => handleMappingChange(value, 'description')}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select description column" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {validHeaders.map(header => (
-                      <SelectItem key={`description-${header}`} value={header}>{header}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="category-mapping">Category</Label>
-                <Select value={mapping.category || ''} onValueChange={(value) => handleMappingChange(value, 'category')}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category column (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    {validHeaders.map(header => (
-                      <SelectItem key={`category-${header}`} value={header}>{header}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="account-mapping">Account</Label>
-                <Select value={mapping.account || ''} onValueChange={(value) => handleMappingChange(value, 'account')}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select account column (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    {validHeaders.map(header => (
-                      <SelectItem key={`account-${header}`} value={header}>{header}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="currency-mapping">Currency</Label>
-                <Select value={mapping.currency || ''} onValueChange={(value) => handleMappingChange(value, 'currency')}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select currency column (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    {validHeaders.map(header => (
-                      <SelectItem key={`currency-${header}`} value={header}>{header}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
+        {file && headers.length > 0 && showMapping && (
+          <ColumnMappingSection
+            headers={headers}
+            mapping={mapping}
+            onMappingChange={handleMappingChange}
+          />
         )}
 
-        {file && validHeaders.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="default-currency">Default Currency</Label>
-              <Select value={defaultCurrency} onValueChange={setDefaultCurrency}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="USD">USD</SelectItem>
-                  <SelectItem value="EUR">EUR</SelectItem>
-                  <SelectItem value="GBP">GBP</SelectItem>
-                  <SelectItem value="JPY">JPY</SelectItem>
-                  <SelectItem value="AUD">AUD</SelectItem>
-                  <SelectItem value="CAD">CAD</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="default-account">Default Account</Label>
-              <Select value={defaultAccount} onValueChange={setDefaultAccount} disabled={accountsLoading}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select default account" />
-                </SelectTrigger>
-                <SelectContent>
-                  {validAccounts.map(account => (
-                    <SelectItem key={account.id} value={account.name}>
-                      {account.name} ({account.type})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+        {file && headers.length > 0 && (
+          <DefaultSettingsSection
+            defaultCurrency={defaultCurrency}
+            setDefaultCurrency={setDefaultCurrency}
+            defaultAccount={defaultAccount}
+            setDefaultAccount={setDefaultAccount}
+          />
         )}
 
-        {preview.length > 0 && (
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Preview</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse border border-gray-300">
-                <thead>
-                  <tr className="bg-gray-50">
-                    {validHeaders.map(header => (
-                      <th key={`preview-header-${header}`} className="border border-gray-300 px-3 py-2 text-left text-sm font-medium">
-                        {header}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {preview.map((row, index) => (
-                    <tr key={`preview-row-${index}`}>
-                      {validHeaders.map(header => (
-                        <td key={`preview-cell-${index}-${header}`} className="border border-gray-300 px-3 py-2 text-sm">
-                          {row[header]}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        <PreviewTable headers={headers} preview={preview} />
 
-        {file && validHeaders.length > 0 && (
+        {file && headers.length > 0 && (
           <div className="flex justify-end space-x-4">
-            <Button variant="outline" onClick={() => {
-              setFile(null)
-              setMapping({})
-              setHeaders([])
-              setPreview([])
-              setErrors([])
-              setAutoMapped({})
-              setHasHeaders(false)
-              setShowMapping(false)
-            }}>
+            <Button variant="outline" onClick={resetForm}>
               Cancel
             </Button>
             <Button 
