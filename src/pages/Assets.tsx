@@ -33,6 +33,8 @@ const Assets = () => {
         type: asset.type,
         category: asset.category,
         history: [], // Historical values would be fetched separately if needed
+        accountNumber: asset.account_number || undefined,
+        address: asset.address || undefined,
       })) as Asset[];
     },
   });
@@ -52,6 +54,8 @@ const Assets = () => {
           value: newAsset.value,
           type: newAsset.type,
           category: newAsset.category,
+          account_number: newAsset.accountNumber || null,
+          address: newAsset.address || null,
         }])
         .select()
         .single();
@@ -87,6 +91,8 @@ const Assets = () => {
           value: updatedAsset.value,
           type: updatedAsset.type,
           category: updatedAsset.category,
+          account_number: updatedAsset.accountNumber || null,
+          address: updatedAsset.address || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)

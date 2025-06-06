@@ -11,6 +11,8 @@ export type Database = {
     Tables: {
       assets: {
         Row: {
+          account_number: string | null
+          address: string | null
           category: string
           created_at: string
           entity_id: string
@@ -22,6 +24,8 @@ export type Database = {
           value: number
         }
         Insert: {
+          account_number?: string | null
+          address?: string | null
           category: string
           created_at?: string
           entity_id: string
@@ -33,6 +37,8 @@ export type Database = {
           value: number
         }
         Update: {
+          account_number?: string | null
+          address?: string | null
           category?: string
           created_at?: string
           entity_id?: string
