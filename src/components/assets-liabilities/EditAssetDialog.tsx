@@ -72,12 +72,13 @@ export function EditAssetDialog({ asset, onEditAsset }: EditAssetDialogProps) {
   });
 
   const handleSubmit = () => {
-    if (formData.name && formData.value > 0) {
+    if (formData.name && (formData.type === "cash" || formData.value > 0)) {
       const updatedAsset = {
         ...formData,
+        value: formData.type === "cash" ? 0 : formData.value,
         history: [
           ...asset.history,
-          { date: new Date().toISOString(), value: formData.value }
+          { date: new Date().toISOString(), value: formData.type === "cash" ? 0 : formData.value }
         ]
       }
       onEditAsset(asset.id, updatedAsset)
@@ -131,17 +132,6 @@ export function EditAssetDialog({ asset, onEditAsset }: EditAssetDialogProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="asset-value">Value</Label>
-            <Input
-              id="asset-value"
-              type="number"
-              value={formData.value}
-              onChange={(e) => setFormData({ ...formData, value: parseFloat(e.target.value) || 0 })}
-              placeholder="0.00"
-            />
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="asset-type">Type</Label>
             <Select
               value={formData.type}
@@ -159,6 +149,19 @@ export function EditAssetDialog({ asset, onEditAsset }: EditAssetDialogProps) {
               </SelectContent>
             </Select>
           </div>
+
+          {formData.type !== "cash" && (
+            <div className="space-y-2">
+              <Label htmlFor="asset-value">Value</Label>
+              <Input
+                id="asset-value"
+                type="number"
+                value={formData.value}
+                onChange={(e) => setFormData({ ...formData, value: parseFloat(e.target.value) || 0 })}
+                placeholder="0.00"
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="asset-category">Category</Label>

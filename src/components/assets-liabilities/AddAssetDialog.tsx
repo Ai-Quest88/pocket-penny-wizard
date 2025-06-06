@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -79,11 +80,12 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
       return
     }
 
-    if (newAsset.name && newAsset.value > 0) {
+    if (newAsset.name && (newAsset.type === "cash" || newAsset.value > 0)) {
       const assetWithEntity = {
         ...newAsset,
         entityId: selectedEntityId,
-        history: [{ date: new Date().toISOString(), value: newAsset.value }]
+        value: newAsset.type === "cash" ? 0 : newAsset.value,
+        history: [{ date: new Date().toISOString(), value: newAsset.type === "cash" ? 0 : newAsset.value }]
       }
       onAddAsset(assetWithEntity)
       setNewAsset({
@@ -145,17 +147,6 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="asset-value">Value</Label>
-            <Input
-              id="asset-value"
-              type="number"
-              value={newAsset.value}
-              onChange={(e) => setNewAsset({ ...newAsset, value: parseFloat(e.target.value) || 0 })}
-              placeholder="0.00"
-            />
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="asset-type">Type</Label>
             <Select
               value={newAsset.type}
@@ -173,6 +164,19 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
               </SelectContent>
             </Select>
           </div>
+
+          {newAsset.type !== "cash" && (
+            <div className="space-y-2">
+              <Label htmlFor="asset-value">Value</Label>
+              <Input
+                id="asset-value"
+                type="number"
+                value={newAsset.value}
+                onChange={(e) => setNewAsset({ ...newAsset, value: parseFloat(e.target.value) || 0 })}
+                placeholder="0.00"
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="asset-category">Category</Label>
