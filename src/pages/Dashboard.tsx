@@ -1,6 +1,6 @@
 
 import { TransactionList } from "@/components/TransactionList"
-import { SpendingTrendChart } from "@/components/SpendingTrendChart"
+import { CashFlowChart } from "@/components/CashFlowChart"
 import { NetWorthWidget } from "@/components/NetWorthWidget"
 import { IncomeExpenseAnalysis } from "@/components/budgets/IncomeExpenseAnalysis"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -71,7 +71,7 @@ const Dashboard = () => {
             <TabsList>
               <TabsTrigger value="transactions">Transactions</TabsTrigger>
               <TabsTrigger value="budget">Budget</TabsTrigger>
-              <TabsTrigger value="spending-trend">Spending Trend</TabsTrigger>
+              <TabsTrigger value="cash-flow">Cash Flow</TabsTrigger>
               <TabsTrigger value="categories">Categories</TabsTrigger>
               <TabsTrigger value="historical">Historical Net Worth</TabsTrigger>
             </TabsList>
@@ -91,10 +91,10 @@ const Dashboard = () => {
               <IncomeExpenseAnalysis entityId={selectedEntityType === "all" ? undefined : selectedEntityType} />
             </TabsContent>
             
-            <TabsContent value="spending-trend" className="mt-4">
+            <TabsContent value="cash-flow" className="mt-4">
               <div className="bg-white rounded-lg">
-                <h3 className="text-lg font-semibold mb-4">Spending Trend</h3>
-                <SpendingTrendChart entityId={selectedEntityType === "all" ? undefined : selectedEntityType} />
+                <h3 className="text-lg font-semibold mb-4">Monthly Cash Flow</h3>
+                <CashFlowChart entityId={selectedEntityType === "all" ? undefined : selectedEntityType} />
               </div>
             </TabsContent>
 
