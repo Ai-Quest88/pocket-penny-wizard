@@ -6,6 +6,7 @@ export interface ParsedTransaction {
   currency: string;
   account?: string;
   comment?: string;
+  balance?: string;
 }
 
 export interface ParseError {
@@ -187,6 +188,10 @@ const autoMapColumns = (headers: string[]): Record<string, string> => {
     else if (/^currency/.test(normalizedHeader)) {
       mapping.currency = header;
     }
+    // Balance mapping
+    else if (/^balance/.test(normalizedHeader)) {
+      mapping.balance = header;
+    }
   });
   
   return mapping;
@@ -257,7 +262,7 @@ export const parseCSV = (content: string): ParseResult => {
         description: headers[2]
       };
       if (firstRowFields.length >= 4) {
-        autoMappedColumns.category = headers[3];
+        autoMappedColumns.balance = headers[3];
       }
     }
   }
@@ -293,17 +298,19 @@ export const parseCSV = (content: string): ParseResult => {
       continue;
     }
 
-    let date: string, description: string, amount: string, currency: string;
+    let date: string, description: string, amount: string, currency: string, balance: string | undefined;
 
     // Use auto-mapped columns if available
     if (hasHeaders && Object.keys(autoMappedColumns).length >= 3) {
       const dateIndex = firstRowFields.indexOf(autoMappedColumns.date);
       const amountIndex = firstRowFields.indexOf(autoMappedColumns.amount);
       const descriptionIndex = firstRowFields.indexOf(autoMappedColumns.description);
+      const balanceIndex = autoMappedColumns.balance ? firstRowFields.indexOf(autoMappedColumns.balance) : -1;
       
       date = dateIndex >= 0 ? fields[dateIndex] : fields[0];
       amount = amountIndex >= 0 ? fields[amountIndex] : fields[1];
       description = descriptionIndex >= 0 ? fields[descriptionIndex] : fields[2];
+      balance = balanceIndex >= 0 ? fields[balanceIndex] : (fields.length >= 4 ? fields[3] : undefined);
       currency = detectedCurrency;
     } else {
       // Fall back to format detection
@@ -311,11 +318,12 @@ export const parseCSV = (content: string): ParseResult => {
       
       if (format === 'format3' || format === 'format2') {
         // Your format: Date, Amount, Description, Balance
-        [date, amount, description] = fields;
+        [date, amount, description, balance] = fields;
         currency = detectedCurrency;
       } else if (format === 'format1') {
         // Original format: Date, Description, Amount, Currency
         [date, description, amount, currency = detectedCurrency] = fields;
+        balance = undefined;
       } else {
         errors.push({
           row: i + 1,
@@ -367,7 +375,8 @@ export const parseCSV = (content: string): ParseResult => {
         date: parsedDate,
         currency: currency?.trim() || detectedCurrency,
         account: undefined,
-        comment: undefined
+        comment: undefined,
+        balance: balance?.trim()
       });
     }
   }
