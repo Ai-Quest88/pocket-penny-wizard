@@ -25,22 +25,22 @@ const parseDate = (dateStr: string): string | null => {
   
   const cleanDate = dateStr.trim().replace(/"/g, '');
   
-  // Try YYYY-MM-DD format first (ISO format)
+  // Try d/m/yyyy or dd/mm/yyyy format first (Australian format)
+  const auMatch = cleanDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (auMatch) {
+    const [, day, month, year] = auMatch;
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    if (!isNaN(date.getTime()) && parseInt(day) <= 31 && parseInt(month) <= 12) {
+      return date.toISOString().split('T')[0];
+    }
+  }
+
+  // Try YYYY-MM-DD format (ISO format)
   const isoMatch = cleanDate.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
   if (isoMatch) {
     const [, year, month, day] = isoMatch;
     const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
     if (!isNaN(date.getTime())) {
-      return date.toISOString().split('T')[0];
-    }
-  }
-
-  // Try DD/MM/YYYY format (European format)
-  const euroMatch = cleanDate.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-  if (euroMatch) {
-    const [, day, month, year] = euroMatch;
-    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-    if (!isNaN(date.getTime()) && parseInt(day) <= 31 && parseInt(month) <= 12) {
       return date.toISOString().split('T')[0];
     }
   }
@@ -61,8 +61,8 @@ const parseDate = (dateStr: string): string | null => {
 const parseAmount = (amountStr: string): number | null => {
   if (!amountStr || amountStr.trim() === '') return null;
   
-  // Remove quotes, commas, and any currency symbols
-  const cleanAmount = amountStr.trim().replace(/[",+]/g, '');
+  // Remove quotes, commas, extra spaces, and any currency symbols
+  const cleanAmount = amountStr.trim().replace(/[",+\s]/g, '');
   const amount = parseFloat(cleanAmount);
   
   return isNaN(amount) ? null : amount;
@@ -83,6 +83,9 @@ const detectCurrency = (content: string): string | null => {
     { pattern: /\bAUD\b/i, currency: 'AUD' },
     { pattern: /\bCAD\b/i, currency: 'CAD' },
     { pattern: /\bJPY\b/i, currency: 'JPY' },
+    // Look for Australian indicators
+    { pattern: /\bAUS\b/i, currency: 'AUD' },
+    { pattern: /\bAUSTRALIA\b/i, currency: 'AUD' },
   ];
 
   for (const line of lines) {
@@ -118,10 +121,23 @@ const parseCsvLine = (line: string): string[] => {
   return result;
 };
 
-const detectCsvFormat = (fields: string[]): 'format1' | 'format2' | 'unknown' => {
+const detectCsvFormat = (fields: string[], content: string): 'format1' | 'format2' | 'format3' | 'unknown' => {
+  // Check for your specific format: Date,Amount,Description,Balance
   if (fields.length >= 4) {
-    const secondField = fields[1].trim().replace(/"/g, '');
-    if (/^[+-]?\d+\.?\d*$/.test(secondField)) {
+    const firstField = fields[0].trim();
+    const secondField = fields[1].trim();
+    
+    // Check if first field looks like a date (d/m/yyyy)
+    const datePattern = /^\d{1,2}\/\d{1,2}\/\d{4}$/;
+    // Check if second field looks like an amount (number with optional spaces)
+    const amountPattern = /^\s*\d+\.?\d*\s*$/;
+    
+    if (datePattern.test(firstField) && amountPattern.test(secondField)) {
+      return 'format3'; // Your format: Date, Amount, Description, Balance
+    }
+    
+    // Fallback to existing format detection
+    if (/^[+-]?\d+\.?\d*$/.test(secondField.replace(/\s/g, ''))) {
       return 'format2'; // Date, Amount, Description, Balance
     }
   }
@@ -148,8 +164,8 @@ export const parseCSV = (content: string): ParseResult => {
     return { transactions, errors };
   }
 
-  // Detect currency from CSV content
-  const detectedCurrency = detectCurrency(content);
+  // Detect currency from CSV content - default to AUD for Australian data
+  const detectedCurrency = detectCurrency(content) || 'AUD';
 
   const startIndex = 0;
   
@@ -164,21 +180,21 @@ export const parseCSV = (content: string): ParseResult => {
         row: i + 1,
         field: 'line',
         value: line,
-        message: 'Insufficient columns. Expected at least: Date, Amount/Description, Description/Amount'
+        message: 'Insufficient columns. Expected at least: Date, Amount, Description'
       });
       continue;
     }
 
-    const format = detectCsvFormat(fields);
+    const format = detectCsvFormat(fields, content);
     let date: string, description: string, amount: string, currency: string;
 
-    if (format === 'format2') {
-      // User's format: Date, Amount, Description, Balance
+    if (format === 'format3' || format === 'format2') {
+      // Your format: Date, Amount, Description, Balance
       [date, amount, description] = fields;
-      currency = detectedCurrency || 'AUD'; // Default to AUD for Australian bank format
+      currency = detectedCurrency;
     } else if (format === 'format1') {
       // Original format: Date, Description, Amount, Currency
-      [date, description, amount, currency = detectedCurrency || 'USD'] = fields;
+      [date, description, amount, currency = detectedCurrency] = fields;
     } else {
       errors.push({
         row: i + 1,
@@ -206,7 +222,7 @@ export const parseCSV = (content: string): ParseResult => {
       errors.push({
         row: i + 1,
         field: 'description',
-        value: description,
+        value: description || '',
         message: 'Description is required'
       });
     }
@@ -227,7 +243,7 @@ export const parseCSV = (content: string): ParseResult => {
         amount: parsedAmount.toString(),
         category: 'other',
         date: parsedDate,
-        currency: currency?.trim() || detectedCurrency || 'USD'
+        currency: currency?.trim() || detectedCurrency
       });
     }
   }
