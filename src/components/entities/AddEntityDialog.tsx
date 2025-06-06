@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -144,6 +145,24 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
               value={formData.countryOfResidence}
               onChange={(e) => setFormData({ ...formData, countryOfResidence: e.target.value })}
               placeholder="Country"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Tax Identifier</Label>
+            <Input
+              value={formData.taxIdentifier}
+              onChange={(e) => setFormData({ ...formData, taxIdentifier: e.target.value })}
+              placeholder={entityType === "individual" ? "Tax File Number" : "ABN/ACN"}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Description</Label>
+            <Input
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Optional description"
             />
           </div>
 
