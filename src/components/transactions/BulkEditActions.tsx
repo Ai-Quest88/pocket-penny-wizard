@@ -134,8 +134,14 @@ export const BulkEditActions = ({
 
   if (selectedTransactions.length === 0) return null;
 
-  // Filter out any empty categories
-  const validCategories = categories.filter(cat => cat && cat.trim() !== "");
+  // Comprehensive filtering to prevent empty categories
+  const validCategories = categories.filter(cat => cat && typeof cat === 'string' && cat.trim() !== "");
+  
+  // Debug logging
+  console.log("BulkEditActions validCategories:", validCategories);
+  if (validCategories.length !== categories.length) {
+    console.warn("Filtered out empty categories:", categories.filter(cat => !cat || cat.trim() === ""));
+  }
 
   return (
     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
@@ -161,11 +167,18 @@ export const BulkEditActions = ({
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
-                {validCategories.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
-                  </SelectItem>
-                ))}
+                {validCategories.map((category) => {
+                  // Extra safety check
+                  if (!category || category.trim() === "") {
+                    console.error("Attempting to render empty category in BulkEditActions:", category);
+                    return null;
+                  }
+                  return (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
             

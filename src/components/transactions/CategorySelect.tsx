@@ -23,14 +23,25 @@ export const CategorySelect = <T extends FieldValues>({
 }: CategorySelectProps<T>) => {
   const [addCategoryOpen, setAddCategoryOpen] = useState(false);
 
-  // Filter out any buckets with empty names and any categories that are empty strings
+  // Comprehensive filtering to prevent empty values
   const validBuckets = availableBuckets
-    .filter(bucket => bucket.name && bucket.name.trim() !== "")
+    .filter(bucket => bucket && bucket.name && typeof bucket.name === 'string' && bucket.name.trim() !== "")
     .map(bucket => ({
       ...bucket,
-      categories: bucket.categories.filter(category => category && category.trim() !== "")
+      categories: bucket.categories
+        .filter(category => category && typeof category === 'string' && category.trim() !== "")
     }))
     .filter(bucket => bucket.categories.length > 0);
+
+  // Debug logging
+  console.log("CategorySelect validBuckets:", validBuckets);
+  validBuckets.forEach(bucket => {
+    bucket.categories.forEach(category => {
+      if (!category || category.trim() === "") {
+        console.error("Found empty category in bucket:", bucket.name, "category:", category);
+      }
+    });
+  });
 
   return (
     <>
@@ -69,15 +80,22 @@ export const CategorySelect = <T extends FieldValues>({
                     <div className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-600">
                       {bucket.name}
                     </div>
-                    {bucket.categories.map((category) => (
-                      <SelectItem 
-                        key={category} 
-                        value={category} 
-                        className="pl-6 hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700"
-                      >
-                        {category}
-                      </SelectItem>
-                    ))}
+                    {bucket.categories.map((category) => {
+                      // Extra safety check before rendering
+                      if (!category || category.trim() === "") {
+                        console.error("Attempting to render empty category:", category);
+                        return null;
+                      }
+                      return (
+                        <SelectItem 
+                          key={category} 
+                          value={category} 
+                          className="pl-6 hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700"
+                        >
+                          {category}
+                        </SelectItem>
+                      );
+                    })}
                   </div>
                 ))}
               </SelectContent>

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -63,9 +62,21 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
     }
   }
 
-  // Filter out any empty categories and currencies
-  const validCategories = categories.filter(cat => cat && cat.trim() !== "");
-  const validCurrencies = currencies.filter(curr => curr && curr.code && curr.code.trim() !== "");
+  // Comprehensive filtering to prevent empty values
+  const validCategories = categories.filter(cat => cat && typeof cat === 'string' && cat.trim() !== "");
+  const validCurrencies = currencies.filter(curr => 
+    curr && 
+    curr.code && 
+    typeof curr.code === 'string' && 
+    curr.code.trim() !== "" &&
+    curr.name &&
+    typeof curr.name === 'string' &&
+    curr.name.trim() !== ""
+  );
+
+  // Debug logging
+  console.log("ManualTransactionForm validCategories:", validCategories);
+  console.log("ManualTransactionForm validCurrencies:", validCurrencies);
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
@@ -140,11 +151,18 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {validCategories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
-                  ))}
+                  {validCategories.map((cat) => {
+                    // Extra safety check
+                    if (!cat || cat.trim() === "") {
+                      console.error("Attempting to render empty category in ManualTransactionForm:", cat);
+                      return null;
+                    }
+                    return (
+                      <SelectItem key={cat} value={cat}>
+                        {cat}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
@@ -156,11 +174,18 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {validCurrencies.map((curr) => (
-                    <SelectItem key={curr.code} value={curr.code}>
-                      {curr.code} - {curr.name}
-                    </SelectItem>
-                  ))}
+                  {validCurrencies.map((curr) => {
+                    // Extra safety check
+                    if (!curr.code || curr.code.trim() === "") {
+                      console.error("Attempting to render empty currency in ManualTransactionForm:", curr);
+                      return null;
+                    }
+                    return (
+                      <SelectItem key={curr.code} value={curr.code}>
+                        {curr.code} - {curr.name}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>

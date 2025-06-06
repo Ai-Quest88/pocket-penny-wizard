@@ -44,27 +44,32 @@ export interface CategoryBucket {
   categories: string[];
 }
 
+// Helper function to filter out empty strings
+const filterEmptyStrings = (arr: string[]): string[] => {
+  return arr.filter(item => item && typeof item === 'string' && item.trim() !== '');
+};
+
 export const categoryBuckets: CategoryBucket[] = [
   {
     name: "Living Expenses",
-    categories: ["Food", "Transport", "Bills", "Shopping"].filter(cat => cat && cat.trim() !== "")
+    categories: filterEmptyStrings(["Food", "Transport", "Bills", "Shopping"])
   },
   {
-    name: "Lifestyle",
-    categories: ["Entertainment", "Health", "Travel", "Education"].filter(cat => cat && cat.trim() !== "")
+    name: "Lifestyle", 
+    categories: filterEmptyStrings(["Entertainment", "Health", "Travel", "Education"])
   },
   {
     name: "Financial",
-    categories: ["Income", "Banking", "Investment", "Insurance"].filter(cat => cat && cat.trim() !== "")
+    categories: filterEmptyStrings(["Income", "Banking", "Investment", "Insurance"])
   },
   {
     name: "Other",
-    categories: ["Other", "Gifts", "Charity"].filter(cat => cat && cat.trim() !== "")
+    categories: filterEmptyStrings(["Other", "Gifts", "Charity"])
   }
 ].filter(bucket => bucket.name && bucket.name.trim() !== "" && bucket.categories.length > 0);
 
-// Flatten all categories for backward compatibility
-export const categories = categoryBuckets.flatMap(bucket => bucket.categories);
+// Flatten all categories for backward compatibility - with additional filtering
+export const categories = filterEmptyStrings(categoryBuckets.flatMap(bucket => bucket.categories));
 
 export const currencies = [
   { code: "USD", symbol: "$", name: "US Dollar" },
@@ -73,4 +78,4 @@ export const currencies = [
   { code: "JPY", symbol: "¥", name: "Japanese Yen" },
   { code: "AUD", symbol: "$", name: "Australian Dollar" },
   { code: "CAD", symbol: "$", name: "Canadian Dollar" },
-];
+].filter(curr => curr.code && curr.code.trim() !== "");
