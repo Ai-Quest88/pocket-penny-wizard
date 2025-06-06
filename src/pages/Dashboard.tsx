@@ -70,7 +70,7 @@ const Dashboard = () => {
           <Tabs defaultValue="transactions" className="space-y-4">
             <TabsList>
               <TabsTrigger value="transactions">Transactions</TabsTrigger>
-              <TabsTrigger value="income-expense">Income & Expense</TabsTrigger>
+              <TabsTrigger value="budget">Budget</TabsTrigger>
               <TabsTrigger value="spending-trend">Spending Trend</TabsTrigger>
               <TabsTrigger value="categories">Categories</TabsTrigger>
               <TabsTrigger value="historical">Historical Net Worth</TabsTrigger>
@@ -87,7 +87,7 @@ const Dashboard = () => {
               </div>
             </TabsContent>
             
-            <TabsContent value="income-expense" className="mt-4">
+            <TabsContent value="budget" className="mt-4">
               <IncomeExpenseAnalysis entityId={selectedEntityType === "all" ? undefined : selectedEntityType} />
             </TabsContent>
             
