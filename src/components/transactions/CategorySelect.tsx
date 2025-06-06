@@ -23,6 +23,15 @@ export const CategorySelect = <T extends FieldValues>({
 }: CategorySelectProps<T>) => {
   const [addCategoryOpen, setAddCategoryOpen] = useState(false);
 
+  // Filter out any buckets with empty names and any categories that are empty strings
+  const validBuckets = availableBuckets
+    .filter(bucket => bucket.name && bucket.name.trim() !== "")
+    .map(bucket => ({
+      ...bucket,
+      categories: bucket.categories.filter(category => category && category.trim() !== "")
+    }))
+    .filter(bucket => bucket.categories.length > 0);
+
   return (
     <>
       <FormField
@@ -54,24 +63,21 @@ export const CategorySelect = <T extends FieldValues>({
                 position="popper"
                 sideOffset={4}
               >
-                {availableBuckets.map((bucket, bucketIndex) => (
+                {validBuckets.map((bucket, bucketIndex) => (
                   <div key={bucket.name}>
                     {bucketIndex > 0 && <div className="h-px bg-gray-200 dark:bg-gray-600 my-1 mx-2" />}
                     <div className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-600">
                       {bucket.name}
                     </div>
-                    {bucket.categories
-                      .filter(category => category && category.trim() !== "") // Filter out empty strings
-                      .map((category) => (
-                        <SelectItem 
-                          key={category} 
-                          value={category} 
-                          className="pl-6 hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700"
-                        >
-                          {category}
-                        </SelectItem>
-                      ))
-                    }
+                    {bucket.categories.map((category) => (
+                      <SelectItem 
+                        key={category} 
+                        value={category} 
+                        className="pl-6 hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700"
+                      >
+                        {category}
+                      </SelectItem>
+                    ))}
                   </div>
                 ))}
               </SelectContent>
