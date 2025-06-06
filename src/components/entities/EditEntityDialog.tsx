@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,7 +58,7 @@ export function EditEntityDialog({ entity, onEditEntity }: EditEntityDialogProps
       type: formData.type,
       description: formData.description,
       countryOfResidence: formData.countryOfResidence,
-      taxIdentifier: formData.type === "individual" ? formData.taxIdentifier : undefined,
+      taxIdentifier: formData.taxIdentifier,
     };
 
     if (formData.type === "individual") {
@@ -74,7 +75,6 @@ export function EditEntityDialog({ entity, onEditEntity }: EditEntityDialogProps
         type: formData.type as "company" | "trust" | "super_fund",
         registrationNumber: formData.registrationNumber,
         incorporationDate: formData.incorporationDate,
-        taxIdentifier: undefined,
       };
       onEditEntity(entity.id, businessEntity);
     }
@@ -137,25 +137,14 @@ export function EditEntityDialog({ entity, onEditEntity }: EditEntityDialogProps
             />
           </div>
 
-          {entityType === "individual" ? (
-            <div className="space-y-2">
-              <Label>TFN</Label>
-              <Input
-                value={formData.taxIdentifier}
-                onChange={(e) => setFormData({ ...formData, taxIdentifier: e.target.value })}
-                placeholder="Tax File Number"
-              />
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <Label>ABN/ACN</Label>
-              <Input
-                value={formData.registrationNumber}
-                onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
-                placeholder="Australian Business Number / Australian Company Number"
-              />
-            </div>
-          )}
+          <div className="space-y-2">
+            <Label>Tax Identification Number</Label>
+            <Input
+              value={formData.taxIdentifier}
+              onChange={(e) => setFormData({ ...formData, taxIdentifier: e.target.value })}
+              placeholder={entityType === "individual" ? "Tax File Number (TFN)" : "Australian Business Number (ABN) / Australian Company Number (ACN)"}
+            />
+          </div>
 
           <div className="space-y-2">
             <Label>Description</Label>
