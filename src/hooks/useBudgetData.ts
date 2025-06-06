@@ -1,12 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-
-interface BudgetCategory {
-  category: string;
-  spent: number;
-  total: number;
-}
+import { BudgetCategory } from '@/types/budget';
 
 export const useBudgetData = (entityId?: string, timeframe: string = '3m') => {
   const [budgetCategories, setBudgetCategories] = useState<BudgetCategory[]>([]);
@@ -40,18 +35,37 @@ export const useBudgetData = (entityId?: string, timeframe: string = '3m') => {
         console.log('Fetching transactions for budget from:', startDate.toISOString().split('T')[0]);
 
         // Fetch transactions from the specified date range
-        const { data: transactions, error } = await supabase
+        const { data: transactions, error: transactionsError } = await supabase
           .from('transactions')
           .select('*')
           .gte('date', startDate.toISOString().split('T')[0])
           .lte('date', now.toISOString().split('T')[0]);
 
-        if (error) {
-          console.error('Error fetching transactions for budget:', error);
+        if (transactionsError) {
+          console.error('Error fetching transactions for budget:', transactionsError);
           return;
         }
 
         console.log('Fetched transactions for budget:', transactions);
+
+        // Fetch active budgets
+        let budgetsQuery = supabase
+          .from('budgets')
+          .select('*')
+          .eq('is_active', true);
+
+        if (entityId) {
+          budgetsQuery = budgetsQuery.eq('entity_id', entityId);
+        }
+
+        const { data: budgets, error: budgetsError } = await budgetsQuery;
+
+        if (budgetsError) {
+          console.error('Error fetching budgets:', budgetsError);
+          return;
+        }
+
+        console.log('Fetched budgets:', budgets);
 
         // Group transactions by category and calculate spent amounts
         const categorySpending: Record<string, number> = {};
@@ -69,22 +83,47 @@ export const useBudgetData = (entityId?: string, timeframe: string = '3m') => {
 
         console.log('Category spending:', categorySpending);
 
-        // Define budget limits for each category (you can make this configurable later)
-        const budgetLimits: Record<string, number> = {
-          'Food': 1000,
-          'Transport': 600,
-          'Shopping': 800,
-          'Bills': 1500,
-          'Entertainment': 500,
-          'Other': 400,
-        };
+        // Create budget categories with actual budget data
+        const categories: BudgetCategory[] = [];
 
-        // Create budget categories with actual spending data
-        const categories = Object.keys(budgetLimits).map(category => ({
-          category,
-          spent: categorySpending[category] || 0,
-          total: budgetLimits[category],
-        }));
+        // Add categories from active budgets
+        budgets?.forEach(budget => {
+          // Calculate budget amount based on period and timeframe
+          let adjustedBudgetAmount = budget.amount;
+          
+          // Adjust budget amount based on period
+          if (budget.period === 'yearly') {
+            if (timeframe === '1m') adjustedBudgetAmount = budget.amount / 12;
+            else if (timeframe === '3m') adjustedBudgetAmount = budget.amount / 4;
+            else if (timeframe === '6m') adjustedBudgetAmount = budget.amount / 2;
+          } else if (budget.period === 'quarterly') {
+            if (timeframe === '1m') adjustedBudgetAmount = budget.amount / 3;
+            else if (timeframe === '6m') adjustedBudgetAmount = budget.amount * 2;
+            else if (timeframe === '12m') adjustedBudgetAmount = budget.amount * 4;
+          } else { // monthly
+            if (timeframe === '3m') adjustedBudgetAmount = budget.amount * 3;
+            else if (timeframe === '6m') adjustedBudgetAmount = budget.amount * 6;
+            else if (timeframe === '12m') adjustedBudgetAmount = budget.amount * 12;
+          }
+
+          categories.push({
+            category: budget.category,
+            spent: categorySpending[budget.category] || 0,
+            total: adjustedBudgetAmount,
+            budgetId: budget.id,
+          });
+        });
+
+        // Add categories with spending but no budget (to show unbudgeted spending)
+        Object.keys(categorySpending).forEach(category => {
+          if (!categories.find(cat => cat.category === category)) {
+            categories.push({
+              category,
+              spent: categorySpending[category],
+              total: 0, // No budget set
+            });
+          }
+        });
 
         setBudgetCategories(categories);
       } catch (error) {
