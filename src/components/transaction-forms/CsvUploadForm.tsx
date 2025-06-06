@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -114,6 +115,12 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
     URL.revokeObjectURL(url)
   }
 
+  // Filter headers to ensure no empty values
+  const validHeaders = headers.filter(header => header && header.trim() !== '')
+  
+  // Filter accounts to ensure no empty values
+  const validAccounts = accounts.filter(account => account && account.name && account.name.trim() !== '')
+
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
@@ -157,7 +164,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
           />
         </div>
 
-        {file && headers.length > 0 && (
+        {file && validHeaders.length > 0 && (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Map CSV Columns</h3>
             <p className="text-sm text-muted-foreground">
@@ -172,7 +179,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                     <SelectValue placeholder="Select date column" />
                   </SelectTrigger>
                   <SelectContent>
-                    {headers.map(header => (
+                    {validHeaders.map(header => (
                       <SelectItem key={header} value={header}>{header}</SelectItem>
                     ))}
                   </SelectContent>
@@ -186,7 +193,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                     <SelectValue placeholder="Select amount column" />
                   </SelectTrigger>
                   <SelectContent>
-                    {headers.map(header => (
+                    {validHeaders.map(header => (
                       <SelectItem key={header} value={header}>{header}</SelectItem>
                     ))}
                   </SelectContent>
@@ -200,7 +207,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                     <SelectValue placeholder="Select description column" />
                   </SelectTrigger>
                   <SelectContent>
-                    {headers.map(header => (
+                    {validHeaders.map(header => (
                       <SelectItem key={header} value={header}>{header}</SelectItem>
                     ))}
                   </SelectContent>
@@ -214,8 +221,8 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                     <SelectValue placeholder="Select category column (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
-                    {headers.map(header => (
+                    <SelectItem value="none">None</SelectItem>
+                    {validHeaders.map(header => (
                       <SelectItem key={header} value={header}>{header}</SelectItem>
                     ))}
                   </SelectContent>
@@ -229,8 +236,8 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                     <SelectValue placeholder="Select account column (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
-                    {headers.map(header => (
+                    <SelectItem value="none">None</SelectItem>
+                    {validHeaders.map(header => (
                       <SelectItem key={header} value={header}>{header}</SelectItem>
                     ))}
                   </SelectContent>
@@ -244,8 +251,8 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                     <SelectValue placeholder="Select currency column (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
-                    {headers.map(header => (
+                    <SelectItem value="none">None</SelectItem>
+                    {validHeaders.map(header => (
                       <SelectItem key={header} value={header}>{header}</SelectItem>
                     ))}
                   </SelectContent>
@@ -278,7 +285,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                     <SelectValue placeholder="Select default account" />
                   </SelectTrigger>
                   <SelectContent>
-                    {accounts.map(account => (
+                    {validAccounts.map(account => (
                       <SelectItem key={account.id} value={account.name}>
                         {account.name} ({account.type})
                       </SelectItem>
@@ -297,7 +304,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
               <table className="w-full border-collapse border border-gray-300">
                 <thead>
                   <tr className="bg-gray-50">
-                    {headers.map(header => (
+                    {validHeaders.map(header => (
                       <th key={header} className="border border-gray-300 px-3 py-2 text-left text-sm font-medium">
                         {header}
                       </th>
@@ -307,7 +314,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                 <tbody>
                   {preview.map((row, index) => (
                     <tr key={index}>
-                      {headers.map(header => (
+                      {validHeaders.map(header => (
                         <td key={header} className="border border-gray-300 px-3 py-2 text-sm">
                           {row[header]}
                         </td>
@@ -320,7 +327,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
           </div>
         )}
 
-        {file && headers.length > 0 && (
+        {file && validHeaders.length > 0 && (
           <div className="flex justify-end space-x-4">
             <Button variant="outline" onClick={() => {
               setFile(null)
