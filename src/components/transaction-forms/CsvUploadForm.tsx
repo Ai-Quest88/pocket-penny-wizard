@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { AlertCircle, Upload, Download } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { parseCsvFile } from "@/utils/csvParser"
+import { parseCsvFile, parseExcelFile } from "@/utils/csvParser"
 import { categories } from "@/types/transaction-forms"
 import { useAccounts } from "@/hooks/useAccounts"
 import type { Transaction, CsvUploadProps } from "@/types/transaction-forms"
@@ -29,8 +28,13 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
     const uploadedFile = event.target.files?.[0]
     if (!uploadedFile) return
 
-    if (!uploadedFile.name.endsWith('.csv')) {
-      setErrors(['Please upload a CSV file'])
+    const fileExtension = uploadedFile.name.toLowerCase()
+    const isValidFile = fileExtension.endsWith('.csv') || 
+                       fileExtension.endsWith('.xlsx') || 
+                       fileExtension.endsWith('.xls')
+
+    if (!isValidFile) {
+      setErrors(['Please upload a CSV (.csv), Excel (.xlsx), or Excel 97-2003 (.xls) file'])
       return
     }
 
@@ -38,16 +42,32 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
     setErrors([])
 
     try {
-      const text = await uploadedFile.text()
-      const lines = text.split('\n').filter(line => line.trim())
+      let lines: string[] = []
+      
+      if (fileExtension.endsWith('.csv')) {
+        // Handle CSV files
+        const text = await uploadedFile.text()
+        lines = text.split('\n').filter(line => line.trim())
+      } else {
+        // Handle Excel files
+        const arrayBuffer = await uploadedFile.arrayBuffer()
+        const XLSX = await import('xlsx')
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' })
+        const firstSheetName = workbook.SheetNames[0]
+        const worksheet = workbook.Sheets[firstSheetName]
+        
+        // Convert to CSV format for consistent processing
+        const csvString = XLSX.utils.sheet_to_csv(worksheet)
+        lines = csvString.split('\n').filter(line => line.trim())
+      }
       
       if (lines.length < 2) {
-        setErrors(['CSV file must contain at least a header row and one data row'])
+        setErrors(['File must contain at least a header row and one data row'])
         return
       }
 
       const csvHeaders = lines[0].split(',').map(h => h.trim().replace(/"/g, ''))
-      console.log("Raw CSV headers:", csvHeaders)
+      console.log("Raw headers:", csvHeaders)
       
       // Comprehensive filtering for headers
       const filteredHeaders = csvHeaders.filter(h => {
@@ -73,7 +93,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
       
       setPreview(previewData)
     } catch (error) {
-      setErrors(['Error reading CSV file'])
+      setErrors(['Error reading file. Please ensure it is a valid CSV or Excel file.'])
     }
   }, [])
 
@@ -94,10 +114,17 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
     setErrors([])
 
     try {
-      const transactions = await parseCsvFile(file, mapping, defaultCurrency, defaultAccount)
+      let transactions
+      const fileExtension = file.name.toLowerCase()
+      
+      if (fileExtension.endsWith('.csv')) {
+        transactions = await parseCsvFile(file, mapping, defaultCurrency, defaultAccount)
+      } else {
+        transactions = await parseExcelFile(file, mapping, defaultCurrency, defaultAccount)
+      }
       
       if (transactions.length === 0) {
-        setErrors(['No valid transactions found in the CSV file'])
+        setErrors(['No valid transactions found in the file'])
         return
       }
 
@@ -110,7 +137,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
       setPreview([])
       
     } catch (error) {
-      setErrors([error instanceof Error ? error.message : 'Error processing CSV file'])
+      setErrors([error instanceof Error ? error.message : 'Error processing file'])
     } finally {
       setIsProcessing(false)
     }
@@ -161,18 +188,18 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
   })
 
   // Debug logging before render
-  console.log("CsvUploadForm render - validHeaders:", validHeaders)
-  console.log("CsvUploadForm render - validAccounts:", validAccounts)
+  console.log("FileUploadForm render - validHeaders:", validHeaders)
+  console.log("FileUploadForm render - validAccounts:", validAccounts)
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Upload className="h-5 w-5" />
-          Upload CSV Transactions
+          Upload Transactions
         </CardTitle>
         <CardDescription>
-          Upload a CSV file to import multiple transactions at once
+          Upload a CSV or Excel file to import multiple transactions at once
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -191,27 +218,30 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
 
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <Label htmlFor="csv-file">Select CSV File</Label>
+            <Label htmlFor="file-upload">Select File</Label>
             <Button variant="outline" size="sm" onClick={downloadTemplate}>
               <Download className="h-4 w-4 mr-2" />
-              Download Template
+              Download CSV Template
             </Button>
           </div>
           
           <Input
-            id="csv-file"
+            id="file-upload"
             type="file"
-            accept=".csv"
+            accept=".csv,.xlsx,.xls"
             onChange={handleFileUpload}
             disabled={isProcessing}
           />
+          <p className="text-sm text-muted-foreground">
+            Supported formats: CSV (.csv), Excel (.xlsx), Excel 97-2003 (.xls)
+          </p>
         </div>
 
         {file && validHeaders.length > 0 && (
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Map CSV Columns</h3>
+            <h3 className="text-lg font-semibold">Map File Columns</h3>
             <p className="text-sm text-muted-foreground">
-              Map your CSV columns to transaction fields. Required fields are marked with *
+              Map your file columns to transaction fields. Required fields are marked with *
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

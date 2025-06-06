@@ -158,12 +158,12 @@ export const parseCSV = (content: string): ParseResult => {
       row: 0,
       field: 'file',
       value: 'empty',
-      message: 'CSV file appears to be empty'
+      message: 'File appears to be empty'
     });
     return { transactions, errors };
   }
 
-  // Detect currency from CSV content - default to AUD for Australian data
+  // Detect currency from content - default to AUD for Australian data
   const detectedCurrency = detectCurrency(content) || 'AUD';
 
   const startIndex = 0;
@@ -199,7 +199,7 @@ export const parseCSV = (content: string): ParseResult => {
         row: i + 1,
         field: 'format',
         value: line,
-        message: 'Unable to detect CSV format'
+        message: 'Unable to detect file format'
       });
       continue;
     }
@@ -267,7 +267,44 @@ export const parseCsvFile = async (
   const result = parseCSV(content);
   
   if (result.errors.length > 0) {
-    throw new Error(`CSV parsing errors: ${result.errors.map(e => e.message).join(', ')}`);
+    throw new Error(`File parsing errors: ${result.errors.map(e => e.message).join(', ')}`);
+  }
+  
+  return result.transactions.map(tx => ({
+    date: tx.date,
+    amount: parseFloat(tx.amount),
+    description: tx.description,
+    category: tx.category,
+    currency: tx.currency || defaultCurrency,
+    account: defaultAccount || 'Default Account'
+  }));
+};
+
+export const parseExcelFile = async (
+  file: File,
+  mapping: Record<string, string>,
+  defaultCurrency: string,
+  defaultAccount: string
+): Promise<Array<{
+  date: string;
+  amount: number;
+  description: string;
+  category: string;
+  currency: string;
+  account: string;
+}>> => {
+  const arrayBuffer = await file.arrayBuffer();
+  const XLSX = await import('xlsx');
+  const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+  const firstSheetName = workbook.SheetNames[0];
+  const worksheet = workbook.Sheets[firstSheetName];
+  
+  // Convert to CSV format and reuse existing CSV parsing logic
+  const csvString = XLSX.utils.sheet_to_csv(worksheet);
+  const result = parseCSV(csvString);
+  
+  if (result.errors.length > 0) {
+    throw new Error(`Excel parsing errors: ${result.errors.map(e => e.message).join(', ')}`);
   }
   
   return result.transactions.map(tx => ({
