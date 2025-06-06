@@ -33,6 +33,8 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
   const accounts = useAccounts();
 
   console.log("CsvUploadForm component rendering");
+  console.log("Available accounts:", accounts);
+  console.log("Selected account:", selectedAccount);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -56,6 +58,9 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
       });
       return;
     }
+
+    console.log("Starting file upload with account:", selectedAccount);
+    console.log("Account validation - is UUID?", /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedAccount));
 
     setIsUploading(true);
     setUploadProgress('Reading file...');
@@ -131,6 +136,20 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
     try {
       setUploadProgress(`Uploading ${transactions.length} transactions...`);
 
+      console.log("Processing transactions with account ID:", selectedAccount);
+      
+      // Validate that selectedAccount is a valid UUID or null
+      let accountId = null;
+      if (selectedAccount) {
+        const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedAccount);
+        if (isValidUUID) {
+          accountId = selectedAccount;
+        } else {
+          console.error("Invalid UUID format for account:", selectedAccount);
+          throw new Error(`Invalid account ID format: ${selectedAccount}`);
+        }
+      }
+
       const transactionsToInsert = transactions.map(transaction => ({
         user_id: session.user.id,
         description: transaction.description,
@@ -138,10 +157,10 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
         category: transaction.category || categorizeTransaction(transaction.description),
         date: transaction.date,
         currency: currency,
-        yodlee_account_id: selectedAccount || null
+        yodlee_account_id: accountId
       }));
 
-      console.log('Inserting transactions:', transactionsToInsert);
+      console.log('Inserting transactions with validated account ID:', transactionsToInsert);
 
       const { error } = await supabase
         .from('transactions')
@@ -177,7 +196,7 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
           category: suggestedCategory,
           date: firstTransaction.date,
           currency: currency,
-          account_id: selectedAccount || "",
+          account_id: accountId || "",
         });
       }
 
@@ -185,7 +204,7 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
       console.error('Error processing transactions:', error);
       toast({
         title: "Upload Failed",
-        description: "Failed to save transactions. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to save transactions. Please try again.",
         variant: "destructive",
       });
     } finally {
