@@ -55,15 +55,18 @@ export const AddCategoryDialog = ({ open, onOpenChange, onAddCategory }: AddCate
                 position="popper"
                 sideOffset={4}
               >
-                {categoryBuckets.map((bucket) => (
-                  <SelectItem 
-                    key={bucket.name} 
-                    value={bucket.name}
-                    className="hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700 text-gray-900 dark:text-gray-100"
-                  >
-                    {bucket.name}
-                  </SelectItem>
-                ))}
+                {categoryBuckets
+                  .filter(bucket => bucket.name && bucket.name.trim() !== "") // Filter out empty bucket names
+                  .map((bucket) => (
+                    <SelectItem 
+                      key={bucket.name} 
+                      value={bucket.name}
+                      className="hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    >
+                      {bucket.name}
+                    </SelectItem>
+                  ))
+                }
               </SelectContent>
             </Select>
           </div>
