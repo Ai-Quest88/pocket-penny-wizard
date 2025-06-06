@@ -47,21 +47,21 @@ export interface CategoryBucket {
 export const categoryBuckets: CategoryBucket[] = [
   {
     name: "Living Expenses",
-    categories: ["Food", "Transport", "Bills", "Shopping"]
+    categories: ["Food", "Transport", "Bills", "Shopping"].filter(cat => cat && cat.trim() !== "")
   },
   {
     name: "Lifestyle",
-    categories: ["Entertainment", "Health", "Travel", "Education"]
+    categories: ["Entertainment", "Health", "Travel", "Education"].filter(cat => cat && cat.trim() !== "")
   },
   {
     name: "Financial",
-    categories: ["Income", "Banking", "Investment", "Insurance"]
+    categories: ["Income", "Banking", "Investment", "Insurance"].filter(cat => cat && cat.trim() !== "")
   },
   {
     name: "Other",
-    categories: ["Other", "Gifts", "Charity"]
+    categories: ["Other", "Gifts", "Charity"].filter(cat => cat && cat.trim() !== "")
   }
-];
+].filter(bucket => bucket.name && bucket.name.trim() !== "" && bucket.categories.length > 0);
 
 // Flatten all categories for backward compatibility
 export const categories = categoryBuckets.flatMap(bucket => bucket.categories);
