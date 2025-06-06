@@ -17,6 +17,7 @@ import { Trash2, Edit, X } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { categories } from "@/types/transaction-forms";
 
 interface Transaction {
   id: string;
@@ -32,17 +33,6 @@ interface BulkEditActionsProps {
   onClearSelection: () => void;
   onBulkUpdate: () => void;
 }
-
-const CATEGORIES = [
-  "Food & Dining",
-  "Transportation", 
-  "Shopping",
-  "Bills & Utilities",
-  "Healthcare",
-  "Entertainment",
-  "Income",
-  "Other"
-];
 
 export const BulkEditActions = ({ 
   selectedTransactions, 
@@ -144,6 +134,9 @@ export const BulkEditActions = ({
 
   if (selectedTransactions.length === 0) return null;
 
+  // Filter out any empty categories
+  const validCategories = categories.filter(cat => cat && cat.trim() !== "");
+
   return (
     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
       <div className="flex items-center justify-between gap-4">
@@ -168,7 +161,7 @@ export const BulkEditActions = ({
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
-                {CATEGORIES.map((category) => (
+                {validCategories.map((category) => (
                   <SelectItem key={category} value={category}>
                     {category}
                   </SelectItem>

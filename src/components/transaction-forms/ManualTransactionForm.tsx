@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -61,6 +62,10 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
       setIsSubmitting(false)
     }
   }
+
+  // Filter out any empty categories and currencies
+  const validCategories = categories.filter(cat => cat && cat.trim() !== "");
+  const validCurrencies = currencies.filter(curr => curr && curr.code && curr.code.trim() !== "");
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
@@ -135,7 +140,7 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((cat) => (
+                  {validCategories.map((cat) => (
                     <SelectItem key={cat} value={cat}>
                       {cat}
                     </SelectItem>
@@ -151,7 +156,7 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {currencies.map((curr) => (
+                  {validCurrencies.map((curr) => (
                     <SelectItem key={curr.code} value={curr.code}>
                       {curr.code} - {curr.name}
                     </SelectItem>
