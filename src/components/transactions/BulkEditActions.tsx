@@ -33,6 +33,17 @@ interface BulkEditActionsProps {
   onBulkUpdate: () => void;
 }
 
+const CATEGORIES = [
+  "Food & Dining",
+  "Transportation", 
+  "Shopping",
+  "Bills & Utilities",
+  "Healthcare",
+  "Entertainment",
+  "Income",
+  "Other"
+];
+
 export const BulkEditActions = ({ 
   selectedTransactions, 
   onClearSelection, 
@@ -157,14 +168,11 @@ export const BulkEditActions = ({
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Food & Dining">Food & Dining</SelectItem>
-                <SelectItem value="Transportation">Transportation</SelectItem>
-                <SelectItem value="Shopping">Shopping</SelectItem>
-                <SelectItem value="Bills & Utilities">Bills & Utilities</SelectItem>
-                <SelectItem value="Healthcare">Healthcare</SelectItem>
-                <SelectItem value="Entertainment">Entertainment</SelectItem>
-                <SelectItem value="Income">Income</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
+                {CATEGORIES.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             
