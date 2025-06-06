@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { CsvUploadForm } from "@/components/transaction-forms/CsvUploadForm";
 import { ManualTransactionForm } from "@/components/transaction-forms/ManualTransactionForm";
-import { TransactionFormData } from "@/types/transaction-forms";
+import { TransactionFormData, Transaction } from "@/types/transaction-forms";
 
 interface ImportTransactionsProps {
   onSuccess?: () => void;
@@ -11,9 +11,16 @@ interface ImportTransactionsProps {
 export default function ImportTransactions({ onSuccess }: ImportTransactionsProps) {
   const [formValues, setFormValues] = useState<Partial<TransactionFormData>>({});
 
-  const handleTransactionParsed = (transaction: TransactionFormData) => {
-    console.log("Transaction parsed:", transaction);
-    setFormValues(transaction);
+  const handleTransactionAdded = async (transaction: Omit<Transaction, 'id'>) => {
+    console.log("Transaction added:", transaction);
+    onSuccess?.();
+  };
+
+  const handleTransactionsUploaded = async (transactions: Omit<Transaction, 'id'>[]) => {
+    console.log("Transactions uploaded:", transactions);
+    // Here you would typically save the transactions to your database
+    // For now, we'll just log them and call onSuccess
+    onSuccess?.();
   };
 
   console.log("ImportTransactions component rendering");
@@ -30,15 +37,12 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
       <div className="space-y-8">
         <div>
           <h3 className="text-lg font-medium mb-4">Upload CSV File</h3>
-          <CsvUploadForm onTransactionParsed={handleTransactionParsed} />
+          <CsvUploadForm onTransactionsUploaded={handleTransactionsUploaded} />
         </div>
         
         <div className="border-t pt-6">
           <h3 className="text-lg font-medium mb-4">Manual Entry</h3>
-          <ManualTransactionForm 
-            onSuccess={onSuccess} 
-            initialValues={formValues}
-          />
+          <ManualTransactionForm onTransactionAdded={handleTransactionAdded} />
         </div>
       </div>
     </div>
