@@ -5,18 +5,26 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Upload } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Upload, Edit, Check, X } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { parseCSV } from "@/utils/csvParser";
-import { categorizeTransaction } from "@/utils/transactionCategories";
+import { categorizeTransaction, categories } from "@/utils/transactionCategories";
 import { supabase } from "@/integrations/supabase/client";
 import { TransactionFormData, currencies } from "@/types/transaction-forms";
 import { useAccounts } from "@/hooks/useAccounts";
 
 interface CsvUploadFormProps {
   onTransactionParsed?: (transaction: TransactionFormData) => void;
+}
+
+interface ParsedTransaction {
+  description: string;
+  amount: string;
+  date: string;
+  category: string;
 }
 
 export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
@@ -28,7 +36,9 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
   const [selectedCurrency, setSelectedCurrency] = useState<string>('');
   const [selectedAccount, setSelectedAccount] = useState<string>('');
   const [showCurrencySelector, setShowCurrencySelector] = useState(false);
-  const [pendingTransactions, setPendingTransactions] = useState<any[]>([]);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewTransactions, setPreviewTransactions] = useState<ParsedTransaction[]>([]);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const queryClient = useQueryClient();
   const accounts = useAccounts();
 
@@ -49,7 +59,6 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
       return;
     }
 
-    // Check if account is selected
     if (!selectedAccount) {
       toast({
         title: "Account Required",
@@ -97,8 +106,13 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
         return;
       }
 
-      // Store pending transactions
-      setPendingTransactions(transactions);
+      // Add category suggestions to transactions
+      const transactionsWithCategories = transactions.map(transaction => ({
+        ...transaction,
+        category: categorizeTransaction(transaction.description)
+      }));
+
+      setPreviewTransactions(transactionsWithCategories);
 
       // If currency wasn't detected, show currency selector
       if (!csvCurrency) {
@@ -111,8 +125,12 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
         return;
       } else {
         setDetectedCurrency(csvCurrency);
-        await processPendingTransactions(transactions, csvCurrency);
+        setSelectedCurrency(csvCurrency);
       }
+
+      // Show preview
+      setShowPreview(true);
+      setUploadProgress('Review your transactions below and click Upload when ready');
 
     } catch (error) {
       console.error('Error processing CSV file:', error);
@@ -122,14 +140,28 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
         variant: "destructive",
       });
     } finally {
-      if (!showCurrencySelector) {
+      if (!showCurrencySelector && !showPreview) {
         setIsUploading(false);
         setUploadProgress('');
       }
     }
   };
 
-  const processPendingTransactions = async (transactions: any[], currency: string) => {
+  const handleTransactionEdit = (index: number, field: keyof ParsedTransaction, value: string) => {
+    const updatedTransactions = [...previewTransactions];
+    updatedTransactions[index] = {
+      ...updatedTransactions[index],
+      [field]: value
+    };
+    setPreviewTransactions(updatedTransactions);
+  };
+
+  const handleRemoveTransaction = (index: number) => {
+    const updatedTransactions = previewTransactions.filter((_, i) => i !== index);
+    setPreviewTransactions(updatedTransactions);
+  };
+
+  const processPendingTransactions = async (transactions: ParsedTransaction[], currency: string) => {
     if (!session?.user?.id) return;
 
     try {
@@ -141,7 +173,7 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
         user_id: session.user.id,
         description: transaction.description,
         amount: parseFloat(transaction.amount),
-        category: transaction.category || categorizeTransaction(transaction.description),
+        category: transaction.category,
         date: transaction.date,
         currency: currency,
       }));
@@ -166,20 +198,20 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
       });
 
       // Reset form
-      setPendingTransactions([]);
+      setPreviewTransactions([]);
       setShowCurrencySelector(false);
+      setShowPreview(false);
       setSelectedCurrency('');
       setSelectedAccount('');
       setDetectedCurrency('');
       
       if (transactions.length > 0 && onTransactionParsed) {
         const firstTransaction = transactions[0];
-        const suggestedCategory = categorizeTransaction(firstTransaction.description);
         
         onTransactionParsed({
           description: firstTransaction.description,
           amount: firstTransaction.amount,
-          category: suggestedCategory,
+          category: firstTransaction.category,
           date: firstTransaction.date,
           currency: currency,
           account_id: "",
@@ -209,7 +241,33 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
       return;
     }
 
-    await processPendingTransactions(pendingTransactions, selectedCurrency);
+    setShowCurrencySelector(false);
+    setShowPreview(true);
+    setUploadProgress('Review your transactions below and click Upload when ready');
+  };
+
+  const handleFinalUpload = async () => {
+    const currency = selectedCurrency || detectedCurrency;
+    if (!currency) {
+      toast({
+        title: "Currency Required",
+        description: "Please select a currency before uploading.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await processPendingTransactions(previewTransactions, currency);
+  };
+
+  const handleCancelPreview = () => {
+    setShowPreview(false);
+    setShowCurrencySelector(false);
+    setPreviewTransactions([]);
+    setSelectedCurrency('');
+    setDetectedCurrency('');
+    setUploadProgress('');
+    setIsUploading(false);
   };
 
   return (
@@ -259,12 +317,143 @@ export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
             className="w-full"
             disabled={!selectedCurrency}
           >
-            Upload {pendingTransactions.length} Transactions
+            Continue to Preview
           </Button>
         </div>
       )}
 
-      {!showCurrencySelector && (
+      {showPreview && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium">Transaction Preview</h3>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleCancelPreview}>
+                <X className="h-4 w-4 mr-2" />
+                Cancel
+              </Button>
+              <Button onClick={handleFinalUpload} disabled={isUploading}>
+                <Check className="h-4 w-4 mr-2" />
+                Upload {previewTransactions.length} Transactions
+              </Button>
+            </div>
+          </div>
+
+          {selectedCurrency || detectedCurrency ? (
+            <Alert>
+              <AlertDescription>
+                Currency: <strong>{selectedCurrency || detectedCurrency}</strong>
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
+          <div className="max-h-96 overflow-auto border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {previewTransactions.map((transaction, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      {editingIndex === index ? (
+                        <Input
+                          type="date"
+                          value={transaction.date}
+                          onChange={(e) => handleTransactionEdit(index, 'date', e.target.value)}
+                          className="w-full"
+                        />
+                      ) : (
+                        transaction.date
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {editingIndex === index ? (
+                        <Input
+                          value={transaction.description}
+                          onChange={(e) => handleTransactionEdit(index, 'description', e.target.value)}
+                          className="w-full"
+                        />
+                      ) : (
+                        transaction.description
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {editingIndex === index ? (
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={transaction.amount}
+                          onChange={(e) => handleTransactionEdit(index, 'amount', e.target.value)}
+                          className="w-full"
+                        />
+                      ) : (
+                        transaction.amount
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {editingIndex === index ? (
+                        <Select 
+                          value={transaction.category} 
+                          onValueChange={(value) => handleTransactionEdit(index, 'category', value)}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {categories.map((category) => (
+                              <SelectItem key={category} value={category}>
+                                {category}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        transaction.category
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        {editingIndex === index ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setEditingIndex(null)}
+                          >
+                            <Check className="h-3 w-3" />
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setEditingIndex(index)}
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleRemoveTransaction(index)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
+
+      {!showCurrencySelector && !showPreview && (
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="account-select">Select Account *</Label>
