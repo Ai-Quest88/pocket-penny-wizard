@@ -157,34 +157,46 @@ export type Database = {
       }
       liabilities: {
         Row: {
+          account_number: string | null
           amount: number
           category: string
           created_at: string
           entity_id: string
           id: string
+          interest_rate: number | null
+          monthly_payment: number | null
           name: string
+          term_months: number | null
           type: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          account_number?: string | null
           amount: number
           category: string
           created_at?: string
           entity_id: string
           id?: string
+          interest_rate?: number | null
+          monthly_payment?: number | null
           name: string
+          term_months?: number | null
           type: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          account_number?: string | null
           amount?: number
           category?: string
           created_at?: string
           entity_id?: string
           id?: string
+          interest_rate?: number | null
+          monthly_payment?: number | null
           name?: string
+          term_months?: number | null
           type?: string
           updated_at?: string
           user_id?: string

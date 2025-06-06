@@ -33,6 +33,10 @@ const Liabilities = () => {
         type: liability.type,
         category: liability.category,
         history: [], // Historical values would be fetched separately if needed
+        accountNumber: liability.account_number || undefined,
+        interestRate: liability.interest_rate ? Number(liability.interest_rate) : undefined,
+        termMonths: liability.term_months || undefined,
+        monthlyPayment: liability.monthly_payment ? Number(liability.monthly_payment) : undefined,
       })) as Liability[];
     },
   });
@@ -52,6 +56,10 @@ const Liabilities = () => {
           amount: newLiability.amount,
           type: newLiability.type,
           category: newLiability.category,
+          account_number: newLiability.accountNumber || null,
+          interest_rate: newLiability.interestRate || null,
+          term_months: newLiability.termMonths || null,
+          monthly_payment: newLiability.monthlyPayment || null,
         }])
         .select()
         .single();
@@ -87,6 +95,10 @@ const Liabilities = () => {
           amount: updatedLiability.amount,
           type: updatedLiability.type,
           category: updatedLiability.category,
+          account_number: updatedLiability.accountNumber || null,
+          interest_rate: updatedLiability.interestRate || null,
+          term_months: updatedLiability.termMonths || null,
+          monthly_payment: updatedLiability.monthlyPayment || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)

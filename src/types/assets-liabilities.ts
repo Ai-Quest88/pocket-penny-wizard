@@ -66,4 +66,8 @@ export interface Liability {
   type: LiabilityType;
   category: LiabilityCategory;
   history: HistoricalValue[];
+  accountNumber?: string; // For credit cards and loans
+  interestRate?: number; // Interest rate percentage
+  termMonths?: number; // Loan term in months
+  monthlyPayment?: number; // Monthly payment amount
 }
