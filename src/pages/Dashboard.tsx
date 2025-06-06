@@ -5,7 +5,6 @@ import { NetWorthWidget } from "@/components/NetWorthWidget"
 import { IncomeExpenseAnalysis } from "@/components/budgets/IncomeExpenseAnalysis"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card } from "@/components/ui/card"
-import { CategoryComparisonChart } from "@/components/CategoryComparisonChart"
 import { HistoricalValueChart } from "@/components/assets-liabilities/HistoricalValueChart"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState, useEffect } from "react"
@@ -72,7 +71,6 @@ const Dashboard = () => {
               <TabsTrigger value="transactions">Transactions</TabsTrigger>
               <TabsTrigger value="budget">Budget</TabsTrigger>
               <TabsTrigger value="cash-flow">Cash Flow</TabsTrigger>
-              <TabsTrigger value="categories">Categories</TabsTrigger>
               <TabsTrigger value="historical">Historical Net Worth</TabsTrigger>
             </TabsList>
             
@@ -95,13 +93,6 @@ const Dashboard = () => {
               <div className="bg-white rounded-lg">
                 <h3 className="text-lg font-semibold mb-4">Monthly Cash Flow</h3>
                 <CashFlowChart entityId={selectedEntityType === "all" ? undefined : selectedEntityType} />
-              </div>
-            </TabsContent>
-
-            <TabsContent value="categories" className="mt-4">
-              <div className="bg-white rounded-lg">
-                <h3 className="text-lg font-semibold mb-4">Category Breakdown</h3>
-                <CategoryComparisonChart entityId={selectedEntityType === "all" ? undefined : selectedEntityType} />
               </div>
             </TabsContent>
 
