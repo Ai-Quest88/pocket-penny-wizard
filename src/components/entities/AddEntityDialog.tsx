@@ -186,14 +186,24 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
               </div>
             </>
           ) : (
-            <div className="space-y-2">
-              <Label>Incorporation Date</Label>
-              <Input
-                type="date"
-                value={formData.incorporationDate}
-                onChange={(e) => setFormData({ ...formData, incorporationDate: e.target.value })}
-              />
-            </div>
+            <>
+              <div className="space-y-2">
+                <Label>Registration Number</Label>
+                <Input
+                  value={formData.registrationNumber}
+                  onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
+                  placeholder="Registration/License Number"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Incorporation Date</Label>
+                <Input
+                  type="date"
+                  value={formData.incorporationDate}
+                  onChange={(e) => setFormData({ ...formData, incorporationDate: e.target.value })}
+                />
+              </div>
+            </>
           )}
 
           <Button onClick={handleSubmit} className="w-full">
