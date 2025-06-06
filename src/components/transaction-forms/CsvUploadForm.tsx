@@ -1,500 +1,345 @@
+import React, { useState, useCallback } from 'react'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { AlertCircle, Upload, Download } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { parseCsvFile } from "@/utils/csvParser"
+import { categories } from "@/utils/transactionCategories"
+import { useAccounts } from "@/hooks/useAccounts"
+import type { Transaction, CsvUploadProps } from "@/types/transaction-forms"
 
-import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Upload, Edit, Check, X } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-import { useQueryClient } from "@tanstack/react-query";
-import { parseCSV } from "@/utils/csvParser";
-import { categorizeTransaction, categories } from "@/utils/transactionCategories";
-import { supabase } from "@/integrations/supabase/client";
-import { TransactionFormData, currencies } from "@/types/transaction-forms";
-import { useAccounts } from "@/hooks/useAccounts";
+export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded }) => {
+  const [file, setFile] = useState<File | null>(null)
+  const [mapping, setMapping] = useState<Record<string, string>>({})
+  const [headers, setHeaders] = useState<string[]>([])
+  const [preview, setPreview] = useState<Record<string, string>[]>([])
+  const [errors, setErrors] = useState<string[]>([])
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [defaultCurrency, setDefaultCurrency] = useState('USD')
+  const [defaultAccount, setDefaultAccount] = useState('')
+  
+  const { accounts, isLoading: accountsLoading } = useAccounts()
 
-interface CsvUploadFormProps {
-  onTransactionParsed?: (transaction: TransactionFormData) => void;
-}
+  const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const uploadedFile = event.target.files?.[0]
+    if (!uploadedFile) return
 
-interface ParsedTransaction {
-  description: string;
-  amount: string;
-  date: string;
-  category: string;
-}
-
-export const CsvUploadForm = ({ onTransactionParsed }: CsvUploadFormProps) => {
-  const { toast } = useToast();
-  const { session } = useAuth();
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<string>('');
-  const [detectedCurrency, setDetectedCurrency] = useState<string>('');
-  const [selectedCurrency, setSelectedCurrency] = useState<string>('');
-  const [selectedAccount, setSelectedAccount] = useState<string>('');
-  const [showCurrencySelector, setShowCurrencySelector] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
-  const [previewTransactions, setPreviewTransactions] = useState<ParsedTransaction[]>([]);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const queryClient = useQueryClient();
-  const accounts = useAccounts();
-
-  console.log("CsvUploadForm component rendering");
-  console.log("Available accounts:", accounts);
-  console.log("Selected account:", selectedAccount);
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (!session?.user?.id) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to upload transactions.",
-        variant: "destructive"
-      });
-      return;
+    if (!uploadedFile.name.endsWith('.csv')) {
+      setErrors(['Please upload a CSV file'])
+      return
     }
 
-    if (!selectedAccount) {
-      toast({
-        title: "Account Required",
-        description: "Please select an account before uploading transactions.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    console.log("Starting file upload with account:", selectedAccount);
-
-    setIsUploading(true);
-    setUploadProgress('Reading file...');
+    setFile(uploadedFile)
+    setErrors([])
 
     try {
-      const content = await file.text();
-      console.log('CSV file content:', content.substring(0, 200) + '...');
+      const text = await uploadedFile.text()
+      const lines = text.split('\n').filter(line => line.trim())
       
-      setUploadProgress('Parsing transactions...');
-      const { transactions, errors, detectedCurrency: csvCurrency } = parseCSV(content);
-
-      console.log(`Parsed ${transactions.length} transactions with ${errors.length} errors`);
-      console.log('Detected currency:', csvCurrency);
-
-      if (errors.length > 0) {
-        console.warn('CSV parsing errors:', errors);
-        
-        const errorMessage = errors.slice(0, 3).map(e => 
-          `Row ${e.row}: ${e.message}`
-        ).join('\n');
-        
-        toast({
-          title: `Found ${errors.length} parsing error(s)`,
-          description: errorMessage + (errors.length > 3 ? '\n...and more' : ''),
-          variant: "destructive",
-        });
+      if (lines.length < 2) {
+        setErrors(['CSV file must contain at least a header row and one data row'])
+        return
       }
 
+      const csvHeaders = lines[0].split(',').map(h => h.trim().replace(/"/g, ''))
+      setHeaders(csvHeaders)
+
+      // Parse first few rows for preview
+      const previewData = lines.slice(1, 6).map(line => {
+        const values = line.split(',').map(v => v.trim().replace(/"/g, ''))
+        const row: Record<string, string> = {}
+        csvHeaders.forEach((header, index) => {
+          row[header] = values[index] || ''
+        })
+        return row
+      })
+      
+      setPreview(previewData)
+    } catch (error) {
+      setErrors(['Error reading CSV file'])
+    }
+  }, [])
+
+  const handleMappingChange = (csvColumn: string, targetField: string) => {
+    setMapping(prev => ({
+      ...prev,
+      [targetField]: csvColumn
+    }))
+  }
+
+  const processTransactions = async () => {
+    if (!file || !mapping.date || !mapping.amount || !mapping.description) {
+      setErrors(['Please map required fields: Date, Amount, and Description'])
+      return
+    }
+
+    setIsProcessing(true)
+    setErrors([])
+
+    try {
+      const transactions = await parseCsvFile(file, mapping, defaultCurrency, defaultAccount)
+      
       if (transactions.length === 0) {
-        toast({
-          title: "No valid transactions",
-          description: "No valid transactions found in the CSV file. Please check the format and try again.",
-          variant: "destructive",
-        });
-        return;
+        setErrors(['No valid transactions found in the CSV file'])
+        return
       }
 
-      // Add category suggestions to transactions
-      const transactionsWithCategories = transactions.map(transaction => ({
-        ...transaction,
-        category: categorizeTransaction(transaction.description)
-      }));
-
-      setPreviewTransactions(transactionsWithCategories);
-
-      // If currency wasn't detected, show currency selector
-      if (!csvCurrency) {
-        setShowCurrencySelector(true);
-        setUploadProgress('Please select currency for your transactions');
-        toast({
-          title: "Currency Selection Required",
-          description: "Could not detect currency from CSV. Please select the currency below.",
-        });
-        return;
-      } else {
-        setDetectedCurrency(csvCurrency);
-        setSelectedCurrency(csvCurrency);
-      }
-
-      // Show preview
-      setShowPreview(true);
-      setUploadProgress('Review your transactions below and click Upload when ready');
-
-    } catch (error) {
-      console.error('Error processing CSV file:', error);
-      toast({
-        title: "Upload Failed",
-        description: "Failed to process the CSV file. Please check the format and try again.",
-        variant: "destructive",
-      });
-    } finally {
-      if (!showCurrencySelector && !showPreview) {
-        setIsUploading(false);
-        setUploadProgress('');
-      }
-    }
-  };
-
-  const handleTransactionEdit = (index: number, field: keyof ParsedTransaction, value: string) => {
-    const updatedTransactions = [...previewTransactions];
-    updatedTransactions[index] = {
-      ...updatedTransactions[index],
-      [field]: value
-    };
-    setPreviewTransactions(updatedTransactions);
-  };
-
-  const handleRemoveTransaction = (index: number) => {
-    const updatedTransactions = previewTransactions.filter((_, i) => i !== index);
-    setPreviewTransactions(updatedTransactions);
-  };
-
-  const processPendingTransactions = async (transactions: ParsedTransaction[], currency: string) => {
-    if (!session?.user?.id) return;
-
-    try {
-      setUploadProgress(`Uploading ${transactions.length} transactions...`);
-
-      console.log("Processing transactions with account ID:", selectedAccount);
-
-      const transactionsToInsert = transactions.map(transaction => ({
-        user_id: session.user.id,
-        description: transaction.description,
-        amount: parseFloat(transaction.amount),
-        category: transaction.category,
-        date: transaction.date,
-        currency: currency,
-      }));
-
-      console.log('Inserting transactions:', transactionsToInsert);
-
-      const { error } = await supabase
-        .from('transactions')
-        .insert(transactionsToInsert);
-
-      if (error) {
-        console.error('Error bulk inserting transactions:', error);
-        throw error;
-      }
-
-      console.log('Bulk insert successful');
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-
-      toast({
-        title: "CSV Upload Successful",
-        description: `Successfully imported ${transactions.length} transaction(s) to your account.`,
-      });
-
-      // Reset form
-      setPreviewTransactions([]);
-      setShowCurrencySelector(false);
-      setShowPreview(false);
-      setSelectedCurrency('');
-      setSelectedAccount('');
-      setDetectedCurrency('');
+      onTransactionsUploaded(transactions)
       
-      if (transactions.length > 0 && onTransactionParsed) {
-        const firstTransaction = transactions[0];
-        
-        onTransactionParsed({
-          description: firstTransaction.description,
-          amount: firstTransaction.amount,
-          category: firstTransaction.category,
-          date: firstTransaction.date,
-          currency: currency,
-          account_id: "",
-        });
-      }
-
+      // Reset form
+      setFile(null)
+      setMapping({})
+      setHeaders([])
+      setPreview([])
+      
     } catch (error) {
-      console.error('Error processing transactions:', error);
-      toast({
-        title: "Upload Failed",
-        description: error instanceof Error ? error.message : "Failed to save transactions. Please try again.",
-        variant: "destructive",
-      });
+      setErrors([error instanceof Error ? error.message : 'Error processing CSV file'])
     } finally {
-      setIsUploading(false);
-      setUploadProgress('');
+      setIsProcessing(false)
     }
-  };
+  }
 
-  const handleCurrencyConfirmation = async () => {
-    if (!selectedCurrency) {
-      toast({
-        title: "Currency Required",
-        description: "Please select a currency before proceeding.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setShowCurrencySelector(false);
-    setShowPreview(true);
-    setUploadProgress('Review your transactions below and click Upload when ready');
-  };
-
-  const handleFinalUpload = async () => {
-    const currency = selectedCurrency || detectedCurrency;
-    if (!currency) {
-      toast({
-        title: "Currency Required",
-        description: "Please select a currency before uploading.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    await processPendingTransactions(previewTransactions, currency);
-  };
-
-  const handleCancelPreview = () => {
-    setShowPreview(false);
-    setShowCurrencySelector(false);
-    setPreviewTransactions([]);
-    setSelectedCurrency('');
-    setDetectedCurrency('');
-    setUploadProgress('');
-    setIsUploading(false);
-  };
+  const downloadTemplate = () => {
+    const template = 'Date,Amount,Description,Category,Account\n2024-01-01,-50.00,Coffee Shop,Food & Dining,Main Account\n2024-01-02,2000.00,Salary,Income,Main Account'
+    const blob = new Blob([template], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'transaction_template.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   return (
-    <div className="space-y-4">
-      <Alert>
-        <Upload className="h-4 w-4" />
-        <AlertTitle>CSV Import</AlertTitle>
-        <AlertDescription>
-          Upload a CSV file. Supports two formats:
-          <br />
-          <strong>Format 1:</strong> Date,Description,Amount,Currency
-          <br />
-          <strong>Format 2:</strong> Date,Amount,Description,Balance (Australian bank format)
-          <br />
-          Example: "28/03/2025,-14000.00,CITIBANK CREDITCARDS,+8002.48"
-        </AlertDescription>
-      </Alert>
-
-      {showCurrencySelector && (
-        <div className="p-4 border rounded-lg bg-muted/50 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="currency-select">Select Currency</Label>
-            <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose currency for your transactions" />
-              </SelectTrigger>
-              <SelectContent 
-                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-[70]"
-                position="popper"
-                sideOffset={4}
-              >
-                {currencies.map((currency) => (
-                  <SelectItem 
-                    key={currency.code} 
-                    value={currency.code}
-                    className="hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700 text-gray-900 dark:text-gray-100"
-                  >
-                    {currency.symbol} {currency.code} - {currency.name}
-                  </SelectItem>
+    <Card className="w-full max-w-4xl mx-auto">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Upload className="h-5 w-5" />
+          Upload CSV Transactions
+        </CardTitle>
+        <CardDescription>
+          Upload a CSV file to import multiple transactions at once
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {errors.length > 0 && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <ul className="list-disc list-inside">
+                {errors.map((error, index) => (
+                  <li key={index}>{error}</li>
                 ))}
-              </SelectContent>
-            </Select>
-          </div>
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
 
-          <Button
-            onClick={handleCurrencyConfirmation}
-            className="w-full"
-            disabled={!selectedCurrency}
-          >
-            Continue to Preview
-          </Button>
-        </div>
-      )}
-
-      {showPreview && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium">Transaction Preview</h3>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={handleCancelPreview}>
-                <X className="h-4 w-4 mr-2" />
-                Cancel
-              </Button>
-              <Button onClick={handleFinalUpload} disabled={isUploading}>
-                <Check className="h-4 w-4 mr-2" />
-                Upload {previewTransactions.length} Transactions
-              </Button>
+            <Label htmlFor="csv-file">Select CSV File</Label>
+            <Button variant="outline" size="sm" onClick={downloadTemplate}>
+              <Download className="h-4 w-4 mr-2" />
+              Download Template
+            </Button>
+          </div>
+          
+          <Input
+            id="csv-file"
+            type="file"
+            accept=".csv"
+            onChange={handleFileUpload}
+            disabled={isProcessing}
+          />
+        </div>
+
+        {file && headers.length > 0 && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Map CSV Columns</h3>
+            <p className="text-sm text-muted-foreground">
+              Map your CSV columns to transaction fields. Required fields are marked with *
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="date-mapping">Date *</Label>
+                <Select value={mapping.date || ''} onValueChange={(value) => handleMappingChange(value, 'date')}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select date column" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {headers.map(header => (
+                      <SelectItem key={header} value={header}>{header}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="amount-mapping">Amount *</Label>
+                <Select value={mapping.amount || ''} onValueChange={(value) => handleMappingChange(value, 'amount')}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select amount column" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {headers.map(header => (
+                      <SelectItem key={header} value={header}>{header}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="description-mapping">Description *</Label>
+                <Select value={mapping.description || ''} onValueChange={(value) => handleMappingChange(value, 'description')}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select description column" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {headers.map(header => (
+                      <SelectItem key={header} value={header}>{header}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="category-mapping">Category</Label>
+                <Select value={mapping.category || ''} onValueChange={(value) => handleMappingChange(value, 'category')}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category column (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {headers.map(header => (
+                      <SelectItem key={header} value={header}>{header}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="account-mapping">Account</Label>
+                <Select value={mapping.account || ''} onValueChange={(value) => handleMappingChange(value, 'account')}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select account column (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {headers.map(header => (
+                      <SelectItem key={header} value={header}>{header}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="currency-mapping">Currency</Label>
+                <Select value={mapping.currency || ''} onValueChange={(value) => handleMappingChange(value, 'currency')}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select currency column (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {headers.map(header => (
+                      <SelectItem key={header} value={header}>{header}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="default-currency">Default Currency</Label>
+                <Select value={defaultCurrency} onValueChange={setDefaultCurrency}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="EUR">EUR</SelectItem>
+                    <SelectItem value="GBP">GBP</SelectItem>
+                    <SelectItem value="JPY">JPY</SelectItem>
+                    <SelectItem value="AUD">AUD</SelectItem>
+                    <SelectItem value="CAD">CAD</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="default-account">Default Account</Label>
+                <Select value={defaultAccount} onValueChange={setDefaultAccount} disabled={accountsLoading}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select default account" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accounts.accounts.map(account => (
+                      <SelectItem key={account.id} value={account.name}>
+                        {account.name} ({account.type})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
+        )}
 
-          {selectedCurrency || detectedCurrency ? (
-            <Alert>
-              <AlertDescription>
-                Currency: <strong>{selectedCurrency || detectedCurrency}</strong>
-              </AlertDescription>
-            </Alert>
-          ) : null}
-
-          <div className="max-h-96 overflow-auto border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {previewTransactions.map((transaction, index) => (
-                  <TableRow key={index}>
-                    <TableCell>
-                      {editingIndex === index ? (
-                        <Input
-                          type="date"
-                          value={transaction.date}
-                          onChange={(e) => handleTransactionEdit(index, 'date', e.target.value)}
-                          className="w-full"
-                        />
-                      ) : (
-                        transaction.date
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {editingIndex === index ? (
-                        <Input
-                          value={transaction.description}
-                          onChange={(e) => handleTransactionEdit(index, 'description', e.target.value)}
-                          className="w-full"
-                        />
-                      ) : (
-                        transaction.description
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {editingIndex === index ? (
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={transaction.amount}
-                          onChange={(e) => handleTransactionEdit(index, 'amount', e.target.value)}
-                          className="w-full"
-                        />
-                      ) : (
-                        transaction.amount
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {editingIndex === index ? (
-                        <Select 
-                          value={transaction.category} 
-                          onValueChange={(value) => handleTransactionEdit(index, 'category', value)}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {categories.map((category) => (
-                              <SelectItem key={category} value={category}>
-                                {category}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        transaction.category
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        {editingIndex === index ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setEditingIndex(null)}
-                          >
-                            <Check className="h-3 w-3" />
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setEditingIndex(index)}
-                          >
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleRemoveTransaction(index)}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+        {preview.length > 0 && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Preview</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse border border-gray-300">
+                <thead>
+                  <tr className="bg-gray-50">
+                    {headers.map(header => (
+                      <th key={header} className="border border-gray-300 px-3 py-2 text-left text-sm font-medium">
+                        {header}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {preview.map((row, index) => (
+                    <tr key={index}>
+                      {headers.map(header => (
+                        <td key={header} className="border border-gray-300 px-3 py-2 text-sm">
+                          {row[header]}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {!showCurrencySelector && !showPreview && (
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="account-select">Select Account *</Label>
-            <Select value={selectedAccount} onValueChange={setSelectedAccount}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose account (required)" />
-              </SelectTrigger>
-              <SelectContent 
-                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-[70]"
-                position="popper"
-                sideOffset={4}
-              >
-                {accounts.map((account) => (
-                  <SelectItem 
-                    key={account.id} 
-                    value={account.id}
-                    className="hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700 text-gray-900 dark:text-gray-100"
-                  >
-                    {account.name} ({account.type})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        {file && headers.length > 0 && (
+          <div className="flex justify-end space-x-4">
+            <Button variant="outline" onClick={() => {
+              setFile(null)
+              setMapping({})
+              setHeaders([])
+              setPreview([])
+              setErrors([])
+            }}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={processTransactions} 
+              disabled={isProcessing || !mapping.date || !mapping.amount || !mapping.description}
+            >
+              {isProcessing ? 'Processing...' : 'Import Transactions'}
+            </Button>
           </div>
-
-          <div className="flex items-center space-x-4">
-            <Input
-              type="file"
-              accept=".csv"
-              onChange={handleFileUpload}
-              className="flex-1"
-              disabled={isUploading || !selectedAccount}
-            />
-            {isUploading && (
-              <div className="text-sm text-muted-foreground">
-                {uploadProgress}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
+        )}
+      </CardContent>
+    </Card>
+  )
+}
