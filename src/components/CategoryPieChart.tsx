@@ -16,13 +16,38 @@ interface CategoryPieChartProps {
   entityId?: string;
 }
 
+// Finance-themed color palette
+const FINANCE_COLORS = {
+  // Expense categories (warmer tones)
+  livingExpenses: "#DC2626", // Red - essential expenses
+  lifestyle: "#EA580C", // Orange - discretionary spending
+  financial: "#0891B2", // Blue - financial activities
+  other: "#7C3AED", // Purple - miscellaneous
+  
+  // Subcategory variations
+  food: "#DC2626",
+  transport: "#B91C1C", 
+  bills: "#991B1B",
+  shopping: "#7F1D1D",
+  entertainment: "#EA580C",
+  health: "#C2410C",
+  travel: "#9A3412",
+  education: "#7C2D12",
+  income: "#059669", // Green - positive income
+  banking: "#0891B2",
+  investment: "#0E7490",
+  insurance: "#155E75",
+  gifts: "#7C3AED",
+  charity: "#6D28D9",
+}
+
 // Mock data for demonstration - in real app this would come from transactions
 const getMockDataForPeriod = (period: string) => {
   const baseData = [
-    { name: "Living Expenses", value: 4200, color: "#059669" },
-    { name: "Lifestyle", value: 2800, color: "#0D9488" },
-    { name: "Financial", value: 3500, color: "#0891B2" },
-    { name: "Other", value: 1200, color: "#7C3AED" },
+    { name: "Living Expenses", value: 4200, color: FINANCE_COLORS.livingExpenses },
+    { name: "Lifestyle", value: 2800, color: FINANCE_COLORS.lifestyle },
+    { name: "Financial", value: 3500, color: FINANCE_COLORS.financial },
+    { name: "Other", value: 1200, color: FINANCE_COLORS.other },
   ];
 
   // Adjust values based on period for demo
@@ -37,22 +62,22 @@ const getMockDataForPeriod = (period: string) => {
 };
 
 const getCategoryBreakdown = (period: string) => {
-  // Mock category breakdown data
+  // Mock category breakdown data with finance-themed colors
   const breakdown = [
-    { name: "Food", value: 1800, bucket: "Living Expenses", color: "#059669" },
-    { name: "Transport", value: 1200, bucket: "Living Expenses", color: "#0A7C69" },
-    { name: "Bills", value: 800, bucket: "Living Expenses", color: "#065F46" },
-    { name: "Shopping", value: 400, bucket: "Living Expenses", color: "#064E3B" },
-    { name: "Entertainment", value: 1200, bucket: "Lifestyle", color: "#0D9488" },
-    { name: "Health", value: 600, bucket: "Lifestyle", color: "#0F766E" },
-    { name: "Travel", value: 800, bucket: "Lifestyle", color: "#115E59" },
-    { name: "Education", value: 200, bucket: "Lifestyle", color: "#134E4A" },
-    { name: "Income", value: 2000, bucket: "Financial", color: "#0891B2" },
-    { name: "Banking", value: 800, bucket: "Financial", color: "#0E7490" },
-    { name: "Investment", value: 500, bucket: "Financial", color: "#155E75" },
-    { name: "Insurance", value: 200, bucket: "Financial", color: "#164E63" },
-    { name: "Gifts", value: 600, bucket: "Other", color: "#7C3AED" },
-    { name: "Charity", value: 600, bucket: "Other", color: "#6D28D9" },
+    { name: "Food", value: 1800, bucket: "Living Expenses", color: FINANCE_COLORS.food },
+    { name: "Transport", value: 1200, bucket: "Living Expenses", color: FINANCE_COLORS.transport },
+    { name: "Bills", value: 800, bucket: "Living Expenses", color: FINANCE_COLORS.bills },
+    { name: "Shopping", value: 400, bucket: "Living Expenses", color: FINANCE_COLORS.shopping },
+    { name: "Entertainment", value: 1200, bucket: "Lifestyle", color: FINANCE_COLORS.entertainment },
+    { name: "Health", value: 600, bucket: "Lifestyle", color: FINANCE_COLORS.health },
+    { name: "Travel", value: 800, bucket: "Lifestyle", color: FINANCE_COLORS.travel },
+    { name: "Education", value: 200, bucket: "Lifestyle", color: FINANCE_COLORS.education },
+    { name: "Income", value: 2000, bucket: "Financial", color: FINANCE_COLORS.income },
+    { name: "Banking", value: 800, bucket: "Financial", color: FINANCE_COLORS.banking },
+    { name: "Investment", value: 500, bucket: "Financial", color: FINANCE_COLORS.investment },
+    { name: "Insurance", value: 200, bucket: "Financial", color: FINANCE_COLORS.insurance },
+    { name: "Gifts", value: 600, bucket: "Other", color: FINANCE_COLORS.gifts },
+    { name: "Charity", value: 600, bucket: "Other", color: FINANCE_COLORS.charity },
   ];
 
   if (period === "yearly") {
