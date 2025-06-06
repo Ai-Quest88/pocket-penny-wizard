@@ -1,13 +1,13 @@
+
 import React, { useState, useCallback } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { AlertCircle, Upload, Download } from "lucide-react"
+import { AlertCircle, Upload, Download, CheckCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { parseCsvFile, parseExcelFile } from "@/utils/csvParser"
+import { parseCSV } from "@/utils/csvParser"
 import { categories } from "@/types/transaction-forms"
 import { useAccounts } from "@/hooks/useAccounts"
 import type { Transaction, CsvUploadProps } from "@/types/transaction-forms"
@@ -21,6 +21,9 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
   const [isProcessing, setIsProcessing] = useState(false)
   const [defaultCurrency, setDefaultCurrency] = useState('USD')
   const [defaultAccount, setDefaultAccount] = useState('')
+  const [autoMapped, setAutoMapped] = useState<Record<string, string>>({})
+  const [hasHeaders, setHasHeaders] = useState(false)
+  const [showMapping, setShowMapping] = useState(false)
   
   const { accounts, isLoading: accountsLoading } = useAccounts()
 
@@ -42,12 +45,10 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
     setErrors([])
 
     try {
-      let lines: string[] = []
+      let csvContent: string = ''
       
       if (fileExtension.endsWith('.csv')) {
-        // Handle CSV files
-        const text = await uploadedFile.text()
-        lines = text.split('\n').filter(line => line.trim())
+        csvContent = await uploadedFile.text()
       } else {
         // Handle Excel files
         const arrayBuffer = await uploadedFile.arrayBuffer()
@@ -55,37 +56,57 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
         const workbook = XLSX.read(arrayBuffer, { type: 'array' })
         const firstSheetName = workbook.SheetNames[0]
         const worksheet = workbook.Sheets[firstSheetName]
-        
-        // Convert to CSV format for consistent processing
-        const csvString = XLSX.utils.sheet_to_csv(worksheet)
-        lines = csvString.split('\n').filter(line => line.trim())
+        csvContent = XLSX.utils.sheet_to_csv(worksheet)
       }
       
+      // Use the intelligent parser
+      const parseResult = parseCSV(csvContent)
+      
+      if (parseResult.errors.length > 0) {
+        setErrors(parseResult.errors.map(e => `Row ${e.row}: ${e.message}`))
+      }
+      
+      const lines = csvContent.split('\n').filter(line => line.trim())
       if (lines.length < 2) {
         setErrors(['File must contain at least a header row and one data row'])
         return
       }
 
-      const csvHeaders = lines[0].split(',').map(h => h.trim().replace(/"/g, ''))
-      console.log("Raw headers:", csvHeaders)
+      // Handle the parsed results
+      setHasHeaders(parseResult.hasHeaders || false)
+      setAutoMapped(parseResult.autoMappedColumns || {})
       
-      // Comprehensive filtering for headers
-      const filteredHeaders = csvHeaders.filter(h => {
-        const isValid = h && typeof h === 'string' && h.trim() !== '' && h.trim() !== 'undefined' && h.trim() !== 'null'
-        if (!isValid) {
-          console.warn("Filtered out invalid header:", h)
+      if (parseResult.hasHeaders && parseResult.autoMappedColumns) {
+        const csvHeaders = lines[0].split(',').map(h => h.trim().replace(/"/g, ''))
+        setHeaders(csvHeaders)
+        setMapping(parseResult.autoMappedColumns)
+        
+        // Check if we have all required mappings
+        const hasRequiredMappings = parseResult.autoMappedColumns.date && 
+                                  parseResult.autoMappedColumns.amount && 
+                                  parseResult.autoMappedColumns.description
+        
+        setShowMapping(!hasRequiredMappings)
+        
+        if (hasRequiredMappings) {
+          console.log('Auto-mapping successful! Required fields detected:', parseResult.autoMappedColumns)
         }
-        return isValid
-      })
-      
-      console.log("Filtered headers:", filteredHeaders)
-      setHeaders(filteredHeaders)
+      } else {
+        // Fall back to manual mapping for files without headers
+        const csvHeaders = lines[0].split(',').map(h => h.trim().replace(/"/g, ''))
+        setHeaders(csvHeaders)
+        setMapping({})
+        setShowMapping(true)
+      }
 
       // Parse first few rows for preview
-      const previewData = lines.slice(1, 6).map(line => {
+      const previewData = lines.slice(parseResult.hasHeaders ? 1 : 0, 6).map(line => {
         const values = line.split(',').map(v => v.trim().replace(/"/g, ''))
         const row: Record<string, string> = {}
-        filteredHeaders.forEach((header, index) => {
+        const headersToUse = parseResult.hasHeaders ? 
+          lines[0].split(',').map(h => h.trim().replace(/"/g, '')) : 
+          csvHeaders
+        headersToUse.forEach((header, index) => {
           row[header] = values[index] || ''
         })
         return row
@@ -114,13 +135,49 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
     setErrors([])
 
     try {
+      // For auto-mapped files, we can process directly with parseCSV
       let transactions
       const fileExtension = file.name.toLowerCase()
       
       if (fileExtension.endsWith('.csv')) {
-        transactions = await parseCsvFile(file, mapping, defaultCurrency, defaultAccount)
+        const content = await file.text()
+        const result = parseCSV(content)
+        
+        if (result.errors.length > 0) {
+          setErrors(result.errors.map(e => `Row ${e.row}: ${e.message}`))
+          return
+        }
+        
+        transactions = result.transactions.map(tx => ({
+          date: tx.date,
+          amount: parseFloat(tx.amount),
+          description: tx.description,
+          category: tx.category,
+          currency: tx.currency || defaultCurrency,
+          account: defaultAccount || 'Default Account'
+        }))
       } else {
-        transactions = await parseExcelFile(file, mapping, defaultCurrency, defaultAccount)
+        const arrayBuffer = await file.arrayBuffer()
+        const XLSX = await import('xlsx')
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' })
+        const firstSheetName = workbook.SheetNames[0]
+        const worksheet = workbook.Sheets[firstSheetName]
+        const csvString = XLSX.utils.sheet_to_csv(worksheet)
+        const result = parseCSV(csvString)
+        
+        if (result.errors.length > 0) {
+          setErrors(result.errors.map(e => `Row ${e.row}: ${e.message}`))
+          return
+        }
+        
+        transactions = result.transactions.map(tx => ({
+          date: tx.date,
+          amount: parseFloat(tx.amount),
+          description: tx.description,
+          category: tx.category,
+          currency: tx.currency || defaultCurrency,
+          account: defaultAccount || 'Default Account'
+        }))
       }
       
       if (transactions.length === 0) {
@@ -135,6 +192,9 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
       setMapping({})
       setHeaders([])
       setPreview([])
+      setAutoMapped({})
+      setHasHeaders(false)
+      setShowMapping(false)
       
     } catch (error) {
       setErrors([error instanceof Error ? error.message : 'Error processing file'])
@@ -162,10 +222,6 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                    header.trim() !== 'undefined' && 
                    header.trim() !== 'null' &&
                    header.length > 0
-    
-    if (!isValid) {
-      console.error("Invalid header detected in validHeaders:", header, typeof header)
-    }
     return isValid
   })
   
@@ -180,16 +236,10 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                    account.id &&
                    typeof account.id === 'string' &&
                    account.id.trim() !== ''
-    
-    if (!isValid) {
-      console.error("Invalid account detected:", account)
-    }
     return isValid
   })
 
-  // Debug logging before render
-  console.log("FileUploadForm render - validHeaders:", validHeaders)
-  console.log("FileUploadForm render - validAccounts:", validAccounts)
+  const hasRequiredMappings = mapping.date && mapping.amount && mapping.description
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
@@ -199,7 +249,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
           Upload Transactions
         </CardTitle>
         <CardDescription>
-          Upload a CSV or Excel file to import multiple transactions at once
+          Upload a CSV or Excel file to import multiple transactions at once. Headers will be automatically detected and mapped.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -237,7 +287,30 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
           </p>
         </div>
 
-        {file && validHeaders.length > 0 && (
+        {file && hasHeaders && Object.keys(autoMapped).length > 0 && (
+          <Alert>
+            <CheckCircle className="h-4 w-4" />
+            <AlertDescription>
+              <div className="space-y-2">
+                <p className="font-medium">Headers detected and automatically mapped:</p>
+                <ul className="text-sm space-y-1">
+                  {Object.entries(autoMapped).map(([field, column]) => (
+                    <li key={field}>
+                      <strong>{field}:</strong> {column}
+                    </li>
+                  ))}
+                </ul>
+                {hasRequiredMappings ? (
+                  <p className="text-green-600 font-medium">✓ All required fields mapped successfully!</p>
+                ) : (
+                  <p className="text-amber-600">Some required fields need manual mapping below.</p>
+                )}
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {file && validHeaders.length > 0 && showMapping && (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Map File Columns</h3>
             <p className="text-sm text-muted-foreground">
@@ -252,16 +325,9 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                     <SelectValue placeholder="Select date column" />
                   </SelectTrigger>
                   <SelectContent>
-                    {validHeaders.map(header => {
-                      // Final safety check before rendering
-                      if (!header || header.trim() === '') {
-                        console.error("Attempting to render empty header in date mapping:", header)
-                        return null
-                      }
-                      return (
-                        <SelectItem key={`date-${header}`} value={header}>{header}</SelectItem>
-                      )
-                    })}
+                    {validHeaders.map(header => (
+                      <SelectItem key={`date-${header}`} value={header}>{header}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -273,15 +339,9 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                     <SelectValue placeholder="Select amount column" />
                   </SelectTrigger>
                   <SelectContent>
-                    {validHeaders.map(header => {
-                      if (!header || header.trim() === '') {
-                        console.error("Attempting to render empty header in amount mapping:", header)
-                        return null
-                      }
-                      return (
-                        <SelectItem key={`amount-${header}`} value={header}>{header}</SelectItem>
-                      )
-                    })}
+                    {validHeaders.map(header => (
+                      <SelectItem key={`amount-${header}`} value={header}>{header}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -293,15 +353,9 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                     <SelectValue placeholder="Select description column" />
                   </SelectTrigger>
                   <SelectContent>
-                    {validHeaders.map(header => {
-                      if (!header || header.trim() === '') {
-                        console.error("Attempting to render empty header in description mapping:", header)
-                        return null
-                      }
-                      return (
-                        <SelectItem key={`description-${header}`} value={header}>{header}</SelectItem>
-                      )
-                    })}
+                    {validHeaders.map(header => (
+                      <SelectItem key={`description-${header}`} value={header}>{header}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -314,15 +368,9 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
-                    {validHeaders.map(header => {
-                      if (!header || header.trim() === '') {
-                        console.error("Attempting to render empty header in category mapping:", header)
-                        return null
-                      }
-                      return (
-                        <SelectItem key={`category-${header}`} value={header}>{header}</SelectItem>
-                      )
-                    })}
+                    {validHeaders.map(header => (
+                      <SelectItem key={`category-${header}`} value={header}>{header}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -335,15 +383,9 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
-                    {validHeaders.map(header => {
-                      if (!header || header.trim() === '') {
-                        console.error("Attempting to render empty header in account mapping:", header)
-                        return null
-                      }
-                      return (
-                        <SelectItem key={`account-${header}`} value={header}>{header}</SelectItem>
-                      )
-                    })}
+                    {validHeaders.map(header => (
+                      <SelectItem key={`account-${header}`} value={header}>{header}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -356,59 +398,49 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
-                    {validHeaders.map(header => {
-                      if (!header || header.trim() === '') {
-                        console.error("Attempting to render empty header in currency mapping:", header)
-                        return null
-                      }
-                      return (
-                        <SelectItem key={`currency-${header}`} value={header}>{header}</SelectItem>
-                      )
-                    })}
+                    {validHeaders.map(header => (
+                      <SelectItem key={`currency-${header}`} value={header}>{header}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
+          </div>
+        )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="default-currency">Default Currency</Label>
-                <Select value={defaultCurrency} onValueChange={setDefaultCurrency}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="EUR">EUR</SelectItem>
-                    <SelectItem value="GBP">GBP</SelectItem>
-                    <SelectItem value="JPY">JPY</SelectItem>
-                    <SelectItem value="AUD">AUD</SelectItem>
-                    <SelectItem value="CAD">CAD</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+        {file && validHeaders.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="default-currency">Default Currency</Label>
+              <Select value={defaultCurrency} onValueChange={setDefaultCurrency}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">USD</SelectItem>
+                  <SelectItem value="EUR">EUR</SelectItem>
+                  <SelectItem value="GBP">GBP</SelectItem>
+                  <SelectItem value="JPY">JPY</SelectItem>
+                  <SelectItem value="AUD">AUD</SelectItem>
+                  <SelectItem value="CAD">CAD</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-              <div>
-                <Label htmlFor="default-account">Default Account</Label>
-                <Select value={defaultAccount} onValueChange={setDefaultAccount} disabled={accountsLoading}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select default account" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {validAccounts.map(account => {
-                      if (!account.name || account.name.trim() === '' || !account.id || account.id.trim() === '') {
-                        console.error("Attempting to render invalid account:", account)
-                        return null
-                      }
-                      return (
-                        <SelectItem key={account.id} value={account.name}>
-                          {account.name} ({account.type})
-                        </SelectItem>
-                      )
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div>
+              <Label htmlFor="default-account">Default Account</Label>
+              <Select value={defaultAccount} onValueChange={setDefaultAccount} disabled={accountsLoading}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select default account" />
+                </SelectTrigger>
+                <SelectContent>
+                  {validAccounts.map(account => (
+                    <SelectItem key={account.id} value={account.name}>
+                      {account.name} ({account.type})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         )}
@@ -451,12 +483,15 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
               setHeaders([])
               setPreview([])
               setErrors([])
+              setAutoMapped({})
+              setHasHeaders(false)
+              setShowMapping(false)
             }}>
               Cancel
             </Button>
             <Button 
               onClick={processTransactions} 
-              disabled={isProcessing || !mapping.date || !mapping.amount || !mapping.description}
+              disabled={isProcessing || !hasRequiredMappings}
             >
               {isProcessing ? 'Processing...' : 'Import Transactions'}
             </Button>

@@ -17,6 +17,8 @@ export interface ParseResult {
   transactions: ParsedTransaction[];
   errors: ParseError[];
   detectedCurrency?: string;
+  autoMappedColumns?: Record<string, string>;
+  hasHeaders?: boolean;
 }
 
 const parseDate = (dateStr: string): string | null => {
@@ -120,6 +122,74 @@ const parseCsvLine = (line: string): string[] => {
   return result;
 };
 
+const detectHeaders = (firstRow: string[]): boolean => {
+  // Check if first row contains common header patterns
+  const headerPatterns = [
+    /^date$/i, /^transaction\s*date$/i, /^posting\s*date$/i,
+    /^amount$/i, /^debit$/i, /^credit$/i, /^value$/i,
+    /^description$/i, /^narrative$/i, /^details$/i, /^memo$/i,
+    /^category$/i, /^type$/i,
+    /^account$/i, /^currency$/i, /^balance$/i
+  ];
+  
+  // If any field matches header patterns and no field looks like actual data
+  const hasHeaderPattern = firstRow.some(field => 
+    headerPatterns.some(pattern => pattern.test(field.trim()))
+  );
+  
+  // Check if first row contains actual transaction data (dates, amounts)
+  const hasDataPattern = firstRow.some(field => {
+    const trimmed = field.trim();
+    // Check for date patterns
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(trimmed)) return true;
+    // Check for amount patterns
+    if (/^[+-]?\d+\.?\d*$/.test(trimmed.replace(/[,\s]/g, ''))) return true;
+    return false;
+  });
+  
+  return hasHeaderPattern && !hasDataPattern;
+};
+
+const autoMapColumns = (headers: string[]): Record<string, string> => {
+  const mapping: Record<string, string> = {};
+  
+  headers.forEach((header, index) => {
+    const normalizedHeader = header.toLowerCase().trim();
+    
+    // Date mapping
+    if (/^date|transaction.*date|posting.*date/.test(normalizedHeader)) {
+      mapping.date = header;
+    }
+    // Amount mapping
+    else if (/^amount|debit|credit|value/.test(normalizedHeader)) {
+      mapping.amount = header;
+    }
+    // Description mapping
+    else if (/^description|narrative|details|memo|payee/.test(normalizedHeader)) {
+      mapping.description = header;
+    }
+    // Category mapping
+    else if (/^category|type/.test(normalizedHeader)) {
+      mapping.category = header;
+    }
+    // Account mapping
+    else if (/^account/.test(normalizedHeader)) {
+      mapping.account = header;
+    }
+    // Currency mapping
+    else if (/^currency/.test(normalizedHeader)) {
+      mapping.currency = header;
+    }
+  });
+  
+  // If no explicit mappings found, try pattern-based detection on sample data
+  if (!mapping.date || !mapping.amount || !mapping.description) {
+    // This would be handled by the existing detectCsvFormat logic
+  }
+  
+  return mapping;
+};
+
 const detectCsvFormat = (fields: string[], content: string): 'format1' | 'format2' | 'format3' | 'unknown' => {
   // Check for your specific format: Date,Amount,Description,Balance
   if (fields.length >= 4) {
@@ -166,7 +236,17 @@ export const parseCSV = (content: string): ParseResult => {
   // Detect currency from content - default to AUD for Australian data
   const detectedCurrency = detectCurrency(content) || 'AUD';
 
-  const startIndex = 0;
+  // Parse first row to check for headers
+  const firstRowFields = parseCsvLine(lines[0]);
+  const hasHeaders = detectHeaders(firstRowFields);
+  let autoMappedColumns: Record<string, string> = {};
+  
+  let startIndex = 0;
+  if (hasHeaders) {
+    startIndex = 1;
+    autoMappedColumns = autoMapColumns(firstRowFields);
+    console.log('Auto-mapped columns:', autoMappedColumns);
+  }
   
   for (let i = startIndex; i < lines.length; i++) {
     const line = lines[i];
@@ -184,24 +264,38 @@ export const parseCSV = (content: string): ParseResult => {
       continue;
     }
 
-    const format = detectCsvFormat(fields, content);
     let date: string, description: string, amount: string, currency: string;
 
-    if (format === 'format3' || format === 'format2') {
-      // Your format: Date, Amount, Description, Balance
-      [date, amount, description] = fields;
+    // Use auto-mapped columns if available
+    if (hasHeaders && Object.keys(autoMappedColumns).length >= 3) {
+      const dateIndex = firstRowFields.indexOf(autoMappedColumns.date);
+      const amountIndex = firstRowFields.indexOf(autoMappedColumns.amount);
+      const descriptionIndex = firstRowFields.indexOf(autoMappedColumns.description);
+      
+      date = dateIndex >= 0 ? fields[dateIndex] : fields[0];
+      amount = amountIndex >= 0 ? fields[amountIndex] : fields[1];
+      description = descriptionIndex >= 0 ? fields[descriptionIndex] : fields[2];
       currency = detectedCurrency;
-    } else if (format === 'format1') {
-      // Original format: Date, Description, Amount, Currency
-      [date, description, amount, currency = detectedCurrency] = fields;
     } else {
-      errors.push({
-        row: i + 1,
-        field: 'format',
-        value: line,
-        message: 'Unable to detect file format'
-      });
-      continue;
+      // Fall back to format detection
+      const format = detectCsvFormat(fields, content);
+      
+      if (format === 'format3' || format === 'format2') {
+        // Your format: Date, Amount, Description, Balance
+        [date, amount, description] = fields;
+        currency = detectedCurrency;
+      } else if (format === 'format1') {
+        // Original format: Date, Description, Amount, Currency
+        [date, description, amount, currency = detectedCurrency] = fields;
+      } else {
+        errors.push({
+          row: i + 1,
+          field: 'format',
+          value: line,
+          message: 'Unable to detect file format'
+        });
+        continue;
+      }
     }
 
     const parsedDate = parseDate(date);
@@ -247,7 +341,13 @@ export const parseCSV = (content: string): ParseResult => {
     }
   }
 
-  return { transactions, errors, detectedCurrency };
+  return { 
+    transactions, 
+    errors, 
+    detectedCurrency, 
+    autoMappedColumns: hasHeaders ? autoMappedColumns : undefined,
+    hasHeaders 
+  };
 };
 
 export const parseCsvFile = async (
