@@ -4,6 +4,8 @@ export interface ParsedTransaction {
   category: string;
   date: string;
   currency: string;
+  account?: string;
+  comment?: string;
 }
 
 export interface ParseError {
@@ -345,7 +347,9 @@ export const parseCSV = (content: string): ParseResult => {
         amount: parsedAmount.toString(),
         category: 'other',
         date: parsedDate,
-        currency: currency?.trim() || detectedCurrency
+        currency: currency?.trim() || detectedCurrency,
+        account: undefined,
+        comment: undefined
       });
     }
   }
