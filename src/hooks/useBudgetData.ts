@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { BudgetCategory } from '@/types/budget';
@@ -33,9 +32,10 @@ export const useBudgetData = (entityId?: string, timeframe: string = '3m') => {
         }
 
         console.log('Fetching transactions for budget from:', startDate.toISOString().split('T')[0]);
+        console.log('To date:', now.toISOString().split('T')[0]);
 
-        // Fetch transactions from the specified date range
-        const { data: transactions, error: transactionsError } = await supabase
+        // Fetch ALL transactions from the specified date range (don't filter by entity here yet)
+        const { data: allTransactions, error: transactionsError } = await supabase
           .from('transactions')
           .select('*')
           .gte('date', startDate.toISOString().split('T')[0])
@@ -46,7 +46,7 @@ export const useBudgetData = (entityId?: string, timeframe: string = '3m') => {
           return;
         }
 
-        console.log('Fetched transactions for budget:', transactions);
+        console.log('All fetched transactions for budget:', allTransactions);
 
         // Fetch active budgets
         let budgetsQuery = supabase
@@ -54,7 +54,8 @@ export const useBudgetData = (entityId?: string, timeframe: string = '3m') => {
           .select('*')
           .eq('is_active', true);
 
-        if (entityId) {
+        // Only filter by entity if a specific entity is selected
+        if (entityId && entityId !== 'all') {
           budgetsQuery = budgetsQuery.eq('entity_id', entityId);
         }
 
@@ -67,21 +68,29 @@ export const useBudgetData = (entityId?: string, timeframe: string = '3m') => {
 
         console.log('Fetched budgets:', budgets);
 
+        // Filter transactions based on entity selection (if any)
+        let transactions = allTransactions || [];
+        if (entityId && entityId !== 'all') {
+          // If a specific entity is selected, we would need to filter transactions by entity
+          // For now, we'll use all transactions since transactions don't have entity_id field
+          console.log('Entity filtering not implemented for transactions yet');
+        }
+
         // Group transactions by category and calculate spent amounts
         const categorySpending: Record<string, number> = {};
         
-        transactions?.forEach(transaction => {
-          // Only include expense categories (negative amounts or expense categories)
-          if (transaction.category !== 'Income' && transaction.category !== 'Banking') {
+        transactions.forEach(transaction => {
+          // Include all expense transactions (exclude only Income)
+          if (transaction.category !== 'Income') {
             if (!categorySpending[transaction.category]) {
               categorySpending[transaction.category] = 0;
             }
-            // Use absolute value for spending amounts
-            categorySpending[transaction.category] += Math.abs(transaction.amount);
+            // Use absolute value for spending amounts to handle negative amounts
+            categorySpending[transaction.category] += Math.abs(Number(transaction.amount));
           }
         });
 
-        console.log('Category spending:', categorySpending);
+        console.log('Category spending calculated:', categorySpending);
 
         // Create budget categories with actual budget data
         const categories: BudgetCategory[] = [];
@@ -89,22 +98,29 @@ export const useBudgetData = (entityId?: string, timeframe: string = '3m') => {
         // Add categories from active budgets
         budgets?.forEach(budget => {
           // Calculate budget amount based on period and timeframe
-          let adjustedBudgetAmount = budget.amount;
+          let adjustedBudgetAmount = Number(budget.amount);
           
-          // Adjust budget amount based on period
+          console.log(`Processing budget for ${budget.category}: amount=${budget.amount}, period=${budget.period}`);
+          
+          // Adjust budget amount based on period for the selected timeframe
           if (budget.period === 'yearly') {
-            if (timeframe === '1m') adjustedBudgetAmount = budget.amount / 12;
-            else if (timeframe === '3m') adjustedBudgetAmount = budget.amount / 4;
-            else if (timeframe === '6m') adjustedBudgetAmount = budget.amount / 2;
+            if (timeframe === '1m') adjustedBudgetAmount = Number(budget.amount) / 12;
+            else if (timeframe === '3m') adjustedBudgetAmount = Number(budget.amount) / 4;
+            else if (timeframe === '6m') adjustedBudgetAmount = Number(budget.amount) / 2;
+            // For 12m, keep the full yearly amount
           } else if (budget.period === 'quarterly') {
-            if (timeframe === '1m') adjustedBudgetAmount = budget.amount / 3;
-            else if (timeframe === '6m') adjustedBudgetAmount = budget.amount * 2;
-            else if (timeframe === '12m') adjustedBudgetAmount = budget.amount * 4;
+            if (timeframe === '1m') adjustedBudgetAmount = Number(budget.amount) / 3;
+            else if (timeframe === '3m') adjustedBudgetAmount = Number(budget.amount); // 1 quarter
+            else if (timeframe === '6m') adjustedBudgetAmount = Number(budget.amount) * 2; // 2 quarters
+            else if (timeframe === '12m') adjustedBudgetAmount = Number(budget.amount) * 4; // 4 quarters
           } else { // monthly
-            if (timeframe === '3m') adjustedBudgetAmount = budget.amount * 3;
-            else if (timeframe === '6m') adjustedBudgetAmount = budget.amount * 6;
-            else if (timeframe === '12m') adjustedBudgetAmount = budget.amount * 12;
+            if (timeframe === '1m') adjustedBudgetAmount = Number(budget.amount); // 1 month
+            else if (timeframe === '3m') adjustedBudgetAmount = Number(budget.amount) * 3; // 3 months
+            else if (timeframe === '6m') adjustedBudgetAmount = Number(budget.amount) * 6; // 6 months
+            else if (timeframe === '12m') adjustedBudgetAmount = Number(budget.amount) * 12; // 12 months
           }
+
+          console.log(`Adjusted budget amount for ${budget.category}: ${adjustedBudgetAmount}`);
 
           categories.push({
             category: budget.category,
@@ -125,6 +141,7 @@ export const useBudgetData = (entityId?: string, timeframe: string = '3m') => {
           }
         });
 
+        console.log('Final budget categories:', categories);
         setBudgetCategories(categories);
       } catch (error) {
         console.error('Error processing budget data:', error);
