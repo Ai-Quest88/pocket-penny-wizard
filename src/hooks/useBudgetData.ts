@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { BudgetCategory } from '@/types/budget';
@@ -97,35 +98,16 @@ export const useBudgetData = (entityId?: string, timeframe: string = '3m') => {
 
         // Add categories from active budgets
         budgets?.forEach(budget => {
-          // Calculate budget amount based on period and timeframe
-          let adjustedBudgetAmount = Number(budget.amount);
+          // Use the budget amount as-is from the database
+          const budgetAmount = Number(budget.amount);
           
           console.log(`Processing budget for ${budget.category}: amount=${budget.amount}, period=${budget.period}`);
-          
-          // Adjust budget amount based on period for the selected timeframe
-          if (budget.period === 'yearly') {
-            if (timeframe === '1m') adjustedBudgetAmount = Number(budget.amount) / 12;
-            else if (timeframe === '3m') adjustedBudgetAmount = Number(budget.amount) / 4;
-            else if (timeframe === '6m') adjustedBudgetAmount = Number(budget.amount) / 2;
-            // For 12m, keep the full yearly amount
-          } else if (budget.period === 'quarterly') {
-            if (timeframe === '1m') adjustedBudgetAmount = Number(budget.amount) / 3;
-            else if (timeframe === '3m') adjustedBudgetAmount = Number(budget.amount); // 1 quarter
-            else if (timeframe === '6m') adjustedBudgetAmount = Number(budget.amount) * 2; // 2 quarters
-            else if (timeframe === '12m') adjustedBudgetAmount = Number(budget.amount) * 4; // 4 quarters
-          } else { // monthly
-            if (timeframe === '1m') adjustedBudgetAmount = Number(budget.amount); // 1 month
-            else if (timeframe === '3m') adjustedBudgetAmount = Number(budget.amount) * 3; // 3 months
-            else if (timeframe === '6m') adjustedBudgetAmount = Number(budget.amount) * 6; // 6 months
-            else if (timeframe === '12m') adjustedBudgetAmount = Number(budget.amount) * 12; // 12 months
-          }
-
-          console.log(`Adjusted budget amount for ${budget.category}: ${adjustedBudgetAmount}`);
+          console.log(`Using budget amount as-is: ${budgetAmount}`);
 
           categories.push({
             category: budget.category,
             spent: categorySpending[budget.category] || 0,
-            total: adjustedBudgetAmount,
+            total: budgetAmount,
             budgetId: budget.id,
           });
         });
