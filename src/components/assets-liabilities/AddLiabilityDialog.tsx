@@ -19,7 +19,7 @@ import {
 import { Plus } from "lucide-react"
 import { useState } from "react"
 import { Liability, LiabilityCategory, liabilityCategoryGroups } from "@/types/assets-liabilities"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { FamilyMember, BusinessEntity } from "@/types/entities"
 import { supabase } from "@/integrations/supabase/client"
 import { useQuery } from "@tanstack/react-query"
@@ -30,6 +30,7 @@ interface AddLiabilityDialogProps {
 
 export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) {
   const { toast } = useToast()
+  const [open, setOpen] = useState(false)
   const [selectedEntityId, setSelectedEntityId] = useState<string>("")
   const [newLiability, setNewLiability] = useState<Omit<Liability, "id">>({
     name: "",
@@ -87,6 +88,8 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
         history: [{ date: new Date().toISOString(), value: newLiability.amount }]
       }
       onAddLiability(liabilityWithEntity)
+      
+      // Reset form and close dialog
       setNewLiability({
         name: "",
         amount: 0,
@@ -96,6 +99,8 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
         history: [{ date: new Date().toISOString(), value: 0 }]
       })
       setSelectedEntityId("")
+      setOpen(false)
+      
       toast({
         title: "Liability Added",
         description: "Your new liability has been added successfully.",
@@ -104,7 +109,7 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
   }
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
