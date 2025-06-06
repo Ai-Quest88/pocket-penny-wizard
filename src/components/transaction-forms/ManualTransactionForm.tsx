@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,8 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, Plus } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
-import { categories } from "@/utils/transactionCategories"
-import { currencies } from "@/utils/currencyUtils"
+import { categories, currencies } from "@/types/transaction-forms"
 import { useAccounts } from "@/hooks/useAccounts"
 import type { Transaction, ManualTransactionFormProps } from "@/types/transaction-forms"
 

@@ -1,6 +1,16 @@
+
 export interface ExchangeRates {
   [key: string]: number;
 }
+
+export const currencies = [
+  { code: "USD", symbol: "$", name: "US Dollar" },
+  { code: "EUR", symbol: "€", name: "Euro" },
+  { code: "GBP", symbol: "£", name: "British Pound" },
+  { code: "JPY", symbol: "¥", name: "Japanese Yen" },
+  { code: "AUD", symbol: "$", name: "Australian Dollar" },
+  { code: "CAD", symbol: "$", name: "Canadian Dollar" },
+];
 
 export const fetchExchangeRates = async (baseCurrency: string): Promise<ExchangeRates> => {
   try {

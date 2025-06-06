@@ -20,6 +20,25 @@ export const transactionFormSchema = z.object({
 
 export type TransactionFormData = z.infer<typeof transactionFormSchema>;
 
+export interface Transaction {
+  id?: string;
+  date: string;
+  amount: number;
+  description: string;
+  category: string;
+  currency: string;
+  account: string;
+  comment?: string;
+}
+
+export interface ManualTransactionFormProps {
+  onTransactionAdded: (transaction: Omit<Transaction, 'id'>) => Promise<void>;
+}
+
+export interface CsvUploadProps {
+  onTransactionsUploaded: (transactions: Omit<Transaction, 'id'>[]) => Promise<void>;
+}
+
 export interface CategoryBucket {
   name: string;
   categories: string[];

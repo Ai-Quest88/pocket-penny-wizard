@@ -1,4 +1,3 @@
-
 export interface ParsedTransaction {
   description: string;
   amount: string;
@@ -249,4 +248,34 @@ export const parseCSV = (content: string): ParseResult => {
   }
 
   return { transactions, errors, detectedCurrency };
+};
+
+export const parseCsvFile = async (
+  file: File,
+  mapping: Record<string, string>,
+  defaultCurrency: string,
+  defaultAccount: string
+): Promise<Array<{
+  date: string;
+  amount: number;
+  description: string;
+  category: string;
+  currency: string;
+  account: string;
+}>> => {
+  const content = await file.text();
+  const result = parseCSV(content);
+  
+  if (result.errors.length > 0) {
+    throw new Error(`CSV parsing errors: ${result.errors.map(e => e.message).join(', ')}`);
+  }
+  
+  return result.transactions.map(tx => ({
+    date: tx.date,
+    amount: parseFloat(tx.amount),
+    description: tx.description,
+    category: tx.category,
+    currency: tx.currency || defaultCurrency,
+    account: defaultAccount || 'Default Account'
+  }));
 };

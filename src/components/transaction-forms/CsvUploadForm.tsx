@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { AlertCircle, Upload, Download } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { parseCsvFile } from "@/utils/csvParser"
-import { categories } from "@/utils/transactionCategories"
+import { categories } from "@/types/transaction-forms"
 import { useAccounts } from "@/hooks/useAccounts"
 import type { Transaction, CsvUploadProps } from "@/types/transaction-forms"
 
@@ -278,7 +278,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                     <SelectValue placeholder="Select default account" />
                   </SelectTrigger>
                   <SelectContent>
-                    {accounts.accounts.map(account => (
+                    {accounts.map(account => (
                       <SelectItem key={account.id} value={account.name}>
                         {account.name} ({account.type})
                       </SelectItem>
