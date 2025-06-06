@@ -1,8 +1,8 @@
 
 import { Card } from "@/components/ui/card"
 import {
-  LineChart,
-  Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -16,13 +16,13 @@ interface CashFlowChartProps {
 }
 
 const data = [
-  { month: "Jan", income: 5000, expense: 3500, netWorth: 45000 },
-  { month: "Feb", income: 5200, expense: 3200, netWorth: 47000 },
-  { month: "Mar", income: 4800, expense: 4100, netWorth: 47700 },
-  { month: "Apr", income: 5500, expense: 3800, netWorth: 49400 },
-  { month: "May", income: 5000, expense: 3600, netWorth: 50800 },
-  { month: "Jun", income: 5300, expense: 3900, netWorth: 52200 },
-  { month: "Jul", income: 5100, expense: 3700, netWorth: 53600 },
+  { month: "Jan", moneyIn: 5000, moneyOut: 3500, leftover: 1500 },
+  { month: "Feb", moneyIn: 5200, moneyOut: 3200, leftover: 2000 },
+  { month: "Mar", moneyIn: 4800, moneyOut: 4100, leftover: 700 },
+  { month: "Apr", moneyIn: 5500, moneyOut: 3800, leftover: 1700 },
+  { month: "May", moneyIn: 5000, moneyOut: 3600, leftover: 1400 },
+  { month: "Jun", moneyIn: 5300, moneyOut: 3900, leftover: 1400 },
+  { month: "Jul", moneyIn: 5100, moneyOut: 3700, leftover: 1400 },
 ]
 
 export const CashFlowChart = ({ entityId }: CashFlowChartProps) => {
@@ -35,7 +35,7 @@ export const CashFlowChart = ({ entityId }: CashFlowChartProps) => {
   return (
     <div className="h-[400px] w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart
+        <BarChart
           data={filteredData}
           margin={{
             top: 5,
@@ -65,31 +65,25 @@ export const CashFlowChart = ({ entityId }: CashFlowChartProps) => {
             }}
           />
           <Legend />
-          <Line
-            type="monotone"
-            dataKey="income"
-            stroke="#22c55e"
-            name="Income"
-            strokeWidth={2}
-            activeDot={{ r: 6 }}
+          <Bar
+            dataKey="moneyIn"
+            fill="#22c55e"
+            name="Money In"
+            radius={[2, 2, 0, 0]}
           />
-          <Line
-            type="monotone"
-            dataKey="expense"
-            stroke="#ef4444"
-            name="Expense"
-            strokeWidth={2}
-            activeDot={{ r: 6 }}
+          <Bar
+            dataKey="moneyOut"
+            fill="#ef4444"
+            name="Money Out"
+            radius={[2, 2, 0, 0]}
           />
-          <Line
-            type="monotone"
-            dataKey="netWorth"
-            stroke="#3b82f6"
-            name="Net Worth"
-            strokeWidth={2}
-            activeDot={{ r: 6 }}
+          <Bar
+            dataKey="leftover"
+            fill="#3b82f6"
+            name="Leftover"
+            radius={[2, 2, 0, 0]}
           />
-        </LineChart>
+        </BarChart>
       </ResponsiveContainer>
     </div>
   )
