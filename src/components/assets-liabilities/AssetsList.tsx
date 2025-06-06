@@ -56,7 +56,7 @@ export function AssetsList({ assets, onEditAsset }: AssetsListProps) {
       {assets.map((asset) => (
         <Card key={asset.id} className="p-4">
           <div className="flex justify-between items-start">
-            <div>
+            <div className="flex-1">
               <h3 className="font-medium">{asset.name}</h3>
               <div className="space-x-2">
                 <span className="text-sm text-muted-foreground capitalize">{asset.type}</span>
@@ -65,6 +65,16 @@ export function AssetsList({ assets, onEditAsset }: AssetsListProps) {
                 <span className="text-sm text-muted-foreground">•</span>
                 <span className="text-sm text-muted-foreground font-medium">{getEntityName(asset.entityId)}</span>
               </div>
+              {asset.accountNumber && (
+                <div className="mt-1">
+                  <span className="text-sm text-muted-foreground">Account: {asset.accountNumber}</span>
+                </div>
+              )}
+              {asset.address && (
+                <div className="mt-1">
+                  <span className="text-sm text-muted-foreground">Address: {asset.address}</span>
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-2">
               {onEditAsset && <EditAssetDialog asset={asset} onEditAsset={onEditAsset} />}

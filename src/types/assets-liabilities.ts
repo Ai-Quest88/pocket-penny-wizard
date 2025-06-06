@@ -1,3 +1,4 @@
+
 export type AssetType = "cash" | "investment" | "property" | "vehicle" | "other";
 export type LiabilityType = "credit" | "loan" | "mortgage" | "other";
 
@@ -53,6 +54,8 @@ export interface Asset {
   type: AssetType;
   category: AssetCategory;
   history: HistoricalValue[];
+  accountNumber?: string; // For cash assets
+  address?: string; // For property assets
 }
 
 export interface Liability {

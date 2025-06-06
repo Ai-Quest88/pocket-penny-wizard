@@ -38,7 +38,9 @@ export function EditAssetDialog({ asset, onEditAsset }: EditAssetDialogProps) {
     type: asset.type,
     category: asset.category,
     entityId: asset.entityId,
-    history: asset.history
+    history: asset.history,
+    accountNumber: asset.accountNumber || "",
+    address: asset.address || ""
   })
 
   // Fetch entities from Supabase
@@ -149,6 +151,30 @@ export function EditAssetDialog({ asset, onEditAsset }: EditAssetDialogProps) {
               </SelectContent>
             </Select>
           </div>
+
+          {formData.type === "cash" && (
+            <div className="space-y-2">
+              <Label htmlFor="account-number">Account Number</Label>
+              <Input
+                id="account-number"
+                value={formData.accountNumber || ""}
+                onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
+                placeholder="e.g., 1234567890"
+              />
+            </div>
+          )}
+
+          {formData.type === "property" && (
+            <div className="space-y-2">
+              <Label htmlFor="address">Property Address</Label>
+              <Input
+                id="address"
+                value={formData.address || ""}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                placeholder="e.g., 123 Main St, City, State"
+              />
+            </div>
+          )}
 
           {formData.type !== "cash" && (
             <div className="space-y-2">

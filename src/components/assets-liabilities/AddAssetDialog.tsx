@@ -39,7 +39,9 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
     type: "cash",
     category: "savings_account",
     entityId: "",
-    history: [{ date: new Date().toISOString(), value: 0 }]
+    history: [{ date: new Date().toISOString(), value: 0 }],
+    accountNumber: "",
+    address: ""
   })
 
   // Fetch entities from Supabase
@@ -96,7 +98,9 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
         type: "cash",
         category: "savings_account",
         entityId: "",
-        history: [{ date: new Date().toISOString(), value: 0 }]
+        history: [{ date: new Date().toISOString(), value: 0 }],
+        accountNumber: "",
+        address: ""
       })
       setSelectedEntityId("")
       setOpen(false)
@@ -170,6 +174,30 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
               </SelectContent>
             </Select>
           </div>
+
+          {newAsset.type === "cash" && (
+            <div className="space-y-2">
+              <Label htmlFor="account-number">Account Number</Label>
+              <Input
+                id="account-number"
+                value={newAsset.accountNumber || ""}
+                onChange={(e) => setNewAsset({ ...newAsset, accountNumber: e.target.value })}
+                placeholder="e.g., 1234567890"
+              />
+            </div>
+          )}
+
+          {newAsset.type === "property" && (
+            <div className="space-y-2">
+              <Label htmlFor="address">Property Address</Label>
+              <Input
+                id="address"
+                value={newAsset.address || ""}
+                onChange={(e) => setNewAsset({ ...newAsset, address: e.target.value })}
+                placeholder="e.g., 123 Main St, City, State"
+              />
+            </div>
+          )}
 
           {newAsset.type !== "cash" && (
             <div className="space-y-2">
