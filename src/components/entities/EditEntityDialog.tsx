@@ -1,5 +1,3 @@
-
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -141,7 +139,7 @@ export function EditEntityDialog({ entity, onEditEntity }: EditEntityDialogProps
 
           {entityType === "individual" ? (
             <div className="space-y-2">
-              <Label>Tax File Number</Label>
+              <Label>TFN</Label>
               <Input
                 value={formData.taxIdentifier}
                 onChange={(e) => setFormData({ ...formData, taxIdentifier: e.target.value })}
@@ -150,11 +148,11 @@ export function EditEntityDialog({ entity, onEditEntity }: EditEntityDialogProps
             </div>
           ) : (
             <div className="space-y-2">
-              <Label>Registration Number</Label>
+              <Label>ABN/ACN</Label>
               <Input
                 value={formData.registrationNumber}
                 onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
-                placeholder="ABN/ACN"
+                placeholder="Australian Business Number / Australian Company Number"
               />
             </div>
           )}
@@ -206,4 +204,3 @@ export function EditEntityDialog({ entity, onEditEntity }: EditEntityDialogProps
     </Dialog>
   );
 }
-
