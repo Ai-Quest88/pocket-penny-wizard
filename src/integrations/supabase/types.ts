@@ -9,6 +9,190 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      assets: {
+        Row: {
+          category: string
+          created_at: string
+          entity_id: string
+          id: string
+          name: string
+          type: string
+          updated_at: string
+          user_id: string
+          value: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          entity_id: string
+          id?: string
+          name: string
+          type: string
+          updated_at?: string
+          user_id: string
+          value: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          entity_id?: string
+          id?: string
+          name?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entities: {
+        Row: {
+          country_of_residence: string
+          created_at: string
+          date_added: string
+          date_of_birth: string | null
+          description: string | null
+          id: string
+          incorporation_date: string | null
+          name: string
+          registration_number: string | null
+          relationship: string | null
+          tax_identifier: string | null
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          country_of_residence: string
+          created_at?: string
+          date_added?: string
+          date_of_birth?: string | null
+          description?: string | null
+          id?: string
+          incorporation_date?: string | null
+          name: string
+          registration_number?: string | null
+          relationship?: string | null
+          tax_identifier?: string | null
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          country_of_residence?: string
+          created_at?: string
+          date_added?: string
+          date_of_birth?: string | null
+          description?: string | null
+          id?: string
+          incorporation_date?: string | null
+          name?: string
+          registration_number?: string | null
+          relationship?: string | null
+          tax_identifier?: string | null
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      historical_values: {
+        Row: {
+          asset_id: string | null
+          created_at: string
+          date: string
+          id: string
+          liability_id: string | null
+          user_id: string
+          value: number
+        }
+        Insert: {
+          asset_id?: string | null
+          created_at?: string
+          date: string
+          id?: string
+          liability_id?: string | null
+          user_id: string
+          value: number
+        }
+        Update: {
+          asset_id?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          liability_id?: string | null
+          user_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historical_values_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historical_values_liability_id_fkey"
+            columns: ["liability_id"]
+            isOneToOne: false
+            referencedRelation: "liabilities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      liabilities: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          entity_id: string
+          id: string
+          name: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string
+          entity_id: string
+          id?: string
+          name: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          entity_id?: string
+          id?: string
+          name?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "liabilities_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles_o6nkvd_users: {
         Row: {
           avatar_url: string | null

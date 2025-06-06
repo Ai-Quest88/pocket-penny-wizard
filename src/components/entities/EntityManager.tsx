@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -5,69 +6,189 @@ import { Entity, FamilyMember, BusinessEntity } from "@/types/entities";
 import { AddEntityDialog } from "./AddEntityDialog";
 import { EntityList } from "./EntityList";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export const EntityManager = () => {
-  const [entities, setEntities] = useState<(FamilyMember | BusinessEntity)[]>([]);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const savedEntities = localStorage.getItem('entities');
-    if (savedEntities) {
-      setEntities(JSON.parse(savedEntities));
-    }
-  }, []);
+  // Fetch entities from Supabase
+  const { data: entities = [], isLoading } = useQuery({
+    queryKey: ['entities'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('entities')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching entities:', error);
+        throw error;
+      }
+
+      return data.map(entity => ({
+        id: entity.id,
+        name: entity.name,
+        type: entity.type,
+        description: entity.description || '',
+        taxIdentifier: entity.tax_identifier || '',
+        countryOfResidence: entity.country_of_residence,
+        dateAdded: entity.date_added,
+        relationship: entity.relationship || '',
+        dateOfBirth: entity.date_of_birth || '',
+        registrationNumber: entity.registration_number || '',
+        incorporationDate: entity.incorporation_date || '',
+      })) as (FamilyMember | BusinessEntity)[];
+    },
+  });
+
+  // Add entity mutation
+  const addEntityMutation = useMutation({
+    mutationFn: async (newEntity: Omit<FamilyMember | BusinessEntity, "id" | "dateAdded">) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const entityData = {
+        user_id: user.id,
+        name: newEntity.name,
+        type: newEntity.type,
+        description: newEntity.description || null,
+        tax_identifier: newEntity.taxIdentifier || null,
+        country_of_residence: newEntity.countryOfResidence,
+        relationship: newEntity.type === 'individual' ? (newEntity as FamilyMember).relationship || null : null,
+        date_of_birth: newEntity.type === 'individual' ? (newEntity as FamilyMember).dateOfBirth || null : null,
+        registration_number: newEntity.type !== 'individual' ? (newEntity as BusinessEntity).registrationNumber || null : null,
+        incorporation_date: newEntity.type !== 'individual' ? (newEntity as BusinessEntity).incorporationDate || null : null,
+      };
+
+      const { data, error } = await supabase
+        .from('entities')
+        .insert([entityData])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['entities'] });
+      toast({
+        title: "Entity Added",
+        description: `${data.name} has been added successfully.`,
+      });
+    },
+    onError: (error) => {
+      console.error('Error adding entity:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add entity. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Edit entity mutation
+  const editEntityMutation = useMutation({
+    mutationFn: async ({ entityId, updatedEntity }: { 
+      entityId: string; 
+      updatedEntity: Omit<FamilyMember | BusinessEntity, "id" | "dateAdded"> 
+    }) => {
+      const entityData = {
+        name: updatedEntity.name,
+        type: updatedEntity.type,
+        description: updatedEntity.description || null,
+        tax_identifier: updatedEntity.taxIdentifier || null,
+        country_of_residence: updatedEntity.countryOfResidence,
+        relationship: updatedEntity.type === 'individual' ? (updatedEntity as FamilyMember).relationship || null : null,
+        date_of_birth: updatedEntity.type === 'individual' ? (updatedEntity as FamilyMember).dateOfBirth || null : null,
+        registration_number: updatedEntity.type !== 'individual' ? (updatedEntity as BusinessEntity).registrationNumber || null : null,
+        incorporation_date: updatedEntity.type !== 'individual' ? (updatedEntity as BusinessEntity).incorporationDate || null : null,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data, error } = await supabase
+        .from('entities')
+        .update(entityData)
+        .eq('id', entityId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['entities'] });
+      toast({
+        title: "Entity Updated",
+        description: `${data.name} has been updated successfully.`,
+      });
+    },
+    onError: (error) => {
+      console.error('Error updating entity:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update entity. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete entity mutation
+  const deleteEntityMutation = useMutation({
+    mutationFn: async (entityId: string) => {
+      const { error } = await supabase
+        .from('entities')
+        .delete()
+        .eq('id', entityId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['entities'] });
+      toast({
+        title: "Entity Deleted",
+        description: "The entity has been removed successfully.",
+      });
+    },
+    onError: (error) => {
+      console.error('Error deleting entity:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete entity. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleAddEntity = (newEntity: Omit<FamilyMember | BusinessEntity, "id" | "dateAdded">) => {
-    const entityWithMetadata = {
-      ...newEntity,
-      id: Date.now().toString(),
-      dateAdded: new Date().toISOString(),
-    };
-
-    const updatedEntities = [...entities, entityWithMetadata as FamilyMember | BusinessEntity];
-    setEntities(updatedEntities);
-    localStorage.setItem('entities', JSON.stringify(updatedEntities));
-
-    toast({
-      title: "Entity Added",
-      description: `${newEntity.name} has been added successfully.`,
-    });
+    addEntityMutation.mutate(newEntity);
   };
 
   const handleEditEntity = (entityId: string, updatedEntity: Omit<FamilyMember | BusinessEntity, "id" | "dateAdded">) => {
-    const existingEntity = entities.find(e => e.id === entityId);
-    if (!existingEntity) return;
-
-    const updatedEntities = entities.map(entity => {
-      if (entity.id === entityId) {
-        return {
-          ...updatedEntity,
-          id: entityId,
-          dateAdded: existingEntity.dateAdded,
-        } as FamilyMember | BusinessEntity;
-      }
-      return entity;
-    });
-
-    setEntities(updatedEntities);
-    localStorage.setItem('entities', JSON.stringify(updatedEntities));
-
-    toast({
-      title: "Entity Updated",
-      description: `${updatedEntity.name} has been updated successfully.`,
-    });
+    editEntityMutation.mutate({ entityId, updatedEntity });
   };
 
   const handleDeleteEntity = (entityId: string) => {
-    const updatedEntities = entities.filter(entity => entity.id !== entityId);
-    setEntities(updatedEntities);
-    localStorage.setItem('entities', JSON.stringify(updatedEntities));
-
-    toast({
-      title: "Entity Deleted",
-      description: "The entity has been removed successfully.",
-    });
+    deleteEntityMutation.mutate(entityId);
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-end">
+          <AddEntityDialog onAddEntity={handleAddEntity} />
+        </div>
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="p-6 animate-pulse">
+              <div className="h-20 bg-muted rounded" />
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

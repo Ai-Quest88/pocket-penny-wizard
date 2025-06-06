@@ -1,77 +1,127 @@
-import { useState, useEffect } from "react"
+
 import { DashboardCard } from "@/components/DashboardCard"
 import { LiabilitiesList } from "@/components/assets-liabilities/LiabilitiesList"
 import { AddLiabilityDialog } from "@/components/assets-liabilities/AddLiabilityDialog"
 import { Liability } from "@/types/assets-liabilities"
-import { v4 as uuidv4 } from 'uuid'
 import { useToast } from "@/components/ui/use-toast"
-
-const initialLiabilities: Liability[] = [
-  {
-    id: "1",
-    entityId: "personal",
-    name: "Home Mortgage",
-    amount: 320000,
-    type: "mortgage",
-    category: "home_loan",
-    history: []
-  },
-  {
-    id: "2",
-    entityId: "business",
-    name: "Business Loan",
-    amount: 75000,
-    type: "loan",
-    category: "personal_loan",
-    history: []
-  },
-  {
-    id: "3",
-    entityId: "personal",
-    name: "Car Loan",
-    amount: 25000,
-    type: "loan",
-    category: "auto_loan",
-    history: []
-  }
-]
+import { supabase } from "@/integrations/supabase/client"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 
 const Liabilities = () => {
   const { toast } = useToast()
-  const [liabilities, setLiabilities] = useState<Liability[]>([])
+  const queryClient = useQueryClient()
+
+  // Fetch liabilities from Supabase
+  const { data: liabilities = [], isLoading } = useQuery({
+    queryKey: ['liabilities'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('liabilities')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching liabilities:', error);
+        throw error;
+      }
+
+      return data.map(liability => ({
+        id: liability.id,
+        entityId: liability.entity_id,
+        name: liability.name,
+        amount: Number(liability.amount),
+        type: liability.type,
+        category: liability.category,
+        history: [], // Historical values would be fetched separately if needed
+      })) as Liability[];
+    },
+  });
+
+  // Add liability mutation
+  const addLiabilityMutation = useMutation({
+    mutationFn: async (newLiability: Omit<Liability, "id">) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { data, error } = await supabase
+        .from('liabilities')
+        .insert([{
+          user_id: user.id,
+          entity_id: newLiability.entityId,
+          name: newLiability.name,
+          amount: newLiability.amount,
+          type: newLiability.type,
+          category: newLiability.category,
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['liabilities'] });
+      toast({
+        title: "Liability Added",
+        description: "The liability has been added successfully.",
+      });
+    },
+    onError: (error) => {
+      console.error('Error adding liability:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add liability. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Edit liability mutation
+  const editLiabilityMutation = useMutation({
+    mutationFn: async ({ id, updatedLiability }: { id: string; updatedLiability: Omit<Liability, "id"> }) => {
+      const { data, error } = await supabase
+        .from('liabilities')
+        .update({
+          entity_id: updatedLiability.entityId,
+          name: updatedLiability.name,
+          amount: updatedLiability.amount,
+          type: updatedLiability.type,
+          category: updatedLiability.category,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['liabilities'] });
+      toast({
+        title: "Liability Updated",
+        description: "Your liability has been updated successfully.",
+      });
+    },
+    onError: (error) => {
+      console.error('Error updating liability:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update liability. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const totalLiabilities = liabilities.reduce((sum, liability) => sum + liability.amount, 0)
   const monthlyChange = -1.5 // This could be calculated based on historical data
 
-  useEffect(() => {
-    const savedLiabilities = localStorage.getItem('liabilities')
-    if (savedLiabilities) {
-      setLiabilities(JSON.parse(savedLiabilities))
-    } else {
-      setLiabilities(initialLiabilities)
-      localStorage.setItem('liabilities', JSON.stringify(initialLiabilities))
-    }
-  }, [])
-
   const handleAddLiability = (newLiability: Omit<Liability, "id">) => {
-    const liabilityWithId = {
-      ...newLiability,
-      id: uuidv4()
-    }
-    const updatedLiabilities = [...liabilities, liabilityWithId]
-    setLiabilities(updatedLiabilities)
-    localStorage.setItem('liabilities', JSON.stringify(updatedLiabilities))
+    addLiabilityMutation.mutate(newLiability);
   }
 
   const handleEditLiability = (id: string, updatedLiability: Omit<Liability, "id">) => {
-    const updatedLiabilities = liabilities.map(liability =>
-      liability.id === id ? { ...updatedLiability, id } : liability
-    )
-    setLiabilities(updatedLiabilities)
-    localStorage.setItem('liabilities', JSON.stringify(updatedLiabilities))
-    toast({
-      title: "Liability Updated",
-      description: "Your liability has been updated successfully.",
-    })
+    editLiabilityMutation.mutate({ id, updatedLiability });
   }
 
   return (

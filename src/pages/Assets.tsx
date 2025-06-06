@@ -1,77 +1,127 @@
-import { useState, useEffect } from "react"
+
 import { DashboardCard } from "@/components/DashboardCard"
 import { AssetsList } from "@/components/assets-liabilities/AssetsList"
 import { AddAssetDialog } from "@/components/assets-liabilities/AddAssetDialog"
 import { Asset } from "@/types/assets-liabilities"
-import { v4 as uuidv4 } from 'uuid'
 import { useToast } from "@/components/ui/use-toast"
-
-const initialAssets: Asset[] = [
-  {
-    id: "1",
-    entityId: "personal",
-    name: "Primary Residence",
-    value: 450000,
-    type: "property",
-    category: "residential",
-    history: []
-  },
-  {
-    id: "2",
-    entityId: "business",
-    name: "Investment Portfolio",
-    value: 150000,
-    type: "investment",
-    category: "stocks",
-    history: []
-  },
-  {
-    id: "3",
-    entityId: "personal",
-    name: "Savings Account",
-    value: 25000,
-    type: "cash",
-    category: "savings_account",
-    history: []
-  }
-]
+import { supabase } from "@/integrations/supabase/client"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 
 const Assets = () => {
   const { toast } = useToast()
-  const [assets, setAssets] = useState<Asset[]>([])
+  const queryClient = useQueryClient()
+
+  // Fetch assets from Supabase
+  const { data: assets = [], isLoading } = useQuery({
+    queryKey: ['assets'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('assets')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching assets:', error);
+        throw error;
+      }
+
+      return data.map(asset => ({
+        id: asset.id,
+        entityId: asset.entity_id,
+        name: asset.name,
+        value: Number(asset.value),
+        type: asset.type,
+        category: asset.category,
+        history: [], // Historical values would be fetched separately if needed
+      })) as Asset[];
+    },
+  });
+
+  // Add asset mutation
+  const addAssetMutation = useMutation({
+    mutationFn: async (newAsset: Omit<Asset, "id">) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { data, error } = await supabase
+        .from('assets')
+        .insert([{
+          user_id: user.id,
+          entity_id: newAsset.entityId,
+          name: newAsset.name,
+          value: newAsset.value,
+          type: newAsset.type,
+          category: newAsset.category,
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assets'] });
+      toast({
+        title: "Asset Added",
+        description: "The asset has been added successfully.",
+      });
+    },
+    onError: (error) => {
+      console.error('Error adding asset:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add asset. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Edit asset mutation
+  const editAssetMutation = useMutation({
+    mutationFn: async ({ id, updatedAsset }: { id: string; updatedAsset: Omit<Asset, "id"> }) => {
+      const { data, error } = await supabase
+        .from('assets')
+        .update({
+          entity_id: updatedAsset.entityId,
+          name: updatedAsset.name,
+          value: updatedAsset.value,
+          type: updatedAsset.type,
+          category: updatedAsset.category,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assets'] });
+      toast({
+        title: "Asset Updated",
+        description: "The asset has been updated successfully.",
+      });
+    },
+    onError: (error) => {
+      console.error('Error updating asset:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update asset. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const totalAssets = assets.reduce((sum, asset) => sum + asset.value, 0)
   const monthlyChange = 3.2 // This could be calculated based on historical data
 
-  useEffect(() => {
-    const savedAssets = localStorage.getItem('assets')
-    if (savedAssets) {
-      setAssets(JSON.parse(savedAssets))
-    } else {
-      setAssets(initialAssets)
-      localStorage.setItem('assets', JSON.stringify(initialAssets))
-    }
-  }, [])
-
   const handleAddAsset = (newAsset: Omit<Asset, "id">) => {
-    const assetWithId = {
-      ...newAsset,
-      id: uuidv4()
-    }
-    const updatedAssets = [...assets, assetWithId]
-    setAssets(updatedAssets)
-    localStorage.setItem('assets', JSON.stringify(updatedAssets))
+    addAssetMutation.mutate(newAsset);
   }
 
   const handleEditAsset = (id: string, updatedAsset: Omit<Asset, "id">) => {
-    const updatedAssets = assets.map(asset => 
-      asset.id === id ? { ...updatedAsset, id } : asset
-    )
-    setAssets(updatedAssets)
-    localStorage.setItem('assets', JSON.stringify(updatedAssets))
-    toast({
-      title: "Asset Updated",
-      description: "The asset has been updated successfully.",
-    })
+    editAssetMutation.mutate({ id, updatedAsset });
   }
 
   return (

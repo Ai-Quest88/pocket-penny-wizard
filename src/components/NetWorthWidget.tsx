@@ -1,30 +1,62 @@
+
 import { Card } from "@/components/ui/card"
 import { DollarSign, TrendingUp, TrendingDown } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
+import { supabase } from "@/integrations/supabase/client"
 
 interface NetWorthWidgetProps {
   entityId?: string;
 }
 
-// Simulated data fetch function - replace with actual API call later
+// Fetch net worth data from Supabase
 const fetchNetWorthData = async (entityId?: string) => {
-  // Simulating API call delay
-  await new Promise(resolve => setTimeout(resolve, 500))
-  
-  // In a real implementation, this would filter data based on entityId
-  return {
-    totalAssets: entityId ? 450000 : 1250000,
-    totalLiabilities: entityId ? 150000 : 450000,
-    netWorth: entityId ? 300000 : 800000,
-    previousNetWorth: entityId ? 280000 : 750000
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
+
+  // Fetch assets
+  let assetsQuery = supabase
+    .from('assets')
+    .select('value, entity_id');
+
+  if (entityId) {
+    assetsQuery = assetsQuery.eq('entity_id', entityId);
   }
+
+  const { data: assets, error: assetsError } = await assetsQuery;
+  if (assetsError) throw assetsError;
+
+  // Fetch liabilities
+  let liabilitiesQuery = supabase
+    .from('liabilities')
+    .select('amount, entity_id');
+
+  if (entityId) {
+    liabilitiesQuery = liabilitiesQuery.eq('entity_id', entityId);
+  }
+
+  const { data: liabilities, error: liabilitiesError } = await liabilitiesQuery;
+  if (liabilitiesError) throw liabilitiesError;
+
+  const totalAssets = assets?.reduce((sum, asset) => sum + Number(asset.value), 0) || 0;
+  const totalLiabilities = liabilities?.reduce((sum, liability) => sum + Number(liability.amount), 0) || 0;
+  const netWorth = totalAssets - totalLiabilities;
+
+  // For demo purposes, assume 5% growth from previous period
+  const previousNetWorth = netWorth * 0.95;
+
+  return {
+    totalAssets,
+    totalLiabilities,
+    netWorth,
+    previousNetWorth
+  };
 }
 
 export function NetWorthWidget({ entityId }: NetWorthWidgetProps) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['netWorth', entityId],
     queryFn: () => fetchNetWorthData(entityId),
-  })
+  });
 
   if (isLoading) {
     return (
@@ -34,9 +66,19 @@ export function NetWorthWidget({ entityId }: NetWorthWidgetProps) {
     )
   }
 
-  if (!data) return null
+  if (error || !data) {
+    return (
+      <Card className="p-6 space-y-4">
+        <div className="text-center text-muted-foreground">
+          Unable to load net worth data
+        </div>
+      </Card>
+    )
+  }
 
-  const netWorthChange = ((data.netWorth - data.previousNetWorth) / data.previousNetWorth) * 100
+  const netWorthChange = data.previousNetWorth > 0 
+    ? ((data.netWorth - data.previousNetWorth) / data.previousNetWorth) * 100 
+    : 0;
   const isPositiveChange = netWorthChange >= 0
 
   return (
@@ -53,16 +95,18 @@ export function NetWorthWidget({ entityId }: NetWorthWidgetProps) {
             <span className="text-2xl font-bold">
               ${data.netWorth.toLocaleString()}
             </span>
-            <div className={`flex items-center ${isPositiveChange ? 'text-green-500' : 'text-red-500'}`}>
-              {isPositiveChange ? (
-                <TrendingUp className="h-4 w-4" />
-              ) : (
-                <TrendingDown className="h-4 w-4" />
-              )}
-              <span className="text-sm ml-1">
-                {Math.abs(netWorthChange).toFixed(1)}%
-              </span>
-            </div>
+            {netWorthChange !== 0 && (
+              <div className={`flex items-center ${isPositiveChange ? 'text-green-500' : 'text-red-500'}`}>
+                {isPositiveChange ? (
+                  <TrendingUp className="h-4 w-4" />
+                ) : (
+                  <TrendingDown className="h-4 w-4" />
+                )}
+                <span className="text-sm ml-1">
+                  {Math.abs(netWorthChange).toFixed(1)}%
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
