@@ -1,4 +1,5 @@
 
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { PlusCircle } from "lucide-react";
 import { FamilyMember, BusinessEntity, EntityType } from "@/types/entities";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface AddEntityDialogProps {
   onAddEntity: (entity: Omit<FamilyMember | BusinessEntity, "id" | "dateAdded">) => void;
@@ -57,7 +58,7 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
       type: formData.type,
       description: formData.description,
       countryOfResidence: formData.countryOfResidence,
-      taxIdentifier: formData.taxIdentifier,
+      taxIdentifier: formData.type === "individual" ? formData.taxIdentifier : undefined,
     };
 
     if (formData.type === "individual") {
@@ -74,6 +75,7 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
         type: formData.type as "company" | "trust" | "super_fund",
         registrationNumber: formData.registrationNumber,
         incorporationDate: formData.incorporationDate,
+        taxIdentifier: undefined,
       };
       onAddEntity(businessEntity);
     }
@@ -148,14 +150,25 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>Tax Identifier</Label>
-            <Input
-              value={formData.taxIdentifier}
-              onChange={(e) => setFormData({ ...formData, taxIdentifier: e.target.value })}
-              placeholder={entityType === "individual" ? "Tax File Number" : "ABN/ACN"}
-            />
-          </div>
+          {entityType === "individual" ? (
+            <div className="space-y-2">
+              <Label>Tax File Number</Label>
+              <Input
+                value={formData.taxIdentifier}
+                onChange={(e) => setFormData({ ...formData, taxIdentifier: e.target.value })}
+                placeholder="Tax File Number"
+              />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label>Registration Number</Label>
+              <Input
+                value={formData.registrationNumber}
+                onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
+                placeholder="ABN/ACN"
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Description</Label>
@@ -186,24 +199,14 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
               </div>
             </>
           ) : (
-            <>
-              <div className="space-y-2">
-                <Label>Registration Number</Label>
-                <Input
-                  value={formData.registrationNumber}
-                  onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
-                  placeholder="Registration/ACN/ABN"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Incorporation Date</Label>
-                <Input
-                  type="date"
-                  value={formData.incorporationDate}
-                  onChange={(e) => setFormData({ ...formData, incorporationDate: e.target.value })}
-                />
-              </div>
-            </>
+            <div className="space-y-2">
+              <Label>Incorporation Date</Label>
+              <Input
+                type="date"
+                value={formData.incorporationDate}
+                onChange={(e) => setFormData({ ...formData, incorporationDate: e.target.value })}
+              />
+            </div>
           )}
 
           <Button onClick={handleSubmit} className="w-full">
@@ -214,3 +217,4 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
     </Dialog>
   );
 }
+
