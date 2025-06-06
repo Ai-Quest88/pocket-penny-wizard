@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -30,6 +31,7 @@ interface AddAssetDialogProps {
 
 export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
   const { toast } = useToast()
+  const [open, setOpen] = useState(false)
   const [selectedEntityId, setSelectedEntityId] = useState<string>("")
   const [newAsset, setNewAsset] = useState<Omit<Asset, "id">>({
     name: "",
@@ -97,6 +99,7 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
         history: [{ date: new Date().toISOString(), value: 0 }]
       })
       setSelectedEntityId("")
+      setOpen(false)
       toast({
         title: "Asset Added",
         description: "Your new asset has been added successfully.",
@@ -105,7 +108,7 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
   }
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
@@ -115,6 +118,9 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Add New Asset</DialogTitle>
+          <DialogDescription>
+            Create a new asset and assign it to an entity.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
