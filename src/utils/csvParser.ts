@@ -151,7 +151,10 @@ const detectHeaders = (firstRow: string[]): boolean => {
     return false;
   });
   
-  return hasHeaderPattern && !hasDataPattern;
+  // If we have header patterns and no data patterns, it's likely headers
+  // If we have no clear header patterns but also no clear data patterns, assume headers
+  // This makes the detection more permissive
+  return hasHeaderPattern || (!hasHeaderPattern && !hasDataPattern && firstRow.length >= 3);
 };
 
 const autoMapColumns = (headers: string[]): Record<string, string> => {
@@ -237,11 +240,26 @@ export const parseCSV = (content: string): ParseResult => {
   const hasHeaders = detectHeaders(firstRowFields);
   let autoMappedColumns: Record<string, string> = {};
   
+  // Always provide headers for the UI - either detected headers or generic column names
+  const headers = hasHeaders ? firstRowFields : firstRowFields.map((_, index) => `Column ${index + 1}`);
+  
   let startIndex = 0;
   if (hasHeaders) {
     startIndex = 1;
     autoMappedColumns = autoMapColumns(firstRowFields);
     console.log('Auto-mapped columns:', autoMappedColumns);
+  } else {
+    // If no headers detected, create basic mappings based on column positions
+    if (firstRowFields.length >= 3) {
+      autoMappedColumns = {
+        date: headers[0],
+        amount: headers[1],
+        description: headers[2]
+      };
+      if (firstRowFields.length >= 4) {
+        autoMappedColumns.category = headers[3];
+      }
+    }
   }
   
   // Generate preview data
@@ -252,7 +270,7 @@ export const parseCSV = (content: string): ParseResult => {
     const fields = parseCsvLine(line);
     const previewRow: Record<string, string> = {};
     
-    firstRowFields.forEach((header, index) => {
+    headers.forEach((header, index) => {
       previewRow[header] = fields[index] || '';
     });
     
@@ -358,9 +376,9 @@ export const parseCSV = (content: string): ParseResult => {
     success: errors.length === 0 || transactions.length > 0,
     transactions, 
     errors, 
-    headers: hasHeaders ? firstRowFields : undefined,
+    headers: headers, // Always return headers
     preview,
-    autoMappings: hasHeaders ? autoMappedColumns : undefined,
+    autoMappings: autoMappedColumns,
     error: errors.length > 0 && transactions.length === 0 ? errors.map(e => e.message).join(', ') : undefined
   };
 };
