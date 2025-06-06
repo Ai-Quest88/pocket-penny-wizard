@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -51,12 +50,33 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
         csvContent = await uploadedFile.text()
       } else {
         // Handle Excel files
-        const arrayBuffer = await uploadedFile.arrayBuffer()
-        const XLSX = await import('xlsx')
-        const workbook = XLSX.read(arrayBuffer, { type: 'array' })
-        const firstSheetName = workbook.SheetNames[0]
-        const worksheet = workbook.Sheets[firstSheetName]
-        csvContent = XLSX.utils.sheet_to_csv(worksheet)
+        try {
+          const arrayBuffer = await uploadedFile.arrayBuffer()
+          const XLSX = await import('xlsx')
+          const workbook = XLSX.read(arrayBuffer, { type: 'array' })
+          
+          if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+            throw new Error('No sheets found in Excel file')
+          }
+          
+          const firstSheetName = workbook.SheetNames[0]
+          const worksheet = workbook.Sheets[firstSheetName]
+          
+          if (!worksheet) {
+            throw new Error('Unable to read the first sheet')
+          }
+          
+          csvContent = XLSX.utils.sheet_to_csv(worksheet)
+        } catch (excelError) {
+          console.error('Excel parsing error:', excelError)
+          setErrors(['Error reading Excel file. Please ensure it is a valid Excel file with data in the first sheet.'])
+          return
+        }
+      }
+      
+      if (!csvContent || csvContent.trim() === '') {
+        setErrors(['File appears to be empty or contains no readable data'])
+        return
       }
       
       // Use the intelligent parser
@@ -67,8 +87,8 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
       }
       
       const lines = csvContent.split('\n').filter(line => line.trim())
-      if (lines.length < 2) {
-        setErrors(['File must contain at least a header row and one data row'])
+      if (lines.length < 1) {
+        setErrors(['File must contain at least one row of data'])
         return
       }
 
@@ -76,8 +96,12 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
       setHasHeaders(parseResult.hasHeaders || false)
       setAutoMapped(parseResult.autoMappedColumns || {})
       
+      let csvHeaders: string[] = []
+      
       if (parseResult.hasHeaders && parseResult.autoMappedColumns) {
-        const csvHeaders = lines[0].split(',').map(h => h.trim().replace(/"/g, ''))
+        // Split the first line to get headers, handling quoted fields
+        const firstLine = lines[0]
+        csvHeaders = firstLine.split(',').map(h => h.trim().replace(/^"|"$/g, ''))
         setHeaders(csvHeaders)
         setMapping(parseResult.autoMappedColumns)
         
@@ -93,20 +117,19 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
         }
       } else {
         // Fall back to manual mapping for files without headers
-        const csvHeaders = lines[0].split(',').map(h => h.trim().replace(/"/g, ''))
+        const firstLine = lines[0]
+        csvHeaders = firstLine.split(',').map((h, index) => h.trim().replace(/^"|"$/g, '') || `Column ${index + 1}`)
         setHeaders(csvHeaders)
         setMapping({})
         setShowMapping(true)
       }
 
       // Parse first few rows for preview
-      const previewData = lines.slice(parseResult.hasHeaders ? 1 : 0, 6).map(line => {
-        const values = line.split(',').map(v => v.trim().replace(/"/g, ''))
+      const startRow = parseResult.hasHeaders ? 1 : 0
+      const previewData = lines.slice(startRow, startRow + 5).map(line => {
+        const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''))
         const row: Record<string, string> = {}
-        const headersToUse = parseResult.hasHeaders ? 
-          lines[0].split(',').map(h => h.trim().replace(/"/g, '')) : 
-          csvHeaders
-        headersToUse.forEach((header, index) => {
+        csvHeaders.forEach((header, index) => {
           row[header] = values[index] || ''
         })
         return row
@@ -114,7 +137,8 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
       
       setPreview(previewData)
     } catch (error) {
-      setErrors(['Error reading file. Please ensure it is a valid CSV or Excel file.'])
+      console.error('File processing error:', error)
+      setErrors(['Error reading file. Please ensure it is a valid CSV or Excel file with proper formatting.'])
     }
   }, [])
 
