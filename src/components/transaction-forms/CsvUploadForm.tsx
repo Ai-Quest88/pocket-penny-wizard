@@ -47,13 +47,25 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
       }
 
       const csvHeaders = lines[0].split(',').map(h => h.trim().replace(/"/g, ''))
-      setHeaders(csvHeaders)
+      console.log("Raw CSV headers:", csvHeaders)
+      
+      // Comprehensive filtering for headers
+      const filteredHeaders = csvHeaders.filter(h => {
+        const isValid = h && typeof h === 'string' && h.trim() !== '' && h.trim() !== 'undefined' && h.trim() !== 'null'
+        if (!isValid) {
+          console.warn("Filtered out invalid header:", h)
+        }
+        return isValid
+      })
+      
+      console.log("Filtered headers:", filteredHeaders)
+      setHeaders(filteredHeaders)
 
       // Parse first few rows for preview
       const previewData = lines.slice(1, 6).map(line => {
         const values = line.split(',').map(v => v.trim().replace(/"/g, ''))
         const row: Record<string, string> = {}
-        csvHeaders.forEach((header, index) => {
+        filteredHeaders.forEach((header, index) => {
           row[header] = values[index] || ''
         })
         return row
@@ -115,11 +127,42 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
     URL.revokeObjectURL(url)
   }
 
-  // Filter headers to ensure no empty values
-  const validHeaders = headers.filter(header => header && header.trim() !== '')
+  // Enhanced filtering for headers with additional safety checks
+  const validHeaders = headers.filter(header => {
+    const isValid = header && 
+                   typeof header === 'string' && 
+                   header.trim() !== '' && 
+                   header.trim() !== 'undefined' && 
+                   header.trim() !== 'null' &&
+                   header.length > 0
+    
+    if (!isValid) {
+      console.error("Invalid header detected in validHeaders:", header, typeof header)
+    }
+    return isValid
+  })
   
-  // Filter accounts to ensure no empty values
-  const validAccounts = accounts.filter(account => account && account.name && account.name.trim() !== '')
+  // Enhanced filtering for accounts with additional safety checks
+  const validAccounts = accounts.filter(account => {
+    const isValid = account && 
+                   account.name && 
+                   typeof account.name === 'string' && 
+                   account.name.trim() !== '' &&
+                   account.name.trim() !== 'undefined' &&
+                   account.name.trim() !== 'null' &&
+                   account.id &&
+                   typeof account.id === 'string' &&
+                   account.id.trim() !== ''
+    
+    if (!isValid) {
+      console.error("Invalid account detected:", account)
+    }
+    return isValid
+  })
+
+  // Debug logging before render
+  console.log("CsvUploadForm render - validHeaders:", validHeaders)
+  console.log("CsvUploadForm render - validAccounts:", validAccounts)
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
@@ -179,9 +222,16 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                     <SelectValue placeholder="Select date column" />
                   </SelectTrigger>
                   <SelectContent>
-                    {validHeaders.map(header => (
-                      <SelectItem key={header} value={header}>{header}</SelectItem>
-                    ))}
+                    {validHeaders.map(header => {
+                      // Final safety check before rendering
+                      if (!header || header.trim() === '') {
+                        console.error("Attempting to render empty header in date mapping:", header)
+                        return null
+                      }
+                      return (
+                        <SelectItem key={`date-${header}`} value={header}>{header}</SelectItem>
+                      )
+                    })}
                   </SelectContent>
                 </Select>
               </div>
@@ -193,9 +243,15 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                     <SelectValue placeholder="Select amount column" />
                   </SelectTrigger>
                   <SelectContent>
-                    {validHeaders.map(header => (
-                      <SelectItem key={header} value={header}>{header}</SelectItem>
-                    ))}
+                    {validHeaders.map(header => {
+                      if (!header || header.trim() === '') {
+                        console.error("Attempting to render empty header in amount mapping:", header)
+                        return null
+                      }
+                      return (
+                        <SelectItem key={`amount-${header}`} value={header}>{header}</SelectItem>
+                      )
+                    })}
                   </SelectContent>
                 </Select>
               </div>
@@ -207,9 +263,15 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                     <SelectValue placeholder="Select description column" />
                   </SelectTrigger>
                   <SelectContent>
-                    {validHeaders.map(header => (
-                      <SelectItem key={header} value={header}>{header}</SelectItem>
-                    ))}
+                    {validHeaders.map(header => {
+                      if (!header || header.trim() === '') {
+                        console.error("Attempting to render empty header in description mapping:", header)
+                        return null
+                      }
+                      return (
+                        <SelectItem key={`description-${header}`} value={header}>{header}</SelectItem>
+                      )
+                    })}
                   </SelectContent>
                 </Select>
               </div>
@@ -222,9 +284,15 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
-                    {validHeaders.map(header => (
-                      <SelectItem key={header} value={header}>{header}</SelectItem>
-                    ))}
+                    {validHeaders.map(header => {
+                      if (!header || header.trim() === '') {
+                        console.error("Attempting to render empty header in category mapping:", header)
+                        return null
+                      }
+                      return (
+                        <SelectItem key={`category-${header}`} value={header}>{header}</SelectItem>
+                      )
+                    })}
                   </SelectContent>
                 </Select>
               </div>
@@ -237,9 +305,15 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
-                    {validHeaders.map(header => (
-                      <SelectItem key={header} value={header}>{header}</SelectItem>
-                    ))}
+                    {validHeaders.map(header => {
+                      if (!header || header.trim() === '') {
+                        console.error("Attempting to render empty header in account mapping:", header)
+                        return null
+                      }
+                      return (
+                        <SelectItem key={`account-${header}`} value={header}>{header}</SelectItem>
+                      )
+                    })}
                   </SelectContent>
                 </Select>
               </div>
@@ -252,9 +326,15 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
-                    {validHeaders.map(header => (
-                      <SelectItem key={header} value={header}>{header}</SelectItem>
-                    ))}
+                    {validHeaders.map(header => {
+                      if (!header || header.trim() === '') {
+                        console.error("Attempting to render empty header in currency mapping:", header)
+                        return null
+                      }
+                      return (
+                        <SelectItem key={`currency-${header}`} value={header}>{header}</SelectItem>
+                      )
+                    })}
                   </SelectContent>
                 </Select>
               </div>
@@ -285,11 +365,17 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                     <SelectValue placeholder="Select default account" />
                   </SelectTrigger>
                   <SelectContent>
-                    {validAccounts.map(account => (
-                      <SelectItem key={account.id} value={account.name}>
-                        {account.name} ({account.type})
-                      </SelectItem>
-                    ))}
+                    {validAccounts.map(account => {
+                      if (!account.name || account.name.trim() === '' || !account.id || account.id.trim() === '') {
+                        console.error("Attempting to render invalid account:", account)
+                        return null
+                      }
+                      return (
+                        <SelectItem key={account.id} value={account.name}>
+                          {account.name} ({account.type})
+                        </SelectItem>
+                      )
+                    })}
                   </SelectContent>
                 </Select>
               </div>
@@ -305,7 +391,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                 <thead>
                   <tr className="bg-gray-50">
                     {validHeaders.map(header => (
-                      <th key={header} className="border border-gray-300 px-3 py-2 text-left text-sm font-medium">
+                      <th key={`preview-header-${header}`} className="border border-gray-300 px-3 py-2 text-left text-sm font-medium">
                         {header}
                       </th>
                     ))}
@@ -313,9 +399,9 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                 </thead>
                 <tbody>
                   {preview.map((row, index) => (
-                    <tr key={index}>
+                    <tr key={`preview-row-${index}`}>
                       {validHeaders.map(header => (
-                        <td key={header} className="border border-gray-300 px-3 py-2 text-sm">
+                        <td key={`preview-cell-${index}-${header}`} className="border border-gray-300 px-3 py-2 text-sm">
                           {row[header]}
                         </td>
                       ))}
