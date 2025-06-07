@@ -4,6 +4,7 @@ import { Transaction } from "@/types/transaction-forms";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { categorizeTransaction } from "@/utils/transactionCategories";
 
 interface ImportTransactionsProps {
   onSuccess?: () => void;
@@ -26,18 +27,18 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
     }
 
     try {
-      // Prepare transactions for database insertion
+      // Prepare transactions for database insertion with proper categorization
       const transactionsForDb = transactions.map(transaction => ({
         user_id: session.user.id,
         description: transaction.description,
         amount: transaction.amount,
-        category: transaction.category,
+        category: categorizeTransaction(transaction.description), // Auto-categorize on import
         date: transaction.date,
         currency: transaction.currency,
         comment: transaction.comment || null,
       }));
 
-      console.log("Inserting transactions to database:", transactionsForDb);
+      console.log("Inserting transactions to database with categories:", transactionsForDb);
 
       const { data, error } = await supabase
         .from('transactions')
@@ -79,7 +80,7 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
       <div className="space-y-2">
         <h2 className="text-2xl font-semibold">Import Transactions</h2>
         <p className="text-muted-foreground">
-          Upload a CSV file to import your transactions. Currency will be automatically detected from your CSV file.
+          Upload a CSV file to import your transactions. Transactions will be automatically categorized based on their description.
         </p>
       </div>
       

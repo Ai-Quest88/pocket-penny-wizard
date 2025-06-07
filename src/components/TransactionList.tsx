@@ -78,18 +78,20 @@ export const TransactionList = ({ entityId, showBalance = true, readOnly = false
       
       console.log('Fetched transactions:', data);
 
-      // Only re-categorize transactions that have 'Other' or empty categories
+      // Find transactions that need re-categorization (case-insensitive check)
       const transactionsToUpdate = data.filter(
-        transaction => !transaction.category || transaction.category === 'Other'
+        transaction => !transaction.category || 
+                     transaction.category.toLowerCase() === 'other' ||
+                     transaction.category.toLowerCase() === ''
       );
 
       console.log(`Found ${transactionsToUpdate.length} transactions to re-categorize`);
 
       if (transactionsToUpdate.length > 0) {
-        // Update only the transactions that need re-categorization
-        const updates = transactionsToUpdate.map(async (transaction) => {
+        // Batch update transactions with new categories
+        const updatePromises = transactionsToUpdate.map(async (transaction) => {
           const newCategory = categorizeTransaction(transaction.description);
-          console.log(`Re-categorizing "${transaction.description}" as: ${newCategory}`);
+          console.log(`Re-categorizing "${transaction.description}" from "${transaction.category}" to: ${newCategory}`);
           
           const { error: updateError } = await supabase
             .from('transactions')
@@ -98,23 +100,18 @@ export const TransactionList = ({ entityId, showBalance = true, readOnly = false
 
           if (updateError) {
             console.error('Error updating transaction category:', updateError);
+            return transaction; // Return original if update fails
           }
           
           return { ...transaction, category: newCategory };
         });
 
-        await Promise.all(updates);
+        const updatedTransactions = await Promise.all(updatePromises);
 
-        // Return updated data
+        // Return the data with updated categories
         return data.map(transaction => {
-          const updatedTransaction = transactionsToUpdate.find(t => t.id === transaction.id);
-          if (updatedTransaction) {
-            return {
-              ...transaction,
-              category: categorizeTransaction(transaction.description)
-            };
-          }
-          return transaction;
+          const updatedTransaction = updatedTransactions.find(t => t.id === transaction.id);
+          return updatedTransaction || transaction;
         });
       }
 
