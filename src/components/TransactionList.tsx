@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -11,6 +10,7 @@ import { TransactionSearch } from "./transactions/TransactionSearch";
 import { BulkEditActions } from "./transactions/BulkEditActions";
 import { EditTransactionDialog } from "./transactions/EditTransactionDialog";
 import { categorizeTransaction } from "@/utils/transactionCategories";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Transaction {
   id: string;
@@ -54,14 +54,21 @@ export const TransactionList = ({ entityId, showBalance = true, readOnly = false
     amountRange: ""
   });
   const queryClient = useQueryClient();
+  const { session } = useAuth();
 
   const { data: transactions = [], isLoading, error } = useQuery({
-    queryKey: ['transactions'],
+    queryKey: ['transactions', session?.user?.id],
     queryFn: async () => {
-      console.log('Fetching transactions...');
+      if (!session?.user) {
+        console.log('No authenticated user, returning empty transactions');
+        return [];
+      }
+
+      console.log('Fetching transactions for user:', session.user.id);
       const { data, error } = await supabase
         .from('transactions')
         .select('*')
+        .eq('user_id', session.user.id)
         .order('date', { ascending: false });
 
       if (error) {
@@ -80,7 +87,7 @@ export const TransactionList = ({ entityId, showBalance = true, readOnly = false
 
       if (transactionsToUpdate.length > 0) {
         // Update only the transactions that need re-categorization
-        for (const transaction of transactionsToUpdate) {
+        const updates = transactionsToUpdate.map(async (transaction) => {
           const newCategory = categorizeTransaction(transaction.description);
           console.log(`Re-categorizing "${transaction.description}" as: ${newCategory}`);
           
@@ -92,11 +99,16 @@ export const TransactionList = ({ entityId, showBalance = true, readOnly = false
           if (updateError) {
             console.error('Error updating transaction category:', updateError);
           }
-        }
+          
+          return { ...transaction, category: newCategory };
+        });
+
+        await Promise.all(updates);
 
         // Return updated data
         return data.map(transaction => {
-          if (transactionsToUpdate.find(t => t.id === transaction.id)) {
+          const updatedTransaction = transactionsToUpdate.find(t => t.id === transaction.id);
+          if (updatedTransaction) {
             return {
               ...transaction,
               category: categorizeTransaction(transaction.description)
@@ -108,6 +120,7 @@ export const TransactionList = ({ entityId, showBalance = true, readOnly = false
 
       return data;
     },
+    enabled: !!session?.user,
   });
 
   const { data: exchangeRates, isLoading: ratesLoading } = useQuery({
@@ -243,6 +256,18 @@ export const TransactionList = ({ entityId, showBalance = true, readOnly = false
   const selectedTransactionObjects = filteredTransactions.filter(t => 
     selectedTransactions.includes(t.id)
   );
+
+  if (!session?.user) {
+    return (
+      <Card className="animate-fadeIn">
+        <div className="p-6">
+          <div className="text-center">
+            <p className="text-muted-foreground">Please log in to view your transactions</p>
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
   if (isLoading) {
     return (
