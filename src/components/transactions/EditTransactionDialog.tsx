@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,6 +13,7 @@ import { TransactionInfo } from "./TransactionInfo";
 import { CategorySelect } from "./CategorySelect";
 import { CommentField } from "./CommentField";
 import { Trash2 } from "lucide-react";
+import { addUserCategoryRule } from "@/utils/transactionCategories";
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -139,6 +139,17 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
     setIsSubmitting(true);
 
     try {
+      // Check if category was changed and add user rule
+      if (data.category !== transaction.category && transaction.description) {
+        console.log(`Category changed from "${transaction.category}" to "${data.category}" for "${transaction.description}"`);
+        addUserCategoryRule(transaction.description, data.category);
+        
+        toast({
+          title: "Learning Applied",
+          description: `Future transactions similar to "${transaction.description}" will be categorized as "${data.category}".`,
+        });
+      }
+
       const updateData = {
         category: data.category,
         comment: data.comment || null,
