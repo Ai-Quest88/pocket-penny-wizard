@@ -2,14 +2,14 @@ import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchExchangeRates } from "@/utils/currencyUtils";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { TransactionListHeader } from "./transactions/TransactionListHeader";
 import { TransactionTable } from "./transactions/TransactionTable";
 import { TransactionSearch } from "./transactions/TransactionSearch";
 import { BulkEditActions } from "./transactions/BulkEditActions";
 import { EditTransactionDialog } from "./transactions/EditTransactionDialog";
-import { categorizeTransaction } from "@/utils/transactionCategories";
+import { categorizeTransaction, initializeAIClassifier } from "@/utils/transactionCategories";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface Transaction {
@@ -56,6 +56,13 @@ export const TransactionList = ({ entityId, showBalance = true, readOnly = false
   const queryClient = useQueryClient();
   const { session } = useAuth();
 
+  // Initialize AI classifier when component mounts
+  useEffect(() => {
+    initializeAIClassifier().catch(error => {
+      console.warn('Failed to initialize AI classifier:', error);
+    });
+  }, []);
+
   const { data: transactions = [], isLoading, error } = useQuery({
     queryKey: ['transactions', session?.user?.id],
     queryFn: async () => {
@@ -85,13 +92,13 @@ export const TransactionList = ({ entityId, showBalance = true, readOnly = false
                      transaction.category.toLowerCase() === ''
       );
 
-      console.log(`Found ${transactionsToUpdate.length} transactions to re-categorize`);
+      console.log(`Found ${transactionsToUpdate.length} transactions to re-categorize with AI`);
 
       if (transactionsToUpdate.length > 0) {
-        // Batch update transactions with new categories
+        // Batch update transactions with AI categories
         const updatePromises = transactionsToUpdate.map(async (transaction) => {
-          const newCategory = categorizeTransaction(transaction.description);
-          console.log(`Re-categorizing "${transaction.description}" from "${transaction.category}" to: ${newCategory}`);
+          const newCategory = await categorizeTransaction(transaction.description);
+          console.log(`AI re-categorizing "${transaction.description}" from "${transaction.category}" to: ${newCategory}`);
           
           const { error: updateError } = await supabase
             .from('transactions')

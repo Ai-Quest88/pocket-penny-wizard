@@ -1,3 +1,4 @@
+import { categorizeTransactionWithAI } from './aiCategorization';
 
 type CategoryRule = {
   keywords: string[];
@@ -177,7 +178,8 @@ export const categories = [...new Set([
   'Other', 'Gifts', 'Charity', 'Insurance'
 ])];
 
-export const categorizeTransaction = (description: string): string => {
+// Keyword-based fallback categorization
+const categorizeWithKeywords = (description: string): string => {
   const lowerDescription = description.toLowerCase();
   
   // First check user-defined rules (they take priority)
@@ -196,8 +198,39 @@ export const categorizeTransaction = (description: string): string => {
     }
   }
   
-  console.log(`No match found for: "${description}" -> Other`);
+  console.log(`No keyword match found for: "${description}" -> Other`);
   return 'Other';
+};
+
+// Main categorization function that uses AI first, then falls back to keywords
+export const categorizeTransaction = async (description: string): Promise<string> => {
+  // First check user-defined rules (they always take priority)
+  const lowerDescription = description.toLowerCase();
+  for (const rule of userDefinedRules) {
+    if (rule.keywords.some(keyword => lowerDescription.includes(keyword))) {
+      console.log(`Matched user rule: "${description}" -> ${rule.category}`);
+      return rule.category;
+    }
+  }
+
+  try {
+    // Try AI categorization first
+    const aiCategory = await categorizeTransactionWithAI(description);
+    if (aiCategory && aiCategory !== 'Other') {
+      console.log(`AI categorized: "${description}" -> ${aiCategory}`);
+      return aiCategory;
+    }
+  } catch (error) {
+    console.warn('AI categorization failed, falling back to keywords:', error);
+  }
+
+  // Fall back to keyword-based categorization
+  return categorizeWithKeywords(description);
+};
+
+// Synchronous version for backward compatibility
+export const categorizeTransactionSync = (description: string): string => {
+  return categorizeWithKeywords(description);
 };
 
 // Initialize user rules on module load

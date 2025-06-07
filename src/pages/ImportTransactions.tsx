@@ -4,7 +4,8 @@ import { Transaction } from "@/types/transaction-forms";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { categorizeTransaction } from "@/utils/transactionCategories";
+import { categorizeTransaction, initializeAIClassifier } from "@/utils/transactionCategories";
+import { useEffect } from "react";
 
 interface ImportTransactionsProps {
   onSuccess?: () => void;
@@ -13,6 +14,13 @@ interface ImportTransactionsProps {
 export default function ImportTransactions({ onSuccess }: ImportTransactionsProps) {
   const { toast } = useToast();
   const { session } = useAuth();
+
+  // Initialize AI classifier when component mounts
+  useEffect(() => {
+    initializeAIClassifier().catch(error => {
+      console.warn('Failed to initialize AI classifier:', error);
+    });
+  }, []);
 
   const handleTransactionsUploaded = async (transactions: Omit<Transaction, 'id'>[]) => {
     console.log("Transactions uploaded:", transactions);
@@ -27,18 +35,25 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
     }
 
     try {
-      // Prepare transactions for database insertion with proper categorization
-      const transactionsForDb = transactions.map(transaction => ({
-        user_id: session.user.id,
-        description: transaction.description,
-        amount: transaction.amount,
-        category: categorizeTransaction(transaction.description), // Auto-categorize on import
-        date: transaction.date,
-        currency: transaction.currency,
-        comment: transaction.comment || null,
-      }));
+      toast({
+        title: "Processing",
+        description: "Categorizing transactions with AI...",
+      });
 
-      console.log("Inserting transactions to database with categories:", transactionsForDb);
+      // Prepare transactions for database insertion with AI categorization
+      const transactionsForDb = await Promise.all(
+        transactions.map(async (transaction) => ({
+          user_id: session.user.id,
+          description: transaction.description,
+          amount: transaction.amount,
+          category: await categorizeTransaction(transaction.description), // AI categorization
+          date: transaction.date,
+          currency: transaction.currency,
+          comment: transaction.comment || null,
+        }))
+      );
+
+      console.log("Inserting transactions to database with AI categories:", transactionsForDb);
 
       const { data, error } = await supabase
         .from('transactions')
@@ -59,7 +74,7 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
       
       toast({
         title: "Success",
-        description: `Successfully imported ${transactions.length} transaction${transactions.length !== 1 ? 's' : ''}.`,
+        description: `Successfully imported ${transactions.length} transaction${transactions.length !== 1 ? 's' : ''} with AI categorization.`,
       });
 
       onSuccess?.();
@@ -80,7 +95,7 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
       <div className="space-y-2">
         <h2 className="text-2xl font-semibold">Import Transactions</h2>
         <p className="text-muted-foreground">
-          Upload a CSV file to import your transactions. Transactions will be automatically categorized based on their description.
+          Upload a CSV file to import your transactions. Transactions will be automatically categorized using AI for improved accuracy.
         </p>
       </div>
       
