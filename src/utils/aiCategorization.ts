@@ -6,18 +6,18 @@ env.allowLocalModels = false;
 
 // Define the categories we want to classify into with improved descriptions
 const CATEGORY_MAPPING = {
-  'This is a food or dining related expense': 'Food',
-  'This is a transportation or travel expense': 'Transport', 
-  'This is a shopping or retail purchase': 'Shopping',
-  'This is a utility bill or regular service payment': 'Bills',
-  'This is entertainment or leisure spending': 'Entertainment',
-  'This is a health or medical expense': 'Health',
-  'This is a travel or accommodation expense': 'Travel',
-  'This is an education or learning expense': 'Education',
-  'This is income, salary, or money received': 'Income',
-  'This is an investment or trading transaction': 'Investment',
-  'This is a banking transaction, credit card payment, transfer, or financial service fee': 'Banking',
-  'This does not fit into any specific category': 'Other'
+  'This transaction involves a bank, credit card company, payment processor, or financial institution for fees, transfers, or card payments': 'Banking',
+  'This is a purchase of food, groceries, restaurant meals, or dining expenses': 'Food',
+  'This is a transportation expense like fuel, parking, public transport, rideshare, or vehicle costs': 'Transport', 
+  'This is a retail purchase of goods, clothing, electronics, or general shopping': 'Shopping',
+  'This is a utility bill, rent payment, insurance premium, or regular service payment': 'Bills',
+  'This is entertainment spending like movies, streaming, music, gaming, or recreational activities': 'Entertainment',
+  'This is a health or medical expense including doctor visits, pharmacy, or wellness services': 'Health',
+  'This is a travel or accommodation expense like hotels, flights, or vacation bookings': 'Travel',
+  'This is an education expense like school fees, courses, books, or training': 'Education',
+  'This is income, salary, wages, refunds, or money received': 'Income',
+  'This is an investment, trading, stock purchase, or retirement fund transaction': 'Investment',
+  'This does not clearly fit into any specific spending category': 'Other'
 };
 
 const CATEGORY_LABELS = Object.keys(CATEGORY_MAPPING);
@@ -59,6 +59,27 @@ export const categorizeTransactionWithAI = async (description: string): Promise<
     }
 
     console.log(`Categorizing transaction with AI: "${description}"`);
+
+    // Enhanced preprocessing with banking keyword detection
+    const lowerDescription = description.toLowerCase();
+    
+    // Check for clear banking indicators first
+    const bankingKeywords = [
+      'citibank', 'commbank', 'westpac', 'anz', 'nab', 'suncorp',
+      'creditcard', 'credit card', 'bpay', 'visa', 'mastercard', 'amex',
+      'transfer', 'atm', 'bank fee', 'service fee', 'monthly fee',
+      'netbank', 'internet banking', 'eftpos', 'payment to', 'payment from'
+    ];
+    
+    const hasBankingKeywords = bankingKeywords.some(keyword => 
+      lowerDescription.includes(keyword)
+    );
+    
+    // If clear banking indicators are present, bias towards banking
+    if (hasBankingKeywords) {
+      console.log(`Banking keywords detected in "${description}", returning Banking category`);
+      return 'Banking';
+    }
 
     // Clean up the description for better classification
     const cleanDescription = description
