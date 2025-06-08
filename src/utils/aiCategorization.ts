@@ -22,16 +22,62 @@ const CATEGORIES = [
 
 let classifier: any = null;
 
-// Initialize the AI classifier with a better model for classification
+// Enhanced banking keywords for better detection
+const BANKING_KEYWORDS = [
+  'citibank', 'commbank', 'westpac', 'anz', 'nab', 'suncorp', 'macquarie',
+  'creditcard', 'credit card', 'bpay', 'visa', 'mastercard', 'amex',
+  'bank transfer', 'atm', 'bank fee', 'service fee', 'monthly fee',
+  'netbank', 'internet banking', 'eftpos', 'card payment', 'banking',
+  'direct debit', 'autopay', 'bill payment', 'loan payment', 'mortgage'
+];
+
+const FOOD_KEYWORDS = [
+  'restaurant', 'cafe', 'mcdonalds', 'kfc', 'subway', 'pizza', 'uber eats',
+  'deliveroo', 'menulog', 'grocery', 'woolworths', 'coles', 'iga', 'aldi',
+  'food', 'dining', 'takeaway', 'bakery', 'butcher', 'deli'
+];
+
+const TRANSPORT_KEYWORDS = [
+  'petrol', 'fuel', 'shell', 'bp', 'caltex', 'parking', 'uber', 'taxi',
+  'train', 'bus', 'ferry', 'toll', 'rego', 'registration', 'mechanic',
+  'car service', 'tyres', 'automotive'
+];
+
+// Rule-based classification with keyword matching
+const classifyWithRules = (description: string): string | null => {
+  const lowerDesc = description.toLowerCase();
+  
+  // Check for banking indicators first (highest priority)
+  if (BANKING_KEYWORDS.some(keyword => lowerDesc.includes(keyword))) {
+    console.log(`Rule-based classification: "${description}" -> Banking (matched banking keywords)`);
+    return 'Banking';
+  }
+  
+  // Check for food indicators
+  if (FOOD_KEYWORDS.some(keyword => lowerDesc.includes(keyword))) {
+    console.log(`Rule-based classification: "${description}" -> Food (matched food keywords)`);
+    return 'Food';
+  }
+  
+  // Check for transport indicators
+  if (TRANSPORT_KEYWORDS.some(keyword => lowerDesc.includes(keyword))) {
+    console.log(`Rule-based classification: "${description}" -> Transport (matched transport keywords)`);
+    return 'Transport';
+  }
+  
+  return null; // No rule matched, will fallback to AI
+};
+
+// Initialize a better AI classifier
 export const initializeAIClassifier = async () => {
   if (classifier) return classifier;
   
   try {
     console.log('Loading AI classification model...');
-    // Using a lightweight, fast classification model specifically designed for this task
+    // Using DistilBERT for better text classification
     classifier = await pipeline(
-      'text-classification',
-      'microsoft/DialoGPT-medium',
+      'zero-shot-classification',
+      'Xenova/distilbert-base-uncased-mnli',
       { 
         revision: 'main'
       }
@@ -40,12 +86,12 @@ export const initializeAIClassifier = async () => {
     return classifier;
   } catch (error) {
     console.error('Failed to load AI classification model:', error);
-    // Fallback to zero-shot classification if the primary model fails
+    // Fallback to Facebook BART model
     try {
       console.log('Trying fallback classification model...');
       classifier = await pipeline(
         'zero-shot-classification',
-        'facebook/bart-large-mnli',
+        'Xenova/bart-large-mnli',
         { 
           revision: 'main'
         }
@@ -59,10 +105,18 @@ export const initializeAIClassifier = async () => {
   }
 };
 
-// Enhanced categorization with better preprocessing and model selection
+// Enhanced categorization with rule-based fallback
 export const categorizeTransactionWithAI = async (description: string): Promise<string> => {
   try {
-    // Initialize classifier if not already done
+    console.log(`Categorizing transaction: "${description}"`);
+
+    // First, try rule-based classification
+    const ruleBasedCategory = classifyWithRules(description);
+    if (ruleBasedCategory) {
+      return ruleBasedCategory;
+    }
+
+    // If no rule matches, try AI classification
     if (!classifier) {
       classifier = await initializeAIClassifier();
     }
@@ -72,76 +126,70 @@ export const categorizeTransactionWithAI = async (description: string): Promise<
       return 'Other';
     }
 
-    console.log(`Categorizing transaction with AI: "${description}"`);
-
-    // Enhanced preprocessing - clean and normalize the description
+    // Enhanced preprocessing
     const cleanDescription = description
       .toLowerCase()
-      .replace(/\b\d+\b/g, '') // Remove reference numbers
+      .replace(/\b\d+\b/g, '') // Remove numbers
       .replace(/[^\w\s]/g, ' ') // Replace special characters with spaces
       .replace(/\s+/g, ' ') // Replace multiple spaces with single space
       .trim();
 
-    // Quick keyword-based pre-filtering for obvious banking transactions
-    const bankingIndicators = [
-      'citibank', 'commbank', 'westpac', 'anz', 'nab', 'suncorp',
-      'creditcard', 'credit card', 'bpay', 'visa', 'mastercard', 'amex',
-      'bank transfer', 'atm', 'bank fee', 'service fee', 'monthly fee',
-      'netbank', 'internet banking', 'eftpos'
+    // More specific category labels for better AI classification
+    const categoryLabels = [
+      'banking and financial services including credit card payments and bank transfers',
+      'food and dining including restaurants groceries and takeaway',
+      'transportation including fuel parking and vehicle expenses',
+      'shopping and retail purchases',
+      'utility bills and regular payments',
+      'entertainment and leisure activities',
+      'healthcare and medical expenses',
+      'travel and accommodation',
+      'education and learning',
+      'income and salary payments',
+      'investment and financial planning',
+      'miscellaneous other expenses'
     ];
+
+    const result = await classifier(cleanDescription, categoryLabels);
     
-    if (bankingIndicators.some(indicator => cleanDescription.includes(indicator))) {
-      console.log(`Clear banking transaction detected: "${description}" -> Banking`);
+    // Map back to our simple category names
+    const topCategory = result.labels[0];
+    const confidence = result.scores[0];
+    
+    console.log(`AI classification result for "${description}": ${topCategory} (confidence: ${(confidence * 100).toFixed(1)}%)`);
+    
+    // Map the detailed labels back to our categories
+    if (topCategory.includes('banking') || topCategory.includes('financial services')) {
       return 'Banking';
-    }
-
-    // Create a more descriptive prompt for better classification
-    const enhancedPrompt = `Transaction: ${cleanDescription}. Categorize this financial transaction.`;
-
-    let result;
-    
-    // Try zero-shot classification first (more accurate for our use case)
-    if (classifier.task === 'zero-shot-classification') {
-      // Create detailed category descriptions for better classification
-      const categoryDescriptions = [
-        'Banking and financial services: credit card payments, bank transfers, fees, ATM transactions',
-        'Food and dining: restaurants, groceries, takeaway, cafes, food delivery',
-        'Transportation: fuel, parking, public transport, rideshare, vehicle expenses',
-        'Shopping and retail: clothing, electronics, general purchases, online shopping',
-        'Bills and utilities: rent, electricity, water, gas, phone, internet, insurance',
-        'Entertainment: movies, streaming, gaming, music, recreational activities',
-        'Health and medical: doctor visits, pharmacy, medical expenses, fitness',
-        'Travel and accommodation: hotels, flights, vacation expenses, booking fees',
-        'Education: school fees, courses, books, training, educational expenses',
-        'Income: salary, wages, refunds, payments received, dividends',
-        'Investment: stock purchases, trading, retirement funds, investment fees',
-        'Other: miscellaneous expenses that don\'t fit other categories'
-      ];
-      
-      result = await classifier(enhancedPrompt, categoryDescriptions);
-      
-      // Map the result back to our simple category names
-      const topCategory = result.labels[0];
-      const categoryIndex = categoryDescriptions.findIndex(desc => desc === topCategory);
-      const finalCategory = CATEGORIES[categoryIndex] || 'Other';
-      
-      console.log(`AI categorization result for "${description}": ${finalCategory} (confidence: ${(result.scores[0] * 100).toFixed(1)}%)`);
-      
-      // Return the category if confidence is reasonable
-      return result.scores[0] > 0.3 ? finalCategory : 'Other';
-      
+    } else if (topCategory.includes('food') || topCategory.includes('dining')) {
+      return 'Food';
+    } else if (topCategory.includes('transportation') || topCategory.includes('fuel')) {
+      return 'Transport';
+    } else if (topCategory.includes('shopping') || topCategory.includes('retail')) {
+      return 'Shopping';
+    } else if (topCategory.includes('utility') || topCategory.includes('bills')) {
+      return 'Bills';
+    } else if (topCategory.includes('entertainment') || topCategory.includes('leisure')) {
+      return 'Entertainment';
+    } else if (topCategory.includes('healthcare') || topCategory.includes('medical')) {
+      return 'Health';
+    } else if (topCategory.includes('travel') || topCategory.includes('accommodation')) {
+      return 'Travel';
+    } else if (topCategory.includes('education') || topCategory.includes('learning')) {
+      return 'Education';
+    } else if (topCategory.includes('income') || topCategory.includes('salary')) {
+      return 'Income';
+    } else if (topCategory.includes('investment') || topCategory.includes('financial planning')) {
+      return 'Investment';
     } else {
-      // Fallback to basic text classification
-      result = await classifier(enhancedPrompt);
-      
-      // Map the result to our categories (this would need a more sophisticated mapping)
-      console.log(`Basic classification result for "${description}":`, result);
-      return 'Other'; // Default fallback for now
+      return 'Other';
     }
     
   } catch (error) {
     console.error('Error in AI categorization:', error);
-    return 'Other';
+    // Final fallback to rule-based classification
+    const ruleBasedCategory = classifyWithRules(description);
+    return ruleBasedCategory || 'Other';
   }
 };
 
