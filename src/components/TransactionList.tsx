@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -9,7 +10,8 @@ import { TransactionTable } from "./transactions/TransactionTable";
 import { TransactionSearch } from "./transactions/TransactionSearch";
 import { BulkEditActions } from "./transactions/BulkEditActions";
 import { EditTransactionDialog } from "./transactions/EditTransactionDialog";
-import { categorizeTransaction, initializeAIClassifier } from "@/utils/transactionCategories";
+import { categorizeTransaction } from "@/utils/transactionCategories";
+import { initializeAIClassifier } from "@/utils/aiCategorization";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface Transaction {

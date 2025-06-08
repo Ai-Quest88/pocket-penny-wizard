@@ -4,7 +4,8 @@ import { Transaction } from "@/types/transaction-forms";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { categorizeTransaction, initializeAIClassifier } from "@/utils/transactionCategories";
+import { categorizeTransaction } from "@/utils/transactionCategories";
+import { initializeAIClassifier } from "@/utils/aiCategorization";
 import { useEffect } from "react";
 
 interface ImportTransactionsProps {

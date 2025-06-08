@@ -48,8 +48,7 @@ export const initializeAIClassifier = async () => {
       'zero-shot-classification',
       'facebook/bart-large-mnli',
       { 
-        revision: 'main',
-        quantized: true // Use quantized model for better performance
+        revision: 'main'
       }
     );
     console.log('AI classification model loaded successfully');
