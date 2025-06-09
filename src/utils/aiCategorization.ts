@@ -1,4 +1,3 @@
-
 import { pipeline, env } from '@huggingface/transformers';
 
 // Disable local model loading to use CDN
@@ -34,7 +33,8 @@ const BANKING_KEYWORDS = [
 const FOOD_KEYWORDS = [
   'restaurant', 'cafe', 'mcdonalds', 'kfc', 'subway', 'pizza', 'uber eats',
   'deliveroo', 'menulog', 'grocery', 'woolworths', 'coles', 'iga', 'aldi',
-  'food', 'dining', 'takeaway', 'bakery', 'butcher', 'deli'
+  'food', 'dining', 'takeaway', 'bakery', 'butcher', 'deli', 'kebab', 'kebabs',
+  'granville kebab', 'bake', 'flake', 'donut', 'smp', 'granville', 'parklea'
 ];
 
 const TRANSPORT_KEYWORDS = [
@@ -53,7 +53,7 @@ const classifyWithRules = (description: string): string | null => {
     return 'Banking';
   }
   
-  // Check for food indicators
+  // Check for food indicators (high priority)
   if (FOOD_KEYWORDS.some(keyword => lowerDesc.includes(keyword))) {
     console.log(`Rule-based classification: "${description}" -> Food (matched food keywords)`);
     return 'Food';
