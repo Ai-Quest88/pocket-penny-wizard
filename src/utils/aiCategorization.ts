@@ -1,3 +1,4 @@
+
 import { pipeline, env } from '@huggingface/transformers';
 
 // Disable local model loading to use CDN
@@ -20,53 +21,6 @@ const CATEGORIES = [
 ];
 
 let classifier: any = null;
-
-// Enhanced banking keywords for better detection
-const BANKING_KEYWORDS = [
-  'citibank', 'commbank', 'westpac', 'anz', 'nab', 'suncorp', 'macquarie',
-  'creditcard', 'credit card', 'bpay', 'visa', 'mastercard', 'amex',
-  'bank transfer', 'atm', 'bank fee', 'service fee', 'monthly fee',
-  'netbank', 'internet banking', 'eftpos', 'card payment', 'banking',
-  'direct debit', 'autopay', 'bill payment', 'loan payment', 'mortgage'
-];
-
-const FOOD_KEYWORDS = [
-  'restaurant', 'cafe', 'mcdonalds', 'kfc', 'subway', 'pizza', 'uber eats',
-  'deliveroo', 'menulog', 'grocery', 'woolworths', 'coles', 'iga', 'aldi',
-  'food', 'dining', 'takeaway', 'bakery', 'butcher', 'deli', 'kebab', 'kebabs',
-  'granville kebab', 'bake', 'flake', 'donut', 'smp', 'granville', 'parklea'
-];
-
-const TRANSPORT_KEYWORDS = [
-  'petrol', 'fuel', 'shell', 'bp', 'caltex', 'parking', 'uber', 'taxi',
-  'train', 'bus', 'ferry', 'toll', 'rego', 'registration', 'mechanic',
-  'car service', 'tyres', 'automotive'
-];
-
-// Rule-based classification with keyword matching
-const classifyWithRules = (description: string): string | null => {
-  const lowerDesc = description.toLowerCase();
-  
-  // Check for banking indicators first (highest priority)
-  if (BANKING_KEYWORDS.some(keyword => lowerDesc.includes(keyword))) {
-    console.log(`Rule-based classification: "${description}" -> Banking (matched banking keywords)`);
-    return 'Banking';
-  }
-  
-  // Check for food indicators (high priority)
-  if (FOOD_KEYWORDS.some(keyword => lowerDesc.includes(keyword))) {
-    console.log(`Rule-based classification: "${description}" -> Food (matched food keywords)`);
-    return 'Food';
-  }
-  
-  // Check for transport indicators
-  if (TRANSPORT_KEYWORDS.some(keyword => lowerDesc.includes(keyword))) {
-    console.log(`Rule-based classification: "${description}" -> Transport (matched transport keywords)`);
-    return 'Transport';
-  }
-  
-  return null; // No rule matched, will fallback to AI
-};
 
 // Initialize the specialized banking transaction classification model
 export const initializeAIClassifier = async () => {
@@ -119,27 +73,73 @@ const mapSpecializedModelOutput = (prediction: any): string => {
     return 'Banking';
   }
   
-  // For other predictions, we'll need to see what labels the model actually outputs
-  // and map them accordingly. For now, we'll return the original label if it matches our categories
+  // Check if the prediction matches any of our categories directly
   const matchingCategory = CATEGORIES.find(cat => 
     cat.toLowerCase() === label || label.includes(cat.toLowerCase())
   );
   
-  return matchingCategory || 'Other';
+  if (matchingCategory) {
+    return matchingCategory;
+  }
+  
+  // For food-related predictions
+  if (label.includes('food') || label.includes('restaurant') || label.includes('dining') || label.includes('grocery')) {
+    return 'Food';
+  }
+  
+  // For transport-related predictions
+  if (label.includes('transport') || label.includes('fuel') || label.includes('gas') || label.includes('parking')) {
+    return 'Transport';
+  }
+  
+  // For shopping-related predictions
+  if (label.includes('retail') || label.includes('shopping') || label.includes('store')) {
+    return 'Shopping';
+  }
+  
+  // For entertainment-related predictions
+  if (label.includes('entertainment') || label.includes('leisure') || label.includes('recreation')) {
+    return 'Entertainment';
+  }
+  
+  // For health-related predictions
+  if (label.includes('health') || label.includes('medical') || label.includes('pharmacy')) {
+    return 'Health';
+  }
+  
+  // For travel-related predictions
+  if (label.includes('travel') || label.includes('hotel') || label.includes('flight')) {
+    return 'Travel';
+  }
+  
+  // For education-related predictions
+  if (label.includes('education') || label.includes('school') || label.includes('university')) {
+    return 'Education';
+  }
+  
+  // For income-related predictions
+  if (label.includes('income') || label.includes('salary') || label.includes('wage')) {
+    return 'Income';
+  }
+  
+  // For investment-related predictions
+  if (label.includes('investment') || label.includes('stock') || label.includes('fund')) {
+    return 'Investment';
+  }
+  
+  // For bills-related predictions
+  if (label.includes('bill') || label.includes('utility') || label.includes('subscription')) {
+    return 'Bills';
+  }
+  
+  return 'Other';
 };
 
-// Enhanced categorization with specialized model
+// AI-only categorization
 export const categorizeTransactionWithAI = async (description: string): Promise<string> => {
   try {
-    console.log(`Categorizing transaction: "${description}"`);
+    console.log(`Categorizing transaction with AI: "${description}"`);
 
-    // First, try rule-based classification for high-confidence matches
-    const ruleBasedCategory = classifyWithRules(description);
-    if (ruleBasedCategory) {
-      return ruleBasedCategory;
-    }
-
-    // If no rule matches, try AI classification
     if (!classifier) {
       classifier = await initializeAIClassifier();
     }
@@ -220,9 +220,7 @@ export const categorizeTransactionWithAI = async (description: string): Promise<
     
   } catch (error) {
     console.error('Error in AI categorization:', error);
-    // Final fallback to rule-based classification
-    const ruleBasedCategory = classifyWithRules(description);
-    return ruleBasedCategory || 'Other';
+    return 'Other';
   }
 };
 

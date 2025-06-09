@@ -1,3 +1,4 @@
+
 import { categorizeTransactionWithAI } from './aiCategorization';
 
 type CategoryRule = {
@@ -8,118 +9,23 @@ type CategoryRule = {
 // Store user-defined categorization rules
 let userDefinedRules: CategoryRule[] = [];
 
-const baseCategoryRules: CategoryRule[] = [
-  // Food - expanded keywords
-  {
-    keywords: [
-      'grocery', 'food', 'restaurant', 'cafe', 'coffee', 'market', 'supermarket', 
-      'woolworths', 'coles', 'aldi', 'iga', 'takeaway', 'mcdonald', 'kfc', 'subway', 
-      'pizza', 'dining', 'meal', 'bakery', 'butcher', 'deli', 'fishmonger', 'fruit',
-      'vegetable', 'lunch', 'dinner', 'breakfast', 'snack', 'domino', 'hungry jack',
-      'red rooster', 'nando', 'grill', 'bistro', 'tavern', 'pub', 'bar', 'eating',
-      'donut', 'kebab', 'sushi', 'thai', 'chinese', 'indian', 'italian', 'mexican'
-    ],
-    category: 'Food'
-  },
-  // Transport - expanded keywords
-  {
-    keywords: [
-      'uber', 'lyft', 'taxi', 'bus', 'train', 'metro', 'transport', 'opal', 'myki', 
-      'fuel', 'petrol', 'shell', 'bp', 'caltex', 'parking', 'linkt', 'toll', 'etag', 
-      'roam', 'transurban', 'ampol', '7-eleven', 'united', 'mobil', 'freedom',
-      'car wash', 'service station', 'rego', 'registration', 'insurance', 'mechanic',
-      'tyre', 'battery', 'oil change', 'roadside', 'automotive'
-    ],
-    category: 'Transport'
-  },
-  // Shopping - expanded keywords
-  {
-    keywords: [
-      'amazon', 'walmart', 'target', 'shop', 'store', 'mall', 'kmart', 'big w', 
-      'harvey norman', 'jb hi-fi', 'bunnings', 'officeworks', 'shopping', 'purchase', 
-      'buy', 'retail', 'clothing', 'fashion', 'shoes', 'electronics', 'appliance',
-      'furniture', 'homewares', 'gifts', 'toys', 'books', 'stationery', 'hardware',
-      'department store', 'chemist', 'pharmacy', 'discount'
-    ],
-    category: 'Shopping'
-  },
-  // Bills - expanded keywords
-  {
-    keywords: [
-      'rent', 'electricity', 'water', 'gas', 'internet', 'phone', 'utility', 'telstra', 
-      'optus', 'vodafone', 'agl', 'origin', 'council', 'rates', 'bill', 'insurance', 
-      'premium', 'energy', 'power', 'heating', 'cooling', 'broadband', 'mobile',
-      'landline', 'strata', 'body corporate', 'maintenance', 'repair'
-    ],
-    category: 'Bills'
-  },
-  // Entertainment - expanded keywords
-  {
-    keywords: [
-      'netflix', 'spotify', 'hbo', 'cinema', 'movie', 'theatre', 'concert', 
-      'entertainment', 'disney', 'youtube', 'apple music', 'amazon prime', 'gaming', 
-      'music', 'streaming', 'subscription', 'festival', 'event', 'tickets',
-      'amusement', 'theme park', 'sports', 'gym', 'fitness', 'recreation'
-    ],
-    category: 'Entertainment'
-  },
-  // Health - expanded keywords
-  {
-    keywords: [
-      'doctor', 'dentist', 'pharmacy', 'medical', 'health', 'hospital', 'clinic', 
-      'physiotherapy', 'gym', 'fitness', 'chemist', 'prescription', 'medicine',
-      'healthcare', 'specialist', 'optometrist', 'chiropractor', 'massage',
-      'wellness', 'therapy', 'counselling', 'psychology'
-    ],
-    category: 'Health'
-  },
-  // Travel - expanded keywords
-  {
-    keywords: [
-      'hotel', 'flight', 'airline', 'booking', 'airbnb', 'travel', 'vacation', 
-      'holiday', 'accommodation', 'motel', 'resort', 'hostel', 'camping',
-      'jetstar', 'qantas', 'virgin', 'tigerair', 'expedia', 'agoda'
-    ],
-    category: 'Travel'
-  },
-  // Education - expanded keywords
-  {
-    keywords: [
-      'school', 'university', 'course', 'education', 'tuition', 'books', 'learning', 
-      'training', 'college', 'academy', 'institute', 'student', 'fees', 'textbook',
-      'scholastic', 'educational', 'workshop', 'seminar', 'certification'
-    ],
-    category: 'Education'
-  },
-  // Income - expanded keywords
-  {
-    keywords: [
-      'salary', 'wage', 'pay', 'deposit', 'dividend', 'interest', 'refund', 
-      'cashback', 'income', 'bonus', 'commission', 'freelance', 'consulting',
-      'payment received', 'transfer in', 'reimbursement', 'rebate'
-    ],
-    category: 'Income'
-  },
-  // Investment - expanded keywords
-  {
-    keywords: [
-      'investment', 'stock', 'share', 'etf', 'fund', 'crypto', 'bitcoin', 'trading',
-      'broker', 'portfolio', 'dividend', 'capital gains', 'mutual fund',
-      'retirement', 'superannuation', 'pension'
-    ],
-    category: 'Investment'
-  },
-  // Banking - expanded keywords
-  {
-    keywords: [
-      'citibank', 'creditcards', 'credit card', 'bpay', 'visa', 'mastercard', 
-      'amex', 'transfer to', 'transfer from', 'netbank', 'commbank app', 'savings', 
-      'cheque', 'atm', 'withdrawal', 'fee', 'charge', 'service fee', 'monthly fee', 
-      'account fee', 'bank', 'westpac', 'anz', 'nab', 'commonwealth', 'suncorp',
-      'st george', 'bendigo', 'credit union', 'financial', 'loan', 'mortgage'
-    ],
-    category: 'Banking'
-  }
+// Export the categories array
+export const categories = [
+  'Banking',
+  'Food', 
+  'Transport',
+  'Shopping',
+  'Bills',
+  'Entertainment',
+  'Health',
+  'Travel',
+  'Education',
+  'Income',
+  'Investment',
+  'Other',
+  'Gifts', 
+  'Charity', 
+  'Insurance'
 ];
 
 // Function to add a user-defined rule
@@ -172,37 +78,7 @@ export const loadUserCategoryRules = () => {
   }
 };
 
-// Export the categories array
-export const categories = [...new Set([
-  ...baseCategoryRules.map(rule => rule.category),
-  'Other', 'Gifts', 'Charity', 'Insurance'
-])];
-
-// Keyword-based fallback categorization
-const categorizeWithKeywords = (description: string): string => {
-  const lowerDescription = description.toLowerCase();
-  
-  // First check user-defined rules (they take priority)
-  for (const rule of userDefinedRules) {
-    if (rule.keywords.some(keyword => lowerDescription.includes(keyword))) {
-      console.log(`Matched user rule: "${description}" -> ${rule.category}`);
-      return rule.category;
-    }
-  }
-  
-  // Then check base rules
-  for (const rule of baseCategoryRules) {
-    if (rule.keywords.some(keyword => lowerDescription.includes(keyword))) {
-      console.log(`Matched base rule: "${description}" -> ${rule.category}`);
-      return rule.category;
-    }
-  }
-  
-  console.log(`No keyword match found for: "${description}" -> Other`);
-  return 'Other';
-};
-
-// Main categorization function that uses AI first, then falls back to keywords
+// Main categorization function that uses AI with user rule priority
 export const categorizeTransaction = async (description: string): Promise<string> => {
   // First check user-defined rules (they always take priority)
   const lowerDescription = description.toLowerCase();
@@ -214,23 +90,29 @@ export const categorizeTransaction = async (description: string): Promise<string
   }
 
   try {
-    // Try AI categorization first
+    // Use AI categorization
     const aiCategory = await categorizeTransactionWithAI(description);
-    if (aiCategory && aiCategory !== 'Other') {
-      console.log(`AI categorized: "${description}" -> ${aiCategory}`);
-      return aiCategory;
-    }
+    console.log(`AI categorized: "${description}" -> ${aiCategory}`);
+    return aiCategory;
   } catch (error) {
-    console.warn('AI categorization failed, falling back to keywords:', error);
+    console.warn('AI categorization failed:', error);
+    return 'Other';
   }
-
-  // Fall back to keyword-based categorization
-  return categorizeWithKeywords(description);
 };
 
-// Synchronous version for backward compatibility
+// Synchronous version for backward compatibility (now returns 'Other' by default)
 export const categorizeTransactionSync = (description: string): string => {
-  return categorizeWithKeywords(description);
+  // Check user-defined rules only
+  const lowerDescription = description.toLowerCase();
+  for (const rule of userDefinedRules) {
+    if (rule.keywords.some(keyword => lowerDescription.includes(keyword))) {
+      console.log(`Matched user rule (sync): "${description}" -> ${rule.category}`);
+      return rule.category;
+    }
+  }
+  
+  console.log(`No user rule match found for: "${description}" -> Other`);
+  return 'Other';
 };
 
 // Initialize user rules on module load
