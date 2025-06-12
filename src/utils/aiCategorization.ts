@@ -17,19 +17,19 @@ const CATEGORIES = [
 
 let isInitialized = false;
 
-// Initialize the DeepSeek classifier (no actual initialization needed for API calls)
+// Initialize the Groq classifier (no actual initialization needed for API calls)
 export const initializeAIClassifier = async () => {
   if (isInitialized) return true;
   
-  console.log('DeepSeek AI classifier ready');
+  console.log('Groq AI classifier ready');
   isInitialized = true;
   return true;
 };
 
-// AI-only categorization using DeepSeek
+// AI-only categorization using Groq
 export const categorizeTransactionWithAI = async (description: string): Promise<string> => {
   try {
-    console.log(`Categorizing transaction with DeepSeek: "${description}"`);
+    console.log(`Categorizing transaction with Groq: "${description}"`);
 
     // Clean and preprocess the description
     const cleanDescription = description
@@ -60,14 +60,14 @@ Rules:
 
 Respond with ONLY the category name, nothing else.`;
 
-    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_DEEPSEEK_API_KEY}`
+        'Authorization': `Bearer ${import.meta.env.VITE_GROQ_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'deepseek-chat',
+        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
         messages: [
           {
             role: 'system',
@@ -84,30 +84,30 @@ Respond with ONLY the category name, nothing else.`;
     });
 
     if (!response.ok) {
-      console.error('DeepSeek API error:', response.status, response.statusText);
+      console.error('Groq API error:', response.status, response.statusText);
       return 'Other';
     }
 
     const data = await response.json();
     const category = data.choices[0]?.message?.content?.trim();
     
-    console.log(`DeepSeek categorized "${description}" as: ${category}`);
+    console.log(`Groq categorized "${description}" as: ${category}`);
 
     // Validate the response is one of our categories
     if (CATEGORIES.includes(category)) {
       return category;
     } else {
-      console.warn(`DeepSeek returned invalid category "${category}", defaulting to Other`);
+      console.warn(`Groq returned invalid category "${category}", defaulting to Other`);
       return 'Other';
     }
     
   } catch (error) {
-    console.error('Error in DeepSeek categorization:', error);
+    console.error('Error in Groq categorization:', error);
     return 'Other';
   }
 };
 
 // Check if AI categorization is available
 export const isAICategorizationAvailable = () => {
-  return !!import.meta.env.VITE_DEEPSEEK_API_KEY;
+  return !!import.meta.env.VITE_GROQ_API_KEY;
 };
