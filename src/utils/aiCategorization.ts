@@ -17,6 +17,55 @@ const CATEGORIES = [
 
 let isInitialized = false;
 
+// Test Groq API connectivity
+export const testGroqConnection = async (): Promise<{ success: boolean; error?: string }> => {
+  try {
+    console.log('Testing Groq API connection...');
+    console.log('API Key available:', !!import.meta.env.VITE_GROQ_API_KEY);
+    
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_GROQ_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+        messages: [
+          {
+            role: 'user',
+            content: 'Test message'
+          }
+        ],
+        temperature: 0.1,
+        max_tokens: 10
+      })
+    });
+
+    console.log('Groq API response status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Groq API error details:', errorText);
+      return { 
+        success: false, 
+        error: `HTTP ${response.status}: ${response.statusText} - ${errorText}` 
+      };
+    }
+
+    const data = await response.json();
+    console.log('Groq API test successful:', data);
+    return { success: true };
+    
+  } catch (error) {
+    console.error('Groq connection test failed:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    };
+  }
+};
+
 // Initialize the Groq classifier (no actual initialization needed for API calls)
 export const initializeAIClassifier = async () => {
   if (isInitialized) return true;
