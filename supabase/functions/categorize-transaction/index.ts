@@ -24,6 +24,8 @@ const CATEGORIES = [
 ];
 
 serve(async (req) => {
+  console.log('Categorize transaction function called');
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -31,8 +33,10 @@ serve(async (req) => {
 
   try {
     const groqApiKey = Deno.env.get('VITE_GROQ_API_KEY');
+    console.log('API key available:', !!groqApiKey);
     
     if (!groqApiKey) {
+      console.error('No Groq API key found in environment');
       return new Response(
         JSON.stringify({ error: 'No Groq API key found in secrets' }), 
         { 
@@ -43,9 +47,11 @@ serve(async (req) => {
     }
 
     const { description, testMode = false } = await req.json();
+    console.log('Request data:', { description, testMode });
 
     if (testMode) {
-      // Test connection
+      console.log('Running test mode');
+      // Test connection with a simple request
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -53,7 +59,7 @@ serve(async (req) => {
           'Authorization': `Bearer ${groqApiKey}`
         },
         body: JSON.stringify({
-          model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+          model: 'mixtral-8x7b-32768',
           messages: [
             {
               role: 'user',
@@ -65,8 +71,11 @@ serve(async (req) => {
         })
       });
 
+      console.log('Groq API test response status:', response.status);
+
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('Groq API test failed:', errorText);
         return new Response(
           JSON.stringify({ 
             success: false, 
@@ -78,6 +87,7 @@ serve(async (req) => {
         );
       }
 
+      console.log('Groq API test successful');
       return new Response(
         JSON.stringify({ success: true }), 
         { 
@@ -96,6 +106,8 @@ serve(async (req) => {
         }
       );
     }
+
+    console.log('Categorizing transaction:', description);
 
     // Clean and preprocess the description
     const cleanDescription = description
@@ -131,7 +143,7 @@ Respond with ONLY the category name, nothing else.`;
         'Authorization': `Bearer ${groqApiKey}`
       },
       body: JSON.stringify({
-        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+        model: 'mixtral-8x7b-32768',
         messages: [
           {
             role: 'system',
@@ -147,8 +159,11 @@ Respond with ONLY the category name, nothing else.`;
       })
     });
 
+    console.log('Groq API categorization response status:', response.status);
+
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('Groq API categorization failed:', errorText);
       return new Response(
         JSON.stringify({ 
           category: 'Other',
@@ -163,6 +178,8 @@ Respond with ONLY the category name, nothing else.`;
     const data = await response.json();
     const category = data.choices[0]?.message?.content?.trim();
     
+    console.log('AI categorized as:', category);
+    
     // Validate the response is one of our categories
     if (CATEGORIES.includes(category)) {
       return new Response(
@@ -172,6 +189,7 @@ Respond with ONLY the category name, nothing else.`;
         }
       );
     } else {
+      console.warn('Invalid category returned:', category);
       return new Response(
         JSON.stringify({ 
           category: 'Other',
