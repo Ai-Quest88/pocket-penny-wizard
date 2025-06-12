@@ -1,3 +1,4 @@
+
 // Define our transaction categories
 const CATEGORIES = [
   'Banking',
@@ -16,54 +17,26 @@ const CATEGORIES = [
 
 let isInitialized = false;
 
-// Get API key from environment or return null
-const getGroqApiKey = () => {
-  // Only use import.meta.env in browser environment
-  const apiKey = import.meta.env.VITE_GROQ_API_KEY;
-  
-  console.log('Attempting to get Groq API key, found:', !!apiKey);
-  return apiKey;
-};
-
-// Test Groq API connectivity
+// Test Groq API connectivity via edge function
 export const testGroqConnection = async (): Promise<{ success: boolean; error?: string }> => {
   try {
-    console.log('Testing Groq API connection...');
+    console.log('Testing Groq API connection via edge function...');
     
-    const apiKey = getGroqApiKey();
-    console.log('API Key available:', !!apiKey);
-    
-    if (!apiKey) {
-      return { 
-        success: false, 
-        error: 'No API key found. Please check that VITE_GROQ_API_KEY is set in Supabase secrets.' 
-      };
-    }
-    
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const response = await fetch('/functions/v1/categorize-transaction', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-        messages: [
-          {
-            role: 'user',
-            content: 'Test message'
-          }
-        ],
-        temperature: 0.1,
-        max_tokens: 10
+        testMode: true
       })
     });
 
-    console.log('Groq API response status:', response.status);
+    console.log('Edge function response status:', response.status);
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Groq API error details:', errorText);
+      console.error('Edge function error details:', errorText);
       return { 
         success: false, 
         error: `HTTP ${response.status}: ${response.statusText} - ${errorText}` 
@@ -71,8 +44,13 @@ export const testGroqConnection = async (): Promise<{ success: boolean; error?: 
     }
 
     const data = await response.json();
-    console.log('Groq API test successful:', data);
-    return { success: true };
+    console.log('Groq API test successful via edge function:', data);
+    
+    if (data.success) {
+      return { success: true };
+    } else {
+      return { success: false, error: data.error };
+    }
     
   } catch (error) {
     console.error('Groq connection test failed:', error);
@@ -83,103 +61,57 @@ export const testGroqConnection = async (): Promise<{ success: boolean; error?: 
   }
 };
 
-// Initialize the Groq classifier (no actual initialization needed for API calls)
+// Initialize the Groq classifier (no actual initialization needed for edge function calls)
 export const initializeAIClassifier = async () => {
   if (isInitialized) return true;
   
-  console.log('Groq AI classifier ready');
+  console.log('Groq AI classifier ready (using edge function)');
   isInitialized = true;
   return true;
 };
 
-// AI-only categorization using Groq
+// AI-only categorization using Groq via edge function
 export const categorizeTransactionWithAI = async (description: string): Promise<string> => {
   try {
-    console.log(`Categorizing transaction with Groq: "${description}"`);
+    console.log(`Categorizing transaction via edge function: "${description}"`);
 
-    const apiKey = getGroqApiKey();
-    if (!apiKey) {
-      console.error('No Groq API key available');
-      return 'Other';
-    }
-
-    // Clean and preprocess the description
-    const cleanDescription = description
-      .replace(/\b\d+\b/g, '') // Remove standalone numbers
-      .replace(/[^\w\s]/g, ' ') // Replace special characters with spaces
-      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-      .trim();
-
-    console.log(`Cleaned description for AI: "${cleanDescription}"`);
-
-    const prompt = `Categorize this financial transaction into one of these categories: ${CATEGORIES.join(', ')}.
-
-Transaction: "${cleanDescription}"
-
-Rules:
-- Food businesses (restaurants, cafes, bakeries, kebab shops, grocery stores like Woolworths, Coles) should be "Food"
-- Transport (fuel, parking, public transport, rideshare) should be "Transport"  
-- Shopping (retail stores, online purchases) should be "Shopping"
-- Bills (utilities, subscriptions, phone bills) should be "Bills"
-- Entertainment (movies, games, streaming) should be "Entertainment"
-- Health (medical, pharmacy, dental) should be "Health"
-- Banking (fees, transfers, ATM) should be "Banking"
-- Travel (hotels, flights, booking sites) should be "Travel"
-- Education (schools, courses, books) should be "Education"
-- Income (salary, wages, refunds) should be "Income"
-- Investment (stocks, funds, crypto) should be "Investment"
-- If unsure, use "Other"
-
-Respond with ONLY the category name, nothing else.`;
-
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const response = await fetch('/functions/v1/categorize-transaction', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a financial transaction categorization expert. Always respond with only the category name.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.1,
-        max_tokens: 50
+        description: description
       })
     });
 
     if (!response.ok) {
-      console.error('Groq API error:', response.status, response.statusText);
+      console.error('Edge function error:', response.status, response.statusText);
       return 'Other';
     }
 
     const data = await response.json();
-    const category = data.choices[0]?.message?.content?.trim();
+    const category = data.category;
     
-    console.log(`Groq categorized "${description}" as: ${category}`);
-
-    // Validate the response is one of our categories
-    if (CATEGORIES.includes(category)) {
-      return category;
-    } else {
-      console.warn(`Groq returned invalid category "${category}", defaulting to Other`);
-      return 'Other';
+    console.log(`Edge function categorized "${description}" as: ${category}`);
+    
+    if (data.error) {
+      console.warn('Edge function warning:', data.error);
     }
     
+    if (data.warning) {
+      console.warn('Edge function warning:', data.warning);
+    }
+
+    return category || 'Other';
+    
   } catch (error) {
-    console.error('Error in Groq categorization:', error);
+    console.error('Error in edge function categorization:', error);
     return 'Other';
   }
 };
 
-// Check if AI categorization is available
+// Check if AI categorization is available (always true since we use edge function)
 export const isAICategorizationAvailable = () => {
-  return !!getGroqApiKey();
+  return true;
 };
