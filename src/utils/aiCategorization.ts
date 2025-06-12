@@ -1,4 +1,3 @@
-
 // Define our transaction categories
 const CATEGORIES = [
   'Banking',
@@ -21,8 +20,7 @@ let isInitialized = false;
 const getGroqApiKey = () => {
   // Try different ways to access the API key
   const apiKey = import.meta.env.VITE_GROQ_API_KEY || 
-                 process.env.VITE_GROQ_API_KEY || 
-                 window.VITE_GROQ_API_KEY;
+                 process.env.VITE_GROQ_API_KEY;
   
   console.log('Attempting to get Groq API key, found:', !!apiKey);
   return apiKey;
