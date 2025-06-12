@@ -17,17 +17,37 @@ const CATEGORIES = [
 
 let isInitialized = false;
 
+// Get API key from environment or return null
+const getGroqApiKey = () => {
+  // Try different ways to access the API key
+  const apiKey = import.meta.env.VITE_GROQ_API_KEY || 
+                 process.env.VITE_GROQ_API_KEY || 
+                 window.VITE_GROQ_API_KEY;
+  
+  console.log('Attempting to get Groq API key, found:', !!apiKey);
+  return apiKey;
+};
+
 // Test Groq API connectivity
 export const testGroqConnection = async (): Promise<{ success: boolean; error?: string }> => {
   try {
     console.log('Testing Groq API connection...');
-    console.log('API Key available:', !!import.meta.env.VITE_GROQ_API_KEY);
+    
+    const apiKey = getGroqApiKey();
+    console.log('API Key available:', !!apiKey);
+    
+    if (!apiKey) {
+      return { 
+        success: false, 
+        error: 'No API key found. Please check that VITE_GROQ_API_KEY is set in Supabase secrets.' 
+      };
+    }
     
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_GROQ_API_KEY}`
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
         model: 'meta-llama/llama-4-scout-17b-16e-instruct',
@@ -80,6 +100,12 @@ export const categorizeTransactionWithAI = async (description: string): Promise<
   try {
     console.log(`Categorizing transaction with Groq: "${description}"`);
 
+    const apiKey = getGroqApiKey();
+    if (!apiKey) {
+      console.error('No Groq API key available');
+      return 'Other';
+    }
+
     // Clean and preprocess the description
     const cleanDescription = description
       .replace(/\b\d+\b/g, '') // Remove standalone numbers
@@ -113,7 +139,7 @@ Respond with ONLY the category name, nothing else.`;
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_GROQ_API_KEY}`
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
         model: 'meta-llama/llama-4-scout-17b-16e-instruct',
@@ -158,5 +184,5 @@ Respond with ONLY the category name, nothing else.`;
 
 // Check if AI categorization is available
 export const isAICategorizationAvailable = () => {
-  return !!import.meta.env.VITE_GROQ_API_KEY;
+  return !!getGroqApiKey();
 };
