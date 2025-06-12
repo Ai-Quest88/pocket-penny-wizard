@@ -18,9 +18,8 @@ let isInitialized = false;
 
 // Get API key from environment or return null
 const getGroqApiKey = () => {
-  // Try different ways to access the API key
-  const apiKey = import.meta.env.VITE_GROQ_API_KEY || 
-                 process.env.VITE_GROQ_API_KEY;
+  // Only use import.meta.env in browser environment
+  const apiKey = import.meta.env.VITE_GROQ_API_KEY;
   
   console.log('Attempting to get Groq API key, found:', !!apiKey);
   return apiKey;
