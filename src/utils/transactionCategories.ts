@@ -28,6 +28,7 @@ const findSimilarTransactionCategory = async (description: string, userId: strin
       .not('category', 'is', null)
       .not('category', 'eq', 'Miscellaneous')
       .not('category', 'eq', 'Other')
+      .not('category', 'eq', 'Banking') // Don't use generic Banking as a reference
       .limit(5);
 
     if (error) {
@@ -65,7 +66,15 @@ const findSimilarTransactionCategory = async (description: string, userId: strin
 const categorizeByBuiltInRules = (description: string): string | null => {
   const lowerDesc = description.toLowerCase();
   
-  // Australian toll roads and transport - this should catch your Linkt transaction
+  // Government and tax payments - higher priority
+  if (lowerDesc.includes('revenue') || lowerDesc.includes('tax office') || 
+      lowerDesc.includes('ato') || lowerDesc.includes('act revenue') || 
+      lowerDesc.includes('nsw revenue') || lowerDesc.includes('vic revenue')) {
+    console.log(`Built-in rule matched: "${description}" -> Taxes`);
+    return 'Taxes';
+  }
+  
+  // Australian toll roads and transport
   if (lowerDesc.includes('linkt') || lowerDesc.includes('e-tag') || lowerDesc.includes('etag') || 
       lowerDesc.includes('transurban') || lowerDesc.includes('toll')) {
     console.log(`Built-in rule matched: "${description}" -> Tolls`);
@@ -88,9 +97,9 @@ const categorizeByBuiltInRules = (description: string): string | null => {
     return 'Groceries';
   }
   
-  // Australian banks and transfers
-  if (lowerDesc.includes('commbank') || lowerDesc.includes('commonwealth bank') ||
-      lowerDesc.includes('transfer to') || lowerDesc.includes('transfer from')) {
+  // Bank transfers (not generic banking)
+  if (lowerDesc.includes('transfer to') || lowerDesc.includes('transfer from') ||
+      lowerDesc.includes('bpay') || lowerDesc.includes('direct credit')) {
     console.log(`Built-in rule matched: "${description}" -> Transfer`);
     return 'Transfer';
   }
@@ -248,7 +257,15 @@ export const categorizeTransaction = async (description: string, userId?: string
     // Use AI categorization as final fallback
     const aiCategory = await categorizeTransactionWithAI(description);
     console.log(`AI categorized: "${description}" -> ${aiCategory}`);
-    return aiCategory;
+    
+    // Validate that the AI category is in our allowed categories list
+    const validCategories = categories.map(cat => cat.value);
+    if (validCategories.includes(aiCategory)) {
+      return aiCategory;
+    } else {
+      console.warn(`AI returned invalid category "${aiCategory}", using Miscellaneous`);
+      return 'Miscellaneous';
+    }
   } catch (error) {
     console.warn('AI categorization failed:', error);
     return 'Miscellaneous';
