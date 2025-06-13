@@ -91,16 +91,17 @@ export const TransactionList = ({ entityId, showBalance = true, readOnly = false
       const transactionsToUpdate = data.filter(
         transaction => !transaction.category || 
                      transaction.category.toLowerCase() === 'other' ||
-                     transaction.category.toLowerCase() === ''
+                     transaction.category.toLowerCase() === '' ||
+                     transaction.category.toLowerCase() === 'miscellaneous'
       );
 
-      console.log(`Found ${transactionsToUpdate.length} transactions to re-categorize with AI`);
+      console.log(`Found ${transactionsToUpdate.length} transactions to re-categorize with enhanced logic`);
 
       if (transactionsToUpdate.length > 0) {
-        // Batch update transactions with AI categories
+        // Batch update transactions with enhanced categories (including database lookup)
         const updatePromises = transactionsToUpdate.map(async (transaction) => {
-          const newCategory = await categorizeTransaction(transaction.description);
-          console.log(`AI re-categorizing "${transaction.description}" from "${transaction.category}" to: ${newCategory}`);
+          const newCategory = await categorizeTransaction(transaction.description, session.user.id);
+          console.log(`Enhanced re-categorizing "${transaction.description}" from "${transaction.category}" to: ${newCategory}`);
           
           const { error: updateError } = await supabase
             .from('transactions')

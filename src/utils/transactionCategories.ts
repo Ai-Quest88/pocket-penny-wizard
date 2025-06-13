@@ -1,6 +1,7 @@
 
 import { categorizeTransactionWithAI } from './aiCategorization';
 import { categories } from '@/types/transaction-forms';
+import { supabase } from '@/integrations/supabase/client';
 
 type CategoryRule = {
   keywords: string[];
@@ -12,6 +13,53 @@ let userDefinedRules: CategoryRule[] = [];
 
 // Export the comprehensive categories array from transaction-forms
 export { categories };
+
+// Function to find similar existing transactions in the database
+const findSimilarTransactionCategory = async (description: string, userId: string): Promise<string | null> => {
+  try {
+    console.log(`Searching for similar transactions to: "${description}"`);
+    
+    // Search for transactions with similar descriptions
+    const { data: similarTransactions, error } = await supabase
+      .from('transactions')
+      .select('category, description')
+      .eq('user_id', userId)
+      .ilike('description', `%${description.substring(0, 20)}%`) // Match first 20 characters
+      .not('category', 'is', null)
+      .not('category', 'eq', 'Miscellaneous')
+      .not('category', 'eq', 'Other')
+      .limit(5);
+
+    if (error) {
+      console.error('Error searching similar transactions:', error);
+      return null;
+    }
+
+    if (similarTransactions && similarTransactions.length > 0) {
+      // Find the most common category among similar transactions
+      const categoryCount: Record<string, number> = {};
+      
+      similarTransactions.forEach(transaction => {
+        if (transaction.category) {
+          categoryCount[transaction.category] = (categoryCount[transaction.category] || 0) + 1;
+        }
+      });
+
+      const mostCommonCategory = Object.entries(categoryCount)
+        .sort(([,a], [,b]) => b - a)[0]?.[0];
+
+      if (mostCommonCategory) {
+        console.log(`Found similar transaction category: "${description}" -> ${mostCommonCategory}`);
+        return mostCommonCategory;
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error in findSimilarTransactionCategory:', error);
+    return null;
+  }
+};
 
 // Enhanced rule-based categorization for common patterns
 const categorizeByBuiltInRules = (description: string): string | null => {
@@ -113,6 +161,7 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 // Batch process transactions with retry logic
 export const categorizeBatchTransactions = async (
   descriptions: string[], 
+  userId: string,
   batchSize: number = 3,
   maxRetries: number = 2
 ): Promise<string[]> => {
@@ -135,7 +184,7 @@ export const categorizeBatchTransactions = async (
               await delay(1000 + (retryCount * 2000)); // Increasing delay with retries
             }
             
-            const category = await categorizeTransaction(description);
+            const category = await categorizeTransaction(description, userId);
             return category;
           } catch (error) {
             console.warn(`Retry ${retryCount + 1} for "${description}":`, error);
@@ -169,7 +218,7 @@ export const categorizeBatchTransactions = async (
 };
 
 // Main categorization function with enhanced rule checking
-export const categorizeTransaction = async (description: string): Promise<string> => {
+export const categorizeTransaction = async (description: string, userId?: string): Promise<string> => {
   console.log(`Categorizing: "${description}"`);
   
   // First check built-in rules (highest priority for common patterns)
@@ -187,8 +236,16 @@ export const categorizeTransaction = async (description: string): Promise<string
     }
   }
 
+  // Check existing similar transactions in database if userId is provided
+  if (userId) {
+    const similarCategory = await findSimilarTransactionCategory(description, userId);
+    if (similarCategory) {
+      return similarCategory;
+    }
+  }
+
   try {
-    // Use AI categorization as fallback
+    // Use AI categorization as final fallback
     const aiCategory = await categorizeTransactionWithAI(description);
     console.log(`AI categorized: "${description}" -> ${aiCategory}`);
     return aiCategory;

@@ -46,8 +46,8 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
       // Extract descriptions for batch categorization
       const descriptions = transactions.map(t => t.description);
       
-      // Process in batches with retry logic
-      const categories = await categorizeBatchTransactions(descriptions, 3, 2);
+      // Process in batches with retry logic, now passing userId for database lookups
+      const categories = await categorizeBatchTransactions(descriptions, session.user.id, 3, 2);
 
       // Prepare transactions for database insertion with AI categorization
       const transactionsForDb = transactions.map((transaction, index) => ({
@@ -105,7 +105,7 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
       <div className="space-y-2">
         <h2 className="text-2xl font-semibold">Import Transactions</h2>
         <p className="text-muted-foreground">
-          Upload a CSV file to import your transactions. Transactions will be automatically categorized using AI with batch processing and retry logic for improved reliability.
+          Upload a CSV file to import your transactions. Transactions will be automatically categorized using existing similar transactions, user preferences, and AI with batch processing and retry logic for improved reliability.
         </p>
       </div>
       
