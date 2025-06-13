@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,6 +14,7 @@ import { categories, currencies } from "@/types/transaction-forms"
 import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/contexts/AuthContext"
+import { useToast } from "@/hooks/use-toast"
 import type { Transaction, ManualTransactionFormProps } from "@/types/transaction-forms"
 
 export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ onTransactionAdded }) => {
@@ -28,6 +28,7 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const { session } = useAuth()
+  const { toast } = useToast()
 
   // Fetch cash/savings accounts with their associated entities
   const { data: accountsWithEntities = [], isLoading: accountsLoading } = useQuery({
@@ -44,6 +45,7 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
           category,
           account_number,
           entity_id,
+          value,
           entities!inner(
             id,
             name,
@@ -66,11 +68,51 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
         type: asset.category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
         accountNumber: asset.account_number,
         entityName: asset.entities.name,
-        entityType: asset.entities.type
+        entityType: asset.entities.type,
+        currentBalance: Number(asset.value)
       }));
     },
     enabled: !!session?.user,
   });
+
+  const updateAssetBalance = async (assetId: string, transactionAmount: number) => {
+    try {
+      // Get current asset value
+      const { data: asset, error: fetchError } = await supabase
+        .from('assets')
+        .select('value')
+        .eq('id', assetId)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching asset:', fetchError);
+        return;
+      }
+
+      const newBalance = Number(asset.value) + transactionAmount;
+      
+      const { error: updateError } = await supabase
+        .from('assets')
+        .update({ 
+          value: newBalance,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', assetId);
+
+      if (updateError) {
+        console.error('Error updating asset balance:', updateError);
+        toast({
+          title: "Warning",
+          description: "Transaction saved but failed to update account balance.",
+          variant: "destructive",
+        });
+      } else {
+        console.log(`Updated asset ${assetId} balance by ${transactionAmount} to ${newBalance}`);
+      }
+    } catch (error) {
+      console.error('Error in updateAssetBalance:', error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -95,6 +137,16 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
 
     try {
       await onTransactionAdded(transaction)
+
+      // Update the asset balance if we have a selected account
+      if (selectedAccount) {
+        await updateAssetBalance(selectedAccount.id, parseFloat(amount));
+        
+        toast({
+          title: "Success",
+          description: "Transaction added and account balance updated.",
+        });
+      }
       
       // Reset form
       setAmount('')
@@ -105,6 +157,11 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
       setDate(new Date())
     } catch (error) {
       console.error('Error adding transaction:', error)
+      toast({
+        title: "Error",
+        description: "Failed to add transaction. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false)
     }
@@ -247,6 +304,9 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
                     <SelectItem key={acc.id} value={acc.id}>
                       {acc.name} - {acc.entityName} ({acc.type})
                       {acc.accountNumber && ` - ${acc.accountNumber}`}
+                      <span className="text-muted-foreground ml-2">
+                        Balance: ${acc.currentBalance.toLocaleString()}
+                      </span>
                     </SelectItem>
                   ))
                 )}

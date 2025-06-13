@@ -25,6 +25,55 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
     });
   }, []);
 
+  const updateAssetBalance = async (accountName: string, amount: number, entityName: string) => {
+    try {
+      // Find the asset by name and entity
+      const { data: assets, error: findError } = await supabase
+        .from('assets')
+        .select(`
+          id,
+          value,
+          entities!inner(name)
+        `)
+        .eq('user_id', session!.user.id)
+        .eq('type', 'cash')
+        .ilike('name', `%${accountName.split(' (')[0]}%`); // Remove entity info from account name
+
+      if (findError) {
+        console.error('Error finding asset:', findError);
+        return;
+      }
+
+      // Filter by entity name if we have multiple matches
+      const matchingAsset = assets?.find(asset => 
+        asset.entities.name.toLowerCase().includes(entityName.toLowerCase()) ||
+        entityName.toLowerCase().includes(asset.entities.name.toLowerCase())
+      ) || assets?.[0];
+
+      if (matchingAsset) {
+        const newBalance = Number(matchingAsset.value) + amount;
+        
+        const { error: updateError } = await supabase
+          .from('assets')
+          .update({ 
+            value: newBalance,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', matchingAsset.id);
+
+        if (updateError) {
+          console.error('Error updating asset balance:', updateError);
+        } else {
+          console.log(`Updated asset ${matchingAsset.id} balance by ${amount} to ${newBalance}`);
+        }
+      } else {
+        console.warn(`Could not find matching asset for account: ${accountName}`);
+      }
+    } catch (error) {
+      console.error('Error in updateAssetBalance:', error);
+    }
+  };
+
   const handleTransactionsUploaded = async (transactions: Omit<Transaction, 'id'>[]) => {
     console.log("Transactions uploaded:", transactions);
     
@@ -78,13 +127,34 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
       }
 
       console.log("Successfully inserted transactions:", data);
+
+      // Update asset balances for each transaction
+      toast({
+        title: "Updating Balances",
+        description: "Updating account balances...",
+      });
+
+      const balanceUpdates = transactions.map(async (transaction) => {
+        if (transaction.account && transaction.account !== 'Default Account') {
+          // Extract account name and entity from the account field
+          const accountParts = transaction.account.split(' - ');
+          const accountName = accountParts[0];
+          const entityName = accountParts[1] || '';
+          
+          await updateAssetBalance(accountName, transaction.amount, entityName);
+        }
+      });
+
+      await Promise.all(balanceUpdates);
       
-      // Invalidate and refetch the transactions query to update the UI immediately
+      // Invalidate and refetch queries to update the UI immediately
       await queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      await queryClient.invalidateQueries({ queryKey: ['assets'] });
+      await queryClient.invalidateQueries({ queryKey: ['netWorth'] });
       
       toast({
         title: "Success",
-        description: `Successfully imported ${transactions.length} transaction${transactions.length !== 1 ? 's' : ''} with AI categorization.`,
+        description: `Successfully imported ${transactions.length} transaction${transactions.length !== 1 ? 's' : ''} and updated account balances.`,
       });
 
       onSuccess?.();
@@ -105,7 +175,7 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
       <div className="space-y-2">
         <h2 className="text-2xl font-semibold">Import Transactions</h2>
         <p className="text-muted-foreground">
-          Upload a CSV file to import your transactions. Transactions will be automatically categorized using existing similar transactions, user preferences, and AI with batch processing and retry logic for improved reliability.
+          Upload a CSV file to import your transactions. Transactions will be automatically categorized and account balances will be updated in your assets.
         </p>
       </div>
       
