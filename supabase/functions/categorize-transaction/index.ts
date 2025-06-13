@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -7,10 +6,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Define our transaction categories
+// Define our transaction categories - added Grocery
 const CATEGORIES = [
   'Banking',
   'Food', 
+  'Grocery',
   'Transport',
   'Shopping',
   'Bills',
@@ -119,7 +119,7 @@ serve(async (req) => {
       .replace(/\s+/g, ' ') // Replace multiple spaces with single space
       .trim();
 
-    // Improved prompt to get cleaner responses with better restaurant vs grocery distinction
+    // Updated prompt to distinguish between grocery stores and restaurants
     const prompt = `You are a financial transaction categorization expert. Categorize this transaction into EXACTLY ONE of these categories: ${CATEGORIES.join(', ')}.
 
 Transaction: "${cleanDescription}"
@@ -127,10 +127,10 @@ Transaction: "${cleanDescription}"
 IMPORTANT RULES:
 - Respond with ONLY the category name (one word)
 - No explanations, no thinking process, no additional text
-- Food categories:
-  * Supermarkets/Grocery stores (Woolworths, Coles, IGA, Aldi) = Food
-  * Restaurants, cafes, takeaway, food delivery, "groceries & food" descriptions = Food
-  * Bakeries, kebab shops, fast food chains, food trucks = Food
+- Grocery vs Food distinction:
+  * Supermarkets/Grocery stores (Woolworths, Coles, IGA, Aldi, supermarket) = Grocery
+  * Restaurants, cafes, takeaway, food delivery, fast food chains, food trucks = Food
+  * Bakeries, kebab shops = Food
 - Transport (fuel stations like Ampol, public transport, Uber, parking) = Transport  
 - Shopping (retail stores, Bunnings, Officeworks, clothing, electronics) = Shopping
 - Bills (utilities, phone, subscriptions, insurance) = Bills

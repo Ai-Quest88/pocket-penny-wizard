@@ -1,8 +1,9 @@
 
-// Define our transaction categories
+// Define our transaction categories - added Grocery
 const CATEGORIES = [
   'Banking',
   'Food', 
+  'Grocery',
   'Transport',
   'Shopping',
   'Bills',

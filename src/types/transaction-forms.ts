@@ -52,7 +52,7 @@ const filterEmptyStrings = (arr: string[]): string[] => {
 export const categoryBuckets: CategoryBucket[] = [
   {
     name: "Living Expenses",
-    categories: filterEmptyStrings(["Food", "Transport", "Bills", "Shopping"])
+    categories: filterEmptyStrings(["Food", "Grocery", "Transport", "Bills", "Shopping"])
   },
   {
     name: "Lifestyle", 

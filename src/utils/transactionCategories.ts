@@ -9,10 +9,11 @@ type CategoryRule = {
 // Store user-defined categorization rules
 let userDefinedRules: CategoryRule[] = [];
 
-// Export the categories array
+// Export the categories array - added Grocery
 export const categories = [
   'Banking',
   'Food', 
+  'Grocery',
   'Transport',
   'Shopping',
   'Bills',
