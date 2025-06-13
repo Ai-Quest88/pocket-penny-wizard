@@ -59,7 +59,7 @@ serve(async (req) => {
           'Authorization': `Bearer ${groqApiKey}`
         },
         body: JSON.stringify({
-          model: 'llama3-8b-8192',
+          model: 'deepseek-r1-distill-llama-70b',
           messages: [
             {
               role: 'user',
@@ -143,7 +143,7 @@ Respond with ONLY the category name, nothing else.`;
         'Authorization': `Bearer ${groqApiKey}`
       },
       body: JSON.stringify({
-        model: 'llama3-8b-8192',
+        model: 'deepseek-r1-distill-llama-70b',
         messages: [
           {
             role: 'system',
