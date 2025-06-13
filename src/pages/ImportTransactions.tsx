@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { categorizeTransaction } from "@/utils/transactionCategories";
 import { initializeAIClassifier } from "@/utils/aiCategorization";
 import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ImportTransactionsProps {
   onSuccess?: () => void;
@@ -15,6 +16,7 @@ interface ImportTransactionsProps {
 export default function ImportTransactions({ onSuccess }: ImportTransactionsProps) {
   const { toast } = useToast();
   const { session } = useAuth();
+  const queryClient = useQueryClient();
 
   // Initialize AI classifier when component mounts
   useEffect(() => {
@@ -72,6 +74,9 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
       }
 
       console.log("Successfully inserted transactions:", data);
+      
+      // Invalidate and refetch the transactions query to update the UI immediately
+      await queryClient.invalidateQueries({ queryKey: ['transactions'] });
       
       toast({
         title: "Success",
