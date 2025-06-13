@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, X } from "lucide-react";
 import { useState } from "react";
-import { transactionCategories } from "@/utils/transactionCategories";
+import { categories } from "@/utils/transactionCategories";
 
 interface SearchFilters {
   searchTerm: string;
@@ -65,7 +65,7 @@ export const TransactionSearch = ({ onFiltersChange, totalResults }: Transaction
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
-            {transactionCategories.map((category) => (
+            {categories.map((category) => (
               <SelectItem key={category} value={category}>
                 {category}
               </SelectItem>
