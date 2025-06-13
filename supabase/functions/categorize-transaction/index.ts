@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -40,7 +41,57 @@ const CATEGORIES = [
   'Miscellaneous', 'Cash Withdrawal', 'Other'
 ];
 
-// Add delay utility for rate limiting
+// Enhanced rule-based categorization for common Australian services and patterns
+const categorizeByRules = (description: string): string | null => {
+  const lowerDesc = description.toLowerCase();
+  
+  // Australian toll roads and transport
+  if (lowerDesc.includes('linkt') || lowerDesc.includes('e-tag') || lowerDesc.includes('etag')) {
+    return 'Tolls';
+  }
+  
+  // Fuel stations
+  if (lowerDesc.includes('caltex') || lowerDesc.includes('shell') || lowerDesc.includes('bp ') || 
+      lowerDesc.includes('7-eleven') || lowerDesc.includes('united petroleum') || 
+      lowerDesc.includes('mobil') || lowerDesc.includes('ampol')) {
+    return 'Gas & Fuel';
+  }
+  
+  // Australian supermarkets
+  if (lowerDesc.includes('woolworths') || lowerDesc.includes('coles') || 
+      lowerDesc.includes('iga ') || lowerDesc.includes('aldi')) {
+    return 'Groceries';
+  }
+  
+  // Australian banks and transfers
+  if (lowerDesc.includes('commbank') || lowerDesc.includes('commonwealth bank') ||
+      lowerDesc.includes('transfer to') || lowerDesc.includes('transfer from')) {
+    return 'Transfer';
+  }
+  
+  // Public transport
+  if (lowerDesc.includes('opal') || lowerDesc.includes('myki') || lowerDesc.includes('go card') ||
+      lowerDesc.includes('transport') || lowerDesc.includes('train') || lowerDesc.includes('bus')) {
+    return 'Public Transport';
+  }
+  
+  // Utilities
+  if (lowerDesc.includes('ausgrid') || lowerDesc.includes('energy australia') || 
+      lowerDesc.includes('origin energy') || lowerDesc.includes('agl')) {
+    return 'Electricity';
+  }
+  
+  // Direct debits for common services
+  if (lowerDesc.includes('direct debit')) {
+    if (lowerDesc.includes('linkt')) return 'Tolls';
+    if (lowerDesc.includes('insurance')) return 'Insurance';
+    if (lowerDesc.includes('phone') || lowerDesc.includes('telstra') || lowerDesc.includes('optus')) return 'Phone';
+  }
+  
+  return null;
+};
+
+// Add delay utility for rate limiting with longer delays
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 serve(async (req) => {
@@ -129,7 +180,19 @@ serve(async (req) => {
 
     console.log('Categorizing transaction:', description);
 
-    // Clean and preprocess the description
+    // First try rule-based categorization
+    const ruleBasedCategory = categorizeByRules(description);
+    if (ruleBasedCategory) {
+      console.log('Rule-based categorization successful:', ruleBasedCategory);
+      return new Response(
+        JSON.stringify({ category: ruleBasedCategory }), 
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Clean and preprocess the description for AI
     const cleanDescription = description
       .replace(/\b\d+\b/g, '') // Remove standalone numbers
       .replace(/[^\w\s]/g, ' ') // Replace special characters with spaces
@@ -163,13 +226,13 @@ Rules:
 RESPOND WITH ONLY THE CATEGORY NAME. NO EXPLANATIONS.`;
 
     let retryCount = 0;
-    const maxRetries = 3;
+    const maxRetries = 2; // Reduced retries to avoid rate limiting
 
     while (retryCount < maxRetries) {
       try {
-        // Add delay between retries to handle rate limiting
+        // Add longer delays between retries to handle rate limiting better
         if (retryCount > 0) {
-          const delayMs = Math.pow(2, retryCount) * 1000; // Exponential backoff
+          const delayMs = Math.pow(3, retryCount) * 2000; // Longer exponential backoff
           console.log(`Retry ${retryCount}, waiting ${delayMs}ms`);
           await delay(delayMs);
         }
@@ -200,9 +263,8 @@ RESPOND WITH ONLY THE CATEGORY NAME. NO EXPLANATIONS.`;
         console.log('Groq API categorization response status:', response.status);
 
         if (response.status === 429) {
-          console.log('Rate limit hit, retrying...');
-          retryCount++;
-          continue;
+          console.log('Rate limit hit, will try rule-based fallback instead');
+          break; // Exit retry loop and use fallback
         }
 
         if (!response.ok) {
@@ -258,12 +320,33 @@ RESPOND WITH ONLY THE CATEGORY NAME. NO EXPLANATIONS.`;
       }
     }
 
-    // If all retries failed, return Miscellaneous as fallback
-    console.warn('All retry attempts failed, defaulting to Miscellaneous');
+    // Enhanced fallback categorization if AI fails
+    console.warn('AI categorization failed, using enhanced fallback logic');
+    
+    // Try one more rule-based attempt with more patterns
+    const enhancedFallback = (desc: string): string => {
+      const lower = desc.toLowerCase();
+      
+      // More transport patterns
+      if (lower.includes('toll') || lower.includes('linkt') || lower.includes('transurban')) return 'Tolls';
+      if (lower.includes('fuel') || lower.includes('petrol') || lower.includes('gas station')) return 'Gas & Fuel';
+      if (lower.includes('supermarket') || lower.includes('grocery')) return 'Groceries';
+      if (lower.includes('restaurant') || lower.includes('cafe') || lower.includes('food')) return 'Restaurants';
+      if (lower.includes('transfer') || lower.includes('payment')) return 'Transfer';
+      if (lower.includes('direct debit') && lower.includes('insurance')) return 'Insurance';
+      if (lower.includes('electricity') || lower.includes('power')) return 'Electricity';
+      if (lower.includes('phone') || lower.includes('mobile')) return 'Phone';
+      
+      return 'Miscellaneous';
+    };
+    
+    const fallbackCategory = enhancedFallback(description);
+    console.log('Using enhanced fallback category:', fallbackCategory);
+    
     return new Response(
       JSON.stringify({ 
-        category: 'Miscellaneous',
-        warning: 'AI categorization failed after retries, defaulted to Miscellaneous' 
+        category: fallbackCategory,
+        warning: 'AI categorization failed, used rule-based fallback' 
       }), 
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

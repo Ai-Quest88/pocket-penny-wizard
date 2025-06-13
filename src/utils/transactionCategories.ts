@@ -13,6 +13,50 @@ let userDefinedRules: CategoryRule[] = [];
 // Export the comprehensive categories array from transaction-forms
 export { categories };
 
+// Enhanced rule-based categorization for common patterns
+const categorizeByBuiltInRules = (description: string): string | null => {
+  const lowerDesc = description.toLowerCase();
+  
+  // Australian toll roads and transport - this should catch your Linkt transaction
+  if (lowerDesc.includes('linkt') || lowerDesc.includes('e-tag') || lowerDesc.includes('etag') || 
+      lowerDesc.includes('transurban') || lowerDesc.includes('toll')) {
+    console.log(`Built-in rule matched: "${description}" -> Tolls`);
+    return 'Tolls';
+  }
+  
+  // Fuel stations
+  if (lowerDesc.includes('caltex') || lowerDesc.includes('shell') || lowerDesc.includes('bp ') || 
+      lowerDesc.includes('7-eleven') || lowerDesc.includes('united petroleum') || 
+      lowerDesc.includes('mobil') || lowerDesc.includes('ampol') || lowerDesc.includes('fuel') || 
+      lowerDesc.includes('petrol') || lowerDesc.includes('gas station')) {
+    console.log(`Built-in rule matched: "${description}" -> Gas & Fuel`);
+    return 'Gas & Fuel';
+  }
+  
+  // Australian supermarkets
+  if (lowerDesc.includes('woolworths') || lowerDesc.includes('coles') || 
+      lowerDesc.includes('iga ') || lowerDesc.includes('aldi') || lowerDesc.includes('supermarket')) {
+    console.log(`Built-in rule matched: "${description}" -> Groceries`);
+    return 'Groceries';
+  }
+  
+  // Australian banks and transfers
+  if (lowerDesc.includes('commbank') || lowerDesc.includes('commonwealth bank') ||
+      lowerDesc.includes('transfer to') || lowerDesc.includes('transfer from')) {
+    console.log(`Built-in rule matched: "${description}" -> Transfer`);
+    return 'Transfer';
+  }
+  
+  // Public transport
+  if (lowerDesc.includes('opal') || lowerDesc.includes('myki') || lowerDesc.includes('go card') ||
+      lowerDesc.includes('transport') || lowerDesc.includes('train') || lowerDesc.includes('bus')) {
+    console.log(`Built-in rule matched: "${description}" -> Public Transport`);
+    return 'Public Transport';
+  }
+  
+  return null;
+};
+
 // Function to add a user-defined rule
 export const addUserCategoryRule = (description: string, category: string) => {
   // Extract meaningful words from the description
@@ -63,9 +107,17 @@ export const loadUserCategoryRules = () => {
   }
 };
 
-// Main categorization function that uses AI with user rule priority
+// Main categorization function with enhanced rule checking
 export const categorizeTransaction = async (description: string): Promise<string> => {
-  // First check user-defined rules (they always take priority)
+  console.log(`Categorizing: "${description}"`);
+  
+  // First check built-in rules (highest priority for common patterns)
+  const builtInCategory = categorizeByBuiltInRules(description);
+  if (builtInCategory) {
+    return builtInCategory;
+  }
+  
+  // Then check user-defined rules
   const lowerDescription = description.toLowerCase();
   for (const rule of userDefinedRules) {
     if (rule.keywords.some(keyword => lowerDescription.includes(keyword))) {
@@ -75,19 +127,25 @@ export const categorizeTransaction = async (description: string): Promise<string
   }
 
   try {
-    // Use AI categorization
+    // Use AI categorization as fallback
     const aiCategory = await categorizeTransactionWithAI(description);
     console.log(`AI categorized: "${description}" -> ${aiCategory}`);
     return aiCategory;
   } catch (error) {
     console.warn('AI categorization failed:', error);
-    return 'Other';
+    return 'Miscellaneous';
   }
 };
 
-// Synchronous version for backward compatibility (now returns 'Other' by default)
+// Synchronous version for backward compatibility
 export const categorizeTransactionSync = (description: string): string => {
-  // Check user-defined rules only
+  // Check built-in rules first
+  const builtInCategory = categorizeByBuiltInRules(description);
+  if (builtInCategory) {
+    return builtInCategory;
+  }
+  
+  // Check user-defined rules
   const lowerDescription = description.toLowerCase();
   for (const rule of userDefinedRules) {
     if (rule.keywords.some(keyword => lowerDescription.includes(keyword))) {
@@ -96,8 +154,8 @@ export const categorizeTransactionSync = (description: string): string => {
     }
   }
   
-  console.log(`No user rule match found for: "${description}" -> Other`);
-  return 'Other';
+  console.log(`No rule match found for: "${description}" -> Miscellaneous`);
+  return 'Miscellaneous';
 };
 
 // Initialize user rules on module load
