@@ -23,6 +23,7 @@ export interface ParseResult {
   headers?: string[];
   preview?: Record<string, string>[];
   autoMappings?: Record<string, string>;
+  totalRows?: number; // Add totalRows property
   error?: string;
 }
 
@@ -267,6 +268,9 @@ export const parseCSV = (content: string): ParseResult => {
     }
   }
   
+  // Calculate total number of data rows
+  const totalDataRows = lines.length - startIndex;
+  
   // Generate preview data
   const preview: Record<string, string>[] = [];
   const previewLines = lines.slice(startIndex, startIndex + 5); // Show first 5 data rows
@@ -388,6 +392,7 @@ export const parseCSV = (content: string): ParseResult => {
     headers: headers, // Always return headers
     preview,
     autoMappings: autoMappedColumns,
+    totalRows: totalDataRows, // Return total number of data rows
     error: errors.length > 0 && transactions.length === 0 ? errors.map(e => e.message).join(', ') : undefined
   };
 };
