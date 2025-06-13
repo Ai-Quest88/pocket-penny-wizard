@@ -259,8 +259,8 @@ export const categorizeTransaction = async (description: string, userId?: string
     console.log(`AI categorized: "${description}" -> ${aiCategory}`);
     
     // Validate that the AI category is in our allowed categories list
-    const validCategories = categories.map(cat => cat.value);
-    if (validCategories.includes(aiCategory)) {
+    // Fix: categories is an array of strings, not objects with .value property
+    if (categories.includes(aiCategory)) {
       return aiCategory;
     } else {
       console.warn(`AI returned invalid category "${aiCategory}", using Miscellaneous`);
