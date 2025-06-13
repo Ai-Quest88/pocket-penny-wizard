@@ -51,20 +51,64 @@ const filterEmptyStrings = (arr: string[]): string[] => {
 
 export const categoryBuckets: CategoryBucket[] = [
   {
-    name: "Living Expenses",
-    categories: filterEmptyStrings(["Food", "Grocery", "Transport", "Bills", "Shopping"])
+    name: "Food & Dining",
+    categories: filterEmptyStrings(["Groceries", "Restaurants", "Fast Food", "Coffee & Cafes", "Alcohol & Bars", "Food Delivery"])
   },
   {
-    name: "Lifestyle", 
-    categories: filterEmptyStrings(["Entertainment", "Health", "Travel", "Education"])
+    name: "Transportation", 
+    categories: filterEmptyStrings(["Gas & Fuel", "Public Transport", "Taxi & Rideshare", "Car Maintenance", "Car Insurance", "Parking", "Tolls"])
+  },
+  {
+    name: "Shopping",
+    categories: filterEmptyStrings(["Clothing", "Electronics", "Home & Garden", "Pharmacy", "Books", "Gifts", "Online Shopping", "Department Stores"])
+  },
+  {
+    name: "Bills & Utilities",
+    categories: filterEmptyStrings(["Electricity", "Gas", "Water", "Internet", "Phone", "Rent", "Mortgage", "Insurance", "Subscriptions"])
+  },
+  {
+    name: "Entertainment",
+    categories: filterEmptyStrings(["Movies", "Streaming Services", "Gaming", "Sports", "Hobbies", "Events & Tickets", "Music"])
+  },
+  {
+    name: "Health & Fitness",
+    categories: filterEmptyStrings(["Medical", "Dental", "Pharmacy", "Gym", "Sports Equipment", "Health Insurance"])
+  },
+  {
+    name: "Travel",
+    categories: filterEmptyStrings(["Flights", "Hotels", "Car Rental", "Travel Insurance", "Vacation"])
+  },
+  {
+    name: "Education",
+    categories: filterEmptyStrings(["Tuition", "Books & Supplies", "Online Courses", "Training"])
   },
   {
     name: "Financial",
-    categories: filterEmptyStrings(["Income", "Banking", "Investment", "Insurance"])
+    categories: filterEmptyStrings(["Banking Fees", "ATM Fees", "Investment", "Savings", "Loan Payment", "Credit Card Payment", "Transfer"])
+  },
+  {
+    name: "Income",
+    categories: filterEmptyStrings(["Salary", "Freelance", "Business Income", "Investment Income", "Refund", "Cashback", "Bonus"])
+  },
+  {
+    name: "Personal Care",
+    categories: filterEmptyStrings(["Haircut", "Beauty", "Spa", "Personal Items"])
+  },
+  {
+    name: "Family & Kids",
+    categories: filterEmptyStrings(["Childcare", "School Fees", "Kids Activities", "Baby Items"])
+  },
+  {
+    name: "Business",
+    categories: filterEmptyStrings(["Office Supplies", "Business Meals", "Professional Services", "Marketing", "Equipment"])
+  },
+  {
+    name: "Charity & Gifts",
+    categories: filterEmptyStrings(["Donations", "Charity", "Gifts Given"])
   },
   {
     name: "Other",
-    categories: filterEmptyStrings(["Other", "Gifts", "Charity"])
+    categories: filterEmptyStrings(["Miscellaneous", "Cash Withdrawal", "Other"])
   }
 ].filter(bucket => bucket.name && bucket.name.trim() !== "" && bucket.categories.length > 0);
 

@@ -1,20 +1,5 @@
 
-// Define our transaction categories - added Grocery
-const CATEGORIES = [
-  'Banking',
-  'Food', 
-  'Grocery',
-  'Transport',
-  'Shopping',
-  'Bills',
-  'Entertainment',
-  'Health',
-  'Travel',
-  'Education',
-  'Income',
-  'Investment',
-  'Other'
-];
+import { categories } from '@/types/transaction-forms';
 
 let isInitialized = false;
 
@@ -90,7 +75,7 @@ export const categorizeTransactionWithAI = async (description: string): Promise<
 
     if (!response.ok) {
       console.error('Edge function error:', response.status, response.statusText);
-      return 'Other';
+      return 'Miscellaneous';
     }
 
     const data = await response.json();
@@ -106,11 +91,11 @@ export const categorizeTransactionWithAI = async (description: string): Promise<
       console.warn('Edge function warning:', data.warning);
     }
 
-    return category || 'Other';
+    return category || 'Miscellaneous';
     
   } catch (error) {
     console.error('Error in edge function categorization:', error);
-    return 'Other';
+    return 'Miscellaneous';
   }
 };
 

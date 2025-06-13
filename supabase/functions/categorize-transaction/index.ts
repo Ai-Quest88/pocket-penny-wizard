@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -7,21 +6,38 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Define our transaction categories - added Grocery
+// Comprehensive transaction categories
 const CATEGORIES = [
-  'Banking',
-  'Food', 
-  'Grocery',
-  'Transport',
-  'Shopping',
-  'Bills',
-  'Entertainment',
-  'Health',
-  'Travel',
-  'Education',
-  'Income',
-  'Investment',
-  'Other'
+  // Food & Dining
+  'Groceries', 'Restaurants', 'Fast Food', 'Coffee & Cafes', 'Alcohol & Bars', 'Food Delivery',
+  // Transportation
+  'Gas & Fuel', 'Public Transport', 'Taxi & Rideshare', 'Car Maintenance', 'Car Insurance', 'Parking', 'Tolls',
+  // Shopping
+  'Clothing', 'Electronics', 'Home & Garden', 'Pharmacy', 'Books', 'Gifts', 'Online Shopping', 'Department Stores',
+  // Bills & Utilities
+  'Electricity', 'Gas', 'Water', 'Internet', 'Phone', 'Rent', 'Mortgage', 'Insurance', 'Subscriptions',
+  // Entertainment
+  'Movies', 'Streaming Services', 'Gaming', 'Sports', 'Hobbies', 'Events & Tickets', 'Music',
+  // Health & Fitness
+  'Medical', 'Dental', 'Pharmacy', 'Gym', 'Sports Equipment', 'Health Insurance',
+  // Travel
+  'Flights', 'Hotels', 'Car Rental', 'Travel Insurance', 'Vacation',
+  // Education
+  'Tuition', 'Books & Supplies', 'Online Courses', 'Training',
+  // Financial
+  'Banking Fees', 'ATM Fees', 'Investment', 'Savings', 'Loan Payment', 'Credit Card Payment', 'Transfer',
+  // Income
+  'Salary', 'Freelance', 'Business Income', 'Investment Income', 'Refund', 'Cashback', 'Bonus',
+  // Personal Care
+  'Haircut', 'Beauty', 'Spa', 'Personal Items',
+  // Family & Kids
+  'Childcare', 'School Fees', 'Kids Activities', 'Baby Items',
+  // Business
+  'Office Supplies', 'Business Meals', 'Professional Services', 'Marketing', 'Equipment',
+  // Charity & Gifts
+  'Donations', 'Charity', 'Gifts Given',
+  // Other
+  'Miscellaneous', 'Cash Withdrawal', 'Other'
 ];
 
 // Add delay utility for rate limiting
@@ -120,28 +136,31 @@ serve(async (req) => {
       .replace(/\s+/g, ' ') // Replace multiple spaces with single space
       .trim();
 
-    // More structured prompt with JSON format request
-    const prompt = `You are a transaction categorizer. Categorize this transaction into exactly one of these categories: ${CATEGORIES.join(', ')}.
+    // More structured prompt with comprehensive category list
+    const prompt = `Categorize this transaction into exactly one of these categories:
+
+${CATEGORIES.join(', ')}
 
 Transaction: "${cleanDescription}"
 
-Categorization rules:
-- Grocery stores (Woolworths, Coles, IGA, Aldi, Safeway) = Grocery
-- Restaurants, cafes, takeaway, food delivery (McDonald's, KFC, Uber Eats) = Food  
-- Transport (fuel, petrol, public transport, Uber, taxi) = Transport
-- Retail stores (Bunnings, Officeworks, Target, Kmart) = Shopping
-- Utilities, phone bills, subscriptions, rent = Bills
-- Entertainment venues, streaming services = Entertainment
-- Medical, pharmacy, health insurance = Health
-- Banking fees, ATM fees = Banking
-- Education fees, courses = Education
-- Salary, wages, refunds, cashback = Income
-- Investment, trading, dividends = Investment
-- If uncertain or unclear = Other
+Rules:
+- Grocery stores (Woolworths, Coles, IGA, Aldi, Safeway, supermarket) = Groceries
+- Restaurants, cafes, takeaway, food delivery (McDonald's, KFC, Uber Eats, DoorDash) = Restaurants or Fast Food
+- Coffee shops, cafes = Coffee & Cafes
+- Petrol, fuel, gas station = Gas & Fuel
+- Public transport, train, bus, metro = Public Transport
+- Uber, taxi, rideshare = Taxi & Rideshare
+- Retail stores (Target, Kmart, Bunnings, Officeworks) = Department Stores or Home & Garden
+- Utilities (electricity, gas, water) = use specific utility category
+- Phone, internet bills = Phone or Internet
+- Rent, mortgage = Rent or Mortgage
+- Banking fees, ATM = Banking Fees or ATM Fees
+- Salary, wages = Salary
+- Medical, doctor, hospital = Medical
+- Pharmacy, chemist = Pharmacy
+- If uncertain = Miscellaneous
 
-IMPORTANT: Respond with ONLY the category name. No explanations, no extra text, no punctuation. Just the single word category name.
-
-Category:`;
+RESPOND WITH ONLY THE CATEGORY NAME. NO EXPLANATIONS.`;
 
     let retryCount = 0;
     const maxRetries = 3;
@@ -166,7 +185,7 @@ Category:`;
             messages: [
               {
                 role: 'system',
-                content: 'You are a transaction categorizer. You respond ONLY with the category name, nothing else. No explanations, no extra words, no punctuation.'
+                content: 'You are a transaction categorizer. You respond ONLY with the exact category name from the provided list, nothing else.'
               },
               {
                 role: 'user',
@@ -174,7 +193,7 @@ Category:`;
               }
             ],
             temperature: 0.1,
-            max_tokens: 5 // Reduced to force shorter responses
+            max_tokens: 5 // Very limited to force short responses
           })
         });
 
@@ -203,30 +222,35 @@ Category:`;
           // Remove any common prefixes and unwanted text
           category = category.replace(/^(category:|answer:|response:|result:)\s*/i, '');
           category = category.replace(/\.$/, ''); // Remove trailing period
-          category = category.replace(/[^\w]/g, ''); // Remove all non-word characters
-          // Take only the first word
-          category = category.split(/\s+/)[0];
-        }
-        
-        console.log('Cleaned AI response:', category);
-        
-        // Direct exact match validation (case insensitive)
-        const validCategory = CATEGORIES.find(cat => 
-          cat.toLowerCase() === category?.toLowerCase()
-        );
-        
-        if (validCategory) {
-          console.log('Valid category found:', validCategory);
-          return new Response(
-            JSON.stringify({ category: validCategory }), 
-            { 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-            }
+          category = category.replace(/[^\w\s&]/g, ''); // Remove special chars except & and spaces
+          category = category.trim();
+          
+          // Handle multi-word categories - try to find exact match first
+          let validCategory = CATEGORIES.find(cat => 
+            cat.toLowerCase() === category.toLowerCase()
           );
-        } else {
-          console.warn('Invalid category returned:', category, 'Retrying...');
-          retryCount++;
+          
+          // If no exact match, try partial matching
+          if (!validCategory) {
+            validCategory = CATEGORIES.find(cat => 
+              cat.toLowerCase().includes(category.toLowerCase()) ||
+              category.toLowerCase().includes(cat.toLowerCase())
+            );
+          }
+          
+          if (validCategory) {
+            console.log('Valid category found:', validCategory);
+            return new Response(
+              JSON.stringify({ category: validCategory }), 
+              { 
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+              }
+            );
+          }
         }
+        
+        console.warn('Invalid category returned:', category, 'Retrying...');
+        retryCount++;
         
       } catch (error) {
         console.error(`Attempt ${retryCount + 1} failed:`, error);
@@ -234,12 +258,12 @@ Category:`;
       }
     }
 
-    // If all retries failed, return Other as fallback
-    console.warn('All retry attempts failed, defaulting to Other');
+    // If all retries failed, return Miscellaneous as fallback
+    console.warn('All retry attempts failed, defaulting to Miscellaneous');
     return new Response(
       JSON.stringify({ 
-        category: 'Other',
-        warning: 'AI categorization failed after retries, defaulted to Other' 
+        category: 'Miscellaneous',
+        warning: 'AI categorization failed after retries, defaulted to Miscellaneous' 
       }), 
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -250,7 +274,7 @@ Category:`;
     console.error('Error in categorize-transaction function:', error);
     return new Response(
       JSON.stringify({ 
-        category: 'Other',
+        category: 'Miscellaneous',
         error: error instanceof Error ? error.message : 'Unknown error' 
       }), 
       { 

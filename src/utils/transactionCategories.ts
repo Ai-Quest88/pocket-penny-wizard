@@ -1,5 +1,6 @@
 
 import { categorizeTransactionWithAI } from './aiCategorization';
+import { categories } from '@/types/transaction-forms';
 
 type CategoryRule = {
   keywords: string[];
@@ -9,25 +10,8 @@ type CategoryRule = {
 // Store user-defined categorization rules
 let userDefinedRules: CategoryRule[] = [];
 
-// Export the categories array - added Grocery
-export const categories = [
-  'Banking',
-  'Food', 
-  'Grocery',
-  'Transport',
-  'Shopping',
-  'Bills',
-  'Entertainment',
-  'Health',
-  'Travel',
-  'Education',
-  'Income',
-  'Investment',
-  'Other',
-  'Gifts', 
-  'Charity', 
-  'Insurance'
-];
+// Export the comprehensive categories array from transaction-forms
+export { categories };
 
 // Function to add a user-defined rule
 export const addUserCategoryRule = (description: string, category: string) => {
