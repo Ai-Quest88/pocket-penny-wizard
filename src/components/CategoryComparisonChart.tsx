@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card"
 import {
   BarChart,
@@ -8,31 +9,94 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts"
+import { useQuery } from "@tanstack/react-query"
+import { supabase } from "@/integrations/supabase/client"
+import { useAuth } from "@/contexts/AuthContext"
+import { format, subMonths, startOfMonth, endOfMonth } from "date-fns"
 
 interface CategoryComparisonChartProps {
   entityId?: string;
 }
 
-const data = [
-  { category: "Food", thisMonth: 4000, lastMonth: 2400 },
-  { category: "Transport", thisMonth: 3000, lastMonth: 1398 },
-  { category: "Shopping", thisMonth: 2000, lastMonth: 9800 },
-  { category: "Bills", thisMonth: 2780, lastMonth: 3908 },
-  { category: "Entertainment", thisMonth: 1890, lastMonth: 4800 },
-]
-
 export const CategoryComparisonChart = ({ entityId }: CategoryComparisonChartProps) => {
-  // Filter data based on entityId if needed
-  const filteredData = entityId ? data.filter(item => {
-    // Add your filtering logic here based on entityId
-    return true; // Placeholder - implement actual filtering
-  }) : data;
+  const { session } = useAuth();
+
+  const { data: chartData = [], isLoading } = useQuery({
+    queryKey: ['category-comparison', session?.user?.id, entityId],
+    queryFn: async () => {
+      if (!session?.user) return [];
+
+      const now = new Date();
+      const thisMonthStart = startOfMonth(now);
+      const lastMonthStart = startOfMonth(subMonths(now, 1));
+      const lastMonthEnd = endOfMonth(subMonths(now, 1));
+
+      // Get this month's transactions
+      const { data: thisMonthTransactions, error: thisMonthError } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .gte('date', format(thisMonthStart, 'yyyy-MM-dd'))
+        .lt('amount', 0); // Only expenses
+
+      if (thisMonthError) throw thisMonthError;
+
+      // Get last month's transactions
+      const { data: lastMonthTransactions, error: lastMonthError } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .gte('date', format(lastMonthStart, 'yyyy-MM-dd'))
+        .lte('date', format(lastMonthEnd, 'yyyy-MM-dd'))
+        .lt('amount', 0); // Only expenses
+
+      if (lastMonthError) throw lastMonthError;
+
+      // Group by category
+      const thisMonthByCategory: Record<string, number> = {};
+      const lastMonthByCategory: Record<string, number> = {};
+
+      thisMonthTransactions?.forEach(transaction => {
+        const category = transaction.category;
+        thisMonthByCategory[category] = (thisMonthByCategory[category] || 0) + Math.abs(transaction.amount);
+      });
+
+      lastMonthTransactions?.forEach(transaction => {
+        const category = transaction.category;
+        lastMonthByCategory[category] = (lastMonthByCategory[category] || 0) + Math.abs(transaction.amount);
+      });
+
+      // Get top 5 categories by this month's spending
+      const topCategories = Object.entries(thisMonthByCategory)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5)
+        .map(([category]) => category);
+
+      return topCategories.map(category => ({
+        category,
+        thisMonth: Math.round(thisMonthByCategory[category] || 0),
+        lastMonth: Math.round(lastMonthByCategory[category] || 0)
+      }));
+    },
+    enabled: !!session?.user,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="h-[400px] w-full flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-sm text-muted-foreground">Loading category comparison...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-[400px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
-          data={filteredData}
+          data={chartData}
           margin={{
             top: 5,
             right: 30,
@@ -51,10 +115,10 @@ export const CategoryComparisonChart = ({ entityId }: CategoryComparisonChartPro
                     <p className="font-medium">{label}</p>
                     <div className="space-y-1">
                       <p className="text-sm text-muted-foreground">
-                        This Month: ${payload[0].value}
+                        This Month: ${payload[0].value?.toLocaleString()}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        Last Month: ${payload[1].value}
+                        Last Month: ${payload[1].value?.toLocaleString()}
                       </p>
                     </div>
                   </Card>

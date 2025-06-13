@@ -1,16 +1,64 @@
+
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { Card } from "@/components/ui/card"
-
-const data = [
-  { month: "Jan", totalAssets: 150000 },
-  { month: "Feb", totalAssets: 155000 },
-  { month: "Mar", totalAssets: 158000 },
-  { month: "Apr", totalAssets: 162000 },
-  { month: "May", totalAssets: 165000 },
-  { month: "Jun", totalAssets: 170000 },
-]
+import { useQuery } from "@tanstack/react-query"
+import { supabase } from "@/integrations/supabase/client"
+import { useAuth } from "@/contexts/AuthContext"
+import { format, subMonths, startOfMonth, endOfMonth } from "date-fns"
 
 export function AssetsReport() {
+  const { session } = useAuth();
+
+  const { data: chartData = [], isLoading } = useQuery({
+    queryKey: ['assets-trend', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user) return [];
+
+      // Get last 6 months of data
+      const endDate = new Date();
+      const months = [];
+      
+      for (let i = 5; i >= 0; i--) {
+        const monthDate = subMonths(endDate, i);
+        const monthEnd = endOfMonth(monthDate);
+        
+        // Get assets for this month
+        const { data: assets } = await supabase
+          .from('assets')
+          .select('value')
+          .eq('user_id', session.user.id)
+          .lte('created_at', monthEnd.toISOString());
+        
+        const totalAssets = assets?.reduce((sum, asset) => sum + Number(asset.value), 0) || 0;
+        
+        months.push({
+          month: format(monthDate, 'MMM'),
+          totalAssets: Math.round(totalAssets)
+        });
+      }
+      
+      return months;
+    },
+    enabled: !!session?.user,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-xl font-semibold mb-2">Assets Overview</h2>
+          <p className="text-sm text-muted-foreground">Track your total assets value over time</p>
+        </div>
+        <div className="h-[400px] flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-2 text-sm text-muted-foreground">Loading assets data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -20,7 +68,7 @@ export function AssetsReport() {
 
       <div className="h-[400px]">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data}>
+          <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="month" />
             <YAxis />
@@ -31,7 +79,7 @@ export function AssetsReport() {
                     <Card className="p-2 border bg-background">
                       <p className="font-medium">{label}</p>
                       <p className="text-sm text-muted-foreground">
-                        ${payload[0].value.toLocaleString()}
+                        ${payload[0].value?.toLocaleString()}
                       </p>
                     </Card>
                   )
