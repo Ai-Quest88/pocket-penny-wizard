@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,7 +12,9 @@ import { CalendarIcon, Plus } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { categories, currencies } from "@/types/transaction-forms"
-import { useAccounts } from "@/hooks/useAccounts"
+import { useQuery } from "@tanstack/react-query"
+import { supabase } from "@/integrations/supabase/client"
+import { useAuth } from "@/contexts/AuthContext"
 import type { Transaction, ManualTransactionFormProps } from "@/types/transaction-forms"
 
 export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ onTransactionAdded }) => {
@@ -24,24 +27,69 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
   const [comment, setComment] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const { accounts, isLoading: accountsLoading } = useAccounts()
+  const { session } = useAuth()
+
+  // Fetch cash/savings accounts with their associated entities
+  const { data: accountsWithEntities = [], isLoading: accountsLoading } = useQuery({
+    queryKey: ['accounts-with-entities', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user) return [];
+
+      const { data: assets, error: assetsError } = await supabase
+        .from('assets')
+        .select(`
+          id,
+          name,
+          type,
+          category,
+          account_number,
+          entity_id,
+          entities!inner(
+            id,
+            name,
+            type
+          )
+        `)
+        .eq('user_id', session.user.id)
+        .eq('type', 'cash')
+        .in('category', ['savings_account', 'checking_account', 'term_deposit'])
+        .order('name');
+
+      if (assetsError) {
+        console.error('Error fetching accounts:', assetsError);
+        throw assetsError;
+      }
+
+      return assets.map(asset => ({
+        id: asset.id,
+        name: asset.name,
+        type: asset.category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        accountNumber: asset.account_number,
+        entityName: asset.entities.name,
+        entityType: asset.entities.type
+      }));
+    },
+    enabled: !!session?.user,
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!amount || !description || !category) {
+    if (!amount || !description || !category || !account) {
       return
     }
 
     setIsSubmitting(true)
 
+    const selectedAccount = accountsWithEntities.find(acc => acc.id === account);
+    
     const transaction: Omit<Transaction, 'id'> = {
       date: format(date, 'yyyy-MM-dd'),
       amount: parseFloat(amount),
       description,
       category,
       currency,
-      account: account || 'Default Account',
+      account: selectedAccount ? `${selectedAccount.name} (${selectedAccount.entityName})` : 'Default Account',
       comment: comment || undefined,
     }
 
@@ -73,10 +121,6 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
     typeof curr.name === 'string' &&
     curr.name.trim() !== ""
   );
-
-  // Debug logging
-  console.log("ManualTransactionForm validCategories:", validCategories);
-  console.log("ManualTransactionForm validCurrencies:", validCurrencies);
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
@@ -152,9 +196,7 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
                 </SelectTrigger>
                 <SelectContent>
                   {validCategories.map((cat) => {
-                    // Extra safety check
                     if (!cat || cat.trim() === "") {
-                      console.error("Attempting to render empty category in ManualTransactionForm:", cat);
                       return null;
                     }
                     return (
@@ -175,9 +217,7 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
                 </SelectTrigger>
                 <SelectContent>
                   {validCurrencies.map((curr) => {
-                    // Extra safety check
                     if (!curr.code || curr.code.trim() === "") {
-                      console.error("Attempting to render empty currency in ManualTransactionForm:", curr);
                       return null;
                     }
                     return (
@@ -192,19 +232,31 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="account">Account</Label>
-            <Select value={account} onValueChange={setAccount} disabled={accountsLoading}>
+            <Label htmlFor="account">Account *</Label>
+            <Select value={account} onValueChange={setAccount} disabled={accountsLoading} required>
               <SelectTrigger>
                 <SelectValue placeholder="Select account" />
               </SelectTrigger>
               <SelectContent>
-                {accounts.map((acc) => (
-                  <SelectItem key={acc.id} value={acc.name}>
-                    {acc.name} ({acc.type})
+                {accountsWithEntities.length === 0 && !accountsLoading ? (
+                  <SelectItem value="no-accounts" disabled>
+                    No cash accounts found. Create accounts in Assets first.
                   </SelectItem>
-                ))}
+                ) : (
+                  accountsWithEntities.map((acc) => (
+                    <SelectItem key={acc.id} value={acc.id}>
+                      {acc.name} - {acc.entityName} ({acc.type})
+                      {acc.accountNumber && ` - ${acc.accountNumber}`}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
+            {accountsWithEntities.length === 0 && !accountsLoading && (
+              <p className="text-sm text-muted-foreground">
+                You need to create cash accounts under entities first. Go to Assets → Add Asset.
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -229,7 +281,10 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
             }}>
               Clear
             </Button>
-            <Button type="submit" disabled={isSubmitting || !amount || !description || !category}>
+            <Button 
+              type="submit" 
+              disabled={isSubmitting || !amount || !description || !category || !account || accountsWithEntities.length === 0}
+            >
               {isSubmitting ? 'Adding...' : 'Add Transaction'}
             </Button>
           </div>

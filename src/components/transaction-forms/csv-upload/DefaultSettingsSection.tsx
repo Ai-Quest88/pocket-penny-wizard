@@ -57,13 +57,25 @@ export const DefaultSettingsSection: React.FC<DefaultSettingsSectionProps> = ({
             <SelectValue placeholder="Select default account" />
           </SelectTrigger>
           <SelectContent>
-            {validAccounts.map(account => (
-              <SelectItem key={account.id} value={account.name}>
-                {account.name} ({account.type})
+            {validAccounts.length === 0 && !accountsLoading ? (
+              <SelectItem value="no-accounts" disabled>
+                No accounts found. Create accounts in Assets first.
               </SelectItem>
-            ))}
+            ) : (
+              validAccounts.map(account => (
+                <SelectItem key={account.id} value={`${account.name} (${account.entityName})`}>
+                  {account.name} - {account.entityName} ({account.type})
+                  {account.accountNumber && ` - ${account.accountNumber}`}
+                </SelectItem>
+              ))
+            )}
           </SelectContent>
         </Select>
+        {validAccounts.length === 0 && !accountsLoading && (
+          <p className="text-sm text-muted-foreground mt-1">
+            Create cash accounts under entities in Assets first.
+          </p>
+        )}
       </div>
     </div>
   )
