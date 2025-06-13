@@ -26,7 +26,7 @@ export const useBudgetData = (entityId?: string, timeframe: string = '3m') => {
             startDate.setMonth(now.getMonth() - 6);
             break;
           case '12m':
-            startDate.setMonth(now.getMonth() - 12);
+            startDate.setFullYear(now.getFullYear() - 1);
             break;
           default:
             startDate.setMonth(now.getMonth() - 3);
@@ -35,19 +35,20 @@ export const useBudgetData = (entityId?: string, timeframe: string = '3m') => {
         console.log('Fetching transactions for budget from:', startDate.toISOString().split('T')[0]);
         console.log('To date:', now.toISOString().split('T')[0]);
 
-        // Fetch ALL transactions from the specified date range (don't filter by entity here yet)
+        // Fetch ALL transactions from the specified date range
         const { data: allTransactions, error: transactionsError } = await supabase
           .from('transactions')
           .select('*')
           .gte('date', startDate.toISOString().split('T')[0])
-          .lte('date', now.toISOString().split('T')[0]);
+          .lte('date', now.toISOString().split('T')[0])
+          .lt('amount', 0); // Only get expenses (negative amounts)
 
         if (transactionsError) {
           console.error('Error fetching transactions for budget:', transactionsError);
           return;
         }
 
-        console.log('All fetched transactions for budget:', allTransactions);
+        console.log('All fetched expense transactions for budget:', allTransactions);
 
         // Fetch active budgets
         let budgetsQuery = supabase
@@ -81,14 +82,13 @@ export const useBudgetData = (entityId?: string, timeframe: string = '3m') => {
         const categorySpending: Record<string, number> = {};
         
         transactions.forEach(transaction => {
-          // Include all expense transactions (exclude only Income)
-          if (transaction.category !== 'Income') {
-            if (!categorySpending[transaction.category]) {
-              categorySpending[transaction.category] = 0;
-            }
-            // Use absolute value for spending amounts to handle negative amounts
-            categorySpending[transaction.category] += Math.abs(Number(transaction.amount));
+          // Use absolute value for spending amounts since we're dealing with negative amounts
+          const spentAmount = Math.abs(Number(transaction.amount));
+          
+          if (!categorySpending[transaction.category]) {
+            categorySpending[transaction.category] = 0;
           }
+          categorySpending[transaction.category] += spentAmount;
         });
 
         console.log('Category spending calculated:', categorySpending);
@@ -98,16 +98,15 @@ export const useBudgetData = (entityId?: string, timeframe: string = '3m') => {
 
         // Add categories from active budgets
         budgets?.forEach(budget => {
-          // Use the budget amount as-is from the database
-          const budgetAmount = Number(budget.amount);
+          // Get the spent amount for this budget category
+          const spent = categorySpending[budget.category] || 0;
           
-          console.log(`Processing budget for ${budget.category}: amount=${budget.amount}, period=${budget.period}`);
-          console.log(`Using budget amount as-is: ${budgetAmount}`);
+          console.log(`Processing budget for ${budget.category}: amount=${budget.amount}, spent=${spent}`);
 
           categories.push({
             category: budget.category,
-            spent: categorySpending[budget.category] || 0,
-            total: budgetAmount,
+            spent: spent,
+            total: Number(budget.amount),
             budgetId: budget.id,
           });
         });

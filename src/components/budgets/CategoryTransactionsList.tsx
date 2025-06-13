@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   Table, 
   TableBody, 
@@ -29,9 +30,12 @@ interface CategoryTransactionsListProps {
 export const CategoryTransactionsList = ({ category, timeframe = '3m' }: CategoryTransactionsListProps) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { session } = useAuth();
 
   useEffect(() => {
     const fetchCategoryTransactions = async () => {
+      if (!session?.user) return;
+      
       setIsLoading(true);
       try {
         // Calculate date range based on timeframe
@@ -49,13 +53,14 @@ export const CategoryTransactionsList = ({ category, timeframe = '3m' }: Categor
             startDate.setMonth(now.getMonth() - 6);
             break;
           case '12m':
-            startDate.setMonth(now.getMonth() - 12);
+            startDate.setFullYear(now.getFullYear() - 1);
             break;
         }
 
         const { data, error } = await supabase
           .from('transactions')
           .select('*')
+          .eq('user_id', session.user.id)
           .eq('category', category)
           .gte('date', startDate.toISOString().split('T')[0])
           .lte('date', now.toISOString().split('T')[0])
@@ -75,7 +80,7 @@ export const CategoryTransactionsList = ({ category, timeframe = '3m' }: Categor
     };
 
     fetchCategoryTransactions();
-  }, [category, timeframe]);
+  }, [category, timeframe, session?.user]);
 
   if (isLoading) {
     return (

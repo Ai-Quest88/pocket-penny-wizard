@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, X } from "lucide-react";
 import { useState } from "react";
+import { transactionCategories } from "@/utils/transactionCategories";
 
 interface SearchFilters {
   searchTerm: string;
@@ -47,8 +48,8 @@ export const TransactionSearch = ({ onFiltersChange, totalResults }: Transaction
 
   return (
     <div className="space-y-4 p-4 border-b">
-      <div className="flex gap-4 items-center">
-        <div className="relative flex-1">
+      <div className="flex gap-4 items-center flex-wrap">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
             placeholder="Search transactions by description..."
@@ -59,19 +60,16 @@ export const TransactionSearch = ({ onFiltersChange, totalResults }: Transaction
         </div>
         
         <Select value={filters.category || "all"} onValueChange={(value) => updateFilters({ category: value === "all" ? "" : value })}>
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Category" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
-            <SelectItem value="Food & Dining">Food & Dining</SelectItem>
-            <SelectItem value="Transportation">Transportation</SelectItem>
-            <SelectItem value="Shopping">Shopping</SelectItem>
-            <SelectItem value="Bills & Utilities">Bills & Utilities</SelectItem>
-            <SelectItem value="Healthcare">Healthcare</SelectItem>
-            <SelectItem value="Entertainment">Entertainment</SelectItem>
-            <SelectItem value="Income">Income</SelectItem>
-            <SelectItem value="Other">Other</SelectItem>
+            {transactionCategories.map((category) => (
+              <SelectItem key={category} value={category}>
+                {category}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
 
@@ -116,7 +114,7 @@ export const TransactionSearch = ({ onFiltersChange, totalResults }: Transaction
           {totalResults} transaction{totalResults !== 1 ? 's' : ''} found
         </span>
         {hasActiveFilters && (
-          <div className="flex gap-1">
+          <div className="flex gap-1 flex-wrap">
             {filters.searchTerm && (
               <Badge variant="secondary" className="text-xs">
                 "{filters.searchTerm}"
