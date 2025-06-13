@@ -1,5 +1,4 @@
 
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -120,7 +119,7 @@ serve(async (req) => {
       .replace(/\s+/g, ' ') // Replace multiple spaces with single space
       .trim();
 
-    // Improved prompt to get cleaner responses
+    // Improved prompt to get cleaner responses with better restaurant vs grocery distinction
     const prompt = `You are a financial transaction categorization expert. Categorize this transaction into EXACTLY ONE of these categories: ${CATEGORIES.join(', ')}.
 
 Transaction: "${cleanDescription}"
@@ -128,17 +127,20 @@ Transaction: "${cleanDescription}"
 IMPORTANT RULES:
 - Respond with ONLY the category name (one word)
 - No explanations, no thinking process, no additional text
-- Food businesses (Woolworths, Coles, restaurants, cafes, bakeries, kebab shops) = Food
+- Food categories:
+  * Supermarkets/Grocery stores (Woolworths, Coles, IGA, Aldi) = Food
+  * Restaurants, cafes, takeaway, food delivery, "groceries & food" descriptions = Food
+  * Bakeries, kebab shops, fast food chains, food trucks = Food
 - Transport (fuel stations like Ampol, public transport, Uber, parking) = Transport  
-- Shopping (retail stores, Bunnings, Officeworks) = Shopping
-- Bills (utilities, phone, subscriptions) = Bills
-- Entertainment (movies, games, streaming) = Entertainment
-- Health (medical, pharmacy, dental) = Health
-- Banking (fees, transfers, ATM) = Banking
-- Travel (hotels, flights, booking) = Travel
-- Education (schools, Scholastic, courses) = Education
-- Income (salary, wages, refunds) = Income
-- Investment (stocks, funds, crypto) = Investment
+- Shopping (retail stores, Bunnings, Officeworks, clothing, electronics) = Shopping
+- Bills (utilities, phone, subscriptions, insurance) = Bills
+- Entertainment (movies, games, streaming, bars, clubs) = Entertainment
+- Health (medical, pharmacy, dental, fitness) = Health
+- Banking (fees, transfers, ATM, bank charges) = Banking
+- Travel (hotels, flights, booking, accommodation) = Travel
+- Education (schools, Scholastic, courses, books) = Education
+- Income (salary, wages, refunds, government payments) = Income
+- Investment (stocks, funds, crypto, trading) = Investment
 - If completely unsure = Other
 
 Category:`;
@@ -270,4 +272,3 @@ Category:`;
     );
   }
 });
-
