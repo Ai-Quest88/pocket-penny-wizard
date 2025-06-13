@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,6 +17,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
   const [error, setError] = useState<string | null>(null)
   const [headers, setHeaders] = useState<string[]>([])
   const [preview, setPreview] = useState<Record<string, string>[]>([])
+  const [totalRows, setTotalRows] = useState(0) // Track total number of rows
   const [columnMappings, setColumnMappings] = useState<Record<string, string>>({})
   const [autoMapped, setAutoMapped] = useState<Record<string, string>>({})
   const [defaultCurrency, setDefaultCurrency] = useState('USD')
@@ -41,6 +41,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
         setError(result.error || 'Unknown error occurred')
         setHeaders([])
         setPreview([])
+        setTotalRows(0)
         setColumnMappings({})
         setAutoMapped({})
         return
@@ -53,6 +54,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
 
       setHeaders(result.headers)
       setPreview(result.preview || [])
+      setTotalRows(result.totalRows || 0) // Set the total number of rows
       setColumnMappings(result.autoMappings || {})
       setAutoMapped(result.autoMappings || {})
     } catch (err) {
@@ -109,6 +111,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
       setFile(null)
       setHeaders([])
       setPreview([])
+      setTotalRows(0)
       setColumnMappings({})
       setAutoMapped({})
       
@@ -181,6 +184,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                   setFile(null)
                   setHeaders([])
                   setPreview([])
+                  setTotalRows(0)
                   setColumnMappings({})
                   setAutoMapped({})
                   setError(null)
@@ -196,7 +200,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                 onClick={handleUpload}
                 disabled={!hasRequiredMappings || isProcessing}
               >
-                {isProcessing ? 'Processing...' : `Upload ${preview.length} Transactions`}
+                {isProcessing ? 'Processing...' : `Upload ${totalRows} Transactions`}
               </Button>
             </div>
           </>
