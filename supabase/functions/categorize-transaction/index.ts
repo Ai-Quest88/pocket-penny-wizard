@@ -120,25 +120,28 @@ serve(async (req) => {
       .replace(/\s+/g, ' ') // Replace multiple spaces with single space
       .trim();
 
-    // Simpler, more direct prompt without thinking instructions
-    const prompt = `Categorize this transaction into exactly one category: ${CATEGORIES.join(', ')}.
+    // More structured prompt with JSON format request
+    const prompt = `You are a transaction categorizer. Categorize this transaction into exactly one of these categories: ${CATEGORIES.join(', ')}.
 
 Transaction: "${cleanDescription}"
 
-Rules:
-- Grocery stores (Woolworths, Coles, IGA, Aldi) = Grocery
-- Restaurants, cafes, takeaway, food delivery = Food
-- Transport (fuel, public transport, Uber) = Transport
-- Retail stores (Bunnings, Officeworks) = Shopping
-- Utilities, subscriptions = Bills
-- Entertainment venues = Entertainment
-- Medical, pharmacy = Health
-- Banking fees = Banking
-- Education = Education
-- Salary, refunds = Income
-- If unsure = Other
+Categorization rules:
+- Grocery stores (Woolworths, Coles, IGA, Aldi, Safeway) = Grocery
+- Restaurants, cafes, takeaway, food delivery (McDonald's, KFC, Uber Eats) = Food  
+- Transport (fuel, petrol, public transport, Uber, taxi) = Transport
+- Retail stores (Bunnings, Officeworks, Target, Kmart) = Shopping
+- Utilities, phone bills, subscriptions, rent = Bills
+- Entertainment venues, streaming services = Entertainment
+- Medical, pharmacy, health insurance = Health
+- Banking fees, ATM fees = Banking
+- Education fees, courses = Education
+- Salary, wages, refunds, cashback = Income
+- Investment, trading, dividends = Investment
+- If uncertain or unclear = Other
 
-Answer with only the category name:`;
+IMPORTANT: Respond with ONLY the category name. No explanations, no extra text, no punctuation. Just the single word category name.
+
+Category:`;
 
     let retryCount = 0;
     const maxRetries = 3;
@@ -162,12 +165,16 @@ Answer with only the category name:`;
             model: 'llama-3.3-70b-versatile',
             messages: [
               {
+                role: 'system',
+                content: 'You are a transaction categorizer. You respond ONLY with the category name, nothing else. No explanations, no extra words, no punctuation.'
+              },
+              {
                 role: 'user',
                 content: prompt
               }
             ],
             temperature: 0.1,
-            max_tokens: 10
+            max_tokens: 5 // Reduced to force shorter responses
           })
         });
 
@@ -191,24 +198,19 @@ Answer with only the category name:`;
         
         console.log('Raw AI response:', category);
         
-        // Clean up the response more thoroughly
+        // More aggressive response cleaning
         if (category) {
-          // Remove any thinking tags and their content
-          category = category.replace(/<think>[\s\S]*?<\/think>/gi, '');
-          category = category.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '');
-          // Remove any remaining XML-like tags
-          category = category.replace(/<[^>]*>/g, '');
-          // Remove common prefixes/suffixes
-          category = category.replace(/^(category:|answer:|response:)\s*/i, '');
+          // Remove any common prefixes and unwanted text
+          category = category.replace(/^(category:|answer:|response:|result:)\s*/i, '');
           category = category.replace(/\.$/, ''); // Remove trailing period
-          // Get first word only and clean punctuation
-          category = category.split(/[\s\n,]+/)[0];
-          category = category.replace(/[^\w]/g, '');
+          category = category.replace(/[^\w]/g, ''); // Remove all non-word characters
+          // Take only the first word
+          category = category.split(/\s+/)[0];
         }
         
         console.log('Cleaned AI response:', category);
         
-        // Direct category validation
+        // Direct exact match validation (case insensitive)
         const validCategory = CATEGORIES.find(cat => 
           cat.toLowerCase() === category?.toLowerCase()
         );
@@ -222,24 +224,7 @@ Answer with only the category name:`;
             }
           );
         } else {
-          console.warn('Invalid category returned:', category);
-          
-          // Try partial matching as last resort
-          const partialMatch = CATEGORIES.find(cat => 
-            cat.toLowerCase().includes(category?.toLowerCase() || '') ||
-            category?.toLowerCase().includes(cat.toLowerCase())
-          );
-          
-          if (partialMatch) {
-            console.log('Found partial match:', partialMatch);
-            return new Response(
-              JSON.stringify({ category: partialMatch }), 
-              { 
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-              }
-            );
-          }
-          
+          console.warn('Invalid category returned:', category, 'Retrying...');
           retryCount++;
         }
         
