@@ -4,7 +4,7 @@ import { Transaction } from "@/types/transaction-forms";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { categorizeTransaction } from "@/utils/transactionCategories";
+import { categorizeBatchTransactions } from "@/utils/transactionCategories";
 import { initializeAIClassifier } from "@/utils/aiCategorization";
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -40,21 +40,25 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
     try {
       toast({
         title: "Processing",
-        description: "Categorizing transactions with AI...",
+        description: `Categorizing ${transactions.length} transactions with AI in batches...`,
       });
 
+      // Extract descriptions for batch categorization
+      const descriptions = transactions.map(t => t.description);
+      
+      // Process in batches with retry logic
+      const categories = await categorizeBatchTransactions(descriptions, 3, 2);
+
       // Prepare transactions for database insertion with AI categorization
-      const transactionsForDb = await Promise.all(
-        transactions.map(async (transaction) => ({
-          user_id: session.user.id,
-          description: transaction.description,
-          amount: transaction.amount,
-          category: await categorizeTransaction(transaction.description), // AI categorization
-          date: transaction.date,
-          currency: transaction.currency,
-          comment: transaction.comment || null,
-        }))
-      );
+      const transactionsForDb = transactions.map((transaction, index) => ({
+        user_id: session.user.id,
+        description: transaction.description,
+        amount: transaction.amount,
+        category: categories[index] || 'Miscellaneous', // Use batch result or fallback
+        date: transaction.date,
+        currency: transaction.currency,
+        comment: transaction.comment || null,
+      }));
 
       console.log("Inserting transactions to database with AI categories:", transactionsForDb);
 
@@ -101,7 +105,7 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
       <div className="space-y-2">
         <h2 className="text-2xl font-semibold">Import Transactions</h2>
         <p className="text-muted-foreground">
-          Upload a CSV file to import your transactions. Transactions will be automatically categorized using AI for improved accuracy.
+          Upload a CSV file to import your transactions. Transactions will be automatically categorized using AI with batch processing and retry logic for improved reliability.
         </p>
       </div>
       

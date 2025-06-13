@@ -107,6 +107,67 @@ export const loadUserCategoryRules = () => {
   }
 };
 
+// Utility function to delay execution
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Batch process transactions with retry logic
+export const categorizeBatchTransactions = async (
+  descriptions: string[], 
+  batchSize: number = 3,
+  maxRetries: number = 2
+): Promise<string[]> => {
+  const results: string[] = [];
+  
+  console.log(`Starting batch categorization of ${descriptions.length} transactions in batches of ${batchSize}`);
+  
+  for (let i = 0; i < descriptions.length; i += batchSize) {
+    const batch = descriptions.slice(i, i + batchSize);
+    console.log(`Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(descriptions.length / batchSize)}`);
+    
+    const batchResults = await Promise.all(
+      batch.map(async (description, index) => {
+        let retryCount = 0;
+        
+        while (retryCount <= maxRetries) {
+          try {
+            // Add delay between requests to avoid rate limiting
+            if (index > 0 || i > 0) {
+              await delay(1000 + (retryCount * 2000)); // Increasing delay with retries
+            }
+            
+            const category = await categorizeTransaction(description);
+            return category;
+          } catch (error) {
+            console.warn(`Retry ${retryCount + 1} for "${description}":`, error);
+            retryCount++;
+            
+            if (retryCount > maxRetries) {
+              console.error(`Failed to categorize "${description}" after ${maxRetries} retries, using fallback`);
+              return categorizeTransactionSync(description);
+            }
+            
+            // Exponential backoff for retries
+            await delay(Math.pow(2, retryCount) * 3000);
+          }
+        }
+        
+        return 'Miscellaneous'; // Final fallback
+      })
+    );
+    
+    results.push(...batchResults);
+    
+    // Add delay between batches to be respectful of rate limits
+    if (i + batchSize < descriptions.length) {
+      console.log('Waiting between batches...');
+      await delay(2000);
+    }
+  }
+  
+  console.log(`Batch categorization completed. Results: ${results.length} categories assigned`);
+  return results;
+};
+
 // Main categorization function with enhanced rule checking
 export const categorizeTransaction = async (description: string): Promise<string> => {
   console.log(`Categorizing: "${description}"`);
