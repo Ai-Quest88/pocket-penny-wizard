@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -62,7 +63,7 @@ serve(async (req) => {
           'Authorization': `Bearer ${groqApiKey}`
         },
         body: JSON.stringify({
-          model: 'deepseek-r1-distill-llama-70b',
+          model: 'llama-3.3-70b-versatile',
           messages: [
             {
               role: 'user',
@@ -119,31 +120,25 @@ serve(async (req) => {
       .replace(/\s+/g, ' ') // Replace multiple spaces with single space
       .trim();
 
-    // Updated prompt to distinguish between grocery stores and restaurants
-    const prompt = `You are a financial transaction categorization expert. Categorize this transaction into EXACTLY ONE of these categories: ${CATEGORIES.join(', ')}.
+    // Simpler, more direct prompt without thinking instructions
+    const prompt = `Categorize this transaction into exactly one category: ${CATEGORIES.join(', ')}.
 
 Transaction: "${cleanDescription}"
 
-IMPORTANT RULES:
-- Respond with ONLY the category name (one word)
-- No explanations, no thinking process, no additional text
-- Grocery vs Food distinction:
-  * Supermarkets/Grocery stores (Woolworths, Coles, IGA, Aldi, supermarket) = Grocery
-  * Restaurants, cafes, takeaway, food delivery, fast food chains, food trucks = Food
-  * Bakeries, kebab shops = Food
-- Transport (fuel stations like Ampol, public transport, Uber, parking) = Transport  
-- Shopping (retail stores, Bunnings, Officeworks, clothing, electronics) = Shopping
-- Bills (utilities, phone, subscriptions, insurance) = Bills
-- Entertainment (movies, games, streaming, bars, clubs) = Entertainment
-- Health (medical, pharmacy, dental, fitness) = Health
-- Banking (fees, transfers, ATM, bank charges) = Banking
-- Travel (hotels, flights, booking, accommodation) = Travel
-- Education (schools, Scholastic, courses, books) = Education
-- Income (salary, wages, refunds, government payments) = Income
-- Investment (stocks, funds, crypto, trading) = Investment
-- If completely unsure = Other
+Rules:
+- Grocery stores (Woolworths, Coles, IGA, Aldi) = Grocery
+- Restaurants, cafes, takeaway, food delivery = Food
+- Transport (fuel, public transport, Uber) = Transport
+- Retail stores (Bunnings, Officeworks) = Shopping
+- Utilities, subscriptions = Bills
+- Entertainment venues = Entertainment
+- Medical, pharmacy = Health
+- Banking fees = Banking
+- Education = Education
+- Salary, refunds = Income
+- If unsure = Other
 
-Category:`;
+Answer with only the category name:`;
 
     let retryCount = 0;
     const maxRetries = 3;
@@ -164,7 +159,7 @@ Category:`;
             'Authorization': `Bearer ${groqApiKey}`
           },
           body: JSON.stringify({
-            model: 'deepseek-r1-distill-llama-70b',
+            model: 'llama-3.3-70b-versatile',
             messages: [
               {
                 role: 'user',
@@ -172,7 +167,7 @@ Category:`;
               }
             ],
             temperature: 0.1,
-            max_tokens: 20
+            max_tokens: 10
           })
         });
 
@@ -196,41 +191,49 @@ Category:`;
         
         console.log('Raw AI response:', category);
         
-        // Clean up the response - remove thinking tags and extra text
+        // Clean up the response more thoroughly
         if (category) {
-          // Remove any <think> tags and content
+          // Remove any thinking tags and their content
           category = category.replace(/<think>[\s\S]*?<\/think>/gi, '');
+          category = category.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '');
           // Remove any remaining XML-like tags
           category = category.replace(/<[^>]*>/g, '');
-          // Get first word only
-          category = category.split(/\s+/)[0];
-          // Clean up any remaining punctuation
+          // Remove common prefixes/suffixes
+          category = category.replace(/^(category:|answer:|response:)\s*/i, '');
+          category = category.replace(/\.$/, ''); // Remove trailing period
+          // Get first word only and clean punctuation
+          category = category.split(/[\s\n,]+/)[0];
           category = category.replace(/[^\w]/g, '');
         }
         
         console.log('Cleaned AI response:', category);
         
-        // Validate the response is one of our categories
-        if (CATEGORIES.includes(category)) {
-          console.log('Valid category found:', category);
+        // Direct category validation
+        const validCategory = CATEGORIES.find(cat => 
+          cat.toLowerCase() === category?.toLowerCase()
+        );
+        
+        if (validCategory) {
+          console.log('Valid category found:', validCategory);
           return new Response(
-            JSON.stringify({ category }), 
+            JSON.stringify({ category: validCategory }), 
             { 
               headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
             }
           );
         } else {
           console.warn('Invalid category returned:', category);
-          // Try to match partial category names
-          const matchedCategory = CATEGORIES.find(cat => 
+          
+          // Try partial matching as last resort
+          const partialMatch = CATEGORIES.find(cat => 
             cat.toLowerCase().includes(category?.toLowerCase() || '') ||
             category?.toLowerCase().includes(cat.toLowerCase())
           );
           
-          if (matchedCategory) {
-            console.log('Found partial match:', matchedCategory);
+          if (partialMatch) {
+            console.log('Found partial match:', partialMatch);
             return new Response(
-              JSON.stringify({ category: matchedCategory }), 
+              JSON.stringify({ category: partialMatch }), 
               { 
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
               }
