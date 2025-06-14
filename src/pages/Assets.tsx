@@ -1,4 +1,3 @@
-
 import { DashboardCard } from "@/components/DashboardCard"
 import { AssetsList } from "@/components/assets-liabilities/AssetsList"
 import { AddAssetDialog } from "@/components/assets-liabilities/AddAssetDialog"
@@ -6,24 +5,36 @@ import { Asset } from "@/types/assets-liabilities"
 import { useToast } from "@/components/ui/use-toast"
 import { supabase } from "@/integrations/supabase/client"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useAuth } from "@/contexts/AuthContext"
 
 const Assets = () => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { session } = useAuth()
 
-  // Fetch assets from Supabase
+  // Fetch assets from Supabase with user authentication
   const { data: assets = [], isLoading } = useQuery({
-    queryKey: ['assets'],
+    queryKey: ['assets', session?.user?.id],
     queryFn: async () => {
+      if (!session?.user) {
+        console.log('No authenticated user, returning empty assets array');
+        return [];
+      }
+
+      console.log('Fetching assets for user:', session.user.id);
+      
       const { data, error } = await supabase
         .from('assets')
         .select('*')
+        .eq('user_id', session.user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching assets:', error);
         throw error;
       }
+
+      console.log('Fetched assets:', data);
 
       return data.map(asset => ({
         id: asset.id,
@@ -37,6 +48,7 @@ const Assets = () => {
         address: asset.address || undefined,
       })) as Asset[];
     },
+    enabled: !!session?.user,
   });
 
   // Add asset mutation
@@ -128,6 +140,19 @@ const Assets = () => {
 
   const handleEditAsset = (id: string, updatedAsset: Omit<Asset, "id">) => {
     editAssetMutation.mutate({ id, updatedAsset });
+  }
+
+  if (isLoading) {
+    return (
+      <div className="p-8">
+        <div className="max-w-7xl mx-auto space-y-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-2 text-sm text-muted-foreground">Loading assets...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
