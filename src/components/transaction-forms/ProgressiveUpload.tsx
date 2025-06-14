@@ -3,8 +3,8 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle, AlertCircle, Upload, Loader2 } from "lucide-react";
-import { TransactionTable } from "@/components/transactions/TransactionTable";
+import { CheckCircle, AlertCircle, Upload, Loader2, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface UploadProgress {
   phase: 'uploading' | 'categorizing' | 'saving' | 'updating-balances' | 'complete';
@@ -43,7 +43,7 @@ export const ProgressiveUpload: React.FC<ProgressiveUploadProps> = ({
       ? (progress.currentStep / progress.totalSteps) * phaseWeights[progress.phase]
       : 0;
 
-    return Object.values(completedPhases).reduce((sum, weight) => sum + weight, 0) + currentPhaseProgress;
+    return Math.min(100, Object.values(completedPhases).reduce((sum, weight) => sum + weight, 0) + currentPhaseProgress);
   };
 
   const getPhaseIcon = () => {
@@ -63,14 +63,26 @@ export const ProgressiveUpload: React.FC<ProgressiveUploadProps> = ({
     }
   };
 
+  const progressPercentage = getProgressPercentage();
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            {getPhaseIcon()}
-            Processing Transactions
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {getPhaseIcon()}
+              <CardTitle>
+                {progress.phase === 'complete' ? 'Upload Complete!' : 'Processing Transactions'}
+              </CardTitle>
+            </div>
+            {progress.phase !== 'complete' && onCancel && (
+              <Button variant="outline" size="sm" onClick={onCancel}>
+                <X className="h-4 w-4 mr-1" />
+                Cancel
+              </Button>
+            )}
+          </div>
           <CardDescription>
             {progress.message}
           </CardDescription>
@@ -79,15 +91,25 @@ export const ProgressiveUpload: React.FC<ProgressiveUploadProps> = ({
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>Progress</span>
-              <span>{Math.round(getProgressPercentage())}%</span>
+              <span>{Math.round(progressPercentage)}%</span>
             </div>
-            <Progress value={getProgressPercentage()} className="w-full" />
+            <Progress value={progressPercentage} className="w-full" />
           </div>
           
-          {progress.totalSteps > 0 && (
+          {progress.totalSteps > 0 && progress.phase !== 'complete' && (
             <div className="text-sm text-muted-foreground">
               Step {progress.currentStep} of {progress.totalSteps}
             </div>
+          )}
+
+          {progress.phase === 'complete' && (
+            <Alert>
+              <CheckCircle className="h-4 w-4" />
+              <AlertDescription>
+                Successfully processed {progress.processedTransactions.length} transactions! 
+                The form will reset automatically in a moment.
+              </AlertDescription>
+            </Alert>
           )}
         </CardContent>
       </Card>
@@ -95,24 +117,56 @@ export const ProgressiveUpload: React.FC<ProgressiveUploadProps> = ({
       {progress.processedTransactions.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Processed Transactions ({progress.processedTransactions.length})</CardTitle>
+            <CardTitle>
+              Processed Transactions ({progress.processedTransactions.length})
+              {progress.phase === 'categorizing' && (
+                <span className="ml-2 text-sm font-normal text-muted-foreground">
+                  • Processing in real-time
+                </span>
+              )}
+            </CardTitle>
             <CardDescription>
-              Transactions that have been categorized and are ready to save
+              {progress.phase === 'complete' 
+                ? "All transactions have been successfully saved to your account"
+                : "Transactions are being categorized and will be saved to your account"
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <TransactionTable
-              transactions={progress.processedTransactions}
-              convertAmount={(amount) => amount}
-              displayCurrency="AUD"
-              currencySymbols={{ AUD: "$", USD: "$", EUR: "€", GBP: "£" }}
-              onTransactionClick={() => {}}
-              selectedTransactions={[]}
-              onSelectionChange={() => {}}
-              onSelectAll={() => {}}
-              showBalance={false}
-              readOnly={true}
-            />
+            <div className="max-h-96 overflow-y-auto">
+              <div className="space-y-2">
+                {progress.processedTransactions.slice(-10).map((transaction, index) => (
+                  <div 
+                    key={transaction.id || index} 
+                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <div className="font-medium text-sm truncate">
+                          {transaction.description}
+                        </div>
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-primary/10 text-primary">
+                          {transaction.category}
+                        </span>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {new Date(transaction.date).toLocaleDateString()} • {transaction.currency}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className={`font-medium ${transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        ${Math.abs(transaction.amount).toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {progress.processedTransactions.length > 10 && (
+                  <div className="text-center text-sm text-muted-foreground py-2">
+                    Showing last 10 transactions • {progress.processedTransactions.length - 10} more processed
+                  </div>
+                )}
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}

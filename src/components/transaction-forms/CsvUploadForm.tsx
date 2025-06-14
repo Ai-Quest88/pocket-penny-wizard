@@ -174,7 +174,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
             processedTransactions.push(updatedTransaction)
           })
 
-          // Update progress
+          // Update progress with real-time transaction display
           setUploadProgress(prev => prev ? {
             ...prev,
             currentStep: Math.min(i + batchSize, descriptions.length),
@@ -182,11 +182,8 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
             message: `Categorized ${Math.min(i + batchSize, descriptions.length)} of ${descriptions.length} transactions...`
           } : null)
 
-          // Refresh the transaction list to show new processed transactions
-          queryClient.invalidateQueries({ queryKey: ['transactions'] })
-
-          // Small delay to show progress
-          await new Promise(resolve => setTimeout(resolve, 100))
+          // Force a small delay to show progress visually
+          await new Promise(resolve => setTimeout(resolve, 200))
         } catch (error) {
           console.error('Error categorizing batch:', error)
           // Continue with default category for failed batches
@@ -197,6 +194,14 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
               id: `temp-${i + batchIndex}`
             })
           })
+          
+          // Update progress even on error
+          setUploadProgress(prev => prev ? {
+            ...prev,
+            currentStep: Math.min(i + batchSize, descriptions.length),
+            processedTransactions: [...processedTransactions],
+            message: `Processing ${Math.min(i + batchSize, descriptions.length)} of ${descriptions.length} transactions...`
+          } : null)
         }
       }
 
@@ -217,10 +222,14 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
         phase: 'complete',
         currentStep: 1,
         totalSteps: 1,
-        message: `Successfully processed ${rawTransactions.length} transactions!`
+        message: `Successfully processed ${rawTransactions.length} transactions!`,
+        processedTransactions: processedTransactions
       } : null)
 
-      // Auto-hide progress after 2 seconds
+      // Refresh the main transaction list immediately
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+
+      // Auto-hide progress after 3 seconds to allow user to see completion
       setTimeout(() => {
         setUploadProgress(null)
         // Reset form
@@ -236,7 +245,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
         if (fileInput) {
           fileInput.value = ''
         }
-      }, 2000)
+      }, 3000)
 
     } catch (err) {
       console.error('Error uploading transactions:', err)
