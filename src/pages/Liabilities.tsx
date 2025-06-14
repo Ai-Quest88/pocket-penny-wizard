@@ -6,24 +6,36 @@ import { Liability } from "@/types/assets-liabilities"
 import { useToast } from "@/components/ui/use-toast"
 import { supabase } from "@/integrations/supabase/client"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useAuth } from "@/contexts/AuthContext"
 
 const Liabilities = () => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { session } = useAuth()
 
-  // Fetch liabilities from Supabase
+  // Fetch liabilities from Supabase with user authentication
   const { data: liabilities = [], isLoading } = useQuery({
-    queryKey: ['liabilities'],
+    queryKey: ['liabilities', session?.user?.id],
     queryFn: async () => {
+      if (!session?.user) {
+        console.log('No authenticated user, returning empty liabilities array');
+        return [];
+      }
+
+      console.log('Fetching liabilities for user:', session.user.id);
+      
       const { data, error } = await supabase
         .from('liabilities')
         .select('*')
+        .eq('user_id', session.user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching liabilities:', error);
         throw error;
       }
+
+      console.log('Fetched liabilities:', data);
 
       return data.map(liability => ({
         id: liability.id,
@@ -39,6 +51,7 @@ const Liabilities = () => {
         monthlyPayment: liability.monthly_payment ? Number(liability.monthly_payment) : undefined,
       })) as Liability[];
     },
+    enabled: !!session?.user,
   });
 
   // Add liability mutation
@@ -134,6 +147,19 @@ const Liabilities = () => {
 
   const handleEditLiability = (id: string, updatedLiability: Omit<Liability, "id">) => {
     editLiabilityMutation.mutate({ id, updatedLiability });
+  }
+
+  if (isLoading) {
+    return (
+      <div className="p-8">
+        <div className="max-w-7xl mx-auto space-y-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-2 text-sm text-muted-foreground">Loading liabilities...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
