@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,7 +10,19 @@ import { AutoMappingAlert } from "./csv-upload/AutoMappingAlert"
 import { ColumnMappingSection } from "./csv-upload/ColumnMappingSection"
 import { PreviewTable } from "./csv-upload/PreviewTable"
 import { DefaultSettingsSection } from "./csv-upload/DefaultSettingsSection"
+import { ProgressiveUpload } from "./ProgressiveUpload"
+import { categorizeBatchTransactions } from "@/utils/transactionCategories"
+import { useAuth } from "@/contexts/AuthContext"
+import { useQueryClient } from "@tanstack/react-query"
 import type { CsvUploadProps, Transaction } from "@/types/transaction-forms"
+
+interface UploadProgress {
+  phase: 'uploading' | 'categorizing' | 'saving' | 'updating-balances' | 'complete';
+  currentStep: number;
+  totalSteps: number;
+  message: string;
+  processedTransactions: any[];
+}
 
 export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded }) => {
   const [file, setFile] = useState<File | null>(null)
@@ -17,11 +30,15 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
   const [error, setError] = useState<string | null>(null)
   const [headers, setHeaders] = useState<string[]>([])
   const [preview, setPreview] = useState<Record<string, string>[]>([])
-  const [totalRows, setTotalRows] = useState(0) // Track total number of rows
+  const [totalRows, setTotalRows] = useState(0)
   const [columnMappings, setColumnMappings] = useState<Record<string, string>>({})
   const [autoMapped, setAutoMapped] = useState<Record<string, string>>({})
   const [defaultCurrency, setDefaultCurrency] = useState('USD')
   const [defaultAccount, setDefaultAccount] = useState('Default Account')
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null)
+  
+  const { session } = useAuth()
+  const queryClient = useQueryClient()
 
   const requiredFields = ['date', 'amount', 'description']
   const optionalFields = ['category', 'currency', 'account', 'comment']
@@ -33,6 +50,13 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
     setFile(selectedFile)
     setIsProcessing(true)
     setError(null)
+    setUploadProgress({
+      phase: 'uploading',
+      currentStep: 1,
+      totalSteps: 1,
+      message: 'Reading and parsing file...',
+      processedTransactions: []
+    })
 
     try {
       const result = await parseCsvFile(selectedFile)
@@ -44,22 +68,26 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
         setTotalRows(0)
         setColumnMappings({})
         setAutoMapped({})
+        setUploadProgress(null)
         return
       }
 
       if (!result.headers || result.headers.length === 0) {
         setError('No headers found in the file')
+        setUploadProgress(null)
         return
       }
 
       setHeaders(result.headers)
       setPreview(result.preview || [])
-      setTotalRows(result.totalRows || 0) // Set the total number of rows
+      setTotalRows(result.totalRows || 0)
       setColumnMappings(result.autoMappings || {})
       setAutoMapped(result.autoMappings || {})
+      setUploadProgress(null)
     } catch (err) {
       console.error('Error processing file:', err)
       setError('Error reading file. Please ensure it is a valid CSV or Excel file.')
+      setUploadProgress(null)
     } finally {
       setIsProcessing(false)
     }
@@ -79,12 +107,21 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
   const hasRequiredMappings = validateMappings()
 
   const handleUpload = async () => {
-    if (!file || !hasRequiredMappings) return
+    if (!file || !hasRequiredMappings || !session?.user) return
 
     setIsProcessing(true)
     setError(null)
 
     try {
+      // Phase 1: Parse file
+      setUploadProgress({
+        phase: 'uploading',
+        currentStep: 1,
+        totalSteps: 1,
+        message: 'Parsing CSV file...',
+        processedTransactions: []
+      })
+
       const result = await parseCsvFile(file, columnMappings, {
         defaultCurrency,
         defaultAccount
@@ -92,10 +129,11 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
 
       if (!result.success || !result.transactions) {
         setError(result.error || 'Failed to process transactions')
+        setUploadProgress(null)
         return
       }
 
-      const transactions: Omit<Transaction, 'id'>[] = result.transactions.map(row => ({
+      const rawTransactions = result.transactions.map(row => ({
         date: row.date,
         amount: parseFloat(row.amount),
         description: row.description,
@@ -105,27 +143,125 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
         comment: row.comment
       }))
 
-      await onTransactionsUploaded(transactions)
-      
-      // Reset form
-      setFile(null)
-      setHeaders([])
-      setPreview([])
-      setTotalRows(0)
-      setColumnMappings({})
-      setAutoMapped({})
-      
-      // Reset file input
-      const fileInput = document.getElementById('file-upload') as HTMLInputElement
-      if (fileInput) {
-        fileInput.value = ''
+      // Phase 2: Categorize transactions with progress updates
+      setUploadProgress({
+        phase: 'categorizing',
+        currentStep: 0,
+        totalSteps: rawTransactions.length,
+        message: 'Categorizing transactions with AI...',
+        processedTransactions: []
+      })
+
+      const descriptions = rawTransactions.map(t => t.description)
+      const processedTransactions: any[] = []
+
+      // Process transactions in batches with progress updates
+      const batchSize = 3
+      for (let i = 0; i < descriptions.length; i += batchSize) {
+        const batch = descriptions.slice(i, i + batchSize)
+        const batchTransactions = rawTransactions.slice(i, i + batchSize)
+        
+        try {
+          const categories = await categorizeBatchTransactions([batch[0]], session.user.id, 1, 1)
+          
+          // Update each transaction in the batch with its category
+          batchTransactions.forEach((transaction, batchIndex) => {
+            const updatedTransaction = {
+              ...transaction,
+              category: categories[batchIndex] || 'Miscellaneous',
+              id: `temp-${i + batchIndex}` // Temporary ID for display
+            }
+            processedTransactions.push(updatedTransaction)
+          })
+
+          // Update progress
+          setUploadProgress(prev => prev ? {
+            ...prev,
+            currentStep: Math.min(i + batchSize, descriptions.length),
+            processedTransactions: [...processedTransactions],
+            message: `Categorized ${Math.min(i + batchSize, descriptions.length)} of ${descriptions.length} transactions...`
+          } : null)
+
+          // Refresh the transaction list to show new processed transactions
+          queryClient.invalidateQueries({ queryKey: ['transactions'] })
+
+          // Small delay to show progress
+          await new Promise(resolve => setTimeout(resolve, 100))
+        } catch (error) {
+          console.error('Error categorizing batch:', error)
+          // Continue with default category for failed batches
+          batchTransactions.forEach((transaction, batchIndex) => {
+            processedTransactions.push({
+              ...transaction,
+              category: 'Miscellaneous',
+              id: `temp-${i + batchIndex}`
+            })
+          })
+        }
       }
+
+      // Phase 3: Save to database
+      setUploadProgress(prev => prev ? {
+        ...prev,
+        phase: 'saving',
+        currentStep: 0,
+        totalSteps: 1,
+        message: 'Saving transactions to database...'
+      } : null)
+
+      await onTransactionsUploaded(rawTransactions)
+
+      // Phase 4: Complete
+      setUploadProgress(prev => prev ? {
+        ...prev,
+        phase: 'complete',
+        currentStep: 1,
+        totalSteps: 1,
+        message: `Successfully processed ${rawTransactions.length} transactions!`
+      } : null)
+
+      // Auto-hide progress after 2 seconds
+      setTimeout(() => {
+        setUploadProgress(null)
+        // Reset form
+        setFile(null)
+        setHeaders([])
+        setPreview([])
+        setTotalRows(0)
+        setColumnMappings({})
+        setAutoMapped({})
+        
+        // Reset file input
+        const fileInput = document.getElementById('file-upload') as HTMLInputElement
+        if (fileInput) {
+          fileInput.value = ''
+        }
+      }, 2000)
+
     } catch (err) {
       console.error('Error uploading transactions:', err)
       setError('Failed to upload transactions. Please try again.')
+      setUploadProgress(null)
     } finally {
       setIsProcessing(false)
     }
+  }
+
+  // Show progressive upload UI when processing
+  if (uploadProgress) {
+    return (
+      <Card className="w-full max-w-4xl mx-auto">
+        <CardContent className="p-6">
+          <ProgressiveUpload 
+            progress={uploadProgress}
+            onCancel={() => {
+              setUploadProgress(null)
+              setIsProcessing(false)
+            }}
+          />
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
