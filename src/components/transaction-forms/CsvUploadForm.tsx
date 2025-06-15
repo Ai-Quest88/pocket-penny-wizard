@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -40,7 +41,6 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
   const queryClient = useQueryClient()
 
   const requiredFields = ['date', 'amount', 'description']
-  const optionalFields = ['category', 'account', 'comment']
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0]
@@ -142,9 +142,9 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
         comment: row.comment
       }))
 
-      console.log(`Starting categorization of ${rawTransactions.length} transactions`)
+      console.log(`Starting optimized categorization of ${rawTransactions.length} transactions`)
 
-      // Phase 2: Categorize transactions with improved batch processing
+      // Phase 2: Optimized categorization with larger batches and fewer delays
       setUploadProgress({
         phase: 'categorizing',
         currentStep: 0,
@@ -156,8 +156,8 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
       const processedTransactions: any[] = []
       const descriptions = rawTransactions.map(t => t.description)
       
-      // Process in smaller batches for better progress tracking
-      const batchSize = 5
+      // Use larger batches for better performance (20 instead of 5)
+      const batchSize = 20
       let completedCount = 0
 
       for (let i = 0; i < descriptions.length; i += batchSize) {
@@ -165,11 +165,11 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
         const batchDescriptions = descriptions.slice(i, endIndex)
         const batchTransactions = rawTransactions.slice(i, endIndex)
         
-        console.log(`Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(descriptions.length/batchSize)}`)
+        console.log(`Processing optimized batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(descriptions.length/batchSize)}`)
         
         try {
-          // Categorize the current batch
-          const categories = await categorizeBatchTransactions(batchDescriptions, session.user.id, 1, 1)
+          // Categorize the current batch with reduced retries for speed
+          const categories = await categorizeBatchTransactions(batchDescriptions, session.user.id, 2, 1)
           
           // Process each transaction in the batch
           for (let j = 0; j < batchTransactions.length; j++) {
@@ -182,18 +182,16 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
             }
             processedTransactions.push(updatedTransaction)
             completedCount++
-
-            // Update progress after each transaction
-            setUploadProgress(prev => prev ? {
-              ...prev,
-              currentStep: completedCount,
-              processedTransactions: [...processedTransactions],
-              message: `Categorized ${completedCount} of ${descriptions.length} transactions...`
-            } : null)
-
-            // Small delay to show progress visually
-            await new Promise(resolve => setTimeout(resolve, 100))
           }
+
+          // Update progress less frequently for better performance
+          setUploadProgress(prev => prev ? {
+            ...prev,
+            currentStep: completedCount,
+            processedTransactions: [...processedTransactions],
+            message: `Categorized ${completedCount} of ${descriptions.length} transactions...`
+          } : null)
+
         } catch (error) {
           console.error('Error categorizing batch:', error)
           // Continue with default categories on error
@@ -216,13 +214,13 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
           } : null)
         }
 
-        // Longer delay between batches to prevent overwhelming the API
+        // Shorter delay between batches (200ms instead of 500ms)
         if (endIndex < descriptions.length) {
-          await new Promise(resolve => setTimeout(resolve, 500))
+          await new Promise(resolve => setTimeout(resolve, 200))
         }
       }
 
-      console.log(`Categorization complete. Processed ${processedTransactions.length} transactions`)
+      console.log(`Optimized categorization complete. Processed ${processedTransactions.length} transactions`)
 
       // Phase 3: Save to database
       setUploadProgress(prev => prev ? {
@@ -246,7 +244,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
       } : null)
 
       // Small delay to show the updating phase
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      await new Promise(resolve => setTimeout(resolve, 500))
 
       // Phase 5: Complete
       setUploadProgress(prev => prev ? {
@@ -258,17 +256,17 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
         processedTransactions: processedTransactions
       } : null)
 
-      console.log('Upload process completed successfully')
+      console.log('Optimized upload process completed successfully')
 
       // Refresh queries immediately
       await queryClient.invalidateQueries({ queryKey: ['transactions'] })
       await queryClient.invalidateQueries({ queryKey: ['assets'] })
 
-      // Auto-reset after showing completion for 3 seconds
+      // Auto-reset after showing completion for 2 seconds (faster)
       setTimeout(() => {
         console.log('Auto-resetting form after completion')
         resetForm()
-      }, 3000)
+      }, 2000)
 
     } catch (err) {
       console.error('Error in upload process:', err)
