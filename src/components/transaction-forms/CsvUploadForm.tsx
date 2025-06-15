@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -33,7 +32,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
   const [totalRows, setTotalRows] = useState(0)
   const [columnMappings, setColumnMappings] = useState<Record<string, string>>({})
   const [autoMapped, setAutoMapped] = useState<Record<string, string>>({})
-  const [defaultCurrency, setDefaultCurrency] = useState('USD')
+  const [defaultCurrency, setDefaultCurrency] = useState('AUD')
   const [defaultAccount, setDefaultAccount] = useState('Default Account')
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null)
   
@@ -41,7 +40,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
   const queryClient = useQueryClient()
 
   const requiredFields = ['date', 'amount', 'description']
-  const optionalFields = ['category', 'currency', 'account', 'comment']
+  const optionalFields = ['category', 'account', 'comment']
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0]

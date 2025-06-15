@@ -102,21 +102,6 @@ export const ColumnMappingSection: React.FC<ColumnMappingSectionProps> = ({
             </SelectContent>
           </Select>
         </div>
-
-        <div>
-          <Label htmlFor="currency-mapping">Currency</Label>
-          <Select value={mapping.currency || ''} onValueChange={(value) => onMappingChange('currency', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select currency column (optional)" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">None</SelectItem>
-              {validHeaders.map(header => (
-                <SelectItem key={`currency-${header}`} value={header}>{header}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
       </div>
     </div>
   )

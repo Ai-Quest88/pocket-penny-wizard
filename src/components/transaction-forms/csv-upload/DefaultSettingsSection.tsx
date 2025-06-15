@@ -40,11 +40,11 @@ export const DefaultSettingsSection: React.FC<DefaultSettingsSectionProps> = ({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="AUD">AUD</SelectItem>
             <SelectItem value="USD">USD</SelectItem>
             <SelectItem value="EUR">EUR</SelectItem>
             <SelectItem value="GBP">GBP</SelectItem>
             <SelectItem value="JPY">JPY</SelectItem>
-            <SelectItem value="AUD">AUD</SelectItem>
             <SelectItem value="CAD">CAD</SelectItem>
           </SelectContent>
         </Select>
