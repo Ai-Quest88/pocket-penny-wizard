@@ -1,21 +1,17 @@
 
 import { Button } from "@/components/ui/button"
-import { PlusCircle, TestTube } from "lucide-react"
-import { useState, useEffect } from "react"
+import { PlusCircle } from "lucide-react"
+import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import ImportTransactions from "./ImportTransactions"
 import { TransactionList } from "@/components/TransactionList"
 import { useAuth } from "@/contexts/AuthContext"
 import { useNavigate } from "react-router-dom"
-import { testGroqConnection } from "@/utils/aiCategorization"
-import { useToast } from "@/hooks/use-toast"
 
 const Transactions = () => {
   const [isAddingTransaction, setIsAddingTransaction] = useState(false)
-  const [isTestingApi, setIsTestingApi] = useState(false)
   const { isAuthenticated, session } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   console.log("Transactions component - isAuthenticated:", isAuthenticated, "session:", !!session);
 
@@ -25,33 +21,6 @@ const Transactions = () => {
     navigate('/login');
     return null;
   }
-
-  const handleTestGroqApi = async () => {
-    setIsTestingApi(true);
-    try {
-      const result = await testGroqConnection();
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: "Groq API connection successful! AI categorization should work now.",
-        });
-      } else {
-        toast({
-          title: "API Test Failed",
-          description: `Groq API error: ${result.error}`,
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Test Error",
-        description: "Failed to test Groq API connection",
-        variant: "destructive",
-      });
-    } finally {
-      setIsTestingApi(false);
-    }
-  };
 
   console.log("Rendering Transactions component");
 
@@ -64,15 +33,6 @@ const Transactions = () => {
             <p className="text-muted-foreground">Manage your transactions</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button 
-              variant="outline"
-              className="flex items-center gap-2"
-              onClick={handleTestGroqApi}
-              disabled={isTestingApi}
-            >
-              <TestTube className="h-4 w-4" />
-              {isTestingApi ? "Testing..." : "Test AI API"}
-            </Button>
             <Dialog open={isAddingTransaction} onOpenChange={setIsAddingTransaction}>
               <DialogTrigger asChild>
                 <Button 
