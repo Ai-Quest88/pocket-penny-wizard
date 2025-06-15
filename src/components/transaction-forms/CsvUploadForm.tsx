@@ -143,67 +143,87 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
         comment: row.comment
       }))
 
-      // Phase 2: Categorize transactions with progress updates
+      console.log(`Starting categorization of ${rawTransactions.length} transactions`)
+
+      // Phase 2: Categorize transactions with improved batch processing
       setUploadProgress({
         phase: 'categorizing',
         currentStep: 0,
         totalSteps: rawTransactions.length,
-        message: 'Categorizing transactions with AI...',
+        message: 'Starting AI categorization...',
         processedTransactions: []
       })
 
-      const descriptions = rawTransactions.map(t => t.description)
       const processedTransactions: any[] = []
+      const descriptions = rawTransactions.map(t => t.description)
+      
+      // Process in smaller batches for better progress tracking
+      const batchSize = 5
+      let completedCount = 0
 
-      // Process transactions in batches with progress updates
-      const batchSize = 3
       for (let i = 0; i < descriptions.length; i += batchSize) {
-        const batch = descriptions.slice(i, i + batchSize)
-        const batchTransactions = rawTransactions.slice(i, i + batchSize)
+        const endIndex = Math.min(i + batchSize, descriptions.length)
+        const batchDescriptions = descriptions.slice(i, endIndex)
+        const batchTransactions = rawTransactions.slice(i, endIndex)
+        
+        console.log(`Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(descriptions.length/batchSize)}`)
         
         try {
-          const categories = await categorizeBatchTransactions([batch[0]], session.user.id, 1, 1)
+          // Categorize the current batch
+          const categories = await categorizeBatchTransactions(batchDescriptions, session.user.id, 1, 1)
           
-          // Update each transaction in the batch with its category
-          batchTransactions.forEach((transaction, batchIndex) => {
+          // Process each transaction in the batch
+          for (let j = 0; j < batchTransactions.length; j++) {
+            const transaction = batchTransactions[j]
             const updatedTransaction = {
               ...transaction,
-              category: categories[batchIndex] || 'Miscellaneous',
-              id: `temp-${i + batchIndex}` // Temporary ID for display
+              category: categories[j] || 'Miscellaneous',
+              id: `temp-${i + j}`,
+              user_id: session.user.id
             }
             processedTransactions.push(updatedTransaction)
-          })
+            completedCount++
 
-          // Update progress with real-time transaction display
-          setUploadProgress(prev => prev ? {
-            ...prev,
-            currentStep: Math.min(i + batchSize, descriptions.length),
-            processedTransactions: [...processedTransactions],
-            message: `Categorized ${Math.min(i + batchSize, descriptions.length)} of ${descriptions.length} transactions...`
-          } : null)
+            // Update progress after each transaction
+            setUploadProgress(prev => prev ? {
+              ...prev,
+              currentStep: completedCount,
+              processedTransactions: [...processedTransactions],
+              message: `Categorized ${completedCount} of ${descriptions.length} transactions...`
+            } : null)
 
-          // Force a small delay to show progress visually
-          await new Promise(resolve => setTimeout(resolve, 200))
+            // Small delay to show progress visually
+            await new Promise(resolve => setTimeout(resolve, 100))
+          }
         } catch (error) {
           console.error('Error categorizing batch:', error)
-          // Continue with default category for failed batches
-          batchTransactions.forEach((transaction, batchIndex) => {
+          // Continue with default categories on error
+          for (let j = 0; j < batchTransactions.length; j++) {
+            const transaction = batchTransactions[j]
             processedTransactions.push({
               ...transaction,
               category: 'Miscellaneous',
-              id: `temp-${i + batchIndex}`
+              id: `temp-${i + j}`,
+              user_id: session.user.id
             })
-          })
+            completedCount++
+          }
           
-          // Update progress even on error
           setUploadProgress(prev => prev ? {
             ...prev,
-            currentStep: Math.min(i + batchSize, descriptions.length),
+            currentStep: completedCount,
             processedTransactions: [...processedTransactions],
-            message: `Processing ${Math.min(i + batchSize, descriptions.length)} of ${descriptions.length} transactions...`
+            message: `Processing ${completedCount} of ${descriptions.length} transactions...`
           } : null)
         }
+
+        // Longer delay between batches to prevent overwhelming the API
+        if (endIndex < descriptions.length) {
+          await new Promise(resolve => setTimeout(resolve, 500))
+        }
       }
+
+      console.log(`Categorization complete. Processed ${processedTransactions.length} transactions`)
 
       // Phase 3: Save to database
       setUploadProgress(prev => prev ? {
@@ -214,9 +234,22 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
         message: 'Saving transactions to database...'
       } : null)
 
+      // Call the upload handler
       await onTransactionsUploaded(rawTransactions)
 
-      // Phase 4: Complete
+      // Phase 4: Update balances (handled by parent component)
+      setUploadProgress(prev => prev ? {
+        ...prev,
+        phase: 'updating-balances',
+        currentStep: 0,
+        totalSteps: 1,
+        message: 'Updating account balances...'
+      } : null)
+
+      // Small delay to show the updating phase
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      // Phase 5: Complete
       setUploadProgress(prev => prev ? {
         ...prev,
         phase: 'complete',
@@ -226,34 +259,48 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
         processedTransactions: processedTransactions
       } : null)
 
-      // Refresh the main transaction list immediately
-      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      console.log('Upload process completed successfully')
 
-      // Auto-hide progress after 3 seconds to allow user to see completion
+      // Refresh queries immediately
+      await queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      await queryClient.invalidateQueries({ queryKey: ['assets'] })
+
+      // Auto-reset after showing completion for 3 seconds
       setTimeout(() => {
-        setUploadProgress(null)
-        // Reset form
-        setFile(null)
-        setHeaders([])
-        setPreview([])
-        setTotalRows(0)
-        setColumnMappings({})
-        setAutoMapped({})
-        
-        // Reset file input
-        const fileInput = document.getElementById('file-upload') as HTMLInputElement
-        if (fileInput) {
-          fileInput.value = ''
-        }
+        console.log('Auto-resetting form after completion')
+        resetForm()
       }, 3000)
 
     } catch (err) {
-      console.error('Error uploading transactions:', err)
+      console.error('Error in upload process:', err)
       setError('Failed to upload transactions. Please try again.')
       setUploadProgress(null)
     } finally {
       setIsProcessing(false)
     }
+  }
+
+  const resetForm = () => {
+    setUploadProgress(null)
+    setFile(null)
+    setHeaders([])
+    setPreview([])
+    setTotalRows(0)
+    setColumnMappings({})
+    setAutoMapped({})
+    setError(null)
+    
+    // Reset file input
+    const fileInput = document.getElementById('file-upload') as HTMLInputElement
+    if (fileInput) {
+      fileInput.value = ''
+    }
+  }
+
+  const handleCancel = () => {
+    console.log('Upload cancelled by user')
+    setIsProcessing(false)
+    setUploadProgress(null)
   }
 
   // Show progressive upload UI when processing
@@ -263,10 +310,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
         <CardContent className="p-6">
           <ProgressiveUpload 
             progress={uploadProgress}
-            onCancel={() => {
-              setUploadProgress(null)
-              setIsProcessing(false)
-            }}
+            onCancel={handleCancel}
           />
         </CardContent>
       </Card>
@@ -325,19 +369,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
             <div className="flex justify-end space-x-4">
               <Button 
                 variant="outline" 
-                onClick={() => {
-                  setFile(null)
-                  setHeaders([])
-                  setPreview([])
-                  setTotalRows(0)
-                  setColumnMappings({})
-                  setAutoMapped({})
-                  setError(null)
-                  const fileInput = document.getElementById('file-upload') as HTMLInputElement
-                  if (fileInput) {
-                    fileInput.value = ''
-                  }
-                }}
+                onClick={resetForm}
               >
                 Clear
               </Button>
