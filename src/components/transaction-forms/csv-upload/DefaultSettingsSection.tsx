@@ -59,21 +59,54 @@ export const DefaultSettingsSection: React.FC<DefaultSettingsSectionProps> = ({
           <SelectContent>
             {validAccounts.length === 0 && !accountsLoading ? (
               <SelectItem value="no-accounts" disabled>
-                No accounts found. Create accounts in Assets first.
+                No accounts found. Create accounts in Assets/Liabilities first.
               </SelectItem>
             ) : (
-              validAccounts.map(account => (
-                <SelectItem key={account.id} value={`${account.name} (${account.entityName})`}>
-                  {account.name} - {account.entityName} ({account.type})
-                  {account.accountNumber && ` - ${account.accountNumber}`}
-                </SelectItem>
-              ))
+              <>
+                {validAccounts.filter(acc => acc.accountType === 'asset').length > 0 && (
+                  <>
+                    <SelectItem value="assets-header" disabled className="font-semibold">
+                      --- Assets ---
+                    </SelectItem>
+                    {validAccounts
+                      .filter(acc => acc.accountType === 'asset')
+                      .map(account => (
+                        <SelectItem key={account.id} value={`${account.name} - ${account.entityName} (${account.accountType})`}>
+                          {account.name} - {account.entityName} ({account.type})
+                          {account.accountNumber && ` - ${account.accountNumber}`}
+                          <span className="ml-2 text-sm text-muted-foreground">
+                            Balance: ${account.currentBalance.toLocaleString()}
+                          </span>
+                        </SelectItem>
+                      ))}
+                  </>
+                )}
+                
+                {validAccounts.filter(acc => acc.accountType === 'liability').length > 0 && (
+                  <>
+                    <SelectItem value="liabilities-header" disabled className="font-semibold">
+                      --- Liabilities ---
+                    </SelectItem>
+                    {validAccounts
+                      .filter(acc => acc.accountType === 'liability')
+                      .map(account => (
+                        <SelectItem key={account.id} value={`${account.name} - ${account.entityName} (${account.accountType})`}>
+                          {account.name} - {account.entityName} ({account.type})
+                          {account.accountNumber && ` - ${account.accountNumber}`}
+                          <span className="ml-2 text-sm text-muted-foreground">
+                            Balance: ${account.currentBalance.toLocaleString()}
+                          </span>
+                        </SelectItem>
+                      ))}
+                  </>
+                )}
+              </>
             )}
           </SelectContent>
         </Select>
         {validAccounts.length === 0 && !accountsLoading && (
           <p className="text-sm text-muted-foreground mt-1">
-            Create cash accounts under entities in Assets first.
+            Create cash accounts under entities in Assets or debt accounts in Liabilities first.
           </p>
         )}
       </div>
