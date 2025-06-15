@@ -74,30 +74,15 @@ export const ColumnMappingSection: React.FC<ColumnMappingSectionProps> = ({
         </div>
 
         <div>
-          <Label htmlFor="category-mapping">Category</Label>
-          <Select value={mapping.category || ''} onValueChange={(value) => onMappingChange('category', value)}>
+          <Label htmlFor="balance-mapping">Balance</Label>
+          <Select value={mapping.balance || ''} onValueChange={(value) => onMappingChange('balance', value)}>
             <SelectTrigger>
-              <SelectValue placeholder="Select category column (optional)" />
+              <SelectValue placeholder="Select balance column (optional)" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">None</SelectItem>
               {validHeaders.map(header => (
-                <SelectItem key={`category-${header}`} value={header}>{header}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Label htmlFor="account-mapping">Account</Label>
-          <Select value={mapping.account || ''} onValueChange={(value) => onMappingChange('account', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select account column (optional)" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">None</SelectItem>
-              {validHeaders.map(header => (
-                <SelectItem key={`account-${header}`} value={header}>{header}</SelectItem>
+                <SelectItem key={`balance-${header}`} value={header}>{header}</SelectItem>
               ))}
             </SelectContent>
           </Select>
