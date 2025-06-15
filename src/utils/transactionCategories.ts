@@ -14,56 +14,8 @@ let userDefinedRules: CategoryRule[] = [];
 // Export the comprehensive categories array from transaction-forms
 export { categories };
 
-// Function to find similar existing transactions in the database
-const findSimilarTransactionCategory = async (description: string, userId: string): Promise<string | null> => {
-  try {
-    console.log(`Searching for similar transactions to: "${description}"`);
-    
-    // Search for transactions with similar descriptions
-    const { data: similarTransactions, error } = await supabase
-      .from('transactions')
-      .select('category, description')
-      .eq('user_id', userId)
-      .ilike('description', `%${description.substring(0, 20)}%`) // Match first 20 characters
-      .not('category', 'is', null)
-      .not('category', 'eq', 'Miscellaneous')
-      .not('category', 'eq', 'Other')
-      .not('category', 'eq', 'Banking') // Don't use generic Banking as a reference
-      .limit(5);
-
-    if (error) {
-      console.error('Error searching similar transactions:', error);
-      return null;
-    }
-
-    if (similarTransactions && similarTransactions.length > 0) {
-      // Find the most common category among similar transactions
-      const categoryCount: Record<string, number> = {};
-      
-      similarTransactions.forEach(transaction => {
-        if (transaction.category) {
-          categoryCount[transaction.category] = (categoryCount[transaction.category] || 0) + 1;
-        }
-      });
-
-      const mostCommonCategory = Object.entries(categoryCount)
-        .sort(([,a], [,b]) => b - a)[0]?.[0];
-
-      if (mostCommonCategory) {
-        console.log(`Found similar transaction category: "${description}" -> ${mostCommonCategory}`);
-        return mostCommonCategory;
-      }
-    }
-
-    return null;
-  } catch (error) {
-    console.error('Error in findSimilarTransactionCategory:', error);
-    return null;
-  }
-};
-
-// Enhanced rule-based categorization for common patterns
-const categorizeByBuiltInRules = (description: string): string | null => {
+// Enhanced rule-based categorization for common patterns (now exported for direct use)
+export const categorizeByBuiltInRules = (description: string): string | null => {
   const lowerDesc = description.toLowerCase();
   
   // Government and tax payments - higher priority
@@ -112,6 +64,54 @@ const categorizeByBuiltInRules = (description: string): string | null => {
   }
   
   return null;
+};
+
+// Function to find similar existing transactions in the database
+const findSimilarTransactionCategory = async (description: string, userId: string): Promise<string | null> => {
+  try {
+    console.log(`Searching for similar transactions to: "${description}"`);
+    
+    // Search for transactions with similar descriptions
+    const { data: similarTransactions, error } = await supabase
+      .from('transactions')
+      .select('category, description')
+      .eq('user_id', userId)
+      .ilike('description', `%${description.substring(0, 20)}%`) // Match first 20 characters
+      .not('category', 'is', null)
+      .not('category', 'eq', 'Miscellaneous')
+      .not('category', 'eq', 'Other')
+      .not('category', 'eq', 'Banking') // Don't use generic Banking as a reference
+      .limit(5);
+
+    if (error) {
+      console.error('Error searching similar transactions:', error);
+      return null;
+    }
+
+    if (similarTransactions && similarTransactions.length > 0) {
+      // Find the most common category among similar transactions
+      const categoryCount: Record<string, number> = {};
+      
+      similarTransactions.forEach(transaction => {
+        if (transaction.category) {
+          categoryCount[transaction.category] = (categoryCount[transaction.category] || 0) + 1;
+        }
+      });
+
+      const mostCommonCategory = Object.entries(categoryCount)
+        .sort(([,a], [,b]) => b - a)[0]?.[0];
+
+      if (mostCommonCategory) {
+        console.log(`Found similar transaction category: "${description}" -> ${mostCommonCategory}`);
+        return mostCommonCategory;
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error in findSimilarTransactionCategory:', error);
+    return null;
+  }
 };
 
 // Function to add a user-defined rule
@@ -167,62 +167,32 @@ export const loadUserCategoryRules = () => {
 // Utility function to delay execution
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Batch process transactions with retry logic
+// Legacy batch process function (kept for compatibility but not used in optimized flow)
 export const categorizeBatchTransactions = async (
   descriptions: string[], 
   userId: string,
-  batchSize: number = 3,
-  maxRetries: number = 2
+  batchSize: number = 20,
+  maxRetries: number = 1
 ): Promise<string[]> => {
   const results: string[] = [];
   
-  console.log(`Starting batch categorization of ${descriptions.length} transactions in batches of ${batchSize}`);
-  
   for (let i = 0; i < descriptions.length; i += batchSize) {
     const batch = descriptions.slice(i, i + batchSize);
-    console.log(`Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(descriptions.length / batchSize)}`);
     
     const batchResults = await Promise.all(
-      batch.map(async (description, index) => {
-        let retryCount = 0;
-        
-        while (retryCount <= maxRetries) {
-          try {
-            // Add delay between requests to avoid rate limiting
-            if (index > 0 || i > 0) {
-              await delay(1000 + (retryCount * 2000)); // Increasing delay with retries
-            }
-            
-            const category = await categorizeTransaction(description, userId);
-            return category;
-          } catch (error) {
-            console.warn(`Retry ${retryCount + 1} for "${description}":`, error);
-            retryCount++;
-            
-            if (retryCount > maxRetries) {
-              console.error(`Failed to categorize "${description}" after ${maxRetries} retries, using fallback`);
-              return categorizeTransactionSync(description);
-            }
-            
-            // Exponential backoff for retries
-            await delay(Math.pow(2, retryCount) * 3000);
-          }
+      batch.map(async (description) => {
+        try {
+          return await categorizeTransaction(description, userId);
+        } catch (error) {
+          console.error(`Failed to categorize "${description}":`, error);
+          return categorizeTransactionSync(description);
         }
-        
-        return 'Miscellaneous'; // Final fallback
       })
     );
     
     results.push(...batchResults);
-    
-    // Add delay between batches to be respectful of rate limits
-    if (i + batchSize < descriptions.length) {
-      console.log('Waiting between batches...');
-      await delay(2000);
-    }
   }
   
-  console.log(`Batch categorization completed. Results: ${results.length} categories assigned`);
   return results;
 };
 
@@ -259,7 +229,6 @@ export const categorizeTransaction = async (description: string, userId?: string
     console.log(`AI categorized: "${description}" -> ${aiCategory}`);
     
     // Validate that the AI category is in our allowed categories list
-    // Fix: categories is an array of strings, not objects with .value property
     if (categories.includes(aiCategory)) {
       return aiCategory;
     } else {

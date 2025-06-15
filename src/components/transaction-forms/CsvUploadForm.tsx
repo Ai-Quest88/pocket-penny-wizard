@@ -11,7 +11,8 @@ import { ColumnMappingSection } from "./csv-upload/ColumnMappingSection"
 import { PreviewTable } from "./csv-upload/PreviewTable"
 import { DefaultSettingsSection } from "./csv-upload/DefaultSettingsSection"
 import { ProgressiveUpload } from "./ProgressiveUpload"
-import { categorizeBatchTransactions } from "@/utils/transactionCategories"
+import { categorizeTransactionWithAI } from "@/utils/aiCategorization"
+import { categorizeByBuiltInRules } from "@/utils/transactionCategories"
 import { useAuth } from "@/contexts/AuthContext"
 import { useQueryClient } from "@tanstack/react-query"
 import type { CsvUploadProps, Transaction } from "@/types/transaction-forms"
@@ -105,6 +106,58 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
 
   const hasRequiredMappings = validateMappings()
 
+  // Fast parallel categorization function
+  const categorizeTransactionsParallel = async (descriptions: string[]): Promise<string[]> => {
+    console.log(`Starting ultra-fast parallel categorization of ${descriptions.length} transactions`)
+    
+    // First pass: Apply built-in rules (instant)
+    const categorizedResults = descriptions.map(desc => {
+      const builtInCategory = categorizeByBuiltInRules(desc)
+      return { description: desc, category: builtInCategory, needsAI: !builtInCategory }
+    })
+
+    const needsAICount = categorizedResults.filter(r => r.needsAI).length
+    console.log(`Built-in rules handled ${descriptions.length - needsAICount} transactions, ${needsAICount} need AI`)
+
+    if (needsAICount === 0) {
+      return categorizedResults.map(r => r.category || 'Miscellaneous')
+    }
+
+    // Second pass: AI categorization in true parallel (no delays, no batching)
+    setUploadProgress(prev => prev ? {
+      ...prev,
+      message: `AI categorizing ${needsAICount} transactions in parallel...`
+    } : null)
+
+    const aiPromises = categorizedResults.map(async (result, index) => {
+      if (!result.needsAI) return result.category
+
+      try {
+        const aiCategory = await categorizeTransactionWithAI(result.description)
+        
+        // Update progress every 10 completed items for better performance
+        if (index % 10 === 0) {
+          setUploadProgress(prev => prev ? {
+            ...prev,
+            currentStep: Math.min(prev.currentStep + 10, prev.totalSteps),
+            message: `AI categorized ${Math.min(index + 10, needsAICount)} of ${needsAICount} transactions...`
+          } : null)
+        }
+        
+        return aiCategory || 'Miscellaneous'
+      } catch (error) {
+        console.warn('AI categorization failed for:', result.description, error)
+        return 'Miscellaneous'
+      }
+    })
+
+    // Execute all AI calls in parallel with no artificial delays
+    const finalCategories = await Promise.all(aiPromises)
+    console.log(`Ultra-fast parallel categorization completed in seconds`)
+    
+    return finalCategories
+  }
+
   const handleUpload = async () => {
     if (!file || !hasRequiredMappings || !session?.user) return
 
@@ -142,131 +195,69 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
         comment: row.comment
       }))
 
-      console.log(`Starting optimized categorization of ${rawTransactions.length} transactions`)
+      console.log(`Starting ultra-fast processing of ${rawTransactions.length} transactions`)
 
-      // Phase 2: Optimized categorization with larger batches and fewer delays
+      // Phase 2: Ultra-fast parallel categorization
       setUploadProgress({
         phase: 'categorizing',
         currentStep: 0,
         totalSteps: rawTransactions.length,
-        message: 'Starting AI categorization...',
+        message: 'Starting ultra-fast AI categorization...',
         processedTransactions: []
       })
 
-      const processedTransactions: any[] = []
       const descriptions = rawTransactions.map(t => t.description)
-      
-      // Use larger batches for better performance (20 instead of 5)
-      const batchSize = 20
-      let completedCount = 0
+      const categories = await categorizeTransactionsParallel(descriptions)
 
-      for (let i = 0; i < descriptions.length; i += batchSize) {
-        const endIndex = Math.min(i + batchSize, descriptions.length)
-        const batchDescriptions = descriptions.slice(i, endIndex)
-        const batchTransactions = rawTransactions.slice(i, endIndex)
-        
-        console.log(`Processing optimized batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(descriptions.length/batchSize)}`)
-        
-        try {
-          // Categorize the current batch with reduced retries for speed
-          const categories = await categorizeBatchTransactions(batchDescriptions, session.user.id, 2, 1)
-          
-          // Process each transaction in the batch
-          for (let j = 0; j < batchTransactions.length; j++) {
-            const transaction = batchTransactions[j]
-            const updatedTransaction = {
-              ...transaction,
-              category: categories[j] || 'Miscellaneous',
-              id: `temp-${i + j}`,
-              user_id: session.user.id
-            }
-            processedTransactions.push(updatedTransaction)
-            completedCount++
-          }
+      // Create final processed transactions
+      const processedTransactions = rawTransactions.map((transaction, index) => ({
+        ...transaction,
+        category: categories[index] || 'Miscellaneous',
+        id: `temp-${index}`,
+        user_id: session.user.id
+      }))
 
-          // Update progress less frequently for better performance
-          setUploadProgress(prev => prev ? {
-            ...prev,
-            currentStep: completedCount,
-            processedTransactions: [...processedTransactions],
-            message: `Categorized ${completedCount} of ${descriptions.length} transactions...`
-          } : null)
-
-        } catch (error) {
-          console.error('Error categorizing batch:', error)
-          // Continue with default categories on error
-          for (let j = 0; j < batchTransactions.length; j++) {
-            const transaction = batchTransactions[j]
-            processedTransactions.push({
-              ...transaction,
-              category: 'Miscellaneous',
-              id: `temp-${i + j}`,
-              user_id: session.user.id
-            })
-            completedCount++
-          }
-          
-          setUploadProgress(prev => prev ? {
-            ...prev,
-            currentStep: completedCount,
-            processedTransactions: [...processedTransactions],
-            message: `Processing ${completedCount} of ${descriptions.length} transactions...`
-          } : null)
-        }
-
-        // Shorter delay between batches (200ms instead of 500ms)
-        if (endIndex < descriptions.length) {
-          await new Promise(resolve => setTimeout(resolve, 200))
-        }
-      }
-
-      console.log(`Optimized categorization complete. Processed ${processedTransactions.length} transactions`)
-
-      // Phase 3: Save to database
       setUploadProgress(prev => prev ? {
         ...prev,
         phase: 'saving',
-        currentStep: 0,
-        totalSteps: 1,
-        message: 'Saving transactions to database...'
+        currentStep: rawTransactions.length,
+        totalSteps: rawTransactions.length,
+        message: 'Categorization complete! Saving to database...',
+        processedTransactions
       } : null)
 
-      // Call the upload handler
+      // Phase 3: Save to database
       await onTransactionsUploaded(rawTransactions)
 
-      // Phase 4: Update balances (handled by parent component)
+      // Phase 4: Update balances
       setUploadProgress(prev => prev ? {
         ...prev,
         phase: 'updating-balances',
-        currentStep: 0,
-        totalSteps: 1,
         message: 'Updating account balances...'
       } : null)
 
       // Small delay to show the updating phase
-      await new Promise(resolve => setTimeout(resolve, 500))
+      await new Promise(resolve => setTimeout(resolve, 300))
 
       // Phase 5: Complete
       setUploadProgress(prev => prev ? {
         ...prev,
         phase: 'complete',
-        currentStep: 1,
-        totalSteps: 1,
-        message: `Successfully processed ${rawTransactions.length} transactions!`,
-        processedTransactions: processedTransactions
+        message: `Successfully processed ${rawTransactions.length} transactions in record time!`,
+        processedTransactions
       } : null)
 
-      console.log('Optimized upload process completed successfully')
+      console.log('Ultra-fast upload process completed successfully')
 
       // Refresh queries immediately
       await queryClient.invalidateQueries({ queryKey: ['transactions'] })
       await queryClient.invalidateQueries({ queryKey: ['assets'] })
 
-      // Auto-reset after showing completion for 2 seconds (faster)
+      // Auto-reset after showing completion for 1.5 seconds
       setTimeout(() => {
         console.log('Auto-resetting form after completion')
         resetForm()
-      }, 2000)
+      }, 1500)
 
     } catch (err) {
       console.error('Error in upload process:', err)
