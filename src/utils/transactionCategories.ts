@@ -1,4 +1,3 @@
-
 import { categorizeTransactionWithAI } from './aiCategorization';
 import { categories } from '@/types/transaction-forms';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,11 +13,24 @@ let userDefinedRules: CategoryRule[] = [];
 // Export the comprehensive categories array from transaction-forms
 export { categories };
 
-// Enhanced rule-based categorization for common patterns (now exported for direct use)
+// Enhanced rule-based categorization with food delivery support
 export const categorizeByBuiltInRules = (description: string): string | null => {
   const lowerDesc = description.toLowerCase();
   
-  // Government and tax payments - higher priority
+  // Food delivery services - highest priority for consistent categorization
+  if (lowerDesc.includes('uber') && lowerDesc.includes('eats')) {
+    console.log(`Built-in rule matched: "${description}" -> Food Delivery`);
+    return 'Food Delivery';
+  }
+  
+  if (lowerDesc.includes('doordash') || lowerDesc.includes('deliveroo') || 
+      lowerDesc.includes('menulog') || lowerDesc.includes('food delivery') ||
+      lowerDesc.includes('grubhub') || lowerDesc.includes('skip the dishes')) {
+    console.log(`Built-in rule matched: "${description}" -> Food Delivery`);
+    return 'Food Delivery';
+  }
+  
+  // Government and tax payments
   if (lowerDesc.includes('revenue') || lowerDesc.includes('tax office') || 
       lowerDesc.includes('ato') || lowerDesc.includes('act revenue') || 
       lowerDesc.includes('nsw revenue') || lowerDesc.includes('vic revenue')) {
@@ -49,7 +61,7 @@ export const categorizeByBuiltInRules = (description: string): string | null => 
     return 'Groceries';
   }
   
-  // Bank transfers (not generic banking)
+  // Bank transfers
   if (lowerDesc.includes('transfer to') || lowerDesc.includes('transfer from') ||
       lowerDesc.includes('bpay') || lowerDesc.includes('direct credit')) {
     console.log(`Built-in rule matched: "${description}" -> Transfer`);
@@ -71,16 +83,15 @@ const findSimilarTransactionCategory = async (description: string, userId: strin
   try {
     console.log(`Searching for similar transactions to: "${description}"`);
     
-    // Search for transactions with similar descriptions
     const { data: similarTransactions, error } = await supabase
       .from('transactions')
       .select('category, description')
       .eq('user_id', userId)
-      .ilike('description', `%${description.substring(0, 20)}%`) // Match first 20 characters
+      .ilike('description', `%${description.substring(0, 20)}%`)
       .not('category', 'is', null)
       .not('category', 'eq', 'Miscellaneous')
       .not('category', 'eq', 'Other')
-      .not('category', 'eq', 'Banking') // Don't use generic Banking as a reference
+      .not('category', 'eq', 'Banking')
       .limit(5);
 
     if (error) {
@@ -89,7 +100,6 @@ const findSimilarTransactionCategory = async (description: string, userId: strin
     }
 
     if (similarTransactions && similarTransactions.length > 0) {
-      // Find the most common category among similar transactions
       const categoryCount: Record<string, number> = {};
       
       similarTransactions.forEach(transaction => {
@@ -116,33 +126,28 @@ const findSimilarTransactionCategory = async (description: string, userId: strin
 
 // Function to add a user-defined rule
 export const addUserCategoryRule = (description: string, category: string) => {
-  // Extract meaningful words from the description
   const keywords = description
     .toLowerCase()
     .split(/\s+/)
-    .filter(word => word.length > 2) // Only words longer than 2 characters
-    .slice(0, 3); // Take first 3 meaningful words
+    .filter(word => word.length > 2)
+    .slice(0, 3);
 
   console.log(`Adding user rule: "${keywords.join(', ')}" -> ${category}`);
   
-  // Check if a similar rule already exists
   const existingRule = userDefinedRules.find(rule => 
     rule.category === category && 
     rule.keywords.some(keyword => keywords.includes(keyword))
   );
 
   if (existingRule) {
-    // Merge keywords with existing rule
     existingRule.keywords = [...new Set([...existingRule.keywords, ...keywords])];
   } else {
-    // Add new rule
     userDefinedRules.push({
       keywords,
       category
     });
   }
 
-  // Store in localStorage for persistence
   try {
     localStorage.setItem('userCategoryRules', JSON.stringify(userDefinedRules));
   } catch (error) {
@@ -200,7 +205,7 @@ export const categorizeBatchTransactions = async (
 export const categorizeTransaction = async (description: string, userId?: string): Promise<string> => {
   console.log(`Categorizing: "${description}"`);
   
-  // First check built-in rules (highest priority for common patterns)
+  // First check built-in rules (highest priority)
   const builtInCategory = categorizeByBuiltInRules(description);
   if (builtInCategory) {
     return builtInCategory;
@@ -224,11 +229,9 @@ export const categorizeTransaction = async (description: string, userId?: string
   }
 
   try {
-    // Use AI categorization as final fallback
     const aiCategory = await categorizeTransactionWithAI(description);
     console.log(`AI categorized: "${description}" -> ${aiCategory}`);
     
-    // Validate that the AI category is in our allowed categories list
     if (categories.includes(aiCategory)) {
       return aiCategory;
     } else {
@@ -243,13 +246,11 @@ export const categorizeTransaction = async (description: string, userId?: string
 
 // Synchronous version for backward compatibility
 export const categorizeTransactionSync = (description: string): string => {
-  // Check built-in rules first
   const builtInCategory = categorizeByBuiltInRules(description);
   if (builtInCategory) {
     return builtInCategory;
   }
   
-  // Check user-defined rules
   const lowerDescription = description.toLowerCase();
   for (const rule of userDefinedRules) {
     if (rule.keywords.some(keyword => lowerDescription.includes(keyword))) {

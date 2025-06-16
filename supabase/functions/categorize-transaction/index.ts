@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.48.1';
@@ -8,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Categories list - must match frontend
+// Categories list - must match frontend (including Food Delivery)
 const categories = [
   'Groceries', 'Restaurants', 'Gas & Fuel', 'Shopping', 'Entertainment',
   'Healthcare', 'Insurance', 'Utilities', 'Transportation', 'Education',
@@ -18,7 +17,7 @@ const categories = [
   'Income', 'Salary', 'Business', 'Freelance', 'Interest', 'Dividends',
   'Other Income', 'Rental Income', 'Government Benefits', 'Pension',
   'Child Support', 'Alimony', 'Gifts Received', 'Refunds',
-  'Cryptocurrency', 'Fast Food', 'Public Transport', 'Tolls'
+  'Cryptocurrency', 'Fast Food', 'Public Transport', 'Tolls', 'Food Delivery'
 ];
 
 // Available models with their rate limits
@@ -30,9 +29,20 @@ const MODELS = [
 // Track model usage (simple rotation)
 let currentModelIndex = 0;
 
-// Enhanced built-in rules for common patterns
+// Enhanced built-in rules with Food Delivery support
 const enhancedBuiltInRules = (description: string): string | null => {
   const lowerDesc = description.toLowerCase();
+  
+  // Food delivery services - highest priority for consistency
+  if (lowerDesc.includes('uber') && lowerDesc.includes('eats')) {
+    return 'Food Delivery';
+  }
+  
+  if (lowerDesc.includes('doordash') || lowerDesc.includes('deliveroo') || 
+      lowerDesc.includes('menulog') || lowerDesc.includes('food delivery') ||
+      lowerDesc.includes('grubhub') || lowerDesc.includes('skip the dishes')) {
+    return 'Food Delivery';
+  }
   
   // Food establishments - expanded patterns
   if (lowerDesc.includes('kebab') || lowerDesc.includes('pizza') || lowerDesc.includes('burger') ||
@@ -98,12 +108,12 @@ serve(async (req) => {
       console.log(`Processing batch of ${batchDescriptions.length} transactions`);
       
       const results = [];
-      const batchSize = Math.min(30, batchDescriptions.length); // Limit to 30 per batch
+      const batchSize = Math.min(30, batchDescriptions.length);
       const currentBatch = batchDescriptions.slice(0, batchSize);
       
       for (const desc of currentBatch) {
         try {
-          // First check built-in rules
+          // First check built-in rules (including Food Delivery)
           const builtInCategory = enhancedBuiltInRules(desc);
           if (builtInCategory) {
             console.log(`Built-in rule matched: "${desc}" -> ${builtInCategory}`);
@@ -181,7 +191,7 @@ serve(async (req) => {
       });
     }
 
-    // Single transaction processing (existing logic)
+    // Single transaction processing
     if (!description) {
       return new Response(JSON.stringify({ error: 'Description is required' }), {
         status: 400,
@@ -191,7 +201,7 @@ serve(async (req) => {
 
     console.log(`Categorizing transaction: "${description}"`);
 
-    // First check built-in rules (highest priority for common patterns)
+    // First check built-in rules (including Food Delivery)
     const builtInCategory = enhancedBuiltInRules(description);
     if (builtInCategory) {
       console.log(`Built-in rule matched: "${description}" -> ${builtInCategory}`);
@@ -209,7 +219,6 @@ serve(async (req) => {
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
       );
 
-      // Extract keywords from description for better matching
       const keywords = description.toLowerCase().split(/[\s\*]+/).filter((word: string) => word.length > 2);
       
       const { data: similarTransactions, error } = await supabase
@@ -222,7 +231,6 @@ serve(async (req) => {
         .limit(20);
 
       if (!error && similarTransactions && similarTransactions.length > 0) {
-        // Find transactions that share keywords with current description
         const matches = similarTransactions.filter((transaction: any) => {
           const transactionWords = transaction.description.toLowerCase().split(/[\s\*]+/);
           return keywords.some((keyword: string) => 
@@ -233,7 +241,6 @@ serve(async (req) => {
         });
 
         if (matches.length > 0) {
-          // Return the most common category among matches
           const categoryCount: Record<string, number> = {};
           matches.forEach((transaction: any) => {
             if (transaction.category) {
@@ -254,7 +261,6 @@ serve(async (req) => {
       }
     }
 
-    // If no DB match found, try AI categorization
     console.log(`No DB match found, using AI for: "${description}"`);
     const category = await categorizeWithAI(description);
     
@@ -265,7 +271,6 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in categorize-transaction function:', error);
     
-    // Always try fallback rules before giving up
     try {
       const { description } = await req.json();
       const fallbackCategory = enhancedBuiltInRules(description) || 'Miscellaneous';
@@ -305,7 +310,9 @@ Available categories: ${categories.join(', ')}
 
 Rules:
 - Return ONLY the category name, nothing else
-- If it's food-related (kebab, pizza, burger, restaurant, cafe, takeaway), use "Restaurants" or "Fast Food"
+- For UBER EATS or food delivery services, use "Food Delivery"
+- If it's dining at restaurants, cafes, use "Restaurants"
+- If it's fast food chains (McDonald's, KFC), use "Fast Food"
 - If it's a payment processor prefix like "SMP*" followed by a business name, focus on the business type
 - For fuel stations (Shell, BP, Caltex, etc.), use "Gas & Fuel"
 - For supermarkets (Woolworths, Coles, IGA, Aldi), use "Groceries"
@@ -349,7 +356,6 @@ Category:`;
     const data = await response.json();
     const category = data.choices?.[0]?.message?.content?.trim();
 
-    // Validate category is in our allowed list
     if (category && categories.includes(category)) {
       console.log(`AI categorized "${description}" -> ${category} using model: ${model}`);
       return category;

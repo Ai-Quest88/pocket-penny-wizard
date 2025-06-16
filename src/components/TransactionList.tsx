@@ -84,40 +84,46 @@ export const TransactionList = ({ entityId, showBalance = true, readOnly = false
         throw error;
       }
       
-      console.log('Fetched transactions:', data);
+      console.log('Fetched transactions:', data?.length);
 
-      // Find transactions that need re-categorization (case-insensitive check)
+      // Only process transactions that have truly empty or generic categories
+      // Be more specific to avoid re-processing already categorized transactions
       const transactionsToUpdate = data.filter(
         transaction => !transaction.category || 
+                     transaction.category.trim() === '' ||
                      transaction.category.toLowerCase() === 'other' ||
-                     transaction.category.toLowerCase() === '' ||
                      transaction.category.toLowerCase() === 'miscellaneous'
       );
 
-      console.log(`Found ${transactionsToUpdate.length} transactions to re-categorize with enhanced logic`);
+      console.log(`Found ${transactionsToUpdate.length} transactions that need re-categorization`);
 
       if (transactionsToUpdate.length > 0) {
-        // Batch update transactions with enhanced categories (including database lookup)
+        // Process only the transactions that actually need updating
         const updatePromises = transactionsToUpdate.map(async (transaction) => {
           const newCategory = await categorizeTransaction(transaction.description, session.user.id);
-          console.log(`Enhanced re-categorizing "${transaction.description}" from "${transaction.category}" to: ${newCategory}`);
+          console.log(`Re-categorizing "${transaction.description}" from "${transaction.category}" to: ${newCategory}`);
           
-          const { error: updateError } = await supabase
-            .from('transactions')
-            .update({ category: newCategory })
-            .eq('id', transaction.id);
+          // Only update if the category has actually changed
+          if (newCategory !== transaction.category) {
+            const { error: updateError } = await supabase
+              .from('transactions')
+              .update({ category: newCategory })
+              .eq('id', transaction.id);
 
-          if (updateError) {
-            console.error('Error updating transaction category:', updateError);
-            return transaction; // Return original if update fails
+            if (updateError) {
+              console.error('Error updating transaction category:', updateError);
+              return transaction;
+            }
+            
+            return { ...transaction, category: newCategory };
           }
           
-          return { ...transaction, category: newCategory };
+          return transaction;
         });
 
         const updatedTransactions = await Promise.all(updatePromises);
 
-        // Return the data with updated categories
+        // Return the data with updated categories, but don't duplicate
         return data.map(transaction => {
           const updatedTransaction = updatedTransactions.find(t => t.id === transaction.id);
           return updatedTransaction || transaction;
@@ -132,26 +138,23 @@ export const TransactionList = ({ entityId, showBalance = true, readOnly = false
   const { data: exchangeRates, isLoading: ratesLoading } = useQuery({
     queryKey: ["exchangeRates", displayCurrency],
     queryFn: () => fetchExchangeRates(displayCurrency),
-    staleTime: 1000 * 60 * 60, // Cache for 1 hour
+    staleTime: 1000 * 60 * 60,
   });
 
   // Filter transactions based on search criteria
   const filteredTransactions = useMemo(() => {
     let filtered = [...transactions];
 
-    // Search by description
     if (searchFilters.searchTerm) {
       filtered = filtered.filter(transaction =>
         transaction.description.toLowerCase().includes(searchFilters.searchTerm.toLowerCase())
       );
     }
 
-    // Filter by category
     if (searchFilters.category) {
       filtered = filtered.filter(transaction => transaction.category === searchFilters.category);
     }
 
-    // Filter by date range
     if (searchFilters.dateRange) {
       const now = new Date();
       const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -180,7 +183,6 @@ export const TransactionList = ({ entityId, showBalance = true, readOnly = false
       });
     }
 
-    // Filter by amount range
     if (searchFilters.amountRange) {
       filtered = filtered.filter(transaction => {
         const amount = Math.abs(transaction.amount);
@@ -229,13 +231,11 @@ export const TransactionList = ({ entityId, showBalance = true, readOnly = false
   };
 
   const handleTransactionDeleted = () => {
-    // Invalidate all relevant queries when a transaction is deleted
     queryClient.invalidateQueries({ queryKey: ['transactions'] });
     queryClient.invalidateQueries({ queryKey: ['account-balances'] });
     queryClient.invalidateQueries({ queryKey: ['assets'] });
     queryClient.invalidateQueries({ queryKey: ['liabilities'] });
     queryClient.invalidateQueries({ queryKey: ['netWorth'] });
-    // Clear any selected transactions that might have been deleted
     setSelectedTransactions([]);
   };
 
@@ -260,7 +260,6 @@ export const TransactionList = ({ entityId, showBalance = true, readOnly = false
   };
 
   const handleBulkUpdate = () => {
-    // Invalidate all relevant queries when bulk operations are performed
     queryClient.invalidateQueries({ queryKey: ['transactions'] });
     queryClient.invalidateQueries({ queryKey: ['account-balances'] });
     queryClient.invalidateQueries({ queryKey: ['assets'] });
