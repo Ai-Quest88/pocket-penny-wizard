@@ -1,3 +1,4 @@
+
 import { DashboardCard } from "@/components/DashboardCard"
 import { AssetsList } from "@/components/assets-liabilities/AssetsList"
 import { AddAssetDialog } from "@/components/assets-liabilities/AddAssetDialog"
@@ -12,11 +13,13 @@ const Assets = () => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { session } = useAuth()
+
+  // First fetch account balances
   const { data: accountBalances = [], isLoading: balancesLoading } = useAccountBalances()
 
   // Fetch assets from Supabase with user authentication
-  const { data: assets = [], isLoading } = useQuery({
-    queryKey: ['assets', session?.user?.id, accountBalances],
+  const { data: assets = [], isLoading: assetsLoading } = useQuery({
+    queryKey: ['assets', session?.user?.id],
     queryFn: async () => {
       if (!session?.user) {
         console.log('No authenticated user, returning empty assets array');
@@ -37,9 +40,20 @@ const Assets = () => {
       }
 
       console.log('Fetched assets:', data);
+      return data;
+    },
+    enabled: !!session?.user,
+  });
+
+  // Transform assets with calculated balances - this runs after both queries complete
+  const assetsWithBalances = useQuery({
+    queryKey: ['assets-with-balances', assets, accountBalances],
+    queryFn: () => {
+      console.log('Transforming assets with calculated balances');
+      console.log('Assets:', assets);
       console.log('Available account balances:', accountBalances);
 
-      return data.map(asset => {
+      return assets.map(asset => {
         // Get the calculated balance for this asset
         const calculatedBalance = accountBalances.find(b => b.accountId === asset.id);
         console.log(`Asset ${asset.name}: Looking for balance with accountId ${asset.id}`);
@@ -61,8 +75,11 @@ const Assets = () => {
         };
       }) as Asset[];
     },
-    enabled: !!session?.user && !balancesLoading,
+    enabled: !assetsLoading && !balancesLoading && assets.length >= 0 && accountBalances.length >= 0,
   });
+
+  const transformedAssets = assetsWithBalances.data || [];
+  const isLoading = assetsLoading || balancesLoading || assetsWithBalances.isLoading;
 
   // Add asset mutation
   const addAssetMutation = useMutation({
@@ -146,7 +163,7 @@ const Assets = () => {
     },
   });
 
-  const totalAssets = assets.reduce((sum, asset) => sum + asset.value, 0)
+  const totalAssets = transformedAssets.reduce((sum, asset) => sum + asset.value, 0)
   const monthlyChange = 3.2 // This could be calculated based on historical data
 
   const handleAddAsset = (newAsset: Omit<Asset, "id">) => {
@@ -157,7 +174,7 @@ const Assets = () => {
     editAssetMutation.mutate({ id, updatedAsset });
   }
 
-  if (isLoading || balancesLoading) {
+  if (isLoading) {
     return (
       <div className="p-8">
         <div className="max-w-7xl mx-auto space-y-8">
@@ -188,7 +205,7 @@ const Assets = () => {
           className="bg-card"
         />
 
-        <AssetsList assets={assets} onEditAsset={handleEditAsset} />
+        <AssetsList assets={transformedAssets} onEditAsset={handleEditAsset} />
       </div>
     </div>
   )
