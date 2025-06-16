@@ -1,4 +1,3 @@
-
 import { CsvUploadForm } from "@/components/transaction-forms/CsvUploadForm";
 import { Transaction } from "@/types/transaction-forms";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,7 +26,7 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
 
   const batchUpdateAccountBalances = async (transactions: Omit<Transaction, 'id'>[]) => {
     try {
-      console.log('Starting batch account balance updates for', transactions.length, 'transactions');
+      console.log('Starting direct balance calculation for', transactions.length, 'transactions');
       
       // Group transactions by account for batch processing
       const accountTransactions = new Map<string, number>();
@@ -39,14 +38,14 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
         }
       });
 
-      console.log('Batched updates by account:', Array.from(accountTransactions.entries()));
+      console.log('Transaction amounts grouped by account:', Array.from(accountTransactions.entries()));
 
       if (accountTransactions.size === 0) {
         console.log('No account updates needed');
         return { successCount: 0, failedCount: 0, errors: [] };
       }
 
-      // Fetch all assets and liabilities once
+      // Fetch all assets and liabilities once to get current balances
       const [assetsResponse, liabilitiesResponse] = await Promise.all([
         supabase
           .from('assets')
@@ -72,12 +71,12 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
       const assets = assetsResponse.data || [];
       const liabilities = liabilitiesResponse.data || [];
 
-      console.log('Fetched assets and liabilities for batch processing');
+      console.log('Fetched current balances for direct calculation');
 
-      // Process each account's batch update
-      const updatePromises = Array.from(accountTransactions.entries()).map(async ([accountInfo, totalAmount]) => {
+      // Process each account's direct balance update
+      const updatePromises = Array.from(accountTransactions.entries()).map(async ([accountInfo, transactionTotal]) => {
         try {
-          console.log(`Processing batch update for ${accountInfo}: ${totalAmount}`);
+          console.log(`Calculating final balance for ${accountInfo}: adding ${transactionTotal}`);
           
           // Parse account info: "Account Name - Entity Name (accountType)"
           const accountParts = accountInfo.split(' - ');
@@ -114,15 +113,15 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
               throw new Error(`No matching asset found for: ${accountName}`);
             }
 
-            const currentValue = Number(matchingAsset.value) || 0;
-            const newBalance = currentValue + totalAmount;
+            const currentBalance = Number(matchingAsset.value) || 0;
+            const finalBalance = currentBalance + transactionTotal;
             
-            console.log(`Updating asset ${matchingAsset.name} from ${currentValue} to ${newBalance} (change: ${totalAmount})`);
+            console.log(`Direct balance update for asset ${matchingAsset.name}: ${currentBalance} + ${transactionTotal} = ${finalBalance}`);
             
             const { error: updateError } = await supabase
               .from('assets')
               .update({ 
-                value: newBalance,
+                value: finalBalance,
                 updated_at: new Date().toISOString()
               })
               .eq('id', matchingAsset.id);
@@ -131,7 +130,7 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
               throw new Error(`Failed to update ${matchingAsset.name}: ${updateError.message}`);
             }
 
-            return { success: true, account: accountName, newBalance };
+            return { success: true, account: accountName, finalBalance, change: transactionTotal };
 
           } else if (isLiability) {
             // Find matching liability
@@ -151,15 +150,15 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
               throw new Error(`No matching liability found for: ${accountName}`);
             }
 
-            const currentAmount = Number(matchingLiability.amount) || 0;
-            const newBalance = currentAmount + Math.abs(totalAmount);
+            const currentBalance = Number(matchingLiability.amount) || 0;
+            const finalBalance = currentBalance + Math.abs(transactionTotal);
             
-            console.log(`Updating liability ${matchingLiability.name} from ${currentAmount} to ${newBalance}`);
+            console.log(`Direct balance update for liability ${matchingLiability.name}: ${currentBalance} + ${Math.abs(transactionTotal)} = ${finalBalance}`);
             
             const { error: updateError } = await supabase
               .from('liabilities')
               .update({ 
-                amount: newBalance,
+                amount: finalBalance,
                 updated_at: new Date().toISOString()
               })
               .eq('id', matchingLiability.id);
@@ -168,7 +167,7 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
               throw new Error(`Failed to update ${matchingLiability.name}: ${updateError.message}`);
             }
 
-            return { success: true, account: accountName, newBalance };
+            return { success: true, account: accountName, finalBalance, change: transactionTotal };
           }
         } catch (error) {
           console.error(`Failed to update ${accountInfo}:`, error);
@@ -176,14 +175,14 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
         }
       });
 
-      // Execute all updates in parallel
+      // Execute all direct balance updates in parallel
       const results = await Promise.all(updatePromises);
       
       const successCount = results.filter(r => r.success).length;
       const failedCount = results.filter(r => !r.success).length;
       const errors = results.filter(r => !r.success).map(r => r.error);
 
-      console.log(`Batch update completed: ${successCount} successful, ${failedCount} failed`);
+      console.log(`Direct balance updates completed: ${successCount} successful, ${failedCount} failed`);
       
       return { successCount, failedCount, errors };
 
@@ -261,10 +260,10 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
 
       console.log("Successfully inserted transactions:", data?.length);
 
-      // Update account balances in batches
+      // Update account balances with direct calculation
       toast({
         title: "Updating Balances",
-        description: "Updating account balances...",
+        description: "Calculating and updating final account balances...",
       });
 
       const updateResults = await batchUpdateAccountBalances(transactions);
