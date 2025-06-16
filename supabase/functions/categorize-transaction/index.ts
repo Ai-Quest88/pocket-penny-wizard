@@ -166,49 +166,57 @@ serve(async (req) => {
       });
     }
 
-    // Handle batch processing with correct priority order
+    // Handle batch processing
     if (batchMode && batchDescriptions.length > 0) {
-      console.log(`Processing batch with priority order: ${batchDescriptions.length} transactions`);
+      console.log(`Processing batch: ${batchDescriptions.length} transactions`);
       
       const results = [];
       
-      // Process each description with full priority order
       for (let i = 0; i < batchDescriptions.length; i++) {
         const desc = batchDescriptions[i];
+        console.log(`\n=== PROCESSING TRANSACTION ${i + 1}/${batchDescriptions.length}: "${desc}" ===`);
         
-        // Priority 1: Database lookup (Priority 0 user rules handled on frontend)
+        // Priority 1: Database lookup
         let category = null;
         if (userId && userId !== 'legacy-call') {
           category = await findSimilarTransactionInDB(desc, userId);
           if (category) {
-            console.log(`Priority 1 - DB lookup: "${desc}" -> ${category}`);
+            console.log(`✅ Priority 1 - DB lookup: "${desc}" -> ${category}`);
             results.push({ description: desc, category, source: 'database' });
             continue;
+          } else {
+            console.log(`❌ Priority 1 - DB lookup: No similar transactions found for "${desc}"`);
           }
         }
 
-        // Priority 2: Enhanced built-in rules (moved up before AI)
-        category = enhancedBuiltInRules(desc);
-        if (category) {
-          console.log(`Priority 2 - Enhanced rules: "${desc}" -> ${category}`);
-          results.push({ description: desc, category, source: 'enhanced-rules' });
-          continue;
-        }
-
-        // Priority 3: AI categorization
+        // Priority 2: AI categorization (PRIORITY - with detailed failure logging)
+        console.log(`🤖 Priority 2 - Attempting AI categorization for: "${desc}"`);
         try {
           category = await categorizeWithAI(desc);
           if (category && categories.includes(category)) {
-            console.log(`Priority 3 - AI: "${desc}" -> ${category}`);
+            console.log(`✅ Priority 2 - AI SUCCESS: "${desc}" -> ${category}`);
             results.push({ description: desc, category, source: 'ai' });
             continue;
+          } else {
+            console.log(`❌ Priority 2 - AI FAILED: Invalid category returned: "${category}" for "${desc}"`);
           }
         } catch (error) {
-          console.error(`AI failed for "${desc}":`, error);
+          console.log(`❌ Priority 2 - AI ERROR for "${desc}":`, error.message);
+          console.log(`Full AI error details:`, error);
+        }
+
+        // Priority 3: Enhanced built-in rules
+        category = enhancedBuiltInRules(desc);
+        if (category) {
+          console.log(`✅ Priority 3 - Enhanced rules: "${desc}" -> ${category}`);
+          results.push({ description: desc, category, source: 'enhanced-rules' });
+          continue;
+        } else {
+          console.log(`❌ Priority 3 - Enhanced rules: No match for "${desc}"`);
         }
 
         // Priority 4: Miscellaneous fallback
-        console.log(`Priority 4 - Fallback: "${desc}" -> Miscellaneous`);
+        console.log(`⚠️ Priority 4 - Using fallback: "${desc}" -> Miscellaneous`);
         results.push({ description: desc, category: 'Miscellaneous', source: 'fallback' });
       }
 
@@ -224,7 +232,7 @@ serve(async (req) => {
       });
     }
 
-    // Single transaction processing with correct priority order
+    // Single transaction processing
     if (!description) {
       return new Response(JSON.stringify({ error: 'Description is required' }), {
         status: 400,
@@ -232,45 +240,57 @@ serve(async (req) => {
       });
     }
 
-    console.log(`Processing single transaction with priority order: "${description}"`);
+    console.log(`\n=== PROCESSING SINGLE TRANSACTION: "${description}" ===`);
 
-    // Priority 1: Database lookup (Priority 0 user rules handled on frontend)
+    // Priority 1: Database lookup
     if (userId && userId !== 'legacy-call') {
       const dbCategory = await findSimilarTransactionInDB(description, userId);
       if (dbCategory) {
-        console.log(`Priority 1 - DB lookup: "${description}" -> ${dbCategory}`);
+        console.log(`✅ Priority 1 - DB lookup: "${description}" -> ${dbCategory}`);
         return new Response(JSON.stringify({ category: dbCategory, source: 'database' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
+      } else {
+        console.log(`❌ Priority 1 - DB lookup: No similar transactions found for "${description}"`);
       }
     }
 
-    // Priority 2: Enhanced built-in rules (moved up before AI)
+    // Priority 2: AI categorization (PRIORITY - with detailed failure logging)
+    console.log(`🤖 Priority 2 - Attempting AI categorization for: "${description}"`);
+    try {
+      const aiCategory = await categorizeWithAI(description);
+      if (aiCategory && categories.includes(aiCategory)) {
+        console.log(`✅ Priority 2 - AI SUCCESS: "${description}" -> ${aiCategory}`);
+        return new Response(JSON.stringify({ category: aiCategory, source: 'ai' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } else {
+        console.log(`❌ Priority 2 - AI FAILED: Invalid category returned: "${aiCategory}" for "${description}"`);
+      }
+    } catch (error) {
+      console.log(`❌ Priority 2 - AI ERROR for "${description}":`, error.message);
+      console.log(`Full AI error details:`, error);
+    }
+
+    // Priority 3: Enhanced built-in rules
     const enhancedCategory = enhancedBuiltInRules(description);
     if (enhancedCategory) {
-      console.log(`Priority 2 - Enhanced rules: "${description}" -> ${enhancedCategory}`);
+      console.log(`✅ Priority 3 - Enhanced rules: "${description}" -> ${enhancedCategory}`);
       return new Response(JSON.stringify({ category: enhancedCategory, source: 'enhanced-rules' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
-    }
-
-    // Priority 3: AI categorization
-    const aiCategory = await categorizeWithAI(description);
-    if (aiCategory && categories.includes(aiCategory)) {
-      console.log(`Priority 3 - AI: "${description}" -> ${aiCategory}`);
-      return new Response(JSON.stringify({ category: aiCategory, source: 'ai' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    } else {
+      console.log(`❌ Priority 3 - Enhanced rules: No match for "${description}"`);
     }
 
     // Priority 4: Miscellaneous fallback
-    console.log(`Priority 4 - Fallback: "${description}" -> Miscellaneous`);
+    console.log(`⚠️ Priority 4 - Using fallback: "${description}" -> Miscellaneous`);
     return new Response(JSON.stringify({ category: 'Miscellaneous', source: 'fallback' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error in categorize-transaction function:', error);
+    console.error('❌ CRITICAL ERROR in categorize-transaction function:', error);
     
     try {
       const { description } = await req.json();
@@ -348,11 +368,11 @@ async function findSimilarTransactionInDB(description: string, userId: string): 
   }
 }
 
-// AI categorization helper function with working models only
+// AI categorization helper function with enhanced error logging
 async function categorizeWithAI(description: string): Promise<string> {
   const groqApiKey = Deno.env.get('VITE_GROQ_API_KEY');
   if (!groqApiKey) {
-    console.error('VITE_GROQ_API_KEY not found in environment');
+    console.error('❌ AI SETUP ERROR: VITE_GROQ_API_KEY not found in environment');
     throw new Error('AI API key not configured');
   }
 
@@ -372,6 +392,8 @@ Respond with ONLY the category name, nothing else.`;
 
   const model = getNextModel();
   
+  console.log(`🤖 Making AI request for "${description}" using model: ${model}`);
+  
   try {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -390,42 +412,54 @@ Respond with ONLY the category name, nothing else.`;
       }),
     });
 
-    console.log(`Groq API response status: ${response.status} using model: ${model}`);
+    console.log(`🤖 Groq API response status: ${response.status} for "${description}" using model: ${model}`);
 
     if (response.status === 429) {
-      console.log(`Rate limited by Groq API with model ${model}`);
-      throw new Error('Rate limited');
+      const rateLimitError = `Rate limited by Groq API with model ${model}`;
+      console.log(`❌ ${rateLimitError}`);
+      throw new Error(rateLimitError);
     }
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`Groq API error with model ${model}:`, errorText);
-      throw new Error(`API error: ${response.status}`);
+      console.error(`❌ Groq API HTTP error for "${description}" with model ${model}:`, {
+        status: response.status,
+        statusText: response.statusText,
+        errorBody: errorText
+      });
+      throw new Error(`API HTTP error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
     const rawContent = data.choices?.[0]?.message?.content?.trim();
     
+    console.log(`🤖 Raw AI response for "${description}": "${rawContent}" using model: ${model}`);
+    
     if (!rawContent) {
-      console.warn(`Empty response from AI using model ${model}`);
-      throw new Error('Empty AI response');
+      const emptyResponseError = `Empty response from AI using model ${model}`;
+      console.warn(`❌ ${emptyResponseError}`);
+      throw new Error(emptyResponseError);
     }
-
-    console.log(`Raw AI response for "${description}": "${rawContent}" using model: ${model}`);
 
     // Extract category from potentially complex response
     const category = extractCategoryFromResponse(rawContent);
 
     if (category && categories.includes(category)) {
-      console.log(`AI categorized "${description}" -> ${category} using model: ${model}`);
+      console.log(`✅ AI successfully categorized "${description}" -> ${category} using model: ${model}`);
       return category;
     } else {
-      console.warn(`AI returned invalid/unparseable category "${rawContent}" using model ${model}`);
-      throw new Error('Invalid category returned');
+      const invalidCategoryError = `AI returned invalid/unparseable category "${rawContent}" for "${description}" using model ${model}. Valid categories: ${categories.join(', ')}`;
+      console.warn(`❌ ${invalidCategoryError}`);
+      throw new Error(invalidCategoryError);
     }
 
   } catch (error) {
-    console.error(`Error with AI categorization using model ${model}:`, error);
+    console.error(`❌ AI categorization failed for "${description}" using model ${model}:`, {
+      errorMessage: error.message,
+      errorStack: error.stack,
+      description: description,
+      model: model
+    });
     throw error;
   }
 }
