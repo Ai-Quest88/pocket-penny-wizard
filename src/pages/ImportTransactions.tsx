@@ -1,3 +1,4 @@
+
 import { ChangeEvent, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
@@ -83,17 +84,29 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
 
   const handleUpload = async () => {
     if (!session?.user?.id) {
-      toast.error("Please log in to upload transactions");
+      toast({
+        title: "Authentication Error",
+        description: "Please log in to upload transactions",
+        variant: "destructive",
+      });
       return;
     }
 
     if (!validateMappings()) {
-      toast.error("Please map all required headers");
+      toast({
+        title: "Mapping Error",
+        description: "Please map all required headers",
+        variant: "destructive",
+      });
       return;
     }
 
     if (!csvFile) {
-      toast.error("No CSV file selected");
+      toast({
+        title: "File Error",
+        description: "No CSV file selected",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -104,7 +117,11 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
       skipEmptyLines: true,
       complete: async (results) => {
         if (!results.data || results.data.length === 0) {
-          toast.error("No data found in the CSV file.");
+          toast({
+            title: "Parse Error",
+            description: "No data found in the CSV file.",
+            variant: "destructive",
+          });
           setUploading(false);
           return;
         }
@@ -132,17 +149,21 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
 
   const handleTransactionsUploaded = async (transactions: any[]) => {
     if (!session?.user?.id) {
-      toast.error("Please log in to upload transactions");
+      toast({
+        title: "Authentication Error",
+        description: "Please log in to upload transactions",
+        variant: "destructive",
+      });
       return;
     }
 
     try {
       console.log(`Processing ${transactions.length} uploaded transactions`);
 
-      // Get account balances for account mapping
-      const { data: accounts } = await supabase
-        .from('accounts')
-        .select('id, name, type')
+      // Get existing transactions for duplicate checking - using the correct table name
+      const { data: existingTransactions } = await supabase
+        .from('transactions')
+        .select('id, description, amount, date')
         .eq('user_id', session.user.id);
 
       // Categorize transactions in batch
@@ -152,28 +173,38 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
       const categories = await categorizeTransactionsBatch(descriptions, session.user.id);
       console.log("Batch categorization completed");
 
-      // Prepare transactions with categories and account IDs
+      // Prepare transactions with categories and user ID
       const transactionsWithCategories = transactions.map((transaction, index) => ({
         ...transaction,
         category: categories[index],
         user_id: session.user.id,
-        account_id: accounts?.[0]?.id || null,
+        account_id: null, // Set to null since we don't have accounts table
       }));
 
-      console.log(`Inserting transactions to database with AI categories and account IDs: ${transactionsWithCategories.length}`);
+      console.log(`Inserting transactions to database with AI categories: ${transactionsWithCategories.length}`);
 
-      // Use the new duplicate checking insertion method
+      // Use the duplicate checking insertion method
       const { insertTransactionsWithDuplicateCheck } = await import('@/components/transaction-forms/csv-upload/helpers/transactionInsertion');
       const result = await insertTransactionsWithDuplicateCheck(transactionsWithCategories);
 
       console.log(`Successfully processed transactions: ${result.inserted} new, ${result.duplicates} duplicates skipped`);
 
       if (result.inserted > 0) {
-        toast.success(`Successfully uploaded ${result.inserted} transactions${result.duplicates > 0 ? ` (${result.duplicates} duplicates skipped)` : ''}`);
+        toast({
+          title: "Success",
+          description: `Successfully uploaded ${result.inserted} transactions${result.duplicates > 0 ? ` (${result.duplicates} duplicates skipped)` : ''}`,
+        });
       } else if (result.duplicates > 0) {
-        toast.info(`All ${result.duplicates} transactions were duplicates and skipped`);
+        toast({
+          title: "Info",
+          description: `All ${result.duplicates} transactions were duplicates and skipped`,
+        });
       } else {
-        toast.error("No transactions were uploaded");
+        toast({
+          title: "Error",
+          description: "No transactions were uploaded",
+          variant: "destructive",
+        });
       }
 
       console.log("Calling onSuccess callback to close dialog");
@@ -182,7 +213,11 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
       }
     } catch (error) {
       console.error("Error uploading transactions:", error);
-      toast.error("Failed to upload transactions");
+      toast({
+        title: "Upload Error",
+        description: "Failed to upload transactions",
+        variant: "destructive",
+      });
     }
   };
 
