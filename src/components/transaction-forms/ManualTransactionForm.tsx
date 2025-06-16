@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -84,20 +85,28 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
 
     setIsSubmitting(true)
 
-    const selectedAccount = accountsWithEntities.find(acc => acc.id === account);
-    
-    const transaction: Omit<Transaction, 'id'> = {
-      date: format(date, 'yyyy-MM-dd'),
-      amount: parseFloat(amount),
-      description,
-      category,
-      currency,
-      account: selectedAccount ? `${selectedAccount.name} (${selectedAccount.entityName})` : 'Default Account',
-      comment: comment || undefined,
-    }
-
     try {
-      await onTransactionAdded(transaction)
+      // Save transaction with account_id
+      const { data, error } = await supabase
+        .from('transactions')
+        .insert({
+          user_id: session.user.id,
+          description,
+          amount: parseFloat(amount),
+          category,
+          date: format(date, 'yyyy-MM-dd'),
+          currency,
+          comment: comment || null,
+          account_id: account // Use the account ID directly
+        })
+        .select();
+
+      if (error) {
+        console.error('Error inserting transaction:', error);
+        throw error;
+      }
+
+      console.log("Successfully inserted transaction:", data);
 
       toast({
         title: "Success",
@@ -107,6 +116,7 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
       // Invalidate account balances to trigger recalculation
       await queryClient.invalidateQueries({ queryKey: ['account-balances'] });
       await queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      await queryClient.invalidateQueries({ queryKey: ['transactions'] });
       
       // Reset form
       setAmount('')

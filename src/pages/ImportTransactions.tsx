@@ -63,18 +63,43 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
       // Process in batches with retry logic, now passing userId for database lookups
       const categories = await categorizeBatchTransactions(descriptions, session.user.id, 3, 2);
 
-      // Prepare transactions for database insertion with AI categorization
-      const transactionsForDb = transactions.map((transaction, index) => ({
-        user_id: session.user.id,
-        description: transaction.description,
-        amount: transaction.amount,
-        category: categories[index] || 'Miscellaneous',
-        date: transaction.date,
-        currency: transaction.currency,
-        comment: transaction.comment || null,
-      }));
+      // Get account mapping for account names to IDs
+      const { data: assets, error: assetsError } = await supabase
+        .from('assets')
+        .select('id, name, entities!inner(name)')
+        .eq('user_id', session.user.id)
+        .eq('type', 'cash');
 
-      console.log("Inserting transactions to database with AI categories:", transactionsForDb.length);
+      if (assetsError) {
+        console.error('Error fetching assets for account mapping:', assetsError);
+        throw assetsError;
+      }
+
+      // Prepare transactions for database insertion with AI categorization and account_id
+      const transactionsForDb = transactions.map((transaction, index) => {
+        // Find the matching account ID based on the account string
+        let accountId = null;
+        if (transaction.account && transaction.account !== 'Default Account') {
+          const matchingAsset = assets.find(asset => 
+            transaction.account.includes(asset.name) && 
+            transaction.account.includes(asset.entities.name)
+          );
+          accountId = matchingAsset?.id || null;
+        }
+
+        return {
+          user_id: session.user.id,
+          description: transaction.description,
+          amount: transaction.amount,
+          category: categories[index] || 'Miscellaneous',
+          date: transaction.date,
+          currency: transaction.currency,
+          comment: transaction.comment || null,
+          account_id: accountId,
+        };
+      });
+
+      console.log("Inserting transactions to database with AI categories and account IDs:", transactionsForDb.length);
 
       const { data, error } = await supabase
         .from('transactions')
