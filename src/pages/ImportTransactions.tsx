@@ -25,156 +25,171 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
     });
   }, []);
 
-  const updateAccountBalance = async (accountInfo: string, amount: number) => {
+  const batchUpdateAccountBalances = async (transactions: Omit<Transaction, 'id'>[]) => {
     try {
-      console.log('Updating account balance for:', accountInfo, 'with amount:', amount);
+      console.log('Starting batch account balance updates for', transactions.length, 'transactions');
       
-      // Skip if it's the default account or empty
-      if (!accountInfo || accountInfo === 'Default Account' || accountInfo.trim() === '') {
-        console.log('Skipping default/empty account balance update');
-        return;
+      // Group transactions by account for batch processing
+      const accountTransactions = new Map<string, number>();
+      
+      transactions.forEach(transaction => {
+        if (transaction.account && transaction.account !== 'Default Account' && transaction.account.trim() !== '') {
+          const currentAmount = accountTransactions.get(transaction.account) || 0;
+          accountTransactions.set(transaction.account, currentAmount + transaction.amount);
+        }
+      });
+
+      console.log('Batched updates by account:', Array.from(accountTransactions.entries()));
+
+      if (accountTransactions.size === 0) {
+        console.log('No account updates needed');
+        return { successCount: 0, failedCount: 0, errors: [] };
       }
 
-      // Parse account info: "Account Name - Entity Name (accountType)"
-      const accountParts = accountInfo.split(' - ');
-      if (accountParts.length < 2) {
-        console.warn('Invalid account format:', accountInfo);
-        return;
-      }
-
-      const accountName = accountParts[0].trim();
-      const entityAndType = accountParts[1];
-      
-      // Check if this is an asset or liability
-      const isAsset = entityAndType.includes('(asset)');
-      const isLiability = entityAndType.includes('(liability)');
-      
-      if (!isAsset && !isLiability) {
-        console.warn('Could not determine account type from:', accountInfo);
-        return;
-      }
-
-      const entityName = entityAndType.split(' (')[0].trim();
-
-      console.log('Parsed account info:', { accountName, entityName, isAsset, isLiability });
-
-      if (isAsset) {
-        // Find matching cash asset
-        const { data: assets, error: findError } = await supabase
+      // Fetch all assets and liabilities once
+      const [assetsResponse, liabilitiesResponse] = await Promise.all([
+        supabase
           .from('assets')
-          .select(`
-            id,
-            name,
-            value,
-            entities!inner(name)
-          `)
+          .select(`id, name, value, entities!inner(name)`)
           .eq('user_id', session!.user.id)
-          .eq('type', 'cash');
-
-        if (findError) {
-          console.error('Error finding asset:', findError);
-          return;
-        }
-
-        console.log('Found assets:', assets);
-
-        // Find exact match first
-        let matchingAsset = assets?.find(asset => 
-          asset.name.toLowerCase() === accountName.toLowerCase() && 
-          asset.entities.name.toLowerCase() === entityName.toLowerCase()
-        );
-
-        if (!matchingAsset) {
-          // Try partial name matching
-          matchingAsset = assets?.find(asset => 
-            asset.name.toLowerCase().includes(accountName.toLowerCase()) ||
-            accountName.toLowerCase().includes(asset.name.toLowerCase())
-          );
-        }
-
-        if (matchingAsset) {
-          const currentValue = Number(matchingAsset.value) || 0;
-          const newBalance = currentValue + amount;
-          
-          console.log(`Updating asset ${matchingAsset.name} from ${currentValue} to ${newBalance} (change: ${amount})`);
-          
-          const { error: updateError } = await supabase
-            .from('assets')
-            .update({ 
-              value: newBalance,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', matchingAsset.id);
-
-          if (updateError) {
-            console.error('Error updating asset balance:', updateError);
-            throw new Error(`Failed to update ${matchingAsset.name} balance`);
-          } else {
-            console.log(`Successfully updated asset ${matchingAsset.name} balance to ${newBalance}`);
-          }
-        } else {
-          console.warn('No matching asset found for:', accountName);
-          throw new Error(`Could not find matching account for "${accountName}"`);
-        }
-      } else if (isLiability) {
-        // Find matching liability
-        const { data: liabilities, error: findError } = await supabase
+          .eq('type', 'cash'),
+        supabase
           .from('liabilities')
-          .select(`
-            id,
-            name,
-            amount,
-            entities!inner(name)
-          `)
-          .eq('user_id', session!.user.id);
+          .select(`id, name, amount, entities!inner(name)`)
+          .eq('user_id', session!.user.id)
+      ]);
 
-        if (findError) {
-          console.error('Error finding liability:', findError);
-          return;
-        }
-
-        console.log('Found liabilities:', liabilities);
-
-        let matchingLiability = liabilities?.find(liability => 
-          liability.name.toLowerCase() === accountName.toLowerCase() && 
-          liability.entities.name.toLowerCase() === entityName.toLowerCase()
-        );
-
-        if (!matchingLiability) {
-          matchingLiability = liabilities?.find(liability => 
-            liability.name.toLowerCase().includes(accountName.toLowerCase()) ||
-            accountName.toLowerCase().includes(liability.name.toLowerCase())
-          );
-        }
-
-        if (matchingLiability) {
-          const currentAmount = Number(matchingLiability.amount) || 0;
-          const newBalance = currentAmount + Math.abs(amount);
-          
-          console.log(`Updating liability ${matchingLiability.name} from ${currentAmount} to ${newBalance}`);
-          
-          const { error: updateError } = await supabase
-            .from('liabilities')
-            .update({ 
-              amount: newBalance,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', matchingLiability.id);
-
-          if (updateError) {
-            console.error('Error updating liability balance:', updateError);
-            throw new Error(`Failed to update ${matchingLiability.name} balance`);
-          } else {
-            console.log(`Successfully updated liability ${matchingLiability.name} balance to ${newBalance}`);
-          }
-        } else {
-          console.warn('No matching liability found for:', accountName);
-          throw new Error(`Could not find matching account for "${accountName}"`);
-        }
+      if (assetsResponse.error) {
+        console.error('Error fetching assets:', assetsResponse.error);
+        throw new Error('Failed to fetch assets');
       }
+
+      if (liabilitiesResponse.error) {
+        console.error('Error fetching liabilities:', liabilitiesResponse.error);
+        throw new Error('Failed to fetch liabilities');
+      }
+
+      const assets = assetsResponse.data || [];
+      const liabilities = liabilitiesResponse.data || [];
+
+      console.log('Fetched assets and liabilities for batch processing');
+
+      // Process each account's batch update
+      const updatePromises = Array.from(accountTransactions.entries()).map(async ([accountInfo, totalAmount]) => {
+        try {
+          console.log(`Processing batch update for ${accountInfo}: ${totalAmount}`);
+          
+          // Parse account info: "Account Name - Entity Name (accountType)"
+          const accountParts = accountInfo.split(' - ');
+          if (accountParts.length < 2) {
+            throw new Error(`Invalid account format: ${accountInfo}`);
+          }
+
+          const accountName = accountParts[0].trim();
+          const entityAndType = accountParts[1];
+          const isAsset = entityAndType.includes('(asset)');
+          const isLiability = entityAndType.includes('(liability)');
+          
+          if (!isAsset && !isLiability) {
+            throw new Error(`Could not determine account type from: ${accountInfo}`);
+          }
+
+          const entityName = entityAndType.split(' (')[0].trim();
+
+          if (isAsset) {
+            // Find matching asset
+            let matchingAsset = assets.find(asset => 
+              asset.name.toLowerCase() === accountName.toLowerCase() && 
+              asset.entities.name.toLowerCase() === entityName.toLowerCase()
+            );
+
+            if (!matchingAsset) {
+              matchingAsset = assets.find(asset => 
+                asset.name.toLowerCase().includes(accountName.toLowerCase()) ||
+                accountName.toLowerCase().includes(asset.name.toLowerCase())
+              );
+            }
+
+            if (!matchingAsset) {
+              throw new Error(`No matching asset found for: ${accountName}`);
+            }
+
+            const currentValue = Number(matchingAsset.value) || 0;
+            const newBalance = currentValue + totalAmount;
+            
+            console.log(`Updating asset ${matchingAsset.name} from ${currentValue} to ${newBalance} (change: ${totalAmount})`);
+            
+            const { error: updateError } = await supabase
+              .from('assets')
+              .update({ 
+                value: newBalance,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', matchingAsset.id);
+
+            if (updateError) {
+              throw new Error(`Failed to update ${matchingAsset.name}: ${updateError.message}`);
+            }
+
+            return { success: true, account: accountName, newBalance };
+
+          } else if (isLiability) {
+            // Find matching liability
+            let matchingLiability = liabilities.find(liability => 
+              liability.name.toLowerCase() === accountName.toLowerCase() && 
+              liability.entities.name.toLowerCase() === entityName.toLowerCase()
+            );
+
+            if (!matchingLiability) {
+              matchingLiability = liabilities.find(liability => 
+                liability.name.toLowerCase().includes(accountName.toLowerCase()) ||
+                accountName.toLowerCase().includes(liability.name.toLowerCase())
+              );
+            }
+
+            if (!matchingLiability) {
+              throw new Error(`No matching liability found for: ${accountName}`);
+            }
+
+            const currentAmount = Number(matchingLiability.amount) || 0;
+            const newBalance = currentAmount + Math.abs(totalAmount);
+            
+            console.log(`Updating liability ${matchingLiability.name} from ${currentAmount} to ${newBalance}`);
+            
+            const { error: updateError } = await supabase
+              .from('liabilities')
+              .update({ 
+                amount: newBalance,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', matchingLiability.id);
+
+            if (updateError) {
+              throw new Error(`Failed to update ${matchingLiability.name}: ${updateError.message}`);
+            }
+
+            return { success: true, account: accountName, newBalance };
+          }
+        } catch (error) {
+          console.error(`Failed to update ${accountInfo}:`, error);
+          return { success: false, account: accountInfo, error: error.message };
+        }
+      });
+
+      // Execute all updates in parallel
+      const results = await Promise.all(updatePromises);
+      
+      const successCount = results.filter(r => r.success).length;
+      const failedCount = results.filter(r => !r.success).length;
+      const errors = results.filter(r => !r.success).map(r => r.error);
+
+      console.log(`Batch update completed: ${successCount} successful, ${failedCount} failed`);
+      
+      return { successCount, failedCount, errors };
+
     } catch (error) {
-      console.error('Error in updateAccountBalance:', error);
-      throw error; // Re-throw to be handled by caller
+      console.error('Error in batchUpdateAccountBalances:', error);
+      throw error;
     }
   };
 
@@ -227,7 +242,7 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
         comment: transaction.comment || null,
       }));
 
-      console.log("Inserting transactions to database with AI categories:", transactionsForDb);
+      console.log("Inserting transactions to database with AI categories:", transactionsForDb.length);
 
       const { data, error } = await supabase
         .from('transactions')
@@ -244,30 +259,15 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
         return;
       }
 
-      console.log("Successfully inserted transactions:", data);
+      console.log("Successfully inserted transactions:", data?.length);
 
-      // Update account balances for each transaction
+      // Update account balances in batches
       toast({
         title: "Updating Balances",
         description: "Updating account balances...",
       });
 
-      let successfulUpdates = 0;
-      let failedUpdates = 0;
-      const failedAccounts: string[] = [];
-
-      for (const transaction of transactions) {
-        if (transaction.account && transaction.account !== 'Default Account') {
-          try {
-            await updateAccountBalance(transaction.account, transaction.amount);
-            successfulUpdates++;
-          } catch (error) {
-            console.error(`Failed to update balance for ${transaction.account}:`, error);
-            failedUpdates++;
-            failedAccounts.push(transaction.account);
-          }
-        }
-      }
+      const updateResults = await batchUpdateAccountBalances(transactions);
       
       // Invalidate and refetch queries to update the UI immediately
       await queryClient.invalidateQueries({ queryKey: ['transactions'] });
@@ -277,16 +277,16 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
       await queryClient.invalidateQueries({ queryKey: ['netWorth'] });
       
       // Provide detailed success message
-      if (failedUpdates > 0) {
+      if (updateResults.failedCount > 0) {
         toast({
           title: "Partial Success",
-          description: `Imported ${transactions.length} transactions. ${successfulUpdates} account balances updated, ${failedUpdates} failed (${failedAccounts.join(', ')}).`,
+          description: `Imported ${transactions.length} transactions. ${updateResults.successCount} account balances updated, ${updateResults.failedCount} failed.`,
           variant: "destructive",
         });
       } else {
         toast({
           title: "Success",
-          description: `Successfully imported ${transactions.length} transaction${transactions.length !== 1 ? 's' : ''} and updated ${successfulUpdates} account balances.`,
+          description: `Successfully imported ${transactions.length} transaction${transactions.length !== 1 ? 's' : ''} and updated ${updateResults.successCount} account balances.`,
         });
       }
 
