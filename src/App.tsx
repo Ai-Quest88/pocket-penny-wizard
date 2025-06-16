@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster"
 import { Toaster as Sonner } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -57,7 +56,7 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 }
 
 const UserMenu = () => {
-  const { logout } = useAuth()
+  const { logout, session } = useAuth()
   const { toast } = useToast()
   const navigate = useNavigate()
   
@@ -88,8 +87,10 @@ const UserMenu = () => {
         <DropdownMenuContent className="w-56" align="end">
           <DropdownMenuLabel>
             <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none">Admin</p>
-              <p className="text-xs leading-none text-muted-foreground">admin@example.com</p>
+              <p className="text-sm font-medium leading-none">User</p>
+              <p className="text-xs leading-none text-muted-foreground">
+                {session?.user?.email || 'No email'}
+              </p>
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
