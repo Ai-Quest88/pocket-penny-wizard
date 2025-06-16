@@ -261,36 +261,6 @@ export type Database = {
           },
         ]
       }
-      profiles_o6nkvd_users: {
-        Row: {
-          avatar_url: string | null
-          created_at: string
-          currency_preference: string | null
-          email: string
-          full_name: string | null
-          id: string
-          notification_settings: Json | null
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string
-          currency_preference?: string | null
-          email: string
-          full_name?: string | null
-          id: string
-          notification_settings?: Json | null
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string
-          currency_preference?: string | null
-          email?: string
-          full_name?: string | null
-          id?: string
-          notification_settings?: Json | null
-        }
-        Relationships: []
-      }
       transactions: {
         Row: {
           amount: number
@@ -327,6 +297,36 @@ export type Database = {
           id?: string
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          currency_preference: string | null
+          email: string
+          full_name: string | null
+          id: string
+          notification_settings: Json | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          currency_preference?: string | null
+          email: string
+          full_name?: string | null
+          id: string
+          notification_settings?: Json | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          currency_preference?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          notification_settings?: Json | null
         }
         Relationships: []
       }
