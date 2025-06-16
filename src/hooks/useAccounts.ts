@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAccountBalances } from './useAccountBalances';
 
 interface Account {
   id: string;
@@ -16,6 +17,7 @@ interface Account {
 
 export const useAccounts = () => {
   const { session } = useAuth();
+  const { data: calculatedBalances = [] } = useAccountBalances();
 
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: ['accounts', session?.user?.id],
@@ -73,9 +75,10 @@ export const useAccounts = () => {
 
       const allAccounts: Account[] = [];
 
-      // Transform assets into account format
+      // Transform assets into account format with calculated balances
       if (assets) {
         assets.forEach(asset => {
+          const calculatedBalance = calculatedBalances.find(b => b.accountId === asset.id);
           allAccounts.push({
             id: asset.id,
             name: asset.name,
@@ -83,15 +86,16 @@ export const useAccounts = () => {
             entityName: asset.entities.name,
             entityType: asset.entities.type,
             accountNumber: asset.account_number,
-            currentBalance: Number(asset.value),
+            currentBalance: calculatedBalance?.calculatedBalance || Number(asset.value),
             accountType: 'asset'
           });
         });
       }
 
-      // Transform liabilities into account format
+      // Transform liabilities into account format with calculated balances
       if (liabilities) {
         liabilities.forEach(liability => {
+          const calculatedBalance = calculatedBalances.find(b => b.accountId === liability.id);
           allAccounts.push({
             id: liability.id,
             name: liability.name,
@@ -99,7 +103,7 @@ export const useAccounts = () => {
             entityName: liability.entities.name,
             entityType: liability.entities.type,
             accountNumber: liability.account_number,
-            currentBalance: Number(liability.amount),
+            currentBalance: calculatedBalance?.calculatedBalance || Number(liability.amount),
             accountType: 'liability'
           });
         });

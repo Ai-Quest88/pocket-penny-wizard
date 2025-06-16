@@ -11,7 +11,7 @@ import { CalendarIcon, Plus } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { categories, currencies } from "@/types/transaction-forms"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/contexts/AuthContext"
 import { useToast } from "@/hooks/use-toast"
@@ -29,6 +29,7 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
 
   const { session } = useAuth()
   const { toast } = useToast()
+  const queryClient = useQueryClient()
 
   // Fetch cash/savings accounts with their associated entities
   const { data: accountsWithEntities = [], isLoading: accountsLoading } = useQuery({
@@ -44,7 +45,6 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
           type,
           category,
           account_number,
-          entity_id,
           value,
           entities!inner(
             id,
@@ -69,50 +69,11 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
         accountNumber: asset.account_number,
         entityName: asset.entities.name,
         entityType: asset.entities.type,
-        currentBalance: Number(asset.value)
+        currentBalance: Number(asset.value) // This will be calculated dynamically in the UI
       }));
     },
     enabled: !!session?.user,
   });
-
-  const updateAssetBalance = async (assetId: string, transactionAmount: number) => {
-    try {
-      // Get current asset value
-      const { data: asset, error: fetchError } = await supabase
-        .from('assets')
-        .select('value')
-        .eq('id', assetId)
-        .single();
-
-      if (fetchError) {
-        console.error('Error fetching asset:', fetchError);
-        return;
-      }
-
-      const newBalance = Number(asset.value) + transactionAmount;
-      
-      const { error: updateError } = await supabase
-        .from('assets')
-        .update({ 
-          value: newBalance,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', assetId);
-
-      if (updateError) {
-        console.error('Error updating asset balance:', updateError);
-        toast({
-          title: "Warning",
-          description: "Transaction saved but failed to update account balance.",
-          variant: "destructive",
-        });
-      } else {
-        console.log(`Updated asset ${assetId} balance by ${transactionAmount} to ${newBalance}`);
-      }
-    } catch (error) {
-      console.error('Error in updateAssetBalance:', error);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -138,15 +99,14 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
     try {
       await onTransactionAdded(transaction)
 
-      // Update the asset balance if we have a selected account
-      if (selectedAccount) {
-        await updateAssetBalance(selectedAccount.id, parseFloat(amount));
-        
-        toast({
-          title: "Success",
-          description: "Transaction added and account balance updated.",
-        });
-      }
+      toast({
+        title: "Success",
+        description: "Transaction added successfully. Account balance will update automatically.",
+      });
+
+      // Invalidate account balances to trigger recalculation
+      await queryClient.invalidateQueries({ queryKey: ['account-balances'] });
+      await queryClient.invalidateQueries({ queryKey: ['accounts'] });
       
       // Reset form
       setAmount('')
@@ -187,7 +147,7 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
           Add New Transaction
         </CardTitle>
         <CardDescription>
-          Manually add a new transaction to your records
+          Manually add a new transaction to your records. Account balances will update automatically.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -305,7 +265,7 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
                       {acc.name} - {acc.entityName} ({acc.type})
                       {acc.accountNumber && ` - ${acc.accountNumber}`}
                       <span className="text-muted-foreground ml-2">
-                        Balance: ${acc.currentBalance.toLocaleString()}
+                        (Balance calculated from transactions)
                       </span>
                     </SelectItem>
                   ))
