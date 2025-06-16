@@ -1,4 +1,3 @@
-
 import { DashboardCard } from "@/components/DashboardCard"
 import { AssetsList } from "@/components/assets-liabilities/AssetsList"
 import { AddAssetDialog } from "@/components/assets-liabilities/AddAssetDialog"
@@ -13,11 +12,11 @@ const Assets = () => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { session } = useAuth()
-  const { data: accountBalances = [] } = useAccountBalances()
+  const { data: accountBalances = [], isLoading: balancesLoading } = useAccountBalances()
 
   // Fetch assets from Supabase with user authentication
   const { data: assets = [], isLoading } = useQuery({
-    queryKey: ['assets', session?.user?.id],
+    queryKey: ['assets', session?.user?.id, accountBalances],
     queryFn: async () => {
       if (!session?.user) {
         console.log('No authenticated user, returning empty assets array');
@@ -38,16 +37,22 @@ const Assets = () => {
       }
 
       console.log('Fetched assets:', data);
+      console.log('Available account balances:', accountBalances);
 
       return data.map(asset => {
         // Get the calculated balance for this asset
         const calculatedBalance = accountBalances.find(b => b.accountId === asset.id);
+        console.log(`Asset ${asset.name}: Looking for balance with accountId ${asset.id}`);
+        console.log(`Found calculated balance:`, calculatedBalance);
+        
+        const finalValue = calculatedBalance?.calculatedBalance ?? Number(asset.value);
+        console.log(`Final value for ${asset.name}: ${finalValue}`);
         
         return {
           id: asset.id,
           entityId: asset.entity_id,
           name: asset.name,
-          value: calculatedBalance?.calculatedBalance || Number(asset.value), // Use calculated balance or fallback to initial value
+          value: finalValue,
           type: asset.type,
           category: asset.category,
           history: [], // Historical values would be fetched separately if needed
@@ -56,7 +61,7 @@ const Assets = () => {
         };
       }) as Asset[];
     },
-    enabled: !!session?.user,
+    enabled: !!session?.user && !balancesLoading,
   });
 
   // Add asset mutation
@@ -152,7 +157,7 @@ const Assets = () => {
     editAssetMutation.mutate({ id, updatedAsset });
   }
 
-  if (isLoading) {
+  if (isLoading || balancesLoading) {
     return (
       <div className="p-8">
         <div className="max-w-7xl mx-auto space-y-8">
