@@ -21,20 +21,20 @@ const categories = [
   'Cryptocurrency', 'Fast Food', 'Public Transport', 'Tolls', 'Food Delivery'
 ];
 
-// Available models - use more reliable models
+// Available models - removed decommissioned model
 const MODELS = [
-  'llama-3.1-70b-versatile',
-  'llama-3.1-8b-instant'
+  'llama-3.1-8b-instant',
+  'llama3-8b-8192'
 ];
 
 // Track model usage (simple rotation)
 let currentModelIndex = 0;
 
-// Minimal essential built-in rules for critical financial categories only
-const essentialBuiltInRules = (description: string): string | null => {
+// Enhanced built-in rules for common merchants and categories
+const enhancedBuiltInRules = (description: string): string | null => {
   const lowerDesc = description.toLowerCase();
   
-  // Only absolute essentials - let AI handle everything else
+  // Critical financial categories first
   if (lowerDesc.includes('transfer to') || lowerDesc.includes('transfer from') ||
       lowerDesc.includes('bpay') || lowerDesc.includes('direct credit')) {
     return 'Transfer';
@@ -45,7 +45,63 @@ const essentialBuiltInRules = (description: string): string | null => {
       lowerDesc.includes('nsw revenue') || lowerDesc.includes('vic revenue')) {
     return 'Taxes';
   }
-  
+
+  // Healthcare and pharmacies
+  if (lowerDesc.includes('chemist warehouse') || lowerDesc.includes('pharmacy') ||
+      lowerDesc.includes('medical') || lowerDesc.includes('doctor') ||
+      lowerDesc.includes('hospital') || lowerDesc.includes('dental')) {
+    return 'Healthcare';
+  }
+
+  // Groceries
+  if (lowerDesc.includes('woolworths') || lowerDesc.includes('coles') ||
+      lowerDesc.includes('aldi') || lowerDesc.includes('iga') ||
+      lowerDesc.includes('supermarket')) {
+    return 'Groceries';
+  }
+
+  // Gas stations
+  if (lowerDesc.includes('shell') || lowerDesc.includes('bp') ||
+      lowerDesc.includes('caltex') || lowerDesc.includes('ampol') ||
+      lowerDesc.includes('gas station') || lowerDesc.includes('fuel')) {
+    return 'Gas & Fuel';
+  }
+
+  // Home improvement
+  if (lowerDesc.includes('bunnings') || lowerDesc.includes('hardware')) {
+    return 'Home & Garden';
+  }
+
+  // Fast food
+  if (lowerDesc.includes('mcdonald') || lowerDesc.includes('kfc') ||
+      lowerDesc.includes('subway') || lowerDesc.includes('domino')) {
+    return 'Fast Food';
+  }
+
+  // Coffee shops
+  if (lowerDesc.includes('starbucks') || lowerDesc.includes('coffee')) {
+    return 'Restaurants';
+  }
+
+  // Utilities
+  if (lowerDesc.includes('electricity') || lowerDesc.includes('energy') ||
+      lowerDesc.includes('origin') || lowerDesc.includes('agl')) {
+    return 'Utilities';
+  }
+
+  // Transportation
+  if (lowerDesc.includes('uber') || lowerDesc.includes('taxi') ||
+      lowerDesc.includes('transport') || lowerDesc.includes('opal')) {
+    return 'Transportation';
+  }
+
+  // Income
+  if (lowerDesc.includes('salary') || lowerDesc.includes('wage') ||
+      lowerDesc.includes('freelance') || lowerDesc.includes('payment') && 
+      description.toLowerCase().includes('work')) {
+    return 'Income';
+  }
+
   return null;
 };
 
@@ -131,24 +187,24 @@ serve(async (req) => {
           }
         }
 
-        // Priority 2: AI categorization
+        // Priority 2: Enhanced built-in rules (moved up before AI)
+        category = enhancedBuiltInRules(desc);
+        if (category) {
+          console.log(`Priority 2 - Enhanced rules: "${desc}" -> ${category}`);
+          results.push({ description: desc, category, source: 'enhanced-rules' });
+          continue;
+        }
+
+        // Priority 3: AI categorization
         try {
           category = await categorizeWithAI(desc);
           if (category && categories.includes(category)) {
-            console.log(`Priority 2 - AI: "${desc}" -> ${category}`);
+            console.log(`Priority 3 - AI: "${desc}" -> ${category}`);
             results.push({ description: desc, category, source: 'ai' });
             continue;
           }
         } catch (error) {
           console.error(`AI failed for "${desc}":`, error);
-        }
-
-        // Priority 3: Essential rules
-        category = essentialBuiltInRules(desc);
-        if (category) {
-          console.log(`Priority 3 - Essential rules: "${desc}" -> ${category}`);
-          results.push({ description: desc, category, source: 'essential-rules' });
-          continue;
         }
 
         // Priority 4: Miscellaneous fallback
@@ -189,20 +245,20 @@ serve(async (req) => {
       }
     }
 
-    // Priority 2: AI categorization
-    const aiCategory = await categorizeWithAI(description);
-    if (aiCategory && categories.includes(aiCategory)) {
-      console.log(`Priority 2 - AI: "${description}" -> ${aiCategory}`);
-      return new Response(JSON.stringify({ category: aiCategory, source: 'ai' }), {
+    // Priority 2: Enhanced built-in rules (moved up before AI)
+    const enhancedCategory = enhancedBuiltInRules(description);
+    if (enhancedCategory) {
+      console.log(`Priority 2 - Enhanced rules: "${description}" -> ${enhancedCategory}`);
+      return new Response(JSON.stringify({ category: enhancedCategory, source: 'enhanced-rules' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Priority 3: Essential rules
-    const essentialCategory = essentialBuiltInRules(description);
-    if (essentialCategory) {
-      console.log(`Priority 3 - Essential rules: "${description}" -> ${essentialCategory}`);
-      return new Response(JSON.stringify({ category: essentialCategory, source: 'essential-rules' }), {
+    // Priority 3: AI categorization
+    const aiCategory = await categorizeWithAI(description);
+    if (aiCategory && categories.includes(aiCategory)) {
+      console.log(`Priority 3 - AI: "${description}" -> ${aiCategory}`);
+      return new Response(JSON.stringify({ category: aiCategory, source: 'ai' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -218,7 +274,7 @@ serve(async (req) => {
     
     try {
       const { description } = await req.json();
-      const fallbackCategory = essentialBuiltInRules(description) || 'Miscellaneous';
+      const fallbackCategory = enhancedBuiltInRules(description) || 'Miscellaneous';
       console.log(`Exception occurred, using fallback: "${description}" -> ${fallbackCategory}`);
       
       return new Response(JSON.stringify({ 
@@ -292,7 +348,7 @@ async function findSimilarTransactionInDB(description: string, userId: string): 
   }
 }
 
-// AI categorization helper function with fixed Groq API parameters
+// AI categorization helper function with working models only
 async function categorizeWithAI(description: string): Promise<string> {
   const groqApiKey = Deno.env.get('VITE_GROQ_API_KEY');
   if (!groqApiKey) {
@@ -310,6 +366,7 @@ Examples:
 - "TRANSPORTFORNSW OPAL CHIPPENDALE" -> Public Transport  
 - "BUNNINGS 746000 SEVEN HILLS" -> Home & Garden
 - "AMPOL PARKLEA GLENWOOD" -> Gas & Fuel
+- "CHEMIST WAREHOUSE" -> Healthcare
 
 Respond with ONLY the category name, nothing else.`;
 
