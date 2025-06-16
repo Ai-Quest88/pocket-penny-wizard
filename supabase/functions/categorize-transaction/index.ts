@@ -21,10 +21,10 @@ const categories = [
   'Cryptocurrency', 'Fast Food', 'Public Transport', 'Tolls', 'Food Delivery'
 ];
 
-// Available models with their rate limits
+// Available models - use more reliable models
 const MODELS = [
-  'deepseek-r1-distill-llama-70b',
-  'meta-llama/llama-4-scout-17b-16e-instruct'
+  'meta-llama/llama-4-scout-17b-16e-instruct',
+  'deepseek-r1-distill-llama-70b'
 ];
 
 // Track model usage (simple rotation)
@@ -57,6 +57,44 @@ const getNextModel = (): string => {
   return model;
 };
 
+// Extract category from AI response that might contain reasoning
+const extractCategoryFromResponse = (content: string): string | null => {
+  if (!content) return null;
+  
+  // Remove any thinking tags and content
+  let cleaned = content.replace(/<think>.*?<\/think>/gs, '').trim();
+  
+  // If response starts with reasoning, try to find the final category
+  if (cleaned.includes('\n')) {
+    const lines = cleaned.split('\n').map(line => line.trim()).filter(line => line);
+    // Look for the last line that might be a category
+    for (let i = lines.length - 1; i >= 0; i--) {
+      if (categories.includes(lines[i])) {
+        return lines[i];
+      }
+    }
+    // If no exact match, try the last non-empty line
+    const lastLine = lines[lines.length - 1];
+    if (lastLine && categories.includes(lastLine)) {
+      return lastLine;
+    }
+  }
+  
+  // Check if the cleaned response is directly a category
+  if (categories.includes(cleaned)) {
+    return cleaned;
+  }
+  
+  // Try to find any category mentioned in the response
+  for (const category of categories) {
+    if (cleaned.toLowerCase().includes(category.toLowerCase())) {
+      return category;
+    }
+  }
+  
+  return null;
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -82,22 +120,22 @@ serve(async (req) => {
       for (let i = 0; i < batchDescriptions.length; i++) {
         const desc = batchDescriptions[i];
         
-        // Priority 2: Database lookup (Priority 1 user rules handled on frontend)
+        // Priority 1: Database lookup (Priority 0 user rules handled on frontend)
         let category = null;
         if (userId && userId !== 'legacy-call') {
           category = await findSimilarTransactionInDB(desc, userId);
           if (category) {
-            console.log(`Priority 2 - DB lookup: "${desc}" -> ${category}`);
+            console.log(`Priority 1 - DB lookup: "${desc}" -> ${category}`);
             results.push({ description: desc, category, source: 'database' });
             continue;
           }
         }
 
-        // Priority 3: AI categorization
+        // Priority 2: AI categorization
         try {
           category = await categorizeWithAI(desc);
           if (category && categories.includes(category)) {
-            console.log(`Priority 3 - AI: "${desc}" -> ${category}`);
+            console.log(`Priority 2 - AI: "${desc}" -> ${category}`);
             results.push({ description: desc, category, source: 'ai' });
             continue;
           }
@@ -105,16 +143,16 @@ serve(async (req) => {
           console.error(`AI failed for "${desc}":`, error);
         }
 
-        // Priority 4: Essential rules
+        // Priority 3: Essential rules
         category = essentialBuiltInRules(desc);
         if (category) {
-          console.log(`Priority 4 - Essential rules: "${desc}" -> ${category}`);
+          console.log(`Priority 3 - Essential rules: "${desc}" -> ${category}`);
           results.push({ description: desc, category, source: 'essential-rules' });
           continue;
         }
 
-        // Priority 5: Miscellaneous fallback
-        console.log(`Priority 5 - Fallback: "${desc}" -> Miscellaneous`);
+        // Priority 4: Miscellaneous fallback
+        console.log(`Priority 4 - Fallback: "${desc}" -> Miscellaneous`);
         results.push({ description: desc, category: 'Miscellaneous', source: 'fallback' });
       }
 
@@ -140,37 +178,37 @@ serve(async (req) => {
 
     console.log(`Processing single transaction with priority order: "${description}"`);
 
-    // Priority 2: Database lookup (Priority 1 user rules handled on frontend)
+    // Priority 1: Database lookup (Priority 0 user rules handled on frontend)
     if (userId && userId !== 'legacy-call') {
       const dbCategory = await findSimilarTransactionInDB(description, userId);
       if (dbCategory) {
-        console.log(`Priority 2 - DB lookup: "${description}" -> ${dbCategory}`);
+        console.log(`Priority 1 - DB lookup: "${description}" -> ${dbCategory}`);
         return new Response(JSON.stringify({ category: dbCategory, source: 'database' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
     }
 
-    // Priority 3: AI categorization
+    // Priority 2: AI categorization
     const aiCategory = await categorizeWithAI(description);
     if (aiCategory && categories.includes(aiCategory)) {
-      console.log(`Priority 3 - AI: "${description}" -> ${aiCategory}`);
+      console.log(`Priority 2 - AI: "${description}" -> ${aiCategory}`);
       return new Response(JSON.stringify({ category: aiCategory, source: 'ai' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Priority 4: Essential rules
+    // Priority 3: Essential rules
     const essentialCategory = essentialBuiltInRules(description);
     if (essentialCategory) {
-      console.log(`Priority 4 - Essential rules: "${description}" -> ${essentialCategory}`);
+      console.log(`Priority 3 - Essential rules: "${description}" -> ${essentialCategory}`);
       return new Response(JSON.stringify({ category: essentialCategory, source: 'essential-rules' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Priority 5: Miscellaneous fallback
-    console.log(`Priority 5 - Fallback: "${description}" -> Miscellaneous`);
+    // Priority 4: Miscellaneous fallback
+    console.log(`Priority 4 - Fallback: "${description}" -> Miscellaneous`);
     return new Response(JSON.stringify({ category: 'Miscellaneous', source: 'fallback' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -254,7 +292,7 @@ async function findSimilarTransactionInDB(description: string, userId: string): 
   }
 }
 
-// AI categorization helper function with improved prompts
+// AI categorization helper function with improved prompts and response parsing
 async function categorizeWithAI(description: string): Promise<string> {
   const groqApiKey = Deno.env.get('VITE_GROQ_API_KEY');
   if (!groqApiKey) {
@@ -262,23 +300,23 @@ async function categorizeWithAI(description: string): Promise<string> {
     throw new Error('AI API key not configured');
   }
 
-  const prompt = `Categorize this transaction description: "${description}"
+  const prompt = `You must categorize this transaction: "${description}"
 
-Available categories: ${categories.join(', ')}
+STRICT RULES:
+1. You MUST respond with ONLY ONE of these exact categories (case-sensitive):
+${categories.join(', ')}
 
-Instructions:
-- Return ONLY the category name, nothing else
-- Analyze the transaction description carefully to understand what type of expense or income it represents
-- For transport-related transactions (like "TRANSPORTFORNSW OPAL CHIPPENDALE"), use "Public Transport"
-- For food delivery services (Uber Eats, DoorDash, etc.), use "Food Delivery"
-- For restaurants, cafes, and dining, use "Restaurants"
-- For fast food chains, use "Fast Food"
-- For fuel stations, use "Gas & Fuel"
-- For supermarkets and grocery stores, use "Groceries"
-- For toll roads and electronic tags, use "Tolls"
-- Consider the business name and context to make the best categorization
-- If genuinely unsure, use "Miscellaneous"
+2. DO NOT include any explanation, reasoning, or additional text
+3. DO NOT use thinking tags or brackets
+4. Respond with EXACTLY ONE category name from the list above
 
+Examples:
+- WOOLWORTHS -> Groceries
+- TRANSPORTFORNSW OPAL -> Public Transport
+- AMPOL PARKLEA -> Gas & Fuel
+- BUNNINGS -> Home & Garden
+
+Transaction: "${description}"
 Category:`;
 
   const model = getNextModel();
@@ -295,8 +333,9 @@ Category:`;
         messages: [
           { role: 'user', content: prompt }
         ],
-        temperature: 0.1,
-        max_tokens: 20,
+        temperature: 0.0,
+        max_tokens: 30,
+        stop: ['\n', '.', ',', '!', '?'],
       }),
     });
 
@@ -314,13 +353,23 @@ Category:`;
     }
 
     const data = await response.json();
-    const category = data.choices?.[0]?.message?.content?.trim();
+    const rawContent = data.choices?.[0]?.message?.content?.trim();
+    
+    if (!rawContent) {
+      console.warn(`Empty response from AI using model ${model}`);
+      throw new Error('Empty AI response');
+    }
+
+    console.log(`Raw AI response for "${description}": "${rawContent}" using model: ${model}`);
+
+    // Extract category from potentially complex response
+    const category = extractCategoryFromResponse(rawContent);
 
     if (category && categories.includes(category)) {
       console.log(`AI categorized "${description}" -> ${category} using model: ${model}`);
       return category;
     } else {
-      console.warn(`AI returned invalid category "${category}" using model ${model}`);
+      console.warn(`AI returned invalid/unparseable category "${rawContent}" using model ${model}`);
       throw new Error('Invalid category returned');
     }
 
