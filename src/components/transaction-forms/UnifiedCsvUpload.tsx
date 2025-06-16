@@ -1,10 +1,9 @@
-
 import React, { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { AlertCircle, Upload, Download, InfoIcon } from "lucide-react"
+import { AlertCircle, Upload, Download, InfoIcon, Database, Zap } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
@@ -27,6 +26,21 @@ interface UploadProgress {
   message: string;
 }
 
+const mockTransactions = [
+  { date: '2024-01-15', amount: -45.50, description: 'Starbucks Coffee Shop', category: 'Food & Dining' },
+  { date: '2024-01-14', amount: -120.00, description: 'Woolworths Supermarket', category: 'Groceries' },
+  { date: '2024-01-13', amount: 2500.00, description: 'Salary Payment - ABC Corp', category: 'Income' },
+  { date: '2024-01-12', amount: -85.75, description: 'Shell Gas Station', category: 'Transportation' },
+  { date: '2024-01-11', amount: -15.99, description: 'Netflix Subscription', category: 'Entertainment' },
+  { date: '2024-01-10', amount: -67.80, description: 'Chemist Warehouse', category: 'Health & Medical' },
+  { date: '2024-01-09', amount: -250.00, description: 'Electricity Bill - Origin Energy', category: 'Utilities' },
+  { date: '2024-01-08', amount: -32.50, description: 'McDonald\'s Restaurant', category: 'Food & Dining' },
+  { date: '2024-01-07', amount: -89.99, description: 'Amazon Online Purchase', category: 'Shopping' },
+  { date: '2024-01-06', amount: 150.00, description: 'Freelance Work Payment', category: 'Income' },
+  { date: '2024-01-05', amount: -78.25, description: 'Bunnings Hardware Store', category: 'Home & Garden' },
+  { date: '2024-01-04', amount: -25.00, description: 'Uber Ride', category: 'Transportation' },
+];
+
 const UnifiedCsvUpload: React.FC<UnifiedCsvUploadProps> = ({ onSuccess }) => {
   const [file, setFile] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -44,6 +58,129 @@ const UnifiedCsvUpload: React.FC<UnifiedCsvUploadProps> = ({ onSuccess }) => {
   const queryClient = useQueryClient()
 
   const requiredFields = ['date', 'amount', 'description']
+
+  const handleMockDataUpload = async () => {
+    if (!session?.user?.id) {
+      toast({
+        title: "Authentication Error",
+        description: "Please log in to create mock transactions",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsProcessing(true)
+    setError(null)
+
+    try {
+      console.log(`Creating ${mockTransactions.length} mock transactions`);
+
+      // Phase 1: Show parsing phase
+      setUploadProgress({
+        phase: 'parsing',
+        currentStep: 1,
+        totalSteps: mockTransactions.length,
+        message: 'Preparing mock transaction data...'
+      })
+
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // Phase 2: Categorize transactions
+      setUploadProgress({
+        phase: 'categorizing',
+        currentStep: 0,
+        totalSteps: mockTransactions.length,
+        message: 'Categorizing transactions with AI...'
+      })
+
+      const descriptions = mockTransactions.map(t => t.description)
+      const categories = await categorizeTransactionsBatch(
+        descriptions, 
+        session.user.id,
+        (processed, total) => {
+          setUploadProgress({
+            phase: 'categorizing',
+            currentStep: processed,
+            totalSteps: total,
+            message: `Categorizing ${processed} of ${total} transactions...`
+          })
+        }
+      )
+
+      // Apply categories to transactions
+      const categorizedTransactions = mockTransactions.map((transaction, index) => ({
+        ...transaction,
+        category: categories[index] || transaction.category || 'Miscellaneous',
+        currency: defaultCurrency,
+        user_id: session.user.id,
+        account_id: null,
+      }))
+
+      // Phase 3: Save to database
+      setUploadProgress({
+        phase: 'saving',
+        currentStep: 0,
+        totalSteps: categorizedTransactions.length,
+        message: 'Saving transactions to database...'
+      })
+
+      let result_summary;
+      if (duplicateCheckEnabled) {
+        result_summary = await insertTransactionsWithDuplicateCheck(categorizedTransactions)
+      } else {
+        // Direct insertion without duplicate checking
+        const { error: insertError } = await supabase
+          .from('transactions')
+          .insert(categorizedTransactions)
+
+        if (insertError) {
+          throw insertError
+        }
+
+        result_summary = { inserted: categorizedTransactions.length, duplicates: 0 }
+      }
+
+      // Phase 4: Complete
+      setUploadProgress({
+        phase: 'complete',
+        currentStep: categorizedTransactions.length,
+        totalSteps: categorizedTransactions.length,
+        message: `Successfully created ${result_summary.inserted} mock transactions!`
+      })
+
+      console.log(`Mock data creation completed: ${result_summary.inserted} inserted, ${result_summary.duplicates} duplicates skipped`);
+
+      if (result_summary.inserted > 0) {
+        toast({
+          title: "Success",
+          description: `Successfully created ${result_summary.inserted} mock transactions${result_summary.duplicates > 0 ? ` (${result_summary.duplicates} duplicates skipped)` : ''}`,
+        })
+      } else if (result_summary.duplicates > 0) {
+        toast({
+          title: "Info",
+          description: `All ${result_summary.duplicates} mock transactions were duplicates and skipped`,
+        })
+      }
+
+      // Refresh data
+      await queryClient.invalidateQueries({ queryKey: ['transactions'] })
+
+      // Auto-reset after success
+      setTimeout(() => {
+        resetForm()
+        if (onSuccess) {
+          onSuccess()
+        }
+      }, 1500)
+
+    } catch (err) {
+      console.error('Error creating mock transactions:', err)
+      setError('Failed to create mock transactions. Please try again.')
+      setUploadProgress(null)
+    } finally {
+      setIsProcessing(false)
+    }
+  }
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const selectedFile = acceptedFiles[0]
@@ -324,10 +461,10 @@ const UnifiedCsvUpload: React.FC<UnifiedCsvUploadProps> = ({ onSuccess }) => {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">
-                {uploadProgress.phase === 'parsing' && 'Parsing File'}
+                {uploadProgress.phase === 'parsing' && 'Parsing Data'}
                 {uploadProgress.phase === 'categorizing' && 'Categorizing Transactions'}
                 {uploadProgress.phase === 'saving' && 'Saving to Database'}
-                {uploadProgress.phase === 'complete' && 'Upload Complete'}
+                {uploadProgress.phase === 'complete' && 'Complete'}
               </h3>
               <div className="text-sm text-muted-foreground">
                 {uploadProgress.phase !== 'parsing' && `${uploadProgress.currentStep}/${uploadProgress.totalSteps}`}
@@ -371,19 +508,43 @@ const UnifiedCsvUpload: React.FC<UnifiedCsvUploadProps> = ({ onSuccess }) => {
           Upload Transactions
         </CardTitle>
         <CardDescription>
-          Upload a CSV or Excel file containing your transaction data
+          Upload a CSV or Excel file containing your transaction data, or create mock transactions for testing
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* File Upload Section */}
+        {/* Quick Actions Section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <Label>Select File</Label>
+            <Label>Quick Actions</Label>
             <Button variant="outline" size="sm" onClick={downloadTemplate}>
               <Download className="h-4 w-4 mr-2" />
               Download Template
             </Button>
           </div>
+          
+          <div className="flex gap-4">
+            <Button
+              onClick={handleMockDataUpload}
+              disabled={isProcessing}
+              className="flex items-center gap-2"
+              variant="outline"
+            >
+              <Database className="h-4 w-4" />
+              Create Mock Transactions
+            </Button>
+          </div>
+          
+          <Alert>
+            <Zap className="h-4 w-4" />
+            <AlertDescription>
+              Use "Create Mock Transactions" to instantly add 12 sample transactions for testing the app without uploading a CSV file.
+            </AlertDescription>
+          </Alert>
+        </div>
+
+        {/* File Upload Section */}
+        <div className="space-y-4">
+          <Label>Or Upload CSV/Excel File</Label>
           
           <div 
             {...getRootProps()} 
