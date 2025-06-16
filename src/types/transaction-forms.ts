@@ -11,6 +11,57 @@ export const categories = [
   'Cryptocurrency', 'Fast Food', 'Public Transport', 'Tolls', 'Food Delivery'
 ];
 
+export const currencies = [
+  { code: 'USD', name: 'US Dollar' },
+  { code: 'EUR', name: 'Euro' },
+  { code: 'GBP', name: 'British Pound' },
+  { code: 'JPY', name: 'Japanese Yen' },
+  { code: 'AUD', name: 'Australian Dollar' },
+  { code: 'CAD', name: 'Canadian Dollar' },
+  { code: 'CHF', name: 'Swiss Franc' },
+  { code: 'CNY', name: 'Chinese Yuan' },
+  { code: 'SEK', name: 'Swedish Krona' },
+  { code: 'NZD', name: 'New Zealand Dollar' }
+];
+
+export interface CategoryBucket {
+  name: string;
+  categories: string[];
+}
+
+export const categoryBuckets: CategoryBucket[] = [
+  {
+    name: "Living Expenses",
+    categories: [
+      "Groceries", "Restaurants", "Gas & Fuel", "Utilities", "Healthcare",
+      "Insurance", "Transportation", "Public Transport", "Tolls", "Fast Food", "Food Delivery"
+    ]
+  },
+  {
+    name: "Lifestyle",
+    categories: [
+      "Shopping", "Entertainment", "Travel", "Personal Care", "Electronics",
+      "Clothing", "Books", "Subscriptions"
+    ]
+  },
+  {
+    name: "Financial",
+    categories: [
+      "Banking", "Investment", "Taxes", "Legal", "Transfer", "Income",
+      "Salary", "Business", "Freelance", "Interest", "Dividends",
+      "Other Income", "Rental Income", "Government Benefits", "Pension",
+      "Child Support", "Alimony", "Gifts Received", "Refunds", "Cryptocurrency"
+    ]
+  },
+  {
+    name: "Other",
+    categories: [
+      "Education", "Gifts & Donations", "Professional Services", "Home & Garden",
+      "Miscellaneous"
+    ]
+  }
+];
+
 export interface Transaction {
   id: string;
   description: string;
@@ -24,4 +75,8 @@ export interface Transaction {
 
 export interface CsvUploadProps {
   onTransactionsUploaded: (transactions: Omit<Transaction, 'id'>[]) => void;
+}
+
+export interface ManualTransactionFormProps {
+  onTransactionAdded?: () => void;
 }
