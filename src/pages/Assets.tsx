@@ -1,3 +1,4 @@
+
 import { DashboardCard } from "@/components/DashboardCard"
 import { AssetsList } from "@/components/assets-liabilities/AssetsList"
 import { AddAssetDialog } from "@/components/assets-liabilities/AddAssetDialog"
@@ -6,11 +7,13 @@ import { useToast } from "@/components/ui/use-toast"
 import { supabase } from "@/integrations/supabase/client"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useAuth } from "@/contexts/AuthContext"
+import { useAccountBalances } from "@/hooks/useAccountBalances"
 
 const Assets = () => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { session } = useAuth()
+  const { data: accountBalances = [] } = useAccountBalances()
 
   // Fetch assets from Supabase with user authentication
   const { data: assets = [], isLoading } = useQuery({
@@ -36,17 +39,22 @@ const Assets = () => {
 
       console.log('Fetched assets:', data);
 
-      return data.map(asset => ({
-        id: asset.id,
-        entityId: asset.entity_id,
-        name: asset.name,
-        value: Number(asset.value),
-        type: asset.type,
-        category: asset.category,
-        history: [], // Historical values would be fetched separately if needed
-        accountNumber: asset.account_number || undefined,
-        address: asset.address || undefined,
-      })) as Asset[];
+      return data.map(asset => {
+        // Get the calculated balance for this asset
+        const calculatedBalance = accountBalances.find(b => b.accountId === asset.id);
+        
+        return {
+          id: asset.id,
+          entityId: asset.entity_id,
+          name: asset.name,
+          value: calculatedBalance?.calculatedBalance || Number(asset.value), // Use calculated balance or fallback to initial value
+          type: asset.type,
+          category: asset.category,
+          history: [], // Historical values would be fetched separately if needed
+          accountNumber: asset.account_number || undefined,
+          address: asset.address || undefined,
+        };
+      }) as Asset[];
     },
     enabled: !!session?.user,
   });
@@ -77,6 +85,7 @@ const Assets = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assets'] });
+      queryClient.invalidateQueries({ queryKey: ['account-balances'] });
       toast({
         title: "Asset Added",
         description: "The asset has been added successfully.",
@@ -116,6 +125,7 @@ const Assets = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assets'] });
+      queryClient.invalidateQueries({ queryKey: ['account-balances'] });
       toast({
         title: "Asset Updated",
         description: "The asset has been updated successfully.",
