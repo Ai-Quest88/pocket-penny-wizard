@@ -86,44 +86,37 @@ export const TransactionList = ({ entityId, showBalance = true, readOnly = false
       
       console.log('Fetched transactions:', data?.length);
 
-      // Only process transactions that have truly empty or generic categories
-      // Be more specific to avoid re-processing already categorized transactions
+      // Only process transactions that have NO category at all or are completely empty
+      // DO NOT re-process transactions that already have any category assigned
       const transactionsToUpdate = data.filter(
-        transaction => !transaction.category || 
-                     transaction.category.trim() === '' ||
-                     transaction.category.toLowerCase() === 'other' ||
-                     transaction.category.toLowerCase() === 'miscellaneous'
+        transaction => !transaction.category || transaction.category.trim() === ''
       );
 
-      console.log(`Found ${transactionsToUpdate.length} transactions that need re-categorization`);
+      console.log(`Found ${transactionsToUpdate.length} transactions that need initial categorization`);
 
       if (transactionsToUpdate.length > 0) {
         // Process only the transactions that actually need updating
         const updatePromises = transactionsToUpdate.map(async (transaction) => {
           const newCategory = await categorizeTransaction(transaction.description, session.user.id);
-          console.log(`Re-categorizing "${transaction.description}" from "${transaction.category}" to: ${newCategory}`);
+          console.log(`Initial categorizing "${transaction.description}" to: ${newCategory}`);
           
-          // Only update if the category has actually changed
-          if (newCategory !== transaction.category) {
-            const { error: updateError } = await supabase
-              .from('transactions')
-              .update({ category: newCategory })
-              .eq('id', transaction.id);
+          // Update the transaction in the database
+          const { error: updateError } = await supabase
+            .from('transactions')
+            .update({ category: newCategory })
+            .eq('id', transaction.id);
 
-            if (updateError) {
-              console.error('Error updating transaction category:', updateError);
-              return transaction;
-            }
-            
-            return { ...transaction, category: newCategory };
+          if (updateError) {
+            console.error('Error updating transaction category:', updateError);
+            return transaction;
           }
           
-          return transaction;
+          return { ...transaction, category: newCategory };
         });
 
         const updatedTransactions = await Promise.all(updatePromises);
 
-        // Return the data with updated categories, but don't duplicate
+        // Return the data with updated categories
         return data.map(transaction => {
           const updatedTransaction = updatedTransactions.find(t => t.id === transaction.id);
           return updatedTransaction || transaction;
