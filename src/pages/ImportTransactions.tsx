@@ -29,9 +29,9 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
     try {
       console.log('Updating account balance for:', accountInfo, 'with amount:', amount);
       
-      // Skip if it's the default account
-      if (!accountInfo || accountInfo === 'Default Account') {
-        console.log('Skipping default account balance update');
+      // Skip if it's the default account or empty
+      if (!accountInfo || accountInfo === 'Default Account' || accountInfo.trim() === '') {
+        console.log('Skipping default/empty account balance update');
         return;
       }
 
@@ -44,13 +44,22 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
 
       const accountName = accountParts[0].trim();
       const entityAndType = accountParts[1];
+      
+      // Check if this is an asset or liability
+      const isAsset = entityAndType.includes('(asset)');
+      const isLiability = entityAndType.includes('(liability)');
+      
+      if (!isAsset && !isLiability) {
+        console.warn('Could not determine account type from:', accountInfo);
+        return;
+      }
+
       const entityName = entityAndType.split(' (')[0].trim();
-      const accountType = entityAndType.includes('(asset)') ? 'asset' : 'liability';
 
-      console.log('Parsed account info:', { accountName, entityName, accountType });
+      console.log('Parsed account info:', { accountName, entityName, isAsset, isLiability });
 
-      if (accountType === 'asset') {
-        // Find matching cash asset with better matching logic
+      if (isAsset) {
+        // Find matching cash asset
         const { data: assets, error: findError } = await supabase
           .from('assets')
           .select(`
@@ -69,10 +78,10 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
 
         console.log('Found assets:', assets);
 
-        // Improved matching logic - try exact name match first, then partial
+        // Find exact match first
         let matchingAsset = assets?.find(asset => 
           asset.name.toLowerCase() === accountName.toLowerCase() && 
-          asset.entities.name.toLowerCase().includes(entityName.toLowerCase())
+          asset.entities.name.toLowerCase() === entityName.toLowerCase()
         );
 
         if (!matchingAsset) {
@@ -81,12 +90,6 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
             asset.name.toLowerCase().includes(accountName.toLowerCase()) ||
             accountName.toLowerCase().includes(asset.name.toLowerCase())
           );
-        }
-
-        if (!matchingAsset && assets && assets.length > 0) {
-          // Fallback to first available cash asset
-          matchingAsset = assets[0];
-          console.log('Using fallback asset:', matchingAsset.name);
         }
 
         if (matchingAsset) {
@@ -105,23 +108,15 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
 
           if (updateError) {
             console.error('Error updating asset balance:', updateError);
-            toast({
-              title: "Balance Update Warning",
-              description: `Transaction saved but failed to update ${matchingAsset.name} balance.`,
-              variant: "destructive",
-            });
+            throw new Error(`Failed to update ${matchingAsset.name} balance`);
           } else {
             console.log(`Successfully updated asset ${matchingAsset.name} balance to ${newBalance}`);
           }
         } else {
           console.warn('No matching asset found for:', accountName);
-          toast({
-            title: "Account Not Found",
-            description: `Could not find matching account for "${accountName}". Transaction saved but balance not updated.`,
-            variant: "destructive",
-          });
+          throw new Error(`Could not find matching account for "${accountName}"`);
         }
-      } else if (accountType === 'liability') {
+      } else if (isLiability) {
         // Find matching liability
         const { data: liabilities, error: findError } = await supabase
           .from('liabilities')
@@ -142,7 +137,7 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
 
         let matchingLiability = liabilities?.find(liability => 
           liability.name.toLowerCase() === accountName.toLowerCase() && 
-          liability.entities.name.toLowerCase().includes(entityName.toLowerCase())
+          liability.entities.name.toLowerCase() === entityName.toLowerCase()
         );
 
         if (!matchingLiability) {
@@ -153,10 +148,8 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
         }
 
         if (matchingLiability) {
-          // For liabilities, we need to handle the amount correctly
-          // Positive transaction amounts typically increase the debt
           const currentAmount = Number(matchingLiability.amount) || 0;
-          const newBalance = currentAmount + Math.abs(amount); // Always add to debt
+          const newBalance = currentAmount + Math.abs(amount);
           
           console.log(`Updating liability ${matchingLiability.name} from ${currentAmount} to ${newBalance}`);
           
@@ -170,25 +163,18 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
 
           if (updateError) {
             console.error('Error updating liability balance:', updateError);
-            toast({
-              title: "Balance Update Warning",
-              description: `Transaction saved but failed to update ${matchingLiability.name} balance.`,
-              variant: "destructive",
-            });
+            throw new Error(`Failed to update ${matchingLiability.name} balance`);
           } else {
             console.log(`Successfully updated liability ${matchingLiability.name} balance to ${newBalance}`);
           }
         } else {
           console.warn('No matching liability found for:', accountName);
+          throw new Error(`Could not find matching account for "${accountName}"`);
         }
       }
     } catch (error) {
       console.error('Error in updateAccountBalance:', error);
-      toast({
-        title: "Balance Update Error",
-        description: "An error occurred while updating account balance.",
-        variant: "destructive",
-      });
+      throw error; // Re-throw to be handled by caller
     }
   };
 
@@ -199,6 +185,20 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
       toast({
         title: "Error",
         description: "You must be logged in to upload transactions.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate that transactions have proper account associations
+    const transactionsWithoutAccounts = transactions.filter(t => 
+      !t.account || t.account === 'Default Account' || t.account.trim() === ''
+    );
+
+    if (transactionsWithoutAccounts.length > 0) {
+      toast({
+        title: "Account Selection Required",
+        description: `${transactionsWithoutAccounts.length} transaction(s) don't have accounts selected. Please select an account for all transactions.`,
         variant: "destructive",
       });
       return;
@@ -221,7 +221,7 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
         user_id: session.user.id,
         description: transaction.description,
         amount: transaction.amount,
-        category: categories[index] || 'Miscellaneous', // Use batch result or fallback
+        category: categories[index] || 'Miscellaneous',
         date: transaction.date,
         currency: transaction.currency,
         comment: transaction.comment || null,
@@ -246,7 +246,7 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
 
       console.log("Successfully inserted transactions:", data);
 
-      // Update account balances for each transaction with improved error handling
+      // Update account balances for each transaction
       toast({
         title: "Updating Balances",
         description: "Updating account balances...",
@@ -254,8 +254,9 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
 
       let successfulUpdates = 0;
       let failedUpdates = 0;
+      const failedAccounts: string[] = [];
 
-      const balanceUpdatePromises = transactions.map(async (transaction) => {
+      for (const transaction of transactions) {
         if (transaction.account && transaction.account !== 'Default Account') {
           try {
             await updateAccountBalance(transaction.account, transaction.amount);
@@ -263,11 +264,10 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
           } catch (error) {
             console.error(`Failed to update balance for ${transaction.account}:`, error);
             failedUpdates++;
+            failedAccounts.push(transaction.account);
           }
         }
-      });
-
-      await Promise.allSettled(balanceUpdatePromises); // Use allSettled to handle partial failures
+      }
       
       // Invalidate and refetch queries to update the UI immediately
       await queryClient.invalidateQueries({ queryKey: ['transactions'] });
@@ -277,14 +277,18 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
       await queryClient.invalidateQueries({ queryKey: ['netWorth'] });
       
       // Provide detailed success message
-      const balanceMessage = failedUpdates > 0 
-        ? ` (${successfulUpdates} account balances updated, ${failedUpdates} failed)`
-        : ` and updated ${successfulUpdates} account balances`;
-
-      toast({
-        title: "Success",
-        description: `Successfully imported ${transactions.length} transaction${transactions.length !== 1 ? 's' : ''}${balanceMessage}.`,
-      });
+      if (failedUpdates > 0) {
+        toast({
+          title: "Partial Success",
+          description: `Imported ${transactions.length} transactions. ${successfulUpdates} account balances updated, ${failedUpdates} failed (${failedAccounts.join(', ')}).`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: `Successfully imported ${transactions.length} transaction${transactions.length !== 1 ? 's' : ''} and updated ${successfulUpdates} account balances.`,
+        });
+      }
 
       onSuccess?.();
     } catch (error) {
@@ -304,7 +308,7 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
       <div className="space-y-2">
         <h2 className="text-2xl font-semibold">Import Transactions</h2>
         <p className="text-muted-foreground">
-          Upload a CSV file to import your transactions. Select an account from your Assets or Liabilities, and transactions will be automatically categorized with account balances updated accordingly.
+          Upload a CSV file to import your transactions. <strong>You must select an account</strong> from your Assets or Liabilities for all transactions to be properly imported and have balances updated.
         </p>
       </div>
       
