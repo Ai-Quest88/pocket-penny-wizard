@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -230,8 +229,12 @@ export const TransactionList = ({ entityId, showBalance = true, readOnly = false
   };
 
   const handleTransactionDeleted = () => {
-    // Invalidate and refetch the transactions query
+    // Invalidate all relevant queries when a transaction is deleted
     queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    queryClient.invalidateQueries({ queryKey: ['account-balances'] });
+    queryClient.invalidateQueries({ queryKey: ['assets'] });
+    queryClient.invalidateQueries({ queryKey: ['liabilities'] });
+    queryClient.invalidateQueries({ queryKey: ['netWorth'] });
     // Clear any selected transactions that might have been deleted
     setSelectedTransactions([]);
   };
@@ -257,7 +260,12 @@ export const TransactionList = ({ entityId, showBalance = true, readOnly = false
   };
 
   const handleBulkUpdate = () => {
+    // Invalidate all relevant queries when bulk operations are performed
     queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    queryClient.invalidateQueries({ queryKey: ['account-balances'] });
+    queryClient.invalidateQueries({ queryKey: ['assets'] });
+    queryClient.invalidateQueries({ queryKey: ['liabilities'] });
+    queryClient.invalidateQueries({ queryKey: ['netWorth'] });
   };
 
   const selectedTransactionObjects = filteredTransactions.filter(t => 

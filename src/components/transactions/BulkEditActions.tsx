@@ -18,6 +18,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { categories } from "@/types/transaction-forms";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface Transaction {
   id: string;
@@ -43,6 +44,7 @@ export const BulkEditActions = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const [newCategory, setNewCategory] = useState("");
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const handleBulkDelete = async () => {
     setIsDeleting(true);
@@ -63,6 +65,13 @@ export const BulkEditActions = ({
         });
         return;
       }
+
+      // Invalidate all relevant queries when transactions are deleted
+      await queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      await queryClient.invalidateQueries({ queryKey: ['account-balances'] });
+      await queryClient.invalidateQueries({ queryKey: ['assets'] });
+      await queryClient.invalidateQueries({ queryKey: ['liabilities'] });
+      await queryClient.invalidateQueries({ queryKey: ['netWorth'] });
 
       toast({
         title: "Success",
