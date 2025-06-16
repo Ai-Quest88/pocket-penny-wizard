@@ -1,3 +1,4 @@
+
 import { categorizeTransactionWithAI } from './aiCategorization';
 import { categories } from '@/types/transaction-forms';
 import { supabase } from '@/integrations/supabase/client';
@@ -68,9 +69,12 @@ export const categorizeByBuiltInRules = (description: string): string | null => 
     return 'Transfer';
   }
   
-  // Public transport
+  // Public transport - Enhanced to catch NSW Transport, Opal, and other transport cards
   if (lowerDesc.includes('opal') || lowerDesc.includes('myki') || lowerDesc.includes('go card') ||
-      lowerDesc.includes('transport') || lowerDesc.includes('train') || lowerDesc.includes('bus')) {
+      lowerDesc.includes('transportfornsw') || lowerDesc.includes('transport for nsw') ||
+      lowerDesc.includes('translink') || lowerDesc.includes('ptv') ||
+      lowerDesc.includes('transport') || lowerDesc.includes('train') || lowerDesc.includes('bus') ||
+      lowerDesc.includes('metro') || lowerDesc.includes('ferry') || lowerDesc.includes('tram')) {
     console.log(`Built-in rule matched: "${description}" -> Public Transport`);
     return 'Public Transport';
   }

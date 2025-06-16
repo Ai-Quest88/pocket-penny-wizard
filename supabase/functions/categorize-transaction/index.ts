@@ -77,6 +77,15 @@ const enhancedBuiltInRules = (description: string): string | null => {
     return 'Groceries';
   }
   
+  // Public transport - Enhanced to catch NSW Transport, Opal, and other transport cards
+  if (lowerDesc.includes('opal') || lowerDesc.includes('myki') || lowerDesc.includes('go card') ||
+      lowerDesc.includes('transportfornsw') || lowerDesc.includes('transport for nsw') ||
+      lowerDesc.includes('translink') || lowerDesc.includes('ptv') ||
+      lowerDesc.includes('transport') || lowerDesc.includes('train') || lowerDesc.includes('bus') ||
+      lowerDesc.includes('metro') || lowerDesc.includes('ferry') || lowerDesc.includes('tram')) {
+    return 'Public Transport';
+  }
+  
   return null;
 };
 
