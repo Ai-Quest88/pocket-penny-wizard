@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { categories } from "@/types/transaction-forms";
 import { supabase } from "@/integrations/supabase/client";
 import { categorizeTransactionsBatch } from "@/utils/aiCategorization";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
 
 interface ImportTransactionsProps {
   onSuccess?: () => void;
@@ -36,6 +38,7 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
   const { session } = useAuth();
   const { readString } = usePapaParse();
   const [uploading, setUploading] = useState(false);
+  const [duplicateCheckEnabled, setDuplicateCheckEnabled] = useState(true);
 
   const onDrop = (acceptedFiles: File[]) => {
     setCsvFile(acceptedFiles[0]);
@@ -43,17 +46,35 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
     parseCSV(acceptedFiles[0]);
   };
 
-  const { getRootProps, getInputProps } = useDropzone({ onDrop, accept: { 'text/csv': ['.csv'] } });
+  const { getRootProps, getInputProps } = useDropzone({ 
+    onDrop, 
+    accept: { 'text/csv': ['.csv'] },
+    multiple: false
+  });
 
   const parseCSV = (file: File) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const csvText = e.target?.result as string;
+      if (!csvText) {
+        toast({
+          title: "Error",
+          description: "Could not read file content",
+          variant: "destructive",
+        });
+        return;
+      }
+
       readString(csvText, {
         header: true,
         skipEmptyLines: true,
         complete: (results) => {
           if (results.data && results.data.length > 0) {
+            // Auto-detect headers for better user experience
+            const headers = Object.keys(results.data[0] as object);
+            const autoMappings = autoDetectHeaders(headers);
+            setHeaderMappings(autoMappings);
+            
             // Limit preview data to first 5 rows
             setPreviewData(results.data.slice(0, 5) as CSVRow[]);
           } else {
@@ -78,12 +99,37 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
     reader.readAsText(file);
   };
 
+  const autoDetectHeaders = (headers: string[]): { [key: string]: string } => {
+    const mappings: { [key: string]: string } = {
+      date: '',
+      description: '',
+      amount: '',
+      currency: '',
+    };
+
+    headers.forEach(header => {
+      const lowerHeader = header.toLowerCase();
+      
+      if (lowerHeader.includes('date') || lowerHeader.includes('transaction') && lowerHeader.includes('date')) {
+        mappings.date = header;
+      } else if (lowerHeader.includes('description') || lowerHeader.includes('memo') || lowerHeader.includes('detail')) {
+        mappings.description = header;
+      } else if (lowerHeader.includes('amount') || lowerHeader.includes('value') || lowerHeader.includes('debit') || lowerHeader.includes('credit')) {
+        mappings.amount = header;
+      } else if (lowerHeader.includes('currency') || lowerHeader.includes('ccy')) {
+        mappings.currency = header;
+      }
+    });
+
+    return mappings;
+  };
+
   const handleHeaderMappingChange = (header: string, field: string) => {
     setHeaderMappings(prev => ({ ...prev, [field]: header }));
   };
 
   const validateMappings = () => {
-    const requiredFields = ['date', 'description', 'amount', 'currency'];
+    const requiredFields = ['date', 'description', 'amount'];
     return requiredFields.every(field => headerMappings[field] !== '');
   };
 
@@ -100,7 +146,7 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
     if (!validateMappings()) {
       toast({
         title: "Mapping Error",
-        description: "Please map all required headers",
+        description: "Please map all required headers (Date, Description, Amount)",
         variant: "destructive",
       });
       return;
@@ -120,6 +166,16 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
     const reader = new FileReader();
     reader.onload = async (e) => {
       const csvText = e.target?.result as string;
+      if (!csvText) {
+        toast({
+          title: "Error",
+          description: "Could not read file content",
+          variant: "destructive",
+        });
+        setUploading(false);
+        return;
+      }
+
       readString(csvText, {
         header: true,
         skipEmptyLines: true,
@@ -138,8 +194,18 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
             date: row[headerMappings.date],
             description: row[headerMappings.description],
             amount: parseFloat(row[headerMappings.amount]),
-            currency: row[headerMappings.currency],
-          }));
+            currency: row[headerMappings.currency] || 'AUD',
+          })).filter(t => t.date && t.description && !isNaN(t.amount));
+
+          if (transactions.length === 0) {
+            toast({
+              title: "Data Error",
+              description: "No valid transactions found in the file.",
+              variant: "destructive",
+            });
+            setUploading(false);
+            return;
+          }
 
           await handleTransactionsUploaded(transactions);
           setUploading(false);
@@ -185,11 +251,25 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
         account_id: null, // Set to null since we don't have accounts table
       }));
 
-      console.log(`Inserting transactions to database with AI categories: ${transactionsWithCategories.length}`);
+      console.log(`Processing transactions with duplicate checking: ${transactionsWithCategories.length}`);
 
-      // Use the duplicate checking insertion method
-      const { insertTransactionsWithDuplicateCheck } = await import('@/components/transaction-forms/csv-upload/helpers/transactionInsertion');
-      const result = await insertTransactionsWithDuplicateCheck(transactionsWithCategories);
+      // Use duplicate checking or direct insertion based on user preference
+      let result;
+      if (duplicateCheckEnabled) {
+        const { insertTransactionsWithDuplicateCheck } = await import('@/components/transaction-forms/csv-upload/helpers/transactionInsertion');
+        result = await insertTransactionsWithDuplicateCheck(transactionsWithCategories);
+      } else {
+        // Direct insertion without duplicate checking
+        const { error: insertError } = await supabase
+          .from('transactions')
+          .insert(transactionsWithCategories);
+
+        if (insertError) {
+          throw insertError;
+        }
+
+        result = { inserted: transactionsWithCategories.length, duplicates: 0 };
+      }
 
       console.log(`Successfully processed transactions: ${result.inserted} new, ${result.duplicates} duplicates skipped`);
 
@@ -226,25 +306,32 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
   };
 
   return (
-    <div>
-      <div {...getRootProps()} className="border-2 border-dashed rounded-md p-4 cursor-pointer bg-muted hover:bg-accent">
+    <div className="space-y-4">
+      <div {...getRootProps()} className="border-2 border-dashed rounded-md p-6 cursor-pointer bg-muted hover:bg-accent transition-colors">
         <input {...getInputProps()} />
-        <p className="text-center text-muted-foreground">
-          Drag 'n' drop some files here, or click to select files
-        </p>
+        <div className="text-center">
+          <p className="text-muted-foreground">
+            Drag 'n' drop a CSV file here, or click to select files
+          </p>
+          <p className="text-sm text-muted-foreground mt-2">
+            CSV files with transaction data are supported
+          </p>
+        </div>
       </div>
 
       {isMappingHeaders && (
-        <div className="mt-4">
-          <h2 className="text-lg font-semibold">Map CSV Headers</h2>
-          <p className="text-sm text-muted-foreground">
-            Please map the columns from your CSV to the corresponding fields.
-          </p>
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold">Map CSV Headers</h3>
+            <p className="text-sm text-muted-foreground">
+              Please map the columns from your CSV to the corresponding fields.
+            </p>
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-              <Label htmlFor="date">Date</Label>
-              <Select onValueChange={(value) => handleHeaderMappingChange(value, 'date')}>
+              <Label htmlFor="date">Date *</Label>
+              <Select onValueChange={(value) => handleHeaderMappingChange(value, 'date')} value={headerMappings.date}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select header" />
                 </SelectTrigger>
@@ -257,8 +344,8 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
             </div>
 
             <div>
-              <Label htmlFor="description">Description</Label>
-              <Select onValueChange={(value) => handleHeaderMappingChange(value, 'description')}>
+              <Label htmlFor="description">Description *</Label>
+              <Select onValueChange={(value) => handleHeaderMappingChange(value, 'description')} value={headerMappings.description}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select header" />
                 </SelectTrigger>
@@ -271,8 +358,8 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
             </div>
 
             <div>
-              <Label htmlFor="amount">Amount</Label>
-              <Select onValueChange={(value) => handleHeaderMappingChange(value, 'amount')}>
+              <Label htmlFor="amount">Amount *</Label>
+              <Select onValueChange={(value) => handleHeaderMappingChange(value, 'amount')} value={headerMappings.amount}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select header" />
                 </SelectTrigger>
@@ -285,12 +372,13 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
             </div>
 
             <div>
-              <Label htmlFor="currency">Currency</Label>
-              <Select onValueChange={(value) => handleHeaderMappingChange(value, 'currency')}>
+              <Label htmlFor="currency">Currency (Optional)</Label>
+              <Select onValueChange={(value) => handleHeaderMappingChange(value, 'currency')} value={headerMappings.currency}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select header" />
+                  <SelectValue placeholder="Select header or leave empty" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="">None (defaults to AUD)</SelectItem>
                   {previewData.length > 0 && Object.keys(previewData[0]).map((header) => (
                     <SelectItem key={header} value={header}>{header}</SelectItem>
                   ))}
@@ -299,9 +387,68 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
             </div>
           </div>
 
-          <Button onClick={handleUpload} disabled={uploading} className="mt-4">
-            {uploading ? "Uploading..." : "Upload Transactions"}
-          </Button>
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="duplicateCheck"
+              checked={duplicateCheckEnabled}
+              onChange={(e) => setDuplicateCheckEnabled(e.target.checked)}
+              className="rounded"
+            />
+            <Label htmlFor="duplicateCheck">Enable intelligent duplicate detection</Label>
+          </div>
+
+          {duplicateCheckEnabled && (
+            <Alert>
+              <InfoIcon className="h-4 w-4" />
+              <AlertDescription>
+                Duplicate detection is enabled. Transactions with the same description, amount, and date will be automatically skipped.
+                Similar transactions (80%+ similarity) will also be detected and skipped.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {previewData.length > 0 && (
+            <div>
+              <h4 className="font-medium mb-2">Preview (first 5 rows)</h4>
+              <div className="overflow-x-auto">
+                <table className="w-full border border-border rounded-md">
+                  <thead>
+                    <tr className="border-b bg-muted">
+                      {Object.keys(previewData[0]).map((header) => (
+                        <th key={header} className="text-left p-2 text-sm font-medium">
+                          {header}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {previewData.map((row, index) => (
+                      <tr key={index} className="border-b">
+                        {Object.values(row).map((value, cellIndex) => (
+                          <td key={cellIndex} className="p-2 text-sm">
+                            {String(value)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={() => setIsMappingHeaders(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleUpload} 
+              disabled={uploading || !validateMappings()}
+            >
+              {uploading ? "Uploading..." : "Upload Transactions"}
+            </Button>
+          </div>
         </div>
       )}
     </div>
