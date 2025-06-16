@@ -1,5 +1,6 @@
 
 import { categories } from '@/types/transaction-forms';
+import { supabase } from '@/integrations/supabase/client';
 
 let isInitialized = false;
 
@@ -48,7 +49,7 @@ export const testGroqConnection = async (): Promise<{ success: boolean; error?: 
   }
 };
 
-// Initialize the Groq classifier (no actual initialization needed for edge function calls)
+// Initialize the Groq classifier
 export const initializeAIClassifier = async () => {
   if (isInitialized) return true;
   
@@ -57,7 +58,68 @@ export const initializeAIClassifier = async () => {
   return true;
 };
 
-// Enhanced built-in rules including food establishments
+// Find similar transactions in database and return their category
+const findSimilarTransactionCategory = async (description: string, userId: string): Promise<string | null> => {
+  try {
+    console.log(`Searching database for similar transactions to: "${description}"`);
+    
+    // Extract key words from description for better matching
+    const keywords = description.toLowerCase().split(/[\s\*]+/).filter(word => word.length > 2);
+    
+    // Search for transactions with similar descriptions that have categories
+    const { data: similarTransactions, error } = await supabase
+      .from('transactions')
+      .select('category, description')
+      .eq('user_id', userId)
+      .not('category', 'is', null)
+      .not('category', 'eq', 'Miscellaneous')
+      .not('category', 'eq', 'Other')
+      .limit(20);
+
+    if (error) {
+      console.error('Error searching similar transactions:', error);
+      return null;
+    }
+
+    if (similarTransactions && similarTransactions.length > 0) {
+      // Find transactions that share keywords with current description
+      const matches = similarTransactions.filter(transaction => {
+        const transactionWords = transaction.description.toLowerCase().split(/[\s\*]+/);
+        return keywords.some(keyword => 
+          transactionWords.some(word => 
+            word.includes(keyword) || keyword.includes(word)
+          )
+        );
+      });
+
+      if (matches.length > 0) {
+        // Return the most common category among matches
+        const categoryCount: Record<string, number> = {};
+        matches.forEach(transaction => {
+          if (transaction.category) {
+            categoryCount[transaction.category] = (categoryCount[transaction.category] || 0) + 1;
+          }
+        });
+
+        const mostCommonCategory = Object.entries(categoryCount)
+          .sort(([,a], [,b]) => b - a)[0]?.[0];
+
+        if (mostCommonCategory) {
+          console.log(`Found similar transaction in DB: "${description}" -> ${mostCommonCategory}`);
+          return mostCommonCategory;
+        }
+      }
+    }
+
+    console.log(`No similar transactions found in DB for: "${description}"`);
+    return null;
+  } catch (error) {
+    console.error('Error in findSimilarTransactionCategory:', error);
+    return null;
+  }
+};
+
+// Enhanced built-in rules for fallback
 const enhancedBuiltInRules = (description: string): string | null => {
   const lowerDesc = description.toLowerCase();
   
@@ -94,46 +156,22 @@ const enhancedBuiltInRules = (description: string): string | null => {
     return 'Groceries';
   }
   
-  // Hardware and home improvement
-  if (lowerDesc.includes('bunnings') || lowerDesc.includes('officeworks')) {
-    return 'Home & Garden';
-  }
-  
-  // Education and books
-  if (lowerDesc.includes('scholastic')) {
-    return 'Books';
-  }
-  
-  // Public transport
-  if (lowerDesc.includes('opal') || lowerDesc.includes('myki') || lowerDesc.includes('go card') ||
-      lowerDesc.includes('transport') || lowerDesc.includes('train') || lowerDesc.includes('bus')) {
-    return 'Public Transport';
-  }
-  
   return null;
 };
 
-// Smart delay function with exponential backoff
-const smartDelay = (attempt: number, baseDelay: number = 1000) => {
-  const delay = Math.min(baseDelay * Math.pow(2, attempt), 30000); // Max 30 seconds
-  const jitter = Math.random() * 0.1 * delay; // Add 10% jitter to avoid thundering herd
+// Smart delay with exponential backoff for rate limiting
+const smartDelay = (attempt: number, baseDelay: number = 2000) => {
+  const delay = Math.min(baseDelay * Math.pow(2, attempt), 60000); // Max 60 seconds
+  const jitter = Math.random() * 0.1 * delay;
   return new Promise(resolve => setTimeout(resolve, delay + jitter));
 };
 
-// Categorize single transaction with retries
-const categorizeWithRetries = async (description: string, maxRetries: number = 3): Promise<string> => {
-  // First try enhanced built-in rules
-  const builtInCategory = enhancedBuiltInRules(description);
-  if (builtInCategory) {
-    console.log(`Built-in rule matched "${description}" -> ${builtInCategory}`);
-    return builtInCategory;
-  }
-  
-  // Try AI categorization with retries
+// Categorize single transaction with proper retry logic for rate limits
+const categorizeWithAI = async (description: string, userId: string, maxRetries: number = 5): Promise<string> => {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       if (attempt > 0) {
-        console.log(`Retry attempt ${attempt} for: ${description}`);
+        console.log(`AI retry attempt ${attempt} for: ${description}`);
         await smartDelay(attempt);
       }
       
@@ -143,12 +181,12 @@ const categorizeWithRetries = async (description: string, maxRetries: number = 3
           'Content-Type': 'application/json',
           'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xcWJ2bHZ1enljdG15c2FibHp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgzODY0NTIsImV4cCI6MjA1Mzk2MjQ1Mn0.2Z6_5YBxzfsJga8n2vOiTTE3nxPjPpiUcRZe7dpA1V4`
         },
-        body: JSON.stringify({ description })
+        body: JSON.stringify({ description, userId })
       });
 
       if (response.status === 429) {
-        console.log(`Rate limited on attempt ${attempt + 1}, will retry...`);
-        continue; // Retry on rate limit
+        console.log(`Rate limited on attempt ${attempt + 1}, retrying after delay...`);
+        continue;
       }
 
       if (!response.ok) {
@@ -156,53 +194,69 @@ const categorizeWithRetries = async (description: string, maxRetries: number = 3
       }
 
       const data = await response.json();
-      if (data.category) {
+      if (data.category && categories.includes(data.category)) {
         console.log(`AI categorized "${description}" -> ${data.category} (attempt ${attempt + 1})`);
         return data.category;
       }
       
     } catch (error) {
-      console.warn(`Attempt ${attempt + 1} failed for "${description}":`, error);
-      if (attempt === maxRetries - 1) {
-        console.log(`All retries exhausted for "${description}", using fallback pattern matching`);
-      }
+      console.warn(`AI attempt ${attempt + 1} failed for "${description}":`, error);
     }
   }
   
-  // Final fallback
-  return 'Miscellaneous';
+  console.log(`All AI retries exhausted for "${description}", using built-in rules`);
+  return enhancedBuiltInRules(description) || 'Miscellaneous';
 };
 
-// Batch processing with intelligent rate limiting
+// Main categorization logic following the specified flow
+export const categorizeTransaction = async (description: string, userId: string): Promise<string> => {
+  console.log(`Starting categorization for: "${description}"`);
+  
+  // Step 1: Check database for similar transactions with existing categories
+  const dbCategory = await findSimilarTransactionCategory(description, userId);
+  if (dbCategory) {
+    console.log(`Using DB category: "${description}" -> ${dbCategory}`);
+    return dbCategory;
+  }
+  
+  // Step 2: Use AI categorization with retry logic for rate limits
+  console.log(`No DB match found, trying AI categorization for: "${description}"`);
+  const aiCategory = await categorizeWithAI(description, userId);
+  
+  return aiCategory;
+};
+
+// Progressive batch processing with responsive UI updates
 export const categorizeTransactionsBatch = async (
   descriptions: string[], 
+  userId: string,
   onProgress?: (processed: number, total: number, results: string[]) => void
 ): Promise<string[]> => {
-  const batchSize = 5; // Smaller batches to avoid rate limits
-  const batchDelay = 2000; // 2 seconds between batches
   const results: string[] = [];
+  const batchSize = 3; // Smaller batches for better responsiveness
+  const batchDelay = 1000; // 1 second between batches
   
-  console.log(`Starting batch categorization of ${descriptions.length} transactions in batches of ${batchSize}`);
+  console.log(`Starting progressive batch categorization of ${descriptions.length} transactions`);
   
   for (let i = 0; i < descriptions.length; i += batchSize) {
     const batch = descriptions.slice(i, i + batchSize);
     console.log(`Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(descriptions.length / batchSize)}`);
     
-    // Process batch in parallel but with controlled concurrency
-    const batchPromises = batch.map(async (description, index) => {
-      // Stagger requests within batch to avoid burst rate limiting
-      if (index > 0) {
-        await new Promise(resolve => setTimeout(resolve, index * 200)); // 200ms stagger
+    // Process batch items sequentially to avoid overwhelming the API
+    for (let j = 0; j < batch.length; j++) {
+      const description = batch[j];
+      const category = await categorizeTransaction(description, userId);
+      results.push(category);
+      
+      // Update progress after each transaction
+      if (onProgress) {
+        onProgress(results.length, descriptions.length, [...results]);
       }
-      return categorizeWithRetries(description);
-    });
-    
-    const batchResults = await Promise.all(batchPromises);
-    results.push(...batchResults);
-    
-    // Report progress
-    if (onProgress) {
-      onProgress(results.length, descriptions.length, [...results]);
+      
+      // Small delay between individual requests within batch
+      if (j < batch.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
     }
     
     // Delay between batches (except for the last batch)
@@ -212,17 +266,17 @@ export const categorizeTransactionsBatch = async (
     }
   }
   
-  console.log(`Batch categorization completed: ${results.length} transactions processed`);
+  console.log(`Progressive batch categorization completed: ${results.length} transactions processed`);
   return results;
 };
 
-// Legacy function for backward compatibility - now uses batch processing
+// Legacy function for backward compatibility
 export const categorizeTransactionWithAI = async (description: string): Promise<string> => {
-  const results = await categorizeTransactionsBatch([description]);
-  return results[0] || 'Miscellaneous';
+  // For legacy calls without userId, use enhanced rules only
+  return enhancedBuiltInRules(description) || 'Miscellaneous';
 };
 
-// Check if AI categorization is available (always true since we use edge function)
+// Check if AI categorization is available
 export const isAICategorizationAvailable = () => {
   return true;
 };
