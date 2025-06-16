@@ -11,13 +11,15 @@ interface DefaultSettingsSectionProps {
   setDefaultCurrency: (currency: string) => void
   defaultAccount: string
   setDefaultAccount: (account: string) => void
+  showAccountError?: boolean
 }
 
 export const DefaultSettingsSection: React.FC<DefaultSettingsSectionProps> = ({
   defaultCurrency,
   setDefaultCurrency,
   defaultAccount,
-  setDefaultAccount
+  setDefaultAccount,
+  showAccountError = false
 }) => {
   const { accounts, isLoading: accountsLoading } = useAccounts()
 
@@ -34,6 +36,7 @@ export const DefaultSettingsSection: React.FC<DefaultSettingsSectionProps> = ({
   })
 
   const hasNoAccounts = validAccounts.length === 0 && !accountsLoading
+  const isAccountNotSelected = !defaultAccount || defaultAccount === 'Default Account' || defaultAccount.trim() === ''
 
   return (
     <div className="space-y-4">
@@ -42,6 +45,15 @@ export const DefaultSettingsSection: React.FC<DefaultSettingsSectionProps> = ({
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             <strong>No accounts found!</strong> You must create cash accounts in Assets or debt accounts in Liabilities before uploading transactions. Without an account selection, transactions cannot be properly imported.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {showAccountError && isAccountNotSelected && !hasNoAccounts && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Account selection required!</strong> Please select an account before uploading transactions. This ensures your transactions are properly categorized and balances are updated correctly.
           </AlertDescription>
         </Alert>
       )}
@@ -71,7 +83,7 @@ export const DefaultSettingsSection: React.FC<DefaultSettingsSectionProps> = ({
             onValueChange={setDefaultAccount} 
             disabled={accountsLoading || hasNoAccounts}
           >
-            <SelectTrigger className={hasNoAccounts ? "border-red-300" : ""}>
+            <SelectTrigger className={hasNoAccounts || (showAccountError && isAccountNotSelected) ? "border-red-500 ring-red-500" : ""}>
               <SelectValue placeholder={hasNoAccounts ? "No accounts available" : "Select default account"} />
             </SelectTrigger>
             <SelectContent>
@@ -128,7 +140,7 @@ export const DefaultSettingsSection: React.FC<DefaultSettingsSectionProps> = ({
             </p>
           ) : (
             <p className="text-sm text-muted-foreground mt-1">
-              This account will be used for transactions that don't specify an account in the CSV.
+              <strong>Required:</strong> This account will be used for transactions that don't specify an account in the CSV.
             </p>
           )}
         </div>

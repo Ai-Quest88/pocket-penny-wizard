@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -37,6 +36,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
   const [defaultCurrency, setDefaultCurrency] = useState('AUD')
   const [defaultAccount, setDefaultAccount] = useState('Default Account')
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null)
+  const [showAccountError, setShowAccountError] = useState(false)
   
   const { session } = useAuth()
   const queryClient = useQueryClient()
@@ -104,7 +104,12 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
     return requiredFields.every(field => columnMappings[field])
   }
 
+  const validateAccountSelection = (): boolean => {
+    return defaultAccount && defaultAccount !== 'Default Account' && defaultAccount.trim() !== ''
+  }
+
   const hasRequiredMappings = validateMappings()
+  const hasValidAccount = validateAccountSelection()
 
   // Fast parallel categorization function
   const categorizeTransactionsParallel = async (descriptions: string[]): Promise<string[]> => {
@@ -159,6 +164,16 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
   }
 
   const handleUpload = async () => {
+    // Reset account error first
+    setShowAccountError(false)
+    
+    // Validate account selection
+    if (!hasValidAccount) {
+      setShowAccountError(true)
+      setError('Please select an account before uploading transactions.')
+      return
+    }
+
     if (!file || !hasRequiredMappings || !session?.user) return
 
     setIsProcessing(true)
@@ -347,6 +362,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
               setDefaultCurrency={setDefaultCurrency}
               defaultAccount={defaultAccount}
               setDefaultAccount={setDefaultAccount}
+              showAccountError={showAccountError}
             />
 
             <PreviewTable 
@@ -363,7 +379,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
               </Button>
               <Button 
                 onClick={handleUpload}
-                disabled={!hasRequiredMappings || isProcessing}
+                disabled={!hasRequiredMappings || !hasValidAccount || isProcessing}
               >
                 {isProcessing ? 'Processing...' : `Upload ${totalRows} Transactions`}
               </Button>
