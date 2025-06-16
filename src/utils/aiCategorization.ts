@@ -53,70 +53,88 @@ export const testGroqConnection = async (): Promise<{ success: boolean; error?: 
 export const initializeAIClassifier = async () => {
   if (isInitialized) return true;
   
-  console.log('Groq AI classifier ready (using edge function)');
+  console.log('Groq AI classifier ready (using edge function with model alternation)');
   isInitialized = true;
   return true;
 };
 
-// Find similar transactions in database and return their category
-const findSimilarTransactionCategory = async (description: string, userId: string): Promise<string | null> => {
-  try {
-    console.log(`Searching database for similar transactions to: "${description}"`);
+// Optimized batch processing with alternating models
+export const categorizeTransactionsBatch = async (
+  descriptions: string[], 
+  userId: string,
+  onProgress?: (processed: number, total: number, results: string[]) => void
+): Promise<string[]> => {
+  const results: string[] = [];
+  const batchSize = 30; // Process 30 at a time to respect rate limits
+  
+  console.log(`Starting optimized batch categorization of ${descriptions.length} transactions with alternating models`);
+  
+  let remainingDescriptions = [...descriptions];
+  
+  while (remainingDescriptions.length > 0) {
+    console.log(`Processing batch of ${Math.min(batchSize, remainingDescriptions.length)} transactions`);
     
-    // Extract key words from description for better matching
-    const keywords = description.toLowerCase().split(/[\s\*]+/).filter(word => word.length > 2);
-    
-    // Search for transactions with similar descriptions that have categories
-    const { data: similarTransactions, error } = await supabase
-      .from('transactions')
-      .select('category, description')
-      .eq('user_id', userId)
-      .not('category', 'is', null)
-      .not('category', 'eq', 'Miscellaneous')
-      .not('category', 'eq', 'Other')
-      .limit(20);
-
-    if (error) {
-      console.error('Error searching similar transactions:', error);
-      return null;
-    }
-
-    if (similarTransactions && similarTransactions.length > 0) {
-      // Find transactions that share keywords with current description
-      const matches = similarTransactions.filter(transaction => {
-        const transactionWords = transaction.description.toLowerCase().split(/[\s\*]+/);
-        return keywords.some(keyword => 
-          transactionWords.some(word => 
-            word.includes(keyword) || keyword.includes(word)
-          )
-        );
+    try {
+      const response = await fetch('https://nqqbvlvuzyctmysablzw.supabase.co/functions/v1/categorize-transaction', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xcWJ2bHZ1enljdG15c2FibHp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgzODY0NTIsImV4cCI6MjA1Mzk2MjQ1Mn0.2Z6_5YBxzfsJga8n2vOiTTE3nxPjPpiUcRZe7dpA1V4`
+        },
+        body: JSON.stringify({ 
+          batchMode: true,
+          batchDescriptions: remainingDescriptions,
+          userId 
+        })
       });
 
-      if (matches.length > 0) {
-        // Return the most common category among matches
-        const categoryCount: Record<string, number> = {};
-        matches.forEach(transaction => {
-          if (transaction.category) {
-            categoryCount[transaction.category] = (categoryCount[transaction.category] || 0) + 1;
-          }
-        });
-
-        const mostCommonCategory = Object.entries(categoryCount)
-          .sort(([,a], [,b]) => b - a)[0]?.[0];
-
-        if (mostCommonCategory) {
-          console.log(`Found similar transaction in DB: "${description}" -> ${mostCommonCategory}`);
-          return mostCommonCategory;
-        }
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-    }
 
-    console.log(`No similar transactions found in DB for: "${description}"`);
-    return null;
-  } catch (error) {
-    console.error('Error in findSimilarTransactionCategory:', error);
-    return null;
+      const data = await response.json();
+      
+      // Add results from this batch
+      const batchResults = data.results.map((item: any) => item.category);
+      results.push(...batchResults);
+      
+      // Update progress
+      if (onProgress) {
+        onProgress(results.length, descriptions.length, [...results]);
+      }
+      
+      // Update remaining descriptions for next batch
+      remainingDescriptions = data.nextBatch || [];
+      
+      console.log(`Processed ${data.processedCount} transactions, ${data.remainingCount} remaining`);
+      
+      // If there are more batches and we processed the full batch size, 
+      // add a delay to respect rate limits and allow model switching
+      if (remainingDescriptions.length > 0 && data.processedCount === batchSize) {
+        console.log('Waiting 2 seconds before next batch to respect rate limits...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+      
+    } catch (error) {
+      console.error('Error in batch processing:', error);
+      
+      // Fallback: process remaining descriptions individually with built-in rules
+      const fallbackResults = remainingDescriptions.map(desc => {
+        return enhancedBuiltInRules(desc) || 'Miscellaneous';
+      });
+      
+      results.push(...fallbackResults);
+      
+      if (onProgress) {
+        onProgress(results.length, descriptions.length, [...results]);
+      }
+      
+      break;
+    }
   }
+  
+  console.log(`Optimized batch categorization completed: ${results.length} transactions processed`);
+  return results;
 };
 
 // Enhanced built-in rules for fallback
@@ -159,115 +177,36 @@ const enhancedBuiltInRules = (description: string): string | null => {
   return null;
 };
 
-// Smart delay with exponential backoff for rate limiting
-const smartDelay = (attempt: number, baseDelay: number = 2000) => {
-  const delay = Math.min(baseDelay * Math.pow(2, attempt), 60000); // Max 60 seconds
-  const jitter = Math.random() * 0.1 * delay;
-  return new Promise(resolve => setTimeout(resolve, delay + jitter));
-};
-
-// Categorize single transaction with proper retry logic for rate limits
-const categorizeWithAI = async (description: string, userId: string, maxRetries: number = 5): Promise<string> => {
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      if (attempt > 0) {
-        console.log(`AI retry attempt ${attempt} for: ${description}`);
-        await smartDelay(attempt);
-      }
-      
-      const response = await fetch('https://nqqbvlvuzyctmysablzw.supabase.co/functions/v1/categorize-transaction', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xcWJ2bHZ1enljdG15c2FibHp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgzODY0NTIsImV4cCI6MjA1Mzk2MjQ1Mn0.2Z6_5YBxzfsJga8n2vOiTTE3nxPjPpiUcRZe7dpA1V4`
-        },
-        body: JSON.stringify({ description, userId })
-      });
-
-      if (response.status === 429) {
-        console.log(`Rate limited on attempt ${attempt + 1}, retrying after delay...`);
-        continue;
-      }
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      if (data.category && categories.includes(data.category)) {
-        console.log(`AI categorized "${description}" -> ${data.category} (attempt ${attempt + 1})`);
-        return data.category;
-      }
-      
-    } catch (error) {
-      console.warn(`AI attempt ${attempt + 1} failed for "${description}":`, error);
-    }
-  }
-  
-  console.log(`All AI retries exhausted for "${description}", using built-in rules`);
-  return enhancedBuiltInRules(description) || 'Miscellaneous';
-};
-
-// Main categorization logic following the specified flow
+// Single transaction categorization (for backward compatibility)
 export const categorizeTransaction = async (description: string, userId: string): Promise<string> => {
   console.log(`Starting categorization for: "${description}"`);
   
-  // Step 1: Check database for similar transactions with existing categories
-  const dbCategory = await findSimilarTransactionCategory(description, userId);
-  if (dbCategory) {
-    console.log(`Using DB category: "${description}" -> ${dbCategory}`);
-    return dbCategory;
-  }
-  
-  // Step 2: Use AI categorization with retry logic for rate limits
-  console.log(`No DB match found, trying AI categorization for: "${description}"`);
-  const aiCategory = await categorizeWithAI(description, userId);
-  
-  return aiCategory;
-};
+  try {
+    const response = await fetch('https://nqqbvlvuzyctmysablzw.supabase.co/functions/v1/categorize-transaction', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xcWJ2bHZ1enljdG15c2FibHp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgzODY0NTIsImV4cCI6MjA1Mzk2MjQ1Mn0.2Z6_5YBxzfsJga8n2vOiTTE3nxPjPpiUcRZe7dpA1V4`
+      },
+      body: JSON.stringify({ description, userId })
+    });
 
-// Progressive batch processing with responsive UI updates
-export const categorizeTransactionsBatch = async (
-  descriptions: string[], 
-  userId: string,
-  onProgress?: (processed: number, total: number, results: string[]) => void
-): Promise<string[]> => {
-  const results: string[] = [];
-  const batchSize = 3; // Smaller batches for better responsiveness
-  const batchDelay = 1000; // 1 second between batches
-  
-  console.log(`Starting progressive batch categorization of ${descriptions.length} transactions`);
-  
-  for (let i = 0; i < descriptions.length; i += batchSize) {
-    const batch = descriptions.slice(i, i + batchSize);
-    console.log(`Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(descriptions.length / batchSize)}`);
-    
-    // Process batch items sequentially to avoid overwhelming the API
-    for (let j = 0; j < batch.length; j++) {
-      const description = batch[j];
-      const category = await categorizeTransaction(description, userId);
-      results.push(category);
-      
-      // Update progress after each transaction
-      if (onProgress) {
-        onProgress(results.length, descriptions.length, [...results]);
-      }
-      
-      // Small delay between individual requests within batch
-      if (j < batch.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 300));
-      }
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    if (data.category && categories.includes(data.category)) {
+      console.log(`Categorized "${description}" -> ${data.category} (source: ${data.source})`);
+      return data.category;
     }
     
-    // Delay between batches (except for the last batch)
-    if (i + batchSize < descriptions.length) {
-      console.log(`Waiting ${batchDelay}ms before next batch...`);
-      await new Promise(resolve => setTimeout(resolve, batchDelay));
-    }
+  } catch (error) {
+    console.warn(`Categorization failed for "${description}":`, error);
   }
   
-  console.log(`Progressive batch categorization completed: ${results.length} transactions processed`);
-  return results;
+  console.log(`Using built-in rules for "${description}"`);
+  return enhancedBuiltInRules(description) || 'Miscellaneous';
 };
 
 // Legacy function for backward compatibility
