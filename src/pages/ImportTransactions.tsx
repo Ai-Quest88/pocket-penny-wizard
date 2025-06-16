@@ -2,7 +2,7 @@
 import { ChangeEvent, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { usePapaParse } from 'react-papaparse';
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
@@ -46,31 +46,36 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
   const { getRootProps, getInputProps } = useDropzone({ onDrop, accept: { 'text/csv': ['.csv'] } });
 
   const parseCSV = (file: File) => {
-    readString(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        if (results.data && results.data.length > 0) {
-          // Limit preview data to first 5 rows
-          setPreviewData(results.data.slice(0, 5) as CSVRow[]);
-        } else {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const csvText = e.target?.result as string;
+      readString(csvText, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          if (results.data && results.data.length > 0) {
+            // Limit preview data to first 5 rows
+            setPreviewData(results.data.slice(0, 5) as CSVRow[]);
+          } else {
+            toast({
+              title: "Error parsing CSV",
+              description: "No data found in the CSV file.",
+              variant: "destructive",
+            });
+            setIsMappingHeaders(false);
+          }
+        },
+        error: (error) => {
           toast({
             title: "Error parsing CSV",
-            description: "No data found in the CSV file.",
+            description: error.message,
             variant: "destructive",
           });
           setIsMappingHeaders(false);
-        }
-      },
-      error: (error) => {
-        toast({
-          title: "Error parsing CSV",
-          description: error.message,
-          variant: "destructive",
-        });
-        setIsMappingHeaders(false);
-      },
-    });
+        },
+      });
+    };
+    reader.readAsText(file);
   };
 
   const handleHeaderMappingChange = (header: string, field: string) => {
@@ -112,39 +117,44 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
 
     setUploading(true);
 
-    readString(csvFile, {
-      header: true,
-      skipEmptyLines: true,
-      complete: async (results) => {
-        if (!results.data || results.data.length === 0) {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const csvText = e.target?.result as string;
+      readString(csvText, {
+        header: true,
+        skipEmptyLines: true,
+        complete: async (results) => {
+          if (!results.data || results.data.length === 0) {
+            toast({
+              title: "Parse Error",
+              description: "No data found in the CSV file.",
+              variant: "destructive",
+            });
+            setUploading(false);
+            return;
+          }
+
+          const transactions = results.data.map((row: any) => ({
+            date: row[headerMappings.date],
+            description: row[headerMappings.description],
+            amount: parseFloat(row[headerMappings.amount]),
+            currency: row[headerMappings.currency],
+          }));
+
+          await handleTransactionsUploaded(transactions);
+          setUploading(false);
+        },
+        error: (error) => {
           toast({
-            title: "Parse Error",
-            description: "No data found in the CSV file.",
+            title: "Error parsing CSV",
+            description: error.message,
             variant: "destructive",
           });
           setUploading(false);
-          return;
-        }
-
-        const transactions = results.data.map((row: any) => ({
-          date: row[headerMappings.date],
-          description: row[headerMappings.description],
-          amount: parseFloat(row[headerMappings.amount]),
-          currency: row[headerMappings.currency],
-        }));
-
-        await handleTransactionsUploaded(transactions);
-        setUploading(false);
-      },
-      error: (error) => {
-        toast({
-          title: "Error parsing CSV",
-          description: error.message,
-          variant: "destructive",
-        });
-        setUploading(false);
-      },
-    });
+        },
+      });
+    };
+    reader.readAsText(csvFile);
   };
 
   const handleTransactionsUploaded = async (transactions: any[]) => {
@@ -159,12 +169,6 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
 
     try {
       console.log(`Processing ${transactions.length} uploaded transactions`);
-
-      // Get existing transactions for duplicate checking - using the correct table name
-      const { data: existingTransactions } = await supabase
-        .from('transactions')
-        .select('id, description, amount, date')
-        .eq('user_id', session.user.id);
 
       // Categorize transactions in batch
       const descriptions = transactions.map(t => t.description);
