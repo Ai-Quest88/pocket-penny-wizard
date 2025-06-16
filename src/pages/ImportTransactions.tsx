@@ -29,6 +29,12 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
     try {
       console.log('Updating account balance for:', accountInfo, 'with amount:', amount);
       
+      // Skip if it's the default account
+      if (!accountInfo || accountInfo === 'Default Account') {
+        console.log('Skipping default account balance update');
+        return;
+      }
+
       // Parse account info: "Account Name - Entity Name (accountType)"
       const accountParts = accountInfo.split(' - ');
       if (accountParts.length < 2) {
@@ -36,37 +42,58 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
         return;
       }
 
-      const accountName = accountParts[0];
+      const accountName = accountParts[0].trim();
       const entityAndType = accountParts[1];
-      const entityName = entityAndType.split(' (')[0];
+      const entityName = entityAndType.split(' (')[0].trim();
       const accountType = entityAndType.includes('(asset)') ? 'asset' : 'liability';
 
       console.log('Parsed account info:', { accountName, entityName, accountType });
 
       if (accountType === 'asset') {
-        // Update asset balance
+        // Find matching cash asset with better matching logic
         const { data: assets, error: findError } = await supabase
           .from('assets')
           .select(`
             id,
+            name,
             value,
             entities!inner(name)
           `)
           .eq('user_id', session!.user.id)
-          .eq('type', 'cash')
-          .ilike('name', `%${accountName}%`);
+          .eq('type', 'cash');
 
         if (findError) {
           console.error('Error finding asset:', findError);
           return;
         }
 
-        const matchingAsset = assets?.find(asset => 
+        console.log('Found assets:', assets);
+
+        // Improved matching logic - try exact name match first, then partial
+        let matchingAsset = assets?.find(asset => 
+          asset.name.toLowerCase() === accountName.toLowerCase() && 
           asset.entities.name.toLowerCase().includes(entityName.toLowerCase())
-        ) || assets?.[0];
+        );
+
+        if (!matchingAsset) {
+          // Try partial name matching
+          matchingAsset = assets?.find(asset => 
+            asset.name.toLowerCase().includes(accountName.toLowerCase()) ||
+            accountName.toLowerCase().includes(asset.name.toLowerCase())
+          );
+        }
+
+        if (!matchingAsset && assets && assets.length > 0) {
+          // Fallback to first available cash asset
+          matchingAsset = assets[0];
+          console.log('Using fallback asset:', matchingAsset.name);
+        }
 
         if (matchingAsset) {
-          const newBalance = Number(matchingAsset.value) + amount;
+          const currentValue = Number(matchingAsset.value) || 0;
+          const newBalance = currentValue + amount;
+          
+          console.log(`Updating asset ${matchingAsset.name} from ${currentValue} to ${newBalance} (change: ${amount})`);
           
           const { error: updateError } = await supabase
             .from('assets')
@@ -78,34 +105,60 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
 
           if (updateError) {
             console.error('Error updating asset balance:', updateError);
+            toast({
+              title: "Balance Update Warning",
+              description: `Transaction saved but failed to update ${matchingAsset.name} balance.`,
+              variant: "destructive",
+            });
           } else {
-            console.log(`Updated asset ${matchingAsset.id} balance by ${amount} to ${newBalance}`);
+            console.log(`Successfully updated asset ${matchingAsset.name} balance to ${newBalance}`);
           }
+        } else {
+          console.warn('No matching asset found for:', accountName);
+          toast({
+            title: "Account Not Found",
+            description: `Could not find matching account for "${accountName}". Transaction saved but balance not updated.`,
+            variant: "destructive",
+          });
         }
       } else if (accountType === 'liability') {
-        // Update liability balance
+        // Find matching liability
         const { data: liabilities, error: findError } = await supabase
           .from('liabilities')
           .select(`
             id,
+            name,
             amount,
             entities!inner(name)
           `)
-          .eq('user_id', session!.user.id)
-          .ilike('name', `%${accountName}%`);
+          .eq('user_id', session!.user.id);
 
         if (findError) {
           console.error('Error finding liability:', findError);
           return;
         }
 
-        const matchingLiability = liabilities?.find(liability => 
+        console.log('Found liabilities:', liabilities);
+
+        let matchingLiability = liabilities?.find(liability => 
+          liability.name.toLowerCase() === accountName.toLowerCase() && 
           liability.entities.name.toLowerCase().includes(entityName.toLowerCase())
-        ) || liabilities?.[0];
+        );
+
+        if (!matchingLiability) {
+          matchingLiability = liabilities?.find(liability => 
+            liability.name.toLowerCase().includes(accountName.toLowerCase()) ||
+            accountName.toLowerCase().includes(liability.name.toLowerCase())
+          );
+        }
 
         if (matchingLiability) {
-          // For liabilities, positive amounts increase the debt, negative amounts decrease it
-          const newBalance = Number(matchingLiability.amount) + Math.abs(amount);
+          // For liabilities, we need to handle the amount correctly
+          // Positive transaction amounts typically increase the debt
+          const currentAmount = Number(matchingLiability.amount) || 0;
+          const newBalance = currentAmount + Math.abs(amount); // Always add to debt
+          
+          console.log(`Updating liability ${matchingLiability.name} from ${currentAmount} to ${newBalance}`);
           
           const { error: updateError } = await supabase
             .from('liabilities')
@@ -117,13 +170,25 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
 
           if (updateError) {
             console.error('Error updating liability balance:', updateError);
+            toast({
+              title: "Balance Update Warning",
+              description: `Transaction saved but failed to update ${matchingLiability.name} balance.`,
+              variant: "destructive",
+            });
           } else {
-            console.log(`Updated liability ${matchingLiability.id} balance by ${Math.abs(amount)} to ${newBalance}`);
+            console.log(`Successfully updated liability ${matchingLiability.name} balance to ${newBalance}`);
           }
+        } else {
+          console.warn('No matching liability found for:', accountName);
         }
       }
     } catch (error) {
       console.error('Error in updateAccountBalance:', error);
+      toast({
+        title: "Balance Update Error",
+        description: "An error occurred while updating account balance.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -181,19 +246,28 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
 
       console.log("Successfully inserted transactions:", data);
 
-      // Update account balances for each transaction
+      // Update account balances for each transaction with improved error handling
       toast({
         title: "Updating Balances",
         description: "Updating account balances...",
       });
 
-      const balanceUpdates = transactions.map(async (transaction) => {
+      let successfulUpdates = 0;
+      let failedUpdates = 0;
+
+      const balanceUpdatePromises = transactions.map(async (transaction) => {
         if (transaction.account && transaction.account !== 'Default Account') {
-          await updateAccountBalance(transaction.account, transaction.amount);
+          try {
+            await updateAccountBalance(transaction.account, transaction.amount);
+            successfulUpdates++;
+          } catch (error) {
+            console.error(`Failed to update balance for ${transaction.account}:`, error);
+            failedUpdates++;
+          }
         }
       });
 
-      await Promise.all(balanceUpdates);
+      await Promise.allSettled(balanceUpdatePromises); // Use allSettled to handle partial failures
       
       // Invalidate and refetch queries to update the UI immediately
       await queryClient.invalidateQueries({ queryKey: ['transactions'] });
@@ -202,9 +276,14 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
       await queryClient.invalidateQueries({ queryKey: ['accounts'] });
       await queryClient.invalidateQueries({ queryKey: ['netWorth'] });
       
+      // Provide detailed success message
+      const balanceMessage = failedUpdates > 0 
+        ? ` (${successfulUpdates} account balances updated, ${failedUpdates} failed)`
+        : ` and updated ${successfulUpdates} account balances`;
+
       toast({
         title: "Success",
-        description: `Successfully imported ${transactions.length} transaction${transactions.length !== 1 ? 's' : ''} and updated account balances.`,
+        description: `Successfully imported ${transactions.length} transaction${transactions.length !== 1 ? 's' : ''}${balanceMessage}.`,
       });
 
       onSuccess?.();
