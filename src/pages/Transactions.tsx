@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 import { PlusCircle } from "lucide-react"
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import ImportTransactions from "./ImportTransactions"
+import UnifiedCsvUpload from "@/components/transaction-forms/UnifiedCsvUpload"
 import { TransactionList } from "@/components/TransactionList"
 import { useAuth } from "@/contexts/AuthContext"
 import { useNavigate } from "react-router-dom"
@@ -56,12 +56,12 @@ const Transactions = () => {
                   Add Transaction
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Add New Transaction</DialogTitle>
+                  <DialogTitle>Upload Transactions</DialogTitle>
                 </DialogHeader>
                 <div className="mt-6">
-                  <ImportTransactions onSuccess={handleTransactionUploadSuccess} />
+                  <UnifiedCsvUpload onSuccess={handleTransactionUploadSuccess} />
                 </div>
               </DialogContent>
             </Dialog>
