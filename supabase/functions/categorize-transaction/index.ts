@@ -103,95 +103,130 @@ serve(async (req) => {
       });
     }
 
-    // Handle batch processing
+    // Handle batch processing - process ALL descriptions in one go
     if (batchMode && batchDescriptions.length > 0) {
-      console.log(`Processing batch of ${batchDescriptions.length} transactions`);
+      console.log(`Processing complete batch of ${batchDescriptions.length} transactions`);
       
       const results = [];
-      const batchSize = Math.min(30, batchDescriptions.length);
-      const currentBatch = batchDescriptions.slice(0, batchSize);
+      const descriptionsNeedingAI: string[] = [];
+      const aiIndexMap: number[] = []; // Maps AI array index to results array index
       
-      for (const desc of currentBatch) {
-        try {
-          // First check built-in rules (including Food Delivery)
-          const builtInCategory = enhancedBuiltInRules(desc);
-          if (builtInCategory) {
-            console.log(`Built-in rule matched: "${desc}" -> ${builtInCategory}`);
-            results.push({ description: desc, category: builtInCategory, source: 'builtin-rules' });
-            continue;
-          }
+      // First pass: Check built-in rules and database for all descriptions
+      for (let i = 0; i < batchDescriptions.length; i++) {
+        const desc = batchDescriptions[i];
+        
+        // Check built-in rules first
+        const builtInCategory = enhancedBuiltInRules(desc);
+        if (builtInCategory) {
+          console.log(`Built-in rule matched: "${desc}" -> ${builtInCategory}`);
+          results.push({ description: desc, category: builtInCategory, source: 'builtin-rules' });
+          continue;
+        }
 
-          // Check database for similar transactions if userId provided
-          let dbCategory = null;
-          if (userId) {
-            const supabase = createClient(
-              Deno.env.get('SUPABASE_URL') ?? '',
-              Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-            );
+        // Check database for similar transactions if userId provided
+        let dbCategory = null;
+        if (userId) {
+          const supabase = createClient(
+            Deno.env.get('SUPABASE_URL') ?? '',
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+          );
 
-            const keywords = desc.toLowerCase().split(/[\s\*]+/).filter((word: string) => word.length > 2);
-            
-            const { data: similarTransactions, error } = await supabase
-              .from('transactions')
-              .select('category, description')
-              .eq('user_id', userId)
-              .not('category', 'is', null)
-              .not('category', 'eq', 'Miscellaneous')
-              .not('category', 'eq', 'Other')
-              .limit(20);
+          const keywords = desc.toLowerCase().split(/[\s\*]+/).filter((word: string) => word.length > 2);
+          
+          const { data: similarTransactions, error } = await supabase
+            .from('transactions')
+            .select('category, description')
+            .eq('user_id', userId)
+            .not('category', 'is', null)
+            .not('category', 'eq', 'Miscellaneous')
+            .not('category', 'eq', 'Other')
+            .limit(20);
 
-            if (!error && similarTransactions && similarTransactions.length > 0) {
-              const matches = similarTransactions.filter((transaction: any) => {
-                const transactionWords = transaction.description.toLowerCase().split(/[\s\*]+/);
-                return keywords.some((keyword: string) => 
-                  transactionWords.some((word: string) => 
-                    word.includes(keyword) || keyword.includes(word)
-                  )
-                );
+          if (!error && similarTransactions && similarTransactions.length > 0) {
+            const matches = similarTransactions.filter((transaction: any) => {
+              const transactionWords = transaction.description.toLowerCase().split(/[\s\*]+/);
+              return keywords.some((keyword: string) => 
+                transactionWords.some((word: string) => 
+                  word.includes(keyword) || keyword.includes(word)
+                )
+              );
+            });
+
+            if (matches.length > 0) {
+              const categoryCount: Record<string, number> = {};
+              matches.forEach((transaction: any) => {
+                if (transaction.category) {
+                  categoryCount[transaction.category] = (categoryCount[transaction.category] || 0) + 1;
+                }
               });
 
-              if (matches.length > 0) {
-                const categoryCount: Record<string, number> = {};
-                matches.forEach((transaction: any) => {
-                  if (transaction.category) {
-                    categoryCount[transaction.category] = (categoryCount[transaction.category] || 0) + 1;
-                  }
-                });
-
-                dbCategory = Object.entries(categoryCount)
-                  .sort(([,a], [,b]) => (b as number) - (a as number))[0]?.[0];
-              }
+              dbCategory = Object.entries(categoryCount)
+                .sort(([,a], [,b]) => (b as number) - (a as number))[0]?.[0];
             }
           }
+        }
 
-          if (dbCategory) {
-            console.log(`Found similar transaction in DB: "${desc}" -> ${dbCategory}`);
-            results.push({ description: desc, category: dbCategory, source: 'database' });
-            continue;
-          }
+        if (dbCategory) {
+          console.log(`Found similar transaction in DB: "${desc}" -> ${dbCategory}`);
+          results.push({ description: desc, category: dbCategory, source: 'database' });
+          continue;
+        }
 
-          // Use AI categorization with model alternation
-          const aiCategory = await categorizeWithAI(desc);
-          results.push({ description: desc, category: aiCategory, source: 'ai' });
+        // Mark for AI processing
+        descriptionsNeedingAI.push(desc);
+        aiIndexMap.push(results.length);
+        results.push({ description: desc, category: null, source: null }); // Placeholder
+      }
+
+      // Second pass: Batch AI processing for remaining descriptions
+      if (descriptionsNeedingAI.length > 0) {
+        console.log(`Sending ${descriptionsNeedingAI.length} descriptions to AI for batch processing`);
+        
+        try {
+          const aiCategories = await batchCategorizeWithAI(descriptionsNeedingAI);
           
+          // Map AI results back to the results array
+          for (let i = 0; i < aiCategories.length; i++) {
+            const resultIndex = aiIndexMap[i];
+            if (resultIndex !== undefined) {
+              results[resultIndex] = {
+                description: descriptionsNeedingAI[i],
+                category: aiCategories[i],
+                source: 'ai'
+              };
+            }
+          }
         } catch (error) {
-          console.error(`Error processing "${desc}":`, error);
-          const fallbackCategory = enhancedBuiltInRules(desc) || 'Miscellaneous';
-          results.push({ description: desc, category: fallbackCategory, source: 'fallback-rules' });
+          console.error('AI batch processing failed:', error);
+          
+          // Fallback for AI failures
+          for (let i = 0; i < descriptionsNeedingAI.length; i++) {
+            const resultIndex = aiIndexMap[i];
+            if (resultIndex !== undefined) {
+              const fallbackCategory = enhancedBuiltInRules(descriptionsNeedingAI[i]) || 'Miscellaneous';
+              results[resultIndex] = {
+                description: descriptionsNeedingAI[i],
+                category: fallbackCategory,
+                source: 'fallback-rules'
+              };
+            }
+          }
         }
       }
 
+      console.log(`Batch processing completed: ${results.length} transactions processed`);
+      
       return new Response(JSON.stringify({ 
         results,
         processedCount: results.length,
-        remainingCount: Math.max(0, batchDescriptions.length - batchSize),
-        nextBatch: batchDescriptions.length > batchSize ? batchDescriptions.slice(batchSize) : []
+        remainingCount: 0,
+        nextBatch: []
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Single transaction processing
+    // Single transaction processing (unchanged)
     if (!description) {
       return new Response(JSON.stringify({ error: 'Description is required' }), {
         status: 400,
@@ -296,7 +331,93 @@ serve(async (req) => {
   }
 });
 
-// AI categorization helper function
+// Batch AI categorization helper function
+async function batchCategorizeWithAI(descriptions: string[]): Promise<string[]> {
+  const groqApiKey = Deno.env.get('VITE_GROQ_API_KEY');
+  if (!groqApiKey) {
+    console.error('VITE_GROQ_API_KEY not found in environment');
+    return descriptions.map(desc => enhancedBuiltInRules(desc) || 'Miscellaneous');
+  }
+
+  const prompt = `Categorize these transaction descriptions. Return ONLY a JSON array with the category names in the same order.
+
+Available categories: ${categories.join(', ')}
+
+Rules:
+- For UBER EATS or food delivery services, use "Food Delivery"
+- If it's dining at restaurants, cafes, use "Restaurants"
+- If it's fast food chains (McDonald's, KFC), use "Fast Food"
+- If it's a payment processor prefix like "SMP*" followed by a business name, focus on the business type
+- For fuel stations (Shell, BP, Caltex, etc.), use "Gas & Fuel"
+- For supermarkets (Woolworths, Coles, IGA, Aldi), use "Groceries"
+- For toll roads (Linkt, E-tag), use "Tolls"
+- If unsure, use "Miscellaneous"
+
+Transactions:
+${descriptions.map((desc, i) => `${i + 1}. ${desc}`).join('\n')}
+
+Return only the JSON array:`;
+
+  const model = getNextModel();
+  
+  try {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${groqApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.1,
+        max_tokens: 500,
+      }),
+    });
+
+    console.log(`Groq API batch response status: ${response.status} using model: ${model}`);
+
+    if (response.status === 429) {
+      console.log(`Rate limited by Groq API with model ${model}, using fallback rules`);
+      return descriptions.map(desc => enhancedBuiltInRules(desc) || 'Miscellaneous');
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Groq API error with model ${model}:`, errorText);
+      return descriptions.map(desc => enhancedBuiltInRules(desc) || 'Miscellaneous');
+    }
+
+    const data = await response.json();
+    const responseText = data.choices?.[0]?.message?.content?.trim();
+
+    if (responseText) {
+      try {
+        const parsedCategories = JSON.parse(responseText);
+        if (Array.isArray(parsedCategories) && parsedCategories.length === descriptions.length) {
+          const validCategories = parsedCategories.map(cat => 
+            categories.includes(cat) ? cat : 'Miscellaneous'
+          );
+          console.log(`AI batch categorized ${descriptions.length} transactions using model: ${model}`);
+          return validCategories;
+        }
+      } catch (parseError) {
+        console.error('Failed to parse AI response as JSON:', parseError);
+      }
+    }
+
+    console.warn(`AI returned invalid response using model ${model}, using fallback rules`);
+    return descriptions.map(desc => enhancedBuiltInRules(desc) || 'Miscellaneous');
+
+  } catch (error) {
+    console.error(`Error with AI batch categorization using model ${model}:`, error);
+    return descriptions.map(desc => enhancedBuiltInRules(desc) || 'Miscellaneous');
+  }
+}
+
+// AI categorization helper function (for single transactions)
 async function categorizeWithAI(description: string): Promise<string> {
   const groqApiKey = Deno.env.get('VITE_GROQ_API_KEY');
   if (!groqApiKey) {
