@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -280,11 +281,15 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
       await queryClient.invalidateQueries({ queryKey: ['transactions'] })
       await queryClient.invalidateQueries({ queryKey: ['assets'] })
 
-      // Auto-reset after showing completion
+      // Call the callback to notify parent component and close dialog
+      console.log('Calling onTransactionsUploaded callback')
+      onTransactionsUploaded(rawTransactions)
+
+      // Auto-reset after a short delay to show completion
       setTimeout(() => {
         console.log('Auto-resetting form after completion')
         resetForm()
-      }, 2000)
+      }, 1500)
 
     } catch (err) {
       console.error('Error in upload process:', err)

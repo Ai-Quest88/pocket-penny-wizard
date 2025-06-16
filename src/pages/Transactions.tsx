@@ -24,6 +24,11 @@ const Transactions = () => {
 
   console.log("Rendering Transactions component");
 
+  const handleTransactionUploadSuccess = () => {
+    console.log("Transaction upload completed successfully, closing dialog");
+    setIsAddingTransaction(false);
+  };
+
   return (
     <div className="p-8 min-h-screen bg-background">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -48,7 +53,7 @@ const Transactions = () => {
                   <DialogTitle>Add New Transaction</DialogTitle>
                 </DialogHeader>
                 <div className="mt-6">
-                  <ImportTransactions onSuccess={() => setIsAddingTransaction(false)} />
+                  <ImportTransactions onSuccess={handleTransactionUploadSuccess} />
                 </div>
               </DialogContent>
             </Dialog>

@@ -131,6 +131,8 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
         description: `Successfully imported ${transactions.length} transaction${transactions.length !== 1 ? 's' : ''}. Account balances will update automatically.`,
       });
 
+      // Call the success callback to close the dialog
+      console.log("Calling onSuccess callback to close dialog");
       onSuccess?.();
     } catch (error) {
       console.error('Error saving transactions:', error);
