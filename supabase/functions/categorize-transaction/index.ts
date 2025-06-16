@@ -21,6 +21,46 @@ const categories = [
   'Cryptocurrency', 'Fast Food', 'Public Transport', 'Tolls'
 ];
 
+// Enhanced built-in rules for common patterns
+const enhancedBuiltInRules = (description: string): string | null => {
+  const lowerDesc = description.toLowerCase();
+  
+  // Food establishments - expanded patterns
+  if (lowerDesc.includes('kebab') || lowerDesc.includes('pizza') || lowerDesc.includes('burger') ||
+      lowerDesc.includes('cafe') || lowerDesc.includes('coffee') || lowerDesc.includes('restaurant') ||
+      lowerDesc.includes('bakery') || lowerDesc.includes('bake') || lowerDesc.includes('donut') ||
+      lowerDesc.includes('mcdonalds') || lowerDesc.includes('kfc') || lowerDesc.includes('subway') ||
+      lowerDesc.includes('dominos') || lowerDesc.includes('hungry jacks') || lowerDesc.includes('red rooster')) {
+    return 'Restaurants';
+  }
+  
+  // Fast food chains and takeaway prefixes
+  if (lowerDesc.includes('smp*') && (lowerDesc.includes('kebab') || lowerDesc.includes('bake') || 
+      lowerDesc.includes('pizza') || lowerDesc.includes('burger'))) {
+    return 'Fast Food';
+  }
+  
+  // Australian toll roads and transport
+  if (lowerDesc.includes('linkt') || lowerDesc.includes('e-tag') || lowerDesc.includes('etag')) {
+    return 'Tolls';
+  }
+  
+  // Fuel stations
+  if (lowerDesc.includes('caltex') || lowerDesc.includes('shell') || lowerDesc.includes('bp ') || 
+      lowerDesc.includes('7-eleven') || lowerDesc.includes('united petroleum') || 
+      lowerDesc.includes('mobil') || lowerDesc.includes('ampol')) {
+    return 'Gas & Fuel';
+  }
+  
+  // Australian supermarkets
+  if (lowerDesc.includes('woolworths') || lowerDesc.includes('coles') || 
+      lowerDesc.includes('iga ') || lowerDesc.includes('aldi')) {
+    return 'Groceries';
+  }
+  
+  return null;
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -45,7 +85,16 @@ serve(async (req) => {
 
     console.log(`Categorizing transaction: "${description}"`);
 
-    // Check database for similar transactions first (if userId provided)
+    // First check built-in rules (highest priority for common patterns)
+    const builtInCategory = enhancedBuiltInRules(description);
+    if (builtInCategory) {
+      console.log(`Built-in rule matched: "${description}" -> ${builtInCategory}`);
+      return new Response(JSON.stringify({ category: builtInCategory, source: 'builtin-rules' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Check database for similar transactions if userId provided
     if (userId) {
       console.log(`Checking database for similar transactions for user: ${userId}`);
       
@@ -99,7 +148,7 @@ serve(async (req) => {
       }
     }
 
-    // If no DB match found, use AI categorization
+    // If no DB match found, try AI categorization
     console.log(`No DB match found, using AI for: "${description}"`);
     
     const groqApiKey = Deno.env.get('VITE_GROQ_API_KEY');
@@ -136,7 +185,7 @@ Category:`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.1-70b-versatile',
+        model: 'llama-3.1-8b-instant', // Updated to a supported model
         messages: [
           { role: 'user', content: prompt }
         ],
@@ -148,17 +197,17 @@ Category:`;
     console.log(`Groq API response status: ${response.status}`);
 
     if (response.status === 429) {
-      console.log('Rate limited by Groq API, will retry later');
+      console.log('Rate limited by Groq API, using fallback rules');
+      const fallbackCategory = enhancedBuiltInRules(description) || 'Miscellaneous';
       return new Response(JSON.stringify({ 
-        error: 'Rate limited', 
-        category: 'Miscellaneous',
+        category: fallbackCategory,
+        source: 'fallback-rules',
         retryAfter: 60
       }), {
-        status: 429,
+        status: 200, // Return 200 instead of 429 to avoid retry loops
         headers: { 
           ...corsHeaders, 
-          'Content-Type': 'application/json',
-          'Retry-After': '60'
+          'Content-Type': 'application/json'
         },
       });
     }
@@ -166,11 +215,17 @@ Category:`;
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Groq API error:', errorText);
+      
+      // For any API error (including model deprecation), fall back to built-in rules
+      const fallbackCategory = enhancedBuiltInRules(description) || 'Miscellaneous';
+      console.log(`AI failed, using fallback rules: "${description}" -> ${fallbackCategory}`);
+      
       return new Response(JSON.stringify({ 
-        error: `Groq API error: ${response.status}`,
-        category: 'Miscellaneous'
+        category: fallbackCategory,
+        source: 'fallback-rules',
+        error: `Groq API error: ${response.status}`
       }), {
-        status: response.status,
+        status: 200, // Return 200 to avoid retry loops
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -185,20 +240,38 @@ Category:`;
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     } else {
-      console.warn(`AI returned invalid category "${category}", using Miscellaneous`);
-      return new Response(JSON.stringify({ category: 'Miscellaneous', source: 'fallback' }), {
+      console.warn(`AI returned invalid category "${category}", using fallback rules`);
+      const fallbackCategory = enhancedBuiltInRules(description) || 'Miscellaneous';
+      return new Response(JSON.stringify({ category: fallbackCategory, source: 'fallback-rules' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
   } catch (error) {
     console.error('Error in categorize-transaction function:', error);
-    return new Response(JSON.stringify({ 
-      error: error.message || 'Unknown error',
-      category: 'Miscellaneous'
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    
+    // Always try fallback rules before giving up
+    try {
+      const { description } = await req.json();
+      const fallbackCategory = enhancedBuiltInRules(description) || 'Miscellaneous';
+      console.log(`Exception occurred, using fallback rules: "${description}" -> ${fallbackCategory}`);
+      
+      return new Response(JSON.stringify({ 
+        category: fallbackCategory,
+        source: 'fallback-rules',
+        error: error.message || 'Unknown error'
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } catch (parseError) {
+      return new Response(JSON.stringify({ 
+        error: error.message || 'Unknown error',
+        category: 'Miscellaneous'
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
   }
 });
