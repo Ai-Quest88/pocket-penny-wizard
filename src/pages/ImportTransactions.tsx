@@ -1,166 +1,272 @@
-
-import { CsvUploadForm } from "@/components/transaction-forms/CsvUploadForm";
-import { Transaction } from "@/types/transaction-forms";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { ChangeEvent, useState } from "react";
+import { useDropzone } from "react-dropzone";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/use-toast";
+import { usePapaParse } from 'react-papaparse';
 import { useAuth } from "@/contexts/AuthContext";
-import { categorizeBatchTransactions } from "@/utils/transactionCategories";
-import { initializeAIClassifier } from "@/utils/aiCategorization";
-import { useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { categories } from "@/types/transaction-forms";
+import { supabase } from "@/integrations/supabase/client";
+import { categorizeTransactionsBatch } from "@/utils/aiCategorization";
 
 interface ImportTransactionsProps {
   onSuccess?: () => void;
 }
 
-export default function ImportTransactions({ onSuccess }: ImportTransactionsProps) {
-  const { toast } = useToast();
+interface CSVRow {
+  date: string;
+  description: string;
+  amount: string;
+  currency: string;
+}
+
+const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [headerMappings, setHeaderMappings] = useState<{ [key: string]: string }>({
+    date: '',
+    description: '',
+    amount: '',
+    currency: '',
+  });
+  const [isMappingHeaders, setIsMappingHeaders] = useState(false);
+  const [previewData, setPreviewData] = useState<CSVRow[]>([]);
   const { session } = useAuth();
-  const queryClient = useQueryClient();
+  const { readString } = usePapaParse();
+  const [uploading, setUploading] = useState(false);
 
-  // Initialize AI classifier when component mounts
-  useEffect(() => {
-    initializeAIClassifier().catch(error => {
-      console.warn('Failed to initialize AI classifier:', error);
+  const onDrop = (acceptedFiles: File[]) => {
+    setCsvFile(acceptedFiles[0]);
+    setIsMappingHeaders(true);
+    parseCSV(acceptedFiles[0]);
+  };
+
+  const { getRootProps, getInputProps } = useDropzone({ onDrop, accept: { 'text/csv': ['.csv'] } });
+
+  const parseCSV = (file: File) => {
+    readString(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        if (results.data && results.data.length > 0) {
+          // Limit preview data to first 5 rows
+          setPreviewData(results.data.slice(0, 5) as CSVRow[]);
+        } else {
+          toast({
+            title: "Error parsing CSV",
+            description: "No data found in the CSV file.",
+            variant: "destructive",
+          });
+          setIsMappingHeaders(false);
+        }
+      },
+      error: (error) => {
+        toast({
+          title: "Error parsing CSV",
+          description: error.message,
+          variant: "destructive",
+        });
+        setIsMappingHeaders(false);
+      },
     });
-  }, []);
+  };
 
-  const handleTransactionsUploaded = async (transactions: Omit<Transaction, 'id'>[]) => {
-    console.log("Transactions uploaded:", transactions);
-    
-    if (!session?.user) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to upload transactions.",
-        variant: "destructive",
-      });
+  const handleHeaderMappingChange = (header: string, field: string) => {
+    setHeaderMappings(prev => ({ ...prev, [field]: header }));
+  };
+
+  const validateMappings = () => {
+    const requiredFields = ['date', 'description', 'amount', 'currency'];
+    return requiredFields.every(field => headerMappings[field] !== '');
+  };
+
+  const handleUpload = async () => {
+    if (!session?.user?.id) {
+      toast.error("Please log in to upload transactions");
       return;
     }
 
-    // Validate that transactions have proper account associations
-    const transactionsWithoutAccounts = transactions.filter(t => 
-      !t.account || t.account === 'Default Account' || t.account.trim() === ''
-    );
+    if (!validateMappings()) {
+      toast.error("Please map all required headers");
+      return;
+    }
 
-    if (transactionsWithoutAccounts.length > 0) {
-      toast({
-        title: "Account Selection Required",
-        description: `${transactionsWithoutAccounts.length} transaction(s) don't have accounts selected. Please select an account for all transactions.`,
-        variant: "destructive",
-      });
+    if (!csvFile) {
+      toast.error("No CSV file selected");
+      return;
+    }
+
+    setUploading(true);
+
+    readString(csvFile, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        if (!results.data || results.data.length === 0) {
+          toast.error("No data found in the CSV file.");
+          setUploading(false);
+          return;
+        }
+
+        const transactions = results.data.map((row: any) => ({
+          date: row[headerMappings.date],
+          description: row[headerMappings.description],
+          amount: parseFloat(row[headerMappings.amount]),
+          currency: row[headerMappings.currency],
+        }));
+
+        await handleTransactionsUploaded(transactions);
+        setUploading(false);
+      },
+      error: (error) => {
+        toast({
+          title: "Error parsing CSV",
+          description: error.message,
+          variant: "destructive",
+        });
+        setUploading(false);
+      },
+    });
+  };
+
+  const handleTransactionsUploaded = async (transactions: any[]) => {
+    if (!session?.user?.id) {
+      toast.error("Please log in to upload transactions");
       return;
     }
 
     try {
-      toast({
-        title: "Processing",
-        description: `Categorizing ${transactions.length} transactions with AI in batches...`,
-      });
+      console.log(`Processing ${transactions.length} uploaded transactions`);
 
-      // Extract descriptions for batch categorization
+      // Get account balances for account mapping
+      const { data: accounts } = await supabase
+        .from('accounts')
+        .select('id, name, type')
+        .eq('user_id', session.user.id);
+
+      // Categorize transactions in batch
       const descriptions = transactions.map(t => t.description);
+      console.log("Starting batch categorization for uploaded transactions");
       
-      // Process in batches with retry logic, now passing userId for database lookups
-      const categories = await categorizeBatchTransactions(descriptions, session.user.id, 3, 2);
+      const categories = await categorizeTransactionsBatch(descriptions, session.user.id);
+      console.log("Batch categorization completed");
 
-      // Get account mapping for account names to IDs
-      const { data: assets, error: assetsError } = await supabase
-        .from('assets')
-        .select('id, name, entities!inner(name)')
-        .eq('user_id', session.user.id)
-        .eq('type', 'cash');
+      // Prepare transactions with categories and account IDs
+      const transactionsWithCategories = transactions.map((transaction, index) => ({
+        ...transaction,
+        category: categories[index],
+        user_id: session.user.id,
+        account_id: accounts?.[0]?.id || null,
+      }));
 
-      if (assetsError) {
-        console.error('Error fetching assets for account mapping:', assetsError);
-        throw assetsError;
+      console.log(`Inserting transactions to database with AI categories and account IDs: ${transactionsWithCategories.length}`);
+
+      // Use the new duplicate checking insertion method
+      const { insertTransactionsWithDuplicateCheck } = await import('@/components/transaction-forms/csv-upload/helpers/transactionInsertion');
+      const result = await insertTransactionsWithDuplicateCheck(transactionsWithCategories);
+
+      console.log(`Successfully processed transactions: ${result.inserted} new, ${result.duplicates} duplicates skipped`);
+
+      if (result.inserted > 0) {
+        toast.success(`Successfully uploaded ${result.inserted} transactions${result.duplicates > 0 ? ` (${result.duplicates} duplicates skipped)` : ''}`);
+      } else if (result.duplicates > 0) {
+        toast.info(`All ${result.duplicates} transactions were duplicates and skipped`);
+      } else {
+        toast.error("No transactions were uploaded");
       }
 
-      // Prepare transactions for database insertion with AI categorization and account_id
-      const transactionsForDb = transactions.map((transaction, index) => {
-        // Find the matching account ID based on the account string
-        let accountId = null;
-        if (transaction.account && transaction.account !== 'Default Account') {
-          const matchingAsset = assets.find(asset => 
-            transaction.account.includes(asset.name) && 
-            transaction.account.includes(asset.entities.name)
-          );
-          accountId = matchingAsset?.id || null;
-        }
-
-        return {
-          user_id: session.user.id,
-          description: transaction.description,
-          amount: transaction.amount,
-          category: categories[index] || 'Miscellaneous',
-          date: transaction.date,
-          currency: transaction.currency,
-          comment: transaction.comment || null,
-          account_id: accountId,
-        };
-      });
-
-      console.log("Inserting transactions to database with AI categories and account IDs:", transactionsForDb.length);
-
-      const { data, error } = await supabase
-        .from('transactions')
-        .insert(transactionsForDb)
-        .select();
-
-      if (error) {
-        console.error('Error inserting transactions:', error);
-        toast({
-          title: "Error",
-          description: `Failed to save transactions: ${error.message}`,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      console.log("Successfully inserted transactions:", data?.length);
-
-      // Invalidate and refetch queries to update the UI with new dynamic balances
-      await queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      await queryClient.invalidateQueries({ queryKey: ['assets'] });
-      await queryClient.invalidateQueries({ queryKey: ['liabilities'] });
-      await queryClient.invalidateQueries({ queryKey: ['accounts'] });
-      await queryClient.invalidateQueries({ queryKey: ['account-balances'] });
-      await queryClient.invalidateQueries({ queryKey: ['netWorth'] });
-      
-      toast({
-        title: "Success",
-        description: `Successfully imported ${transactions.length} transaction${transactions.length !== 1 ? 's' : ''}. Account balances will update automatically.`,
-      });
-
-      // Call the success callback to close the dialog
       console.log("Calling onSuccess callback to close dialog");
       if (onSuccess) {
         onSuccess();
       }
     } catch (error) {
-      console.error('Error saving transactions:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred while saving transactions.",
-        variant: "destructive",
-      });
-      
-      // Even on error, we might want to close the dialog depending on the error type
-      // For now, we'll leave it open so user can retry
+      console.error("Error uploading transactions:", error);
+      toast.error("Failed to upload transactions");
     }
   };
 
-  console.log("ImportTransactions component rendering");
-
   return (
-    <div className="space-y-6 p-4">
-      <div className="space-y-2">
-        <h2 className="text-2xl font-semibold">Import Transactions</h2>
-        <p className="text-muted-foreground">
-          Upload a CSV file to import your transactions. <strong>You must select an account</strong> from your Assets or Liabilities for all transactions to be properly imported. Account balances will be calculated automatically from your transactions.
+    <div>
+      <div {...getRootProps()} className="border-2 border-dashed rounded-md p-4 cursor-pointer bg-muted hover:bg-accent">
+        <input {...getInputProps()} />
+        <p className="text-center text-muted-foreground">
+          Drag 'n' drop some files here, or click to select files
         </p>
       </div>
-      
-      <CsvUploadForm onTransactionsUploaded={handleTransactionsUploaded} />
+
+      {isMappingHeaders && (
+        <div className="mt-4">
+          <h2 className="text-lg font-semibold">Map CSV Headers</h2>
+          <p className="text-sm text-muted-foreground">
+            Please map the columns from your CSV to the corresponding fields.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+            <div>
+              <Label htmlFor="date">Date</Label>
+              <Select onValueChange={(value) => handleHeaderMappingChange(value, 'date')}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select header" />
+                </SelectTrigger>
+                <SelectContent>
+                  {previewData.length > 0 && Object.keys(previewData[0]).map((header) => (
+                    <SelectItem key={header} value={header}>{header}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="description">Description</Label>
+              <Select onValueChange={(value) => handleHeaderMappingChange(value, 'description')}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select header" />
+                </SelectTrigger>
+                <SelectContent>
+                  {previewData.length > 0 && Object.keys(previewData[0]).map((header) => (
+                    <SelectItem key={header} value={header}>{header}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="amount">Amount</Label>
+              <Select onValueChange={(value) => handleHeaderMappingChange(value, 'amount')}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select header" />
+                </SelectTrigger>
+                <SelectContent>
+                  {previewData.length > 0 && Object.keys(previewData[0]).map((header) => (
+                    <SelectItem key={header} value={header}>{header}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="currency">Currency</Label>
+              <Select onValueChange={(value) => handleHeaderMappingChange(value, 'currency')}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select header" />
+                </SelectTrigger>
+                <SelectContent>
+                  {previewData.length > 0 && Object.keys(previewData[0]).map((header) => (
+                    <SelectItem key={header} value={header}>{header}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <Button onClick={handleUpload} disabled={uploading} className="mt-4">
+            {uploading ? "Uploading..." : "Upload Transactions"}
+          </Button>
+        </div>
+      )}
     </div>
   );
-}
+};
+
+export default ImportTransactions;
