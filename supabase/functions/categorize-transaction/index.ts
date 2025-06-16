@@ -23,8 +23,8 @@ const categories = [
 
 // Available models - use more reliable models
 const MODELS = [
-  'meta-llama/llama-4-scout-17b-16e-instruct',
-  'deepseek-r1-distill-llama-70b'
+  'llama-3.1-70b-versatile',
+  'llama-3.1-8b-instant'
 ];
 
 // Track model usage (simple rotation)
@@ -292,7 +292,7 @@ async function findSimilarTransactionInDB(description: string, userId: string): 
   }
 }
 
-// AI categorization helper function with improved prompts and response parsing
+// AI categorization helper function with fixed Groq API parameters
 async function categorizeWithAI(description: string): Promise<string> {
   const groqApiKey = Deno.env.get('VITE_GROQ_API_KEY');
   if (!groqApiKey) {
@@ -300,24 +300,18 @@ async function categorizeWithAI(description: string): Promise<string> {
     throw new Error('AI API key not configured');
   }
 
-  const prompt = `You must categorize this transaction: "${description}"
-
-STRICT RULES:
-1. You MUST respond with ONLY ONE of these exact categories (case-sensitive):
+  const prompt = `Categorize this transaction into exactly one of these categories:
 ${categories.join(', ')}
 
-2. DO NOT include any explanation, reasoning, or additional text
-3. DO NOT use thinking tags or brackets
-4. Respond with EXACTLY ONE category name from the list above
+Transaction: "${description}"
 
 Examples:
-- WOOLWORTHS -> Groceries
-- TRANSPORTFORNSW OPAL -> Public Transport
-- AMPOL PARKLEA -> Gas & Fuel
-- BUNNINGS -> Home & Garden
+- "WOOLWORTHS 1348 GLENWOOD AUS" -> Groceries
+- "TRANSPORTFORNSW OPAL CHIPPENDALE" -> Public Transport  
+- "BUNNINGS 746000 SEVEN HILLS" -> Home & Garden
+- "AMPOL PARKLEA GLENWOOD" -> Gas & Fuel
 
-Transaction: "${description}"
-Category:`;
+Respond with ONLY the category name, nothing else.`;
 
   const model = getNextModel();
   
@@ -333,9 +327,9 @@ Category:`;
         messages: [
           { role: 'user', content: prompt }
         ],
-        temperature: 0.0,
-        max_tokens: 30,
-        stop: ['\n', '.', ',', '!', '?'],
+        temperature: 0.1,
+        max_tokens: 20,
+        stop: "\n"
       }),
     });
 

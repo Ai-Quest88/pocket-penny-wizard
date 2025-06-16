@@ -86,13 +86,16 @@ export const TransactionList = ({ entityId, showBalance = true, readOnly = false
       
       console.log('Fetched transactions:', data?.length);
 
-      // Only process transactions that have NO category at all or are completely empty
-      // DO NOT re-process transactions that already have any category assigned
+      // Only process transactions that have NO category at all or are null/empty string
+      // DO NOT re-process transactions that already have any valid category assigned
       const transactionsToUpdate = data.filter(
-        transaction => !transaction.category || transaction.category.trim() === ''
+        transaction => !transaction.category || 
+                     transaction.category === null || 
+                     transaction.category.trim() === '' ||
+                     transaction.category === 'undefined'
       );
 
-      console.log(`Found ${transactionsToUpdate.length} transactions that need initial categorization`);
+      console.log(`Found ${transactionsToUpdate.length} transactions that need initial categorization (out of ${data.length} total)`);
 
       if (transactionsToUpdate.length > 0) {
         // Process only the transactions that actually need updating
