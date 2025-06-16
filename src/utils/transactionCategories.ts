@@ -1,3 +1,4 @@
+
 import { categorizeTransactionWithAI } from './aiCategorization';
 import { categories } from '@/types/transaction-forms';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,7 +34,6 @@ export const categorizeByBuiltInRules = (description: string): string | null => 
     return 'Taxes';
   }
   
-  // Let AI handle everything else, including transport, food, shopping, etc.
   return null;
 };
 
@@ -131,7 +131,7 @@ export const loadUserCategoryRules = () => {
 // Utility function to delay execution
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-// AI-first batch process function
+// Batch process function with correct priority order
 export const categorizeBatchTransactions = async (
   descriptions: string[], 
   userId: string,
@@ -160,63 +160,72 @@ export const categorizeBatchTransactions = async (
   return results;
 };
 
-// Main AI-first categorization function
+// Main categorization function with correct priority order
 export const categorizeTransaction = async (description: string, userId?: string): Promise<string> => {
-  console.log(`AI-first categorizing: "${description}"`);
+  console.log(`Categorizing with priority order: "${description}"`);
   
-  // First check user-defined rules (highest priority for user preferences)
+  // Priority 1: User-defined rules (highest priority for user preferences)
   const lowerDescription = description.toLowerCase();
   for (const rule of userDefinedRules) {
     if (rule.keywords.some(keyword => lowerDescription.includes(keyword))) {
-      console.log(`Matched user rule: "${description}" -> ${rule.category}`);
+      console.log(`Priority 1 - User rule matched: "${description}" -> ${rule.category}`);
       return rule.category;
     }
   }
 
-  // Check existing similar transactions in database if userId is provided
+  // Priority 2: Database lookup (similar past transactions) if userId is provided
   if (userId) {
     const similarCategory = await findSimilarTransactionCategory(description, userId);
     if (similarCategory) {
+      console.log(`Priority 2 - Database lookup matched: "${description}" -> ${similarCategory}`);
       return similarCategory;
     }
   }
 
-  // Use AI as primary categorization method
+  // Priority 3: AI categorization (primary method)
   try {
     const aiCategory = await categorizeTransactionWithAI(description);
-    console.log(`AI categorized: "${description}" -> ${aiCategory}`);
+    console.log(`Priority 3 - AI categorized: "${description}" -> ${aiCategory}`);
     
     if (categories.includes(aiCategory)) {
       return aiCategory;
-    } else {
-      console.warn(`AI returned invalid category "${aiCategory}", checking essential rules`);
-      // Only check essential rules as fallback
-      const essentialCategory = categorizeByBuiltInRules(description);
-      return essentialCategory || 'Miscellaneous';
     }
   } catch (error) {
-    console.warn('AI categorization failed, using essential rules fallback:', error);
-    const essentialCategory = categorizeByBuiltInRules(description);
-    return essentialCategory || 'Miscellaneous';
+    console.warn('AI categorization failed, continuing to next priority:', error);
   }
+
+  // Priority 4: Essential built-in rules (only for transfers/taxes)
+  const essentialCategory = categorizeByBuiltInRules(description);
+  if (essentialCategory) {
+    console.log(`Priority 4 - Essential rule matched: "${description}" -> ${essentialCategory}`);
+    return essentialCategory;
+  }
+
+  // Priority 5: Miscellaneous (fallback)
+  console.log(`Priority 5 - Fallback: "${description}" -> Miscellaneous`);
+  return 'Miscellaneous';
 };
 
 // Synchronous version for backward compatibility
 export const categorizeTransactionSync = (description: string): string => {
+  // Priority 1: User-defined rules
   const lowerDescription = description.toLowerCase();
   for (const rule of userDefinedRules) {
     if (rule.keywords.some(keyword => lowerDescription.includes(keyword))) {
-      console.log(`Matched user rule (sync): "${description}" -> ${rule.category}`);
+      console.log(`Sync Priority 1 - User rule matched: "${description}" -> ${rule.category}`);
       return rule.category;
     }
   }
   
+  // Priority 2: Essential built-in rules (skip DB and AI in sync mode)
   const essentialCategory = categorizeByBuiltInRules(description);
   if (essentialCategory) {
+    console.log(`Sync Priority 2 - Essential rule matched: "${description}" -> ${essentialCategory}`);
     return essentialCategory;
   }
   
-  console.log(`No rule match found for: "${description}" -> Miscellaneous`);
+  // Priority 3: Miscellaneous (fallback)
+  console.log(`Sync Priority 3 - Fallback: "${description}" -> Miscellaneous`);
   return 'Miscellaneous';
 };
 
