@@ -1,4 +1,3 @@
-
 import { categorizeTransactionWithAI } from './aiCategorization';
 import { categories } from '@/types/transaction-forms';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,71 +13,27 @@ let userDefinedRules: CategoryRule[] = [];
 // Export the comprehensive categories array from transaction-forms
 export { categories };
 
-// Enhanced rule-based categorization with food delivery support
+// Minimal essential rules for critical financial categories only
 export const categorizeByBuiltInRules = (description: string): string | null => {
   const lowerDesc = description.toLowerCase();
   
-  // Food delivery services - highest priority for consistent categorization
-  if (lowerDesc.includes('uber') && lowerDesc.includes('eats')) {
-    console.log(`Built-in rule matched: "${description}" -> Food Delivery`);
-    return 'Food Delivery';
-  }
-  
-  if (lowerDesc.includes('doordash') || lowerDesc.includes('deliveroo') || 
-      lowerDesc.includes('menulog') || lowerDesc.includes('food delivery') ||
-      lowerDesc.includes('grubhub') || lowerDesc.includes('skip the dishes')) {
-    console.log(`Built-in rule matched: "${description}" -> Food Delivery`);
-    return 'Food Delivery';
-  }
-  
-  // Government and tax payments
-  if (lowerDesc.includes('revenue') || lowerDesc.includes('tax office') || 
-      lowerDesc.includes('ato') || lowerDesc.includes('act revenue') || 
-      lowerDesc.includes('nsw revenue') || lowerDesc.includes('vic revenue')) {
-    console.log(`Built-in rule matched: "${description}" -> Taxes`);
-    return 'Taxes';
-  }
-  
-  // Australian toll roads and transport
-  if (lowerDesc.includes('linkt') || lowerDesc.includes('e-tag') || lowerDesc.includes('etag') || 
-      lowerDesc.includes('transurban') || lowerDesc.includes('toll')) {
-    console.log(`Built-in rule matched: "${description}" -> Tolls`);
-    return 'Tolls';
-  }
-  
-  // Fuel stations
-  if (lowerDesc.includes('caltex') || lowerDesc.includes('shell') || lowerDesc.includes('bp ') || 
-      lowerDesc.includes('7-eleven') || lowerDesc.includes('united petroleum') || 
-      lowerDesc.includes('mobil') || lowerDesc.includes('ampol') || lowerDesc.includes('fuel') || 
-      lowerDesc.includes('petrol') || lowerDesc.includes('gas station')) {
-    console.log(`Built-in rule matched: "${description}" -> Gas & Fuel`);
-    return 'Gas & Fuel';
-  }
-  
-  // Australian supermarkets
-  if (lowerDesc.includes('woolworths') || lowerDesc.includes('coles') || 
-      lowerDesc.includes('iga ') || lowerDesc.includes('aldi') || lowerDesc.includes('supermarket')) {
-    console.log(`Built-in rule matched: "${description}" -> Groceries`);
-    return 'Groceries';
-  }
-  
-  // Bank transfers
+  // Only keep absolute essentials that should never be miscategorized
+  // Bank transfers - these are critical for financial accuracy
   if (lowerDesc.includes('transfer to') || lowerDesc.includes('transfer from') ||
       lowerDesc.includes('bpay') || lowerDesc.includes('direct credit')) {
-    console.log(`Built-in rule matched: "${description}" -> Transfer`);
+    console.log(`Essential rule matched: "${description}" -> Transfer`);
     return 'Transfer';
   }
   
-  // Public transport - Enhanced to catch NSW Transport, Opal, and other transport cards
-  if (lowerDesc.includes('opal') || lowerDesc.includes('myki') || lowerDesc.includes('go card') ||
-      lowerDesc.includes('transportfornsw') || lowerDesc.includes('transport for nsw') ||
-      lowerDesc.includes('translink') || lowerDesc.includes('ptv') ||
-      lowerDesc.includes('transport') || lowerDesc.includes('train') || lowerDesc.includes('bus') ||
-      lowerDesc.includes('metro') || lowerDesc.includes('ferry') || lowerDesc.includes('tram')) {
-    console.log(`Built-in rule matched: "${description}" -> Public Transport`);
-    return 'Public Transport';
+  // Government and tax payments - critical for tax purposes
+  if (lowerDesc.includes('revenue') || lowerDesc.includes('tax office') || 
+      lowerDesc.includes('ato') || lowerDesc.includes('act revenue') || 
+      lowerDesc.includes('nsw revenue') || lowerDesc.includes('vic revenue')) {
+    console.log(`Essential rule matched: "${description}" -> Taxes`);
+    return 'Taxes';
   }
   
+  // Let AI handle everything else, including transport, food, shopping, etc.
   return null;
 };
 
@@ -176,7 +131,7 @@ export const loadUserCategoryRules = () => {
 // Utility function to delay execution
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Legacy batch process function (kept for compatibility but not used in optimized flow)
+// AI-first batch process function
 export const categorizeBatchTransactions = async (
   descriptions: string[], 
   userId: string,
@@ -205,17 +160,11 @@ export const categorizeBatchTransactions = async (
   return results;
 };
 
-// Main categorization function with enhanced rule checking
+// Main AI-first categorization function
 export const categorizeTransaction = async (description: string, userId?: string): Promise<string> => {
-  console.log(`Categorizing: "${description}"`);
+  console.log(`AI-first categorizing: "${description}"`);
   
-  // First check built-in rules (highest priority)
-  const builtInCategory = categorizeByBuiltInRules(description);
-  if (builtInCategory) {
-    return builtInCategory;
-  }
-  
-  // Then check user-defined rules
+  // First check user-defined rules (highest priority for user preferences)
   const lowerDescription = description.toLowerCase();
   for (const rule of userDefinedRules) {
     if (rule.keywords.some(keyword => lowerDescription.includes(keyword))) {
@@ -232,6 +181,7 @@ export const categorizeTransaction = async (description: string, userId?: string
     }
   }
 
+  // Use AI as primary categorization method
   try {
     const aiCategory = await categorizeTransactionWithAI(description);
     console.log(`AI categorized: "${description}" -> ${aiCategory}`);
@@ -239,28 +189,31 @@ export const categorizeTransaction = async (description: string, userId?: string
     if (categories.includes(aiCategory)) {
       return aiCategory;
     } else {
-      console.warn(`AI returned invalid category "${aiCategory}", using Miscellaneous`);
-      return 'Miscellaneous';
+      console.warn(`AI returned invalid category "${aiCategory}", checking essential rules`);
+      // Only check essential rules as fallback
+      const essentialCategory = categorizeByBuiltInRules(description);
+      return essentialCategory || 'Miscellaneous';
     }
   } catch (error) {
-    console.warn('AI categorization failed:', error);
-    return 'Miscellaneous';
+    console.warn('AI categorization failed, using essential rules fallback:', error);
+    const essentialCategory = categorizeByBuiltInRules(description);
+    return essentialCategory || 'Miscellaneous';
   }
 };
 
 // Synchronous version for backward compatibility
 export const categorizeTransactionSync = (description: string): string => {
-  const builtInCategory = categorizeByBuiltInRules(description);
-  if (builtInCategory) {
-    return builtInCategory;
-  }
-  
   const lowerDescription = description.toLowerCase();
   for (const rule of userDefinedRules) {
     if (rule.keywords.some(keyword => lowerDescription.includes(keyword))) {
       console.log(`Matched user rule (sync): "${description}" -> ${rule.category}`);
       return rule.category;
     }
+  }
+  
+  const essentialCategory = categorizeByBuiltInRules(description);
+  if (essentialCategory) {
+    return essentialCategory;
   }
   
   console.log(`No rule match found for: "${description}" -> Miscellaneous`);
