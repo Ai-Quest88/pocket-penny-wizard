@@ -45,6 +45,26 @@ const CATEGORIES = [
 const categorizeByRules = (description: string): string | null => {
   const lowerDesc = description.toLowerCase();
   
+  // Food establishments - expanded patterns
+  if (lowerDesc.includes('kebab') || lowerDesc.includes('pizza') || lowerDesc.includes('burger') ||
+      lowerDesc.includes('cafe') || lowerDesc.includes('coffee') || lowerDesc.includes('restaurant') ||
+      lowerDesc.includes('bakery') || lowerDesc.includes('bake') || lowerDesc.includes('donut') ||
+      lowerDesc.includes('mcdonalds') || lowerDesc.includes('kfc') || lowerDesc.includes('subway') ||
+      lowerDesc.includes('dominos') || lowerDesc.includes('hungry jacks') || lowerDesc.includes('red rooster')) {
+    return 'Restaurants';
+  }
+  
+  // Fast food chains and takeaway prefixes (SMP* is a payment processor)
+  if (lowerDesc.includes('smp*') && (lowerDesc.includes('kebab') || lowerDesc.includes('bake') || 
+      lowerDesc.includes('pizza') || lowerDesc.includes('burger') || lowerDesc.includes('food'))) {
+    return 'Fast Food';
+  }
+  
+  // Donut King specifically
+  if (lowerDesc.includes('donut king')) {
+    return 'Fast Food';
+  }
+  
   // Australian toll roads and transport
   if (lowerDesc.includes('linkt') || lowerDesc.includes('e-tag') || lowerDesc.includes('etag')) {
     return 'Tolls';
@@ -61,6 +81,21 @@ const categorizeByRules = (description: string): string | null => {
   if (lowerDesc.includes('woolworths') || lowerDesc.includes('coles') || 
       lowerDesc.includes('iga ') || lowerDesc.includes('aldi')) {
     return 'Groceries';
+  }
+  
+  // Hardware and home improvement
+  if (lowerDesc.includes('bunnings')) {
+    return 'Home & Garden';
+  }
+  
+  // Office supplies
+  if (lowerDesc.includes('officeworks')) {
+    return 'Office Supplies';
+  }
+  
+  // Education and books
+  if (lowerDesc.includes('scholastic')) {
+    return 'Books';
   }
   
   // Australian banks and transfers
@@ -91,8 +126,12 @@ const categorizeByRules = (description: string): string | null => {
   return null;
 };
 
-// Add delay utility for rate limiting with longer delays
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+// Smart delay utility with exponential backoff and jitter
+const smartDelay = (attempt: number, baseDelay: number = 1000) => {
+  const delay = Math.min(baseDelay * Math.pow(1.5, attempt), 10000); // More conservative exponential backoff, max 10 seconds
+  const jitter = Math.random() * 0.2 * delay; // Add 20% jitter
+  return new Promise(resolve => setTimeout(resolve, delay + jitter));
+};
 
 serve(async (req) => {
   console.log('Categorize transaction function called');
@@ -180,10 +219,10 @@ serve(async (req) => {
 
     console.log('Categorizing transaction:', description);
 
-    // First try rule-based categorization
+    // First try enhanced rule-based categorization
     const ruleBasedCategory = categorizeByRules(description);
     if (ruleBasedCategory) {
-      console.log('Rule-based categorization successful:', ruleBasedCategory);
+      console.log('Enhanced rule-based categorization successful:', ruleBasedCategory);
       return new Response(
         JSON.stringify({ category: ruleBasedCategory }), 
         { 
@@ -208,7 +247,7 @@ Transaction: "${cleanDescription}"
 
 Rules:
 - Grocery stores (Woolworths, Coles, IGA, Aldi, Safeway, supermarket) = Groceries
-- Restaurants, cafes, takeaway, food delivery (McDonald's, KFC, Uber Eats, DoorDash) = Restaurants or Fast Food
+- Restaurants, cafes, takeaway, food delivery, kebab shops = Restaurants or Fast Food
 - Coffee shops, cafes = Coffee & Cafes
 - Petrol, fuel, gas station = Gas & Fuel
 - Public transport, train, bus, metro = Public Transport
@@ -226,15 +265,14 @@ Rules:
 RESPOND WITH ONLY THE CATEGORY NAME. NO EXPLANATIONS.`;
 
     let retryCount = 0;
-    const maxRetries = 2; // Reduced retries to avoid rate limiting
+    const maxRetries = 3; // Increased retries with better backoff
 
     while (retryCount < maxRetries) {
       try {
-        // Add longer delays between retries to handle rate limiting better
+        // Smart delay between retries
         if (retryCount > 0) {
-          const delayMs = Math.pow(3, retryCount) * 2000; // Longer exponential backoff
-          console.log(`Retry ${retryCount}, waiting ${delayMs}ms`);
-          await delay(delayMs);
+          console.log(`Retry ${retryCount}, applying smart delay...`);
+          await smartDelay(retryCount);
         }
 
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -263,8 +301,9 @@ RESPOND WITH ONLY THE CATEGORY NAME. NO EXPLANATIONS.`;
         console.log('Groq API categorization response status:', response.status);
 
         if (response.status === 429) {
-          console.log('Rate limit hit, will try rule-based fallback instead');
-          break; // Exit retry loop and use fallback
+          console.log('Rate limit hit, will retry with exponential backoff...');
+          retryCount++;
+          continue;
         }
 
         if (!response.ok) {
@@ -317,23 +356,44 @@ RESPOND WITH ONLY THE CATEGORY NAME. NO EXPLANATIONS.`;
       } catch (error) {
         console.error(`Attempt ${retryCount + 1} failed:`, error);
         retryCount++;
+        
+        // If this is a network or timeout error, apply additional delay
+        if (error.name === 'TypeError' || error.message.includes('timeout')) {
+          await smartDelay(retryCount, 2000); // Longer delay for network issues
+        }
       }
     }
 
     // Enhanced fallback categorization if AI fails
-    console.warn('AI categorization failed, using enhanced fallback logic');
+    console.warn('AI categorization failed after all retries, using enhanced fallback logic');
     
-    // Try one more rule-based attempt with more patterns
+    // Try one more comprehensive rule-based attempt
     const enhancedFallback = (desc: string): string => {
       const lower = desc.toLowerCase();
       
-      // More transport patterns
+      // More comprehensive food patterns
+      if (lower.includes('kebab') || lower.includes('donut') || lower.includes('pizza') || 
+          lower.includes('burger') || lower.includes('sandwich') || lower.includes('takeaway')) return 'Fast Food';
+      if (lower.includes('restaurant') || lower.includes('cafe') || lower.includes('bistro')) return 'Restaurants';
+      if (lower.includes('bakery') || lower.includes('bake')) return 'Fast Food';
+      
+      // Transport patterns
       if (lower.includes('toll') || lower.includes('linkt') || lower.includes('transurban')) return 'Tolls';
       if (lower.includes('fuel') || lower.includes('petrol') || lower.includes('gas station')) return 'Gas & Fuel';
+      
+      // Shopping patterns
       if (lower.includes('supermarket') || lower.includes('grocery')) return 'Groceries';
-      if (lower.includes('restaurant') || lower.includes('cafe') || lower.includes('food')) return 'Restaurants';
+      if (lower.includes('bunnings')) return 'Home & Garden';
+      if (lower.includes('officeworks')) return 'Office Supplies';
+      
+      // Education
+      if (lower.includes('scholastic') || lower.includes('school') || lower.includes('education')) return 'Books';
+      
+      // Financial
       if (lower.includes('transfer') || lower.includes('payment')) return 'Transfer';
       if (lower.includes('direct debit') && lower.includes('insurance')) return 'Insurance';
+      
+      // Utilities
       if (lower.includes('electricity') || lower.includes('power')) return 'Electricity';
       if (lower.includes('phone') || lower.includes('mobile')) return 'Phone';
       
@@ -346,7 +406,7 @@ RESPOND WITH ONLY THE CATEGORY NAME. NO EXPLANATIONS.`;
     return new Response(
       JSON.stringify({ 
         category: fallbackCategory,
-        warning: 'AI categorization failed, used rule-based fallback' 
+        warning: 'AI categorization failed, used enhanced rule-based fallback' 
       }), 
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
