@@ -133,7 +133,9 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
 
       // Call the success callback to close the dialog
       console.log("Calling onSuccess callback to close dialog");
-      onSuccess?.();
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (error) {
       console.error('Error saving transactions:', error);
       toast({
@@ -141,6 +143,9 @@ export default function ImportTransactions({ onSuccess }: ImportTransactionsProp
         description: "An unexpected error occurred while saving transactions.",
         variant: "destructive",
       });
+      
+      // Even on error, we might want to close the dialog depending on the error type
+      // For now, we'll leave it open so user can retry
     }
   };
 

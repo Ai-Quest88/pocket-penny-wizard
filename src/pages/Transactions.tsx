@@ -29,6 +29,11 @@ const Transactions = () => {
     setIsAddingTransaction(false);
   };
 
+  const handleDialogOpenChange = (open: boolean) => {
+    console.log("Dialog open state changing to:", open);
+    setIsAddingTransaction(open);
+  };
+
   return (
     <div className="p-8 min-h-screen bg-background">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -38,11 +43,14 @@ const Transactions = () => {
             <p className="text-muted-foreground">Manage your transactions</p>
           </div>
           <div className="flex items-center gap-2">
-            <Dialog open={isAddingTransaction} onOpenChange={setIsAddingTransaction}>
+            <Dialog open={isAddingTransaction} onOpenChange={handleDialogOpenChange}>
               <DialogTrigger asChild>
                 <Button 
                   className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
-                  onClick={() => console.log("Add Transaction button clicked")}
+                  onClick={() => {
+                    console.log("Add Transaction button clicked");
+                    setIsAddingTransaction(true);
+                  }}
                 >
                   <PlusCircle className="h-4 w-4" />
                   Add Transaction
