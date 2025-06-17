@@ -77,39 +77,66 @@ const essentialBuiltInRules = (description: string): string | null => {
   return null;
 };
 
-// Batch processing with correct priority order
+// Enhanced batch processing with improved AI prompt
 export const categorizeTransactionsBatch = async (
   descriptions: string[], 
   userId: string,
   onProgress?: (processed: number, total: number, results: string[]) => void
 ): Promise<string[]> => {
-  const results: string[] = [];
+  console.log(`Starting enhanced batch categorization for ${descriptions.length} transactions`);
   
-  console.log(`Starting batch categorization with priority order for ${descriptions.length} transactions`);
-  
-  // Process each transaction with full priority order
-  for (let i = 0; i < descriptions.length; i++) {
-    const description = descriptions[i];
+  try {
+    const response = await fetch('https://nqqbvlvuzyctmysablzw.supabase.co/functions/v1/categorize-transaction', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xcWJ2bHZ1enljdG15c2FibHp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgzODY0NTIsImV4cCI6MjA1Mzk2MjQ1Mn0.2Z6_5YBxzfsJga8n2vOiTTE3nxPjPpiUcRZe7dpA1V4`
+      },
+      body: JSON.stringify({ 
+        descriptions,
+        userId,
+        batchMode: true
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
     
-    try {
-      // Use the main categorization function which follows priority order
-      const category = await categorizeTransaction(description, userId);
-      results[i] = category;
-    } catch (error) {
-      console.error(`Error categorizing "${description}":`, error);
-      // Fallback to essential rules then Miscellaneous
+    if (data.categories && Array.isArray(data.categories)) {
+      console.log(`Batch categorization completed: ${data.categories.length} transactions processed`);
+      
+      // Update progress with final results
+      if (onProgress) {
+        onProgress(data.categories.length, descriptions.length, data.categories);
+      }
+      
+      return data.categories;
+    }
+    
+    throw new Error('Invalid response format from AI categorization');
+    
+  } catch (error) {
+    console.error('Batch AI categorization failed:', error);
+    
+    // Fallback to individual processing with essential rules
+    const results: string[] = [];
+    for (let i = 0; i < descriptions.length; i++) {
+      const description = descriptions[i];
       const essentialCategory = essentialBuiltInRules(description);
       results[i] = essentialCategory || 'Miscellaneous';
+      
+      // Update progress
+      if (onProgress) {
+        onProgress(i + 1, descriptions.length, [...results]);
+      }
     }
     
-    // Update progress
-    if (onProgress) {
-      onProgress(i + 1, descriptions.length, [...results]);
-    }
+    console.log(`Fallback categorization completed: ${results.length} transactions processed`);
+    return results;
   }
-  
-  console.log(`Batch categorization completed: ${results.length} transactions processed`);
-  return results;
 };
 
 // Single transaction categorization with correct priority order
