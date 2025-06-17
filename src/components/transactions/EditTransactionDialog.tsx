@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -142,11 +143,14 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
       // Check if category was changed and add user rule
       if (data.category !== transaction.category && transaction.description) {
         console.log(`Category changed from "${transaction.category}" to "${data.category}" for "${transaction.description}"`);
+        
+        // Add the user-defined rule for future similar transactions
         addUserCategoryRule(transaction.description, data.category);
         
         toast({
-          title: "Learning Applied",
-          description: `Future transactions similar to "${transaction.description}" will be categorized as "${data.category}".`,
+          title: "Smart Learning Applied! 🧠",
+          description: `Future transactions similar to "${transaction.description.substring(0, 30)}..." will automatically be categorized as "${data.category}".`,
+          duration: 5000,
         });
       }
 

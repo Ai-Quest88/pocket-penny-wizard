@@ -6,6 +6,8 @@ import { supabase } from '@/integrations/supabase/client';
 type CategoryRule = {
   keywords: string[];
   category: string;
+  description: string; // Store the original description for better matching
+  priority: number; // Higher priority = more important
 };
 
 // Store user-defined categorization rules
@@ -42,16 +44,17 @@ const findSimilarTransactionCategory = async (description: string, userId: strin
   try {
     console.log(`Searching for similar transactions to: "${description}"`);
     
+    // Extract meaningful keywords from the description
+    const keywords = description.toLowerCase().split(/[\s\*]+/).filter(word => word.length > 2);
+    
     const { data: similarTransactions, error } = await supabase
       .from('transactions')
       .select('category, description')
       .eq('user_id', userId)
-      .ilike('description', `%${description.substring(0, 20)}%`)
       .not('category', 'is', null)
       .not('category', 'eq', 'Miscellaneous')
       .not('category', 'eq', 'Other')
-      .not('category', 'eq', 'Banking')
-      .limit(5);
+      .limit(20);
 
     if (error) {
       console.error('Error searching similar transactions:', error);
@@ -59,20 +62,30 @@ const findSimilarTransactionCategory = async (description: string, userId: strin
     }
 
     if (similarTransactions && similarTransactions.length > 0) {
-      const categoryCount: Record<string, number> = {};
-      
-      similarTransactions.forEach(transaction => {
-        if (transaction.category) {
-          categoryCount[transaction.category] = (categoryCount[transaction.category] || 0) + 1;
-        }
+      const matches = similarTransactions.filter(transaction => {
+        const transactionWords = transaction.description.toLowerCase().split(/[\s\*]+/);
+        return keywords.some(keyword => 
+          transactionWords.some(word => 
+            word.includes(keyword) || keyword.includes(word)
+          )
+        );
       });
 
-      const mostCommonCategory = Object.entries(categoryCount)
-        .sort(([,a], [,b]) => b - a)[0]?.[0];
+      if (matches.length > 0) {
+        const categoryCount: Record<string, number> = {};
+        matches.forEach(transaction => {
+          if (transaction.category) {
+            categoryCount[transaction.category] = (categoryCount[transaction.category] || 0) + 1;
+          }
+        });
 
-      if (mostCommonCategory) {
-        console.log(`Found similar transaction category: "${description}" -> ${mostCommonCategory}`);
-        return mostCommonCategory;
+        const mostCommonCategory = Object.entries(categoryCount)
+          .sort(([,a], [,b]) => b - a)[0]?.[0];
+
+        if (mostCommonCategory) {
+          console.log(`Found similar transaction category: "${description}" -> ${mostCommonCategory}`);
+          return mostCommonCategory;
+        }
       }
     }
 
@@ -83,32 +96,48 @@ const findSimilarTransactionCategory = async (description: string, userId: strin
   }
 };
 
-// Function to add a user-defined rule
+// Enhanced function to add a user-defined rule with better matching
 export const addUserCategoryRule = (description: string, category: string) => {
   const keywords = description
     .toLowerCase()
+    .replace(/[^\w\s]/g, ' ') // Replace special characters with spaces
     .split(/\s+/)
     .filter(word => word.length > 2)
-    .slice(0, 3);
+    .slice(0, 5); // Take up to 5 most relevant keywords
 
-  console.log(`Adding user rule: "${keywords.join(', ')}" -> ${category}`);
+  console.log(`Adding enhanced user rule: "${keywords.join(', ')}" -> ${category} for "${description}"`);
   
-  const existingRule = userDefinedRules.find(rule => 
-    rule.category === category && 
-    rule.keywords.some(keyword => keywords.includes(keyword))
+  // Check if we already have a rule for this exact description
+  const existingRuleIndex = userDefinedRules.findIndex(rule => 
+    rule.description.toLowerCase() === description.toLowerCase()
   );
 
-  if (existingRule) {
-    existingRule.keywords = [...new Set([...existingRule.keywords, ...keywords])];
+  if (existingRuleIndex !== -1) {
+    // Update existing rule
+    userDefinedRules[existingRuleIndex] = {
+      keywords,
+      category,
+      description,
+      priority: Date.now() // More recent = higher priority
+    };
+    console.log(`Updated existing rule for "${description}"`);
   } else {
+    // Add new rule
     userDefinedRules.push({
       keywords,
-      category
+      category,
+      description,
+      priority: Date.now()
     });
+    console.log(`Added new rule for "${description}"`);
   }
+
+  // Sort rules by priority (most recent first)
+  userDefinedRules.sort((a, b) => b.priority - a.priority);
 
   try {
     localStorage.setItem('userCategoryRules', JSON.stringify(userDefinedRules));
+    console.log(`Saved ${userDefinedRules.length} user category rules to localStorage`);
   } catch (error) {
     console.error('Failed to save user category rules:', error);
   }
@@ -120,12 +149,39 @@ export const loadUserCategoryRules = () => {
     const stored = localStorage.getItem('userCategoryRules');
     if (stored) {
       userDefinedRules = JSON.parse(stored);
-      console.log('Loaded user category rules:', userDefinedRules);
+      // Ensure rules are sorted by priority
+      userDefinedRules.sort((a, b) => (b.priority || 0) - (a.priority || 0));
+      console.log(`Loaded ${userDefinedRules.length} user category rules from localStorage`);
     }
   } catch (error) {
     console.error('Failed to load user category rules:', error);
     userDefinedRules = [];
   }
+};
+
+// Enhanced user rule matching with better algorithm
+const matchUserDefinedRule = (description: string): string | null => {
+  const lowerDescription = description.toLowerCase();
+  
+  for (const rule of userDefinedRules) {
+    // First check for exact description match (highest priority)
+    if (rule.description.toLowerCase() === lowerDescription) {
+      console.log(`Exact description match: "${description}" -> ${rule.category}`);
+      return rule.category;
+    }
+    
+    // Then check for keyword matches (requires at least 2 keywords to match for accuracy)
+    const matchingKeywords = rule.keywords.filter(keyword => 
+      lowerDescription.includes(keyword)
+    );
+    
+    if (matchingKeywords.length >= Math.min(2, rule.keywords.length)) {
+      console.log(`Keyword match (${matchingKeywords.length}/${rule.keywords.length}): "${description}" -> ${rule.category}`);
+      return rule.category;
+    }
+  }
+  
+  return null;
 };
 
 // Utility function to delay execution
@@ -160,17 +216,15 @@ export const categorizeBatchTransactions = async (
   return results;
 };
 
-// Main categorization function with correct priority order
+// Main categorization function with user rules as highest priority
 export const categorizeTransaction = async (description: string, userId?: string): Promise<string> => {
   console.log(`Categorizing with priority order: "${description}"`);
   
-  // Priority 1: User-defined rules (highest priority for user preferences)
-  const lowerDescription = description.toLowerCase();
-  for (const rule of userDefinedRules) {
-    if (rule.keywords.some(keyword => lowerDescription.includes(keyword))) {
-      console.log(`Priority 1 - User rule matched: "${description}" -> ${rule.category}`);
-      return rule.category;
-    }
+  // Priority 1: User-defined rules (HIGHEST priority - user preferences override everything)
+  const userRuleCategory = matchUserDefinedRule(description);
+  if (userRuleCategory) {
+    console.log(`Priority 1 - User rule matched: "${description}" -> ${userRuleCategory}`);
+    return userRuleCategory;
   }
 
   // Priority 2: Database lookup (similar past transactions) if userId is provided
@@ -182,7 +236,7 @@ export const categorizeTransaction = async (description: string, userId?: string
     }
   }
 
-  // Priority 3: AI categorization (primary method)
+  // Priority 3: AI categorization (primary method for new transactions)
   try {
     const aiCategory = await categorizeTransactionWithAI(description);
     console.log(`Priority 3 - AI categorized: "${description}" -> ${aiCategory}`);
@@ -209,12 +263,10 @@ export const categorizeTransaction = async (description: string, userId?: string
 // Synchronous version for backward compatibility
 export const categorizeTransactionSync = (description: string): string => {
   // Priority 1: User-defined rules
-  const lowerDescription = description.toLowerCase();
-  for (const rule of userDefinedRules) {
-    if (rule.keywords.some(keyword => lowerDescription.includes(keyword))) {
-      console.log(`Sync Priority 1 - User rule matched: "${description}" -> ${rule.category}`);
-      return rule.category;
-    }
+  const userRuleCategory = matchUserDefinedRule(description);
+  if (userRuleCategory) {
+    console.log(`Sync Priority 1 - User rule matched: "${description}" -> ${userRuleCategory}`);
+    return userRuleCategory;
   }
   
   // Priority 2: Essential built-in rules (skip DB and AI in sync mode)
