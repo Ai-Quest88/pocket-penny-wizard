@@ -155,6 +155,16 @@ const UnifiedCsvUpload: React.FC<UnifiedCsvUploadProps> = ({ onSuccess }) => {
         result_summary = { inserted: categorizedTransactions.length, duplicates: 0 }
       }
 
+      // Update progress to show completion
+      setUploadProgress({
+        phase: 'saving',
+        currentStep: categorizedTransactions.length,
+        totalSteps: categorizedTransactions.length,
+        message: 'Database save completed...'
+      })
+
+      await new Promise(resolve => setTimeout(resolve, 500))
+
       // Phase 4: Complete
       setUploadProgress({
         phase: 'complete',
@@ -405,6 +415,16 @@ const UnifiedCsvUpload: React.FC<UnifiedCsvUploadProps> = ({ onSuccess }) => {
         result_summary = { inserted: categorizedTransactions.length, duplicates: 0 }
       }
 
+      // Update progress to show database save completion
+      setUploadProgress({
+        phase: 'saving',
+        currentStep: categorizedTransactions.length,
+        totalSteps: categorizedTransactions.length,
+        message: 'Database save completed...'
+      })
+
+      await new Promise(resolve => setTimeout(resolve, 500))
+
       // Phase 4: Complete
       setUploadProgress({
         phase: 'complete',
@@ -499,7 +519,7 @@ const UnifiedCsvUpload: React.FC<UnifiedCsvUploadProps> = ({ onSuccess }) => {
                       : uploadProgress.phase === 'categorizing'
                       ? `${25 + (uploadProgress.currentStep / uploadProgress.totalSteps) * 50}%`
                       : uploadProgress.phase === 'saving'
-                      ? '90%'
+                      ? `${75 + (uploadProgress.currentStep / uploadProgress.totalSteps) * 20}%`
                       : '100%'
                   }}
                 />
