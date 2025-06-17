@@ -5,6 +5,7 @@ import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import UnifiedCsvUpload from "@/components/transaction-forms/UnifiedCsvUpload"
 import { TransactionList } from "@/components/TransactionList"
+import { RecategorizeTransactions } from "@/components/RecategorizeTransactions"
 import { useAuth } from "@/contexts/AuthContext"
 import { useNavigate } from "react-router-dom"
 
@@ -67,6 +68,8 @@ const Transactions = () => {
             </Dialog>
           </div>
         </header>
+
+        <RecategorizeTransactions />
 
         <TransactionList />
       </div>

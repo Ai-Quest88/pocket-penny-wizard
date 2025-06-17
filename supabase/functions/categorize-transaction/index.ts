@@ -176,7 +176,7 @@ serve(async (req) => {
       });
     }
 
-    // Handle batch processing
+    // Handle batch processing with improved categorization
     if (batchMode && batchDescriptions.length > 0) {
       console.log(`Processing batch: ${batchDescriptions.length} transactions`);
       
@@ -192,42 +192,35 @@ serve(async (req) => {
           category = await findSimilarTransactionInDB(desc, userId);
           if (category) {
             console.log(`✅ Priority 1 - DB lookup: "${desc}" -> ${category}`);
-            results.push({ description: desc, category, source: 'database' });
+            results.push({ transaction: desc, category, source: 'database' });
             continue;
-          } else {
-            console.log(`❌ Priority 1 - DB lookup: No similar transactions found for "${desc}"`);
           }
         }
 
-        // Priority 2: Enhanced built-in rules (MOVED UP in priority for better accuracy)
+        // Priority 2: Enhanced built-in rules
         category = enhancedBuiltInRules(desc);
         if (category) {
           console.log(`✅ Priority 2 - Enhanced rules: "${desc}" -> ${category}`);
-          results.push({ description: desc, category, source: 'enhanced-rules' });
+          results.push({ transaction: desc, category, source: 'enhanced-rules' });
           continue;
-        } else {
-          console.log(`❌ Priority 2 - Enhanced rules: No match for "${desc}"`);
         }
 
-        // Priority 3: AI categorization
+        // Priority 3: AI categorization with improved prompt
         console.log(`🤖 Priority 3 - Attempting AI categorization for: "${desc}"`);
         try {
-          category = await categorizeWithAI(desc);
+          category = await categorizeWithImprovedAI(desc);
           if (category && categories.includes(category)) {
             console.log(`✅ Priority 3 - AI SUCCESS: "${desc}" -> ${category}`);
-            results.push({ description: desc, category, source: 'ai' });
+            results.push({ transaction: desc, category, source: 'ai' });
             continue;
-          } else {
-            console.log(`❌ Priority 3 - AI FAILED: Invalid category returned: "${category}" for "${desc}"`);
           }
         } catch (error) {
           console.log(`❌ Priority 3 - AI ERROR for "${desc}":`, error.message);
-          console.log(`Full AI error details:`, error);
         }
 
         // Priority 4: Miscellaneous fallback
         console.log(`⚠️ Priority 4 - Using fallback: "${desc}" -> Miscellaneous`);
-        results.push({ description: desc, category: 'Miscellaneous', source: 'fallback' });
+        results.push({ transaction: desc, category: 'Miscellaneous', source: 'fallback' });
       }
 
       console.log(`Batch processing completed: ${results.length} transactions processed`);
@@ -260,37 +253,30 @@ serve(async (req) => {
         return new Response(JSON.stringify({ category: dbCategory, source: 'database' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
-      } else {
-        console.log(`❌ Priority 1 - DB lookup: No similar transactions found for "${description}"`);
       }
     }
 
-    // Priority 2: Enhanced built-in rules (MOVED UP in priority for better accuracy)
+    // Priority 2: Enhanced built-in rules
     const enhancedCategory = enhancedBuiltInRules(description);
     if (enhancedCategory) {
       console.log(`✅ Priority 2 - Enhanced rules: "${description}" -> ${enhancedCategory}`);
       return new Response(JSON.stringify({ category: enhancedCategory, source: 'enhanced-rules' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
-    } else {
-      console.log(`❌ Priority 2 - Enhanced rules: No match for "${description}"`);
     }
 
-    // Priority 3: AI categorization
+    // Priority 3: AI categorization with improved prompt
     console.log(`🤖 Priority 3 - Attempting AI categorization for: "${description}"`);
     try {
-      const aiCategory = await categorizeWithAI(description);
+      const aiCategory = await categorizeWithImprovedAI(description);
       if (aiCategory && categories.includes(aiCategory)) {
         console.log(`✅ Priority 3 - AI SUCCESS: "${description}" -> ${aiCategory}`);
         return new Response(JSON.stringify({ category: aiCategory, source: 'ai' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
-      } else {
-        console.log(`❌ Priority 3 - AI FAILED: Invalid category returned: "${aiCategory}" for "${description}"`);
       }
     } catch (error) {
       console.log(`❌ Priority 3 - AI ERROR for "${description}":`, error.message);
-      console.log(`Full AI error details:`, error);
     }
 
     // Priority 4: Miscellaneous fallback
@@ -378,34 +364,95 @@ async function findSimilarTransactionInDB(description: string, userId: string): 
   }
 }
 
-// AI categorization helper function with enhanced error logging
-async function categorizeWithAI(description: string): Promise<string> {
+// Improved AI categorization with enhanced prompt
+async function categorizeWithImprovedAI(description: string): Promise<string> {
   const groqApiKey = Deno.env.get('VITE_GROQ_API_KEY');
   if (!groqApiKey) {
     console.error('❌ AI SETUP ERROR: VITE_GROQ_API_KEY not found in environment');
     throw new Error('AI API key not configured');
   }
 
-  const prompt = `Categorize this transaction into exactly one of these categories:
+  const improvedPrompt = `You are an expert financial transaction categorizer. Categorize this transaction into exactly one of these categories:
+
+CATEGORIES:
 ${categories.join(', ')}
 
-Transaction: "${description}"
+TRANSACTION: "${description}"
 
-Examples:
-- "WOOLWORTHS 1348 GLENWOOD AUS" -> Groceries
-- "TRANSPORTFORNSW OPAL CHIPPENDALE" -> Public Transport  
-- "BUNNINGS 746000 SEVEN HILLS" -> Home & Garden
-- "AMPOL PARKLEA GLENWOOD" -> Gas & Fuel
-- "CHEMIST WAREHOUSE" -> Healthcare
-- "Direct Debit 408856 Linkt Sydney" -> Tolls
+DETAILED EXAMPLES:
+• Supermarkets: "WOOLWORTHS 1348 GLENWOOD AUS" → Groceries
+• Grocery stores: "COLES 1234 SYDNEY AUS" → Groceries  
+• Discount stores: "ALDI STORES 456 MELBOURNE" → Groceries
 
-Important: Linkt is a toll road service in Sydney, Australia - always categorize as "Tolls", not "Gas & Fuel".
+• Fast food chains: "MCDONALD'S 789 BRISBANE" → Fast Food
+• KFC, Subway, Dominos: "KFC 123 PERTH WA" → Fast Food
+• Pizza delivery: "DOMINOS PIZZA 456" → Fast Food
+
+• Sit-down restaurants: "PIZZA HUT RESTAURANT" → Restaurants
+• Cafes and coffee: "STARBUCKS COFFEE 123" → Restaurants
+• General dining: "ITALIAN RESTAURANT" → Restaurants
+
+• Fuel stations: "SHELL 7-ELEVEN STATION" → Gas & Fuel
+• Petrol companies: "BP SERVICE STATION" → Gas & Fuel
+• Gas stations: "AMPOL PARKLEA GLENWOOD" → Gas & Fuel
+
+• Toll roads (IMPORTANT): "Direct Debit 408856 Linkt Sydney" → Tolls
+• Electronic tolls: "LINKT TOLL ROAD PAYMENT" → Tolls  
+• Highway tolls: "M1 TOLL PAYMENT SYDNEY" → Tolls
+• Citylink, Eastlink: "CITYLINK MELBOURNE" → Tolls
+
+• Public transport: "TRANSPORTFORNSW OPAL" → Public Transport
+• Transit cards: "MYKI MELBOURNE TRANSPORT" → Public Transport
+• Bus, train, tram: "GO CARD BRISBANE" → Public Transport
+
+• Streaming services: "NETFLIX.COM 866-716-0414" → Subscriptions
+• Music services: "SPOTIFY PREMIUM MONTHLY" → Subscriptions
+• Software subscriptions: "ADOBE CREATIVE CLOUD" → Subscriptions
+
+• Online shopping: "AMAZON AU PURCHASE" → Shopping
+• Department stores: "KMART 456 SYDNEY" → Shopping
+• General retail: "TARGET AUSTRALIA 789" → Shopping
+
+• Pharmacies: "CHEMIST WAREHOUSE 123" → Healthcare
+• Medical services: "FAMILY DOCTOR CLINIC" → Healthcare
+• Health practitioners: "PHYSIOTHERAPY CLINIC" → Healthcare
+
+• Hardware stores: "BUNNINGS 746000 SEVEN HILLS" → Home & Garden
+• Garden centers: "GARDEN CENTER NURSERY" → Home & Garden
+• Home improvement: "HOME DEPOT AUSTRALIA" → Home & Garden
+
+• Government payments: "AUSTRALIAN TAXATION OFFICE" → Taxes
+• Tax office: "ATO PAYMENT REFERENCE" → Taxes
+• Revenue services: "NSW REVENUE OFFICE" → Taxes
+
+• Bank transfers: "TRANSFER TO SAVINGS ACCOUNT" → Transfer
+• Internal transfers: "BPAY PAYMENT TRANSFER" → Transfer
+• Direct credits: "DIRECT CREDIT INTERNAL" → Transfer
+
+• Electricity/Gas: "ORIGIN ENERGY BILL" → Utilities
+• Water services: "SYDNEY WATER CORPORATION" → Utilities
+• Internet/Phone: "TELSTRA INTERNET BILL" → Utilities
+
+• Salary payments: "COMPANY NAME SALARY" → Salary
+• Wage payments: "WEEKLY WAGE PAYMENT" → Salary
+• Employment income: "PAYROLL DEPOSIT" → Salary
+
+CRITICAL RULES:
+1. Linkt is a toll road service - ALWAYS categorize as "Tolls", never "Gas & Fuel"
+2. Fast food chains (McDonald's, KFC, Subway, Dominos) → "Fast Food"
+3. Sit-down restaurants and cafes → "Restaurants" 
+4. Government/tax payments → "Taxes"
+5. Fuel stations (Shell, BP, Ampol, Caltex) → "Gas & Fuel"
+6. Supermarkets (Woolworths, Coles, Aldi) → "Groceries"
+7. Transport cards (Opal, Myki, Go Card) → "Public Transport"
+8. Hardware stores (Bunnings) → "Home & Garden"
+9. Pharmacies (Chemist Warehouse) → "Healthcare"
 
 Respond with ONLY the category name, nothing else.`;
 
   const model = getNextModel();
   
-  console.log(`🤖 Making AI request for "${description}" using model: ${model}`);
+  console.log(`🤖 Making improved AI request for "${description}" using model: ${model}`);
   
   try {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -417,7 +464,7 @@ Respond with ONLY the category name, nothing else.`;
       body: JSON.stringify({
         model: model,
         messages: [
-          { role: 'user', content: prompt }
+          { role: 'user', content: improvedPrompt }
         ],
         temperature: 0.1,
         max_tokens: 20,
@@ -475,4 +522,9 @@ Respond with ONLY the category name, nothing else.`;
     });
     throw error;
   }
+}
+
+// Legacy AI function for backward compatibility  
+async function categorizeWithAI(description: string): Promise<string> {
+  return await categorizeWithImprovedAI(description);
 }
