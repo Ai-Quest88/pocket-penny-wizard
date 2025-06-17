@@ -14,6 +14,7 @@ import { insertTransactionsWithDuplicateCheck } from "@/components/transaction-f
 import { useAuth } from "@/contexts/AuthContext"
 import { useQueryClient } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
+import { useAccounts } from "@/hooks/useAccounts"
 
 interface UnifiedCsvUploadProps {
   onSuccess?: () => void;
@@ -53,11 +54,16 @@ const UnifiedCsvUpload: React.FC<UnifiedCsvUploadProps> = ({ onSuccess }) => {
   const [defaultCurrency, setDefaultCurrency] = useState('AUD')
   const [duplicateCheckEnabled, setDuplicateCheckEnabled] = useState(true)
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null)
+  const [selectedAccountId, setSelectedAccountId] = useState<string>('')
   
   const { session } = useAuth()
   const queryClient = useQueryClient()
+  const { accounts, isLoading: accountsLoading } = useAccounts()
 
   const requiredFields = ['date', 'amount', 'description']
+
+  // Filter for cash accounts only
+  const cashAccounts = accounts.filter(account => account.accountType === 'asset')
 
   const handleMockDataUpload = async () => {
     if (!session?.user?.id) {
@@ -69,11 +75,20 @@ const UnifiedCsvUpload: React.FC<UnifiedCsvUploadProps> = ({ onSuccess }) => {
       return
     }
 
+    if (!selectedAccountId) {
+      toast({
+        title: "Account Required",
+        description: "Please select a cash account for the mock transactions",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsProcessing(true)
     setError(null)
 
     try {
-      console.log(`Creating ${mockTransactions.length} mock transactions`);
+      console.log(`Creating ${mockTransactions.length} mock transactions for account ${selectedAccountId}`);
 
       // Phase 1: Show parsing phase
       setUploadProgress({
@@ -107,13 +122,13 @@ const UnifiedCsvUpload: React.FC<UnifiedCsvUploadProps> = ({ onSuccess }) => {
         }
       )
 
-      // Apply categories to transactions
+      // Apply categories to transactions and link to selected account
       const categorizedTransactions = mockTransactions.map((transaction, index) => ({
         ...transaction,
         category: categories[index] || transaction.category || 'Miscellaneous',
         currency: defaultCurrency,
         user_id: session.user.id,
-        account_id: null,
+        account_id: selectedAccountId, // Link to selected cash account
       }))
 
       // Phase 3: Save to database
@@ -164,6 +179,7 @@ const UnifiedCsvUpload: React.FC<UnifiedCsvUploadProps> = ({ onSuccess }) => {
 
       // Refresh data
       await queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      await queryClient.invalidateQueries({ queryKey: ['account-balances'] })
 
       // Auto-reset after success
       setTimeout(() => {
@@ -326,7 +342,7 @@ const UnifiedCsvUpload: React.FC<UnifiedCsvUploadProps> = ({ onSuccess }) => {
         currency: row.currency || defaultCurrency,
         category: row.category || 'Other',
         user_id: session.user.id,
-        account_id: null,
+        account_id: selectedAccountId || null, // Use selected account if available
       })).filter(t => t.date && t.description && !isNaN(t.amount))
 
       if (rawTransactions.length === 0) {
@@ -413,6 +429,7 @@ const UnifiedCsvUpload: React.FC<UnifiedCsvUploadProps> = ({ onSuccess }) => {
 
       // Refresh data
       await queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      await queryClient.invalidateQueries({ queryKey: ['account-balances'] })
 
       // Auto-reset after success
       setTimeout(() => {
@@ -440,6 +457,7 @@ const UnifiedCsvUpload: React.FC<UnifiedCsvUploadProps> = ({ onSuccess }) => {
     setColumnMappings({})
     setAutoMapped({})
     setError(null)
+    setSelectedAccountId('')
   }
 
   const validHeaders = headers.filter(header => {
@@ -512,6 +530,38 @@ const UnifiedCsvUpload: React.FC<UnifiedCsvUploadProps> = ({ onSuccess }) => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Account Selection Section */}
+        <div className="space-y-4">
+          <Label>Select Cash Account</Label>
+          <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Choose a cash account for transactions" />
+            </SelectTrigger>
+            <SelectContent>
+              {accountsLoading ? (
+                <SelectItem value="" disabled>Loading accounts...</SelectItem>
+              ) : cashAccounts.length === 0 ? (
+                <SelectItem value="" disabled>No cash accounts found</SelectItem>
+              ) : (
+                cashAccounts.map(account => (
+                  <SelectItem key={account.id} value={account.id}>
+                    {account.name} ({account.entityName}) - ${account.currentBalance.toLocaleString()}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+          
+          {cashAccounts.length === 0 && !accountsLoading && (
+            <Alert>
+              <InfoIcon className="h-4 w-4" />
+              <AlertDescription>
+                No cash accounts found. Please add a cash account in the Assets section before uploading transactions.
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+
         {/* Quick Actions Section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -525,7 +575,7 @@ const UnifiedCsvUpload: React.FC<UnifiedCsvUploadProps> = ({ onSuccess }) => {
           <div className="flex gap-4">
             <Button
               onClick={handleMockDataUpload}
-              disabled={isProcessing}
+              disabled={isProcessing || !selectedAccountId || accountsLoading}
               className="flex items-center gap-2"
               variant="outline"
             >
@@ -537,7 +587,7 @@ const UnifiedCsvUpload: React.FC<UnifiedCsvUploadProps> = ({ onSuccess }) => {
           <Alert>
             <Zap className="h-4 w-4" />
             <AlertDescription>
-              Use "Create Mock Transactions" to instantly add 12 sample transactions for testing the app without uploading a CSV file.
+              Use "Create Mock Transactions" to instantly add 12 sample transactions to your selected cash account for testing the app without uploading a CSV file.
             </AlertDescription>
           </Alert>
         </div>
@@ -749,7 +799,7 @@ const UnifiedCsvUpload: React.FC<UnifiedCsvUploadProps> = ({ onSuccess }) => {
               </Button>
               <Button 
                 onClick={handleUpload}
-                disabled={!hasRequiredMappings || isProcessing}
+                disabled={!hasRequiredMappings || isProcessing || !selectedAccountId}
               >
                 {isProcessing ? 'Processing...' : `Upload ${totalRows} Transactions`}
               </Button>
