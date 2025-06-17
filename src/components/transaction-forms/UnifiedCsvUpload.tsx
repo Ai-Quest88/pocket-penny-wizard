@@ -539,9 +539,9 @@ const UnifiedCsvUpload: React.FC<UnifiedCsvUploadProps> = ({ onSuccess }) => {
             </SelectTrigger>
             <SelectContent>
               {accountsLoading ? (
-                <SelectItem value="" disabled>Loading accounts...</SelectItem>
+                <SelectItem value="loading" disabled>Loading accounts...</SelectItem>
               ) : cashAccounts.length === 0 ? (
-                <SelectItem value="" disabled>No cash accounts found</SelectItem>
+                <SelectItem value="no-accounts" disabled>No cash accounts found</SelectItem>
               ) : (
                 cashAccounts.map(account => (
                   <SelectItem key={account.id} value={account.id}>
@@ -698,12 +698,12 @@ const UnifiedCsvUpload: React.FC<UnifiedCsvUploadProps> = ({ onSuccess }) => {
 
                 <div>
                   <Label htmlFor="currency-mapping">Currency (Optional)</Label>
-                  <Select value={columnMappings.currency || ''} onValueChange={(value) => handleMappingChange('currency', value)}>
+                  <Select value={columnMappings.currency || 'none'} onValueChange={(value) => handleMappingChange('currency', value === 'none' ? '' : value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select currency column (optional)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None (use default)</SelectItem>
+                      <SelectItem value="none">None (use default)</SelectItem>
                       {validHeaders.map(header => (
                         <SelectItem key={`currency-${header}`} value={header}>{header}</SelectItem>
                       ))}
