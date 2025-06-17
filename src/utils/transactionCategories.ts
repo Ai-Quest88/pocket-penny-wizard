@@ -1,4 +1,3 @@
-
 import { categorizeTransactionWithAI } from './aiCategorization';
 import { categories } from '@/types/transaction-forms';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,12 +15,11 @@ let userDefinedRules: CategoryRule[] = [];
 // Export the comprehensive categories array from transaction-forms
 export { categories };
 
-// Minimal essential rules for critical financial categories only
+// Enhanced essential rules for critical financial categories
 export const categorizeByBuiltInRules = (description: string): string | null => {
   const lowerDesc = description.toLowerCase();
   
-  // Only keep absolute essentials that should never be miscategorized
-  // Bank transfers - these are critical for financial accuracy
+  // Critical financial categories first
   if (lowerDesc.includes('transfer to') || lowerDesc.includes('transfer from') ||
       lowerDesc.includes('bpay') || lowerDesc.includes('direct credit')) {
     console.log(`Essential rule matched: "${description}" -> Transfer`);
@@ -34,6 +32,24 @@ export const categorizeByBuiltInRules = (description: string): string | null => 
       lowerDesc.includes('nsw revenue') || lowerDesc.includes('vic revenue')) {
     console.log(`Essential rule matched: "${description}" -> Taxes`);
     return 'Taxes';
+  }
+
+  // Transportation and tolls - MUST come before gas & fuel to prevent misclassification
+  if (lowerDesc.includes('linkt') || lowerDesc.includes('toll') ||
+      lowerDesc.includes('e-toll') || lowerDesc.includes('etoll') ||
+      lowerDesc.includes('citylink') || lowerDesc.includes('eastlink') ||
+      lowerDesc.includes('m1 toll') || lowerDesc.includes('m2 toll') ||
+      lowerDesc.includes('m4 toll') || lowerDesc.includes('m5 toll') ||
+      lowerDesc.includes('m7 toll') || lowerDesc.includes('m8 toll')) {
+    console.log(`Essential rule matched: "${description}" -> Tolls`);
+    return 'Tolls';
+  }
+
+  if (lowerDesc.includes('uber') || lowerDesc.includes('taxi') ||
+      lowerDesc.includes('transport') || lowerDesc.includes('opal') ||
+      lowerDesc.includes('myki') || lowerDesc.includes('go card')) {
+    console.log(`Essential rule matched: "${description}" -> Transportation`);
+    return 'Transportation';
   }
   
   return null;
@@ -216,9 +232,9 @@ export const categorizeBatchTransactions = async (
   return results;
 };
 
-// Main categorization function with user rules as highest priority
+// Main categorization function with updated priority order
 export const categorizeTransaction = async (description: string, userId?: string): Promise<string> => {
-  console.log(`Categorizing with priority order: "${description}"`);
+  console.log(`Categorizing with updated priority order: "${description}"`);
   
   // Priority 1: User-defined rules (HIGHEST priority - user preferences override everything)
   const userRuleCategory = matchUserDefinedRule(description);
@@ -236,23 +252,23 @@ export const categorizeTransaction = async (description: string, userId?: string
     }
   }
 
-  // Priority 3: AI categorization (primary method for new transactions)
+  // Priority 3: Enhanced built-in rules (including Linkt/toll fixes)
+  const essentialCategory = categorizeByBuiltInRules(description);
+  if (essentialCategory) {
+    console.log(`Priority 3 - Enhanced built-in rule matched: "${description}" -> ${essentialCategory}`);
+    return essentialCategory;
+  }
+
+  // Priority 4: AI categorization (primary method for new transactions)
   try {
     const aiCategory = await categorizeTransactionWithAI(description);
-    console.log(`Priority 3 - AI categorized: "${description}" -> ${aiCategory}`);
+    console.log(`Priority 4 - AI categorized: "${description}" -> ${aiCategory}`);
     
     if (categories.includes(aiCategory)) {
       return aiCategory;
     }
   } catch (error) {
-    console.warn('AI categorization failed, continuing to next priority:', error);
-  }
-
-  // Priority 4: Essential built-in rules (only for transfers/taxes)
-  const essentialCategory = categorizeByBuiltInRules(description);
-  if (essentialCategory) {
-    console.log(`Priority 4 - Essential rule matched: "${description}" -> ${essentialCategory}`);
-    return essentialCategory;
+    console.warn('AI categorization failed, continuing to fallback:', error);
   }
 
   // Priority 5: Miscellaneous (fallback)
@@ -269,10 +285,10 @@ export const categorizeTransactionSync = (description: string): string => {
     return userRuleCategory;
   }
   
-  // Priority 2: Essential built-in rules (skip DB and AI in sync mode)
+  // Priority 2: Enhanced built-in rules (skip DB and AI in sync mode)
   const essentialCategory = categorizeByBuiltInRules(description);
   if (essentialCategory) {
-    console.log(`Sync Priority 2 - Essential rule matched: "${description}" -> ${essentialCategory}`);
+    console.log(`Sync Priority 2 - Enhanced built-in rule matched: "${description}" -> ${essentialCategory}`);
     return essentialCategory;
   }
   

@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.48.1';
@@ -46,6 +45,23 @@ const enhancedBuiltInRules = (description: string): string | null => {
     return 'Taxes';
   }
 
+  // Transportation and tolls - MUST come before gas & fuel to prevent misclassification
+  if (lowerDesc.includes('linkt') || lowerDesc.includes('toll') ||
+      lowerDesc.includes('e-toll') || lowerDesc.includes('etoll') ||
+      lowerDesc.includes('citylink') || lowerDesc.includes('eastlink') ||
+      lowerDesc.includes('m1 toll') || lowerDesc.includes('m2 toll') ||
+      lowerDesc.includes('m4 toll') || lowerDesc.includes('m5 toll') ||
+      lowerDesc.includes('m7 toll') || lowerDesc.includes('m8 toll')) {
+    return 'Tolls';
+  }
+
+  if (lowerDesc.includes('uber') || lowerDesc.includes('taxi') ||
+      lowerDesc.includes('transport') || lowerDesc.includes('opal') ||
+      lowerDesc.includes('myki') || lowerDesc.includes('go card') ||
+      lowerDesc.includes('flix bus') || lowerDesc.includes('greyhound')) {
+    return 'Transportation';
+  }
+
   // Healthcare and pharmacies
   if (lowerDesc.includes('chemist warehouse') || lowerDesc.includes('pharmacy') ||
       lowerDesc.includes('medical') || lowerDesc.includes('doctor') ||
@@ -60,7 +76,7 @@ const enhancedBuiltInRules = (description: string): string | null => {
     return 'Groceries';
   }
 
-  // Gas stations
+  // Gas stations - MUST come after transportation to avoid misclassifying toll payments
   if (lowerDesc.includes('shell') || lowerDesc.includes('bp') ||
       lowerDesc.includes('caltex') || lowerDesc.includes('ampol') ||
       lowerDesc.includes('gas station') || lowerDesc.includes('fuel')) {
@@ -87,12 +103,6 @@ const enhancedBuiltInRules = (description: string): string | null => {
   if (lowerDesc.includes('electricity') || lowerDesc.includes('energy') ||
       lowerDesc.includes('origin') || lowerDesc.includes('agl')) {
     return 'Utilities';
-  }
-
-  // Transportation
-  if (lowerDesc.includes('uber') || lowerDesc.includes('taxi') ||
-      lowerDesc.includes('transport') || lowerDesc.includes('opal')) {
-    return 'Transportation';
   }
 
   // Income
@@ -189,30 +199,30 @@ serve(async (req) => {
           }
         }
 
-        // Priority 2: AI categorization (PRIORITY - with detailed failure logging)
-        console.log(`🤖 Priority 2 - Attempting AI categorization for: "${desc}"`);
-        try {
-          category = await categorizeWithAI(desc);
-          if (category && categories.includes(category)) {
-            console.log(`✅ Priority 2 - AI SUCCESS: "${desc}" -> ${category}`);
-            results.push({ description: desc, category, source: 'ai' });
-            continue;
-          } else {
-            console.log(`❌ Priority 2 - AI FAILED: Invalid category returned: "${category}" for "${desc}"`);
-          }
-        } catch (error) {
-          console.log(`❌ Priority 2 - AI ERROR for "${desc}":`, error.message);
-          console.log(`Full AI error details:`, error);
-        }
-
-        // Priority 3: Enhanced built-in rules
+        // Priority 2: Enhanced built-in rules (MOVED UP in priority for better accuracy)
         category = enhancedBuiltInRules(desc);
         if (category) {
-          console.log(`✅ Priority 3 - Enhanced rules: "${desc}" -> ${category}`);
+          console.log(`✅ Priority 2 - Enhanced rules: "${desc}" -> ${category}`);
           results.push({ description: desc, category, source: 'enhanced-rules' });
           continue;
         } else {
-          console.log(`❌ Priority 3 - Enhanced rules: No match for "${desc}"`);
+          console.log(`❌ Priority 2 - Enhanced rules: No match for "${desc}"`);
+        }
+
+        // Priority 3: AI categorization
+        console.log(`🤖 Priority 3 - Attempting AI categorization for: "${desc}"`);
+        try {
+          category = await categorizeWithAI(desc);
+          if (category && categories.includes(category)) {
+            console.log(`✅ Priority 3 - AI SUCCESS: "${desc}" -> ${category}`);
+            results.push({ description: desc, category, source: 'ai' });
+            continue;
+          } else {
+            console.log(`❌ Priority 3 - AI FAILED: Invalid category returned: "${category}" for "${desc}"`);
+          }
+        } catch (error) {
+          console.log(`❌ Priority 3 - AI ERROR for "${desc}":`, error.message);
+          console.log(`Full AI error details:`, error);
         }
 
         // Priority 4: Miscellaneous fallback
@@ -255,32 +265,32 @@ serve(async (req) => {
       }
     }
 
-    // Priority 2: AI categorization (PRIORITY - with detailed failure logging)
-    console.log(`🤖 Priority 2 - Attempting AI categorization for: "${description}"`);
-    try {
-      const aiCategory = await categorizeWithAI(description);
-      if (aiCategory && categories.includes(aiCategory)) {
-        console.log(`✅ Priority 2 - AI SUCCESS: "${description}" -> ${aiCategory}`);
-        return new Response(JSON.stringify({ category: aiCategory, source: 'ai' }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      } else {
-        console.log(`❌ Priority 2 - AI FAILED: Invalid category returned: "${aiCategory}" for "${description}"`);
-      }
-    } catch (error) {
-      console.log(`❌ Priority 2 - AI ERROR for "${description}":`, error.message);
-      console.log(`Full AI error details:`, error);
-    }
-
-    // Priority 3: Enhanced built-in rules
+    // Priority 2: Enhanced built-in rules (MOVED UP in priority for better accuracy)
     const enhancedCategory = enhancedBuiltInRules(description);
     if (enhancedCategory) {
-      console.log(`✅ Priority 3 - Enhanced rules: "${description}" -> ${enhancedCategory}`);
+      console.log(`✅ Priority 2 - Enhanced rules: "${description}" -> ${enhancedCategory}`);
       return new Response(JSON.stringify({ category: enhancedCategory, source: 'enhanced-rules' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     } else {
-      console.log(`❌ Priority 3 - Enhanced rules: No match for "${description}"`);
+      console.log(`❌ Priority 2 - Enhanced rules: No match for "${description}"`);
+    }
+
+    // Priority 3: AI categorization
+    console.log(`🤖 Priority 3 - Attempting AI categorization for: "${description}"`);
+    try {
+      const aiCategory = await categorizeWithAI(description);
+      if (aiCategory && categories.includes(aiCategory)) {
+        console.log(`✅ Priority 3 - AI SUCCESS: "${description}" -> ${aiCategory}`);
+        return new Response(JSON.stringify({ category: aiCategory, source: 'ai' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } else {
+        console.log(`❌ Priority 3 - AI FAILED: Invalid category returned: "${aiCategory}" for "${description}"`);
+      }
+    } catch (error) {
+      console.log(`❌ Priority 3 - AI ERROR for "${description}":`, error.message);
+      console.log(`Full AI error details:`, error);
     }
 
     // Priority 4: Miscellaneous fallback
@@ -387,6 +397,9 @@ Examples:
 - "BUNNINGS 746000 SEVEN HILLS" -> Home & Garden
 - "AMPOL PARKLEA GLENWOOD" -> Gas & Fuel
 - "CHEMIST WAREHOUSE" -> Healthcare
+- "Direct Debit 408856 Linkt Sydney" -> Tolls
+
+Important: Linkt is a toll road service in Sydney, Australia - always categorize as "Tolls", not "Gas & Fuel".
 
 Respond with ONLY the category name, nothing else.`;
 
