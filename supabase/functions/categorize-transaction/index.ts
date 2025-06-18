@@ -22,7 +22,6 @@ const availableCategories = [
 
 const models = [
   'llama-3.3-70b-versatile',
-  'llama-3.1-70b-versatile', 
   'llama-3.1-8b-instant',
   'mixtral-8x7b-32768'
 ];
@@ -84,6 +83,90 @@ Return only the category name, nothing else.`;
   }
 };
 
+// Helper function to chunk array into smaller batches
+const chunkArray = (array: string[], chunkSize: number): string[][] => {
+  const chunks: string[][] = [];
+  for (let i = 0; i < array.length; i += chunkSize) {
+    chunks.push(array.slice(i, i + chunkSize));
+  }
+  return chunks;
+};
+
+// Process a single batch of transactions
+const processBatch = async (batch: string[], userId: string): Promise<string[]> => {
+  const prompt = createEnhancedPrompt(batch, true);
+  const model = getNextModel();
+  
+  console.log(`Processing batch of ${batch.length} transactions with model: ${model}`);
+  
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${groqApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { 
+          role: 'system', 
+          content: 'You are a financial transaction categorization AI. Always return valid JSON arrays for batch requests and single category names for individual requests.' 
+        },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.1,
+      max_tokens: 2000,
+    }),
+  });
+
+  if (!response.ok) {
+    let errorDetails = `HTTP ${response.status}: ${response.statusText}`;
+    try {
+      const errorBody = await response.text();
+      console.error('Groq API Error Details (Batch):', errorBody);
+      errorDetails += ` - ${errorBody}`;
+    } catch (parseError) {
+      console.error('Could not parse Groq API error response (Batch):', parseError);
+    }
+    throw new Error(`Groq API error: ${errorDetails}`);
+  }
+
+  const data = await response.json();
+  let content = data.choices[0]?.message?.content?.trim();
+  
+  if (!content) {
+    throw new Error('No content in Groq response');
+  }
+
+  try {
+    // Clean up the response - remove markdown formatting if present
+    content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    
+    const parsed = JSON.parse(content);
+    
+    if (Array.isArray(parsed)) {
+      const categories = parsed.map(item => {
+        if (item.category && availableCategories.includes(item.category)) {
+          return item.category;
+        }
+        return 'Miscellaneous';
+      });
+      
+      console.log(`Batch processing completed: ${categories.length} categories returned`);
+      return categories;
+    } else {
+      throw new Error('Response is not an array');
+    }
+  } catch (parseError) {
+    console.error('Failed to parse batch response as JSON:', parseError);
+    console.error('Raw content:', content);
+    
+    // Fallback for batch processing
+    const fallbackCategories = batch.map(() => 'Miscellaneous');
+    return fallbackCategories;
+  }
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -102,94 +185,46 @@ serve(async (req) => {
       throw new Error('VITE_GROQ_API_KEY not configured');
     }
 
-    // Handle batch processing
+    // Handle batch processing with chunking
     if (body.batchMode && body.descriptions && Array.isArray(body.descriptions)) {
-      console.log(`Processing batch of ${body.descriptions.length} transactions`);
+      console.log(`Processing ${body.descriptions.length} transactions in chunks of 20`);
       
-      const prompt = createEnhancedPrompt(body.descriptions, true);
-      const model = getNextModel();
+      const BATCH_SIZE = 20;
+      const chunks = chunkArray(body.descriptions, BATCH_SIZE);
+      const allCategories: string[] = [];
       
-      console.log(`Using model: ${model}`);
+      console.log(`Split into ${chunks.length} chunks`);
       
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${groqApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { 
-              role: 'system', 
-              content: 'You are a financial transaction categorization AI. Always return valid JSON arrays for batch requests and single category names for individual requests.' 
-            },
-            { role: 'user', content: prompt }
-          ],
-          temperature: 0.1,
-          max_tokens: 4000,
-        }),
-      });
-
-      if (!response.ok) {
-        // Enhanced error logging for batch processing
-        let errorDetails = `HTTP ${response.status}: ${response.statusText}`;
+      // Process each chunk sequentially to avoid rate limits
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        console.log(`Processing chunk ${i + 1}/${chunks.length} with ${chunk.length} transactions`);
+        
         try {
-          const errorBody = await response.text();
-          console.error('Groq API Error Details (Batch):', errorBody);
-          errorDetails += ` - ${errorBody}`;
-        } catch (parseError) {
-          console.error('Could not parse Groq API error response (Batch):', parseError);
+          const chunkCategories = await processBatch(chunk, body.userId);
+          allCategories.push(...chunkCategories);
+          
+          // Small delay between chunks to avoid rate limits
+          if (i < chunks.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        } catch (chunkError) {
+          console.error(`Error processing chunk ${i + 1}:`, chunkError);
+          // Add fallback categories for failed chunk
+          const fallbackCategories = chunk.map(() => 'Miscellaneous');
+          allCategories.push(...fallbackCategories);
         }
-        throw new Error(`Groq API error: ${errorDetails}`);
       }
-
-      const data = await response.json();
-      let content = data.choices[0]?.message?.content?.trim();
       
-      if (!content) {
-        throw new Error('No content in Groq response');
-      }
-
-      try {
-        // Clean up the response - remove markdown formatting if present
-        content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        
-        const parsed = JSON.parse(content);
-        
-        if (Array.isArray(parsed)) {
-          const categories = parsed.map(item => {
-            if (item.category && availableCategories.includes(item.category)) {
-              return item.category;
-            }
-            return 'Miscellaneous';
-          });
-          
-          console.log(`Batch processing completed: ${categories.length} categories returned`);
-          
-          return new Response(JSON.stringify({ 
-            categories,
-            source: 'ai_batch',
-            model: model 
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
-        } else {
-          throw new Error('Response is not an array');
-        }
-      } catch (parseError) {
-        console.error('Failed to parse batch response as JSON:', parseError);
-        console.error('Raw content:', content);
-        
-        // Fallback for batch processing
-        const fallbackCategories = body.descriptions.map(() => 'Miscellaneous');
-        return new Response(JSON.stringify({ 
-          categories: fallbackCategories,
-          source: 'fallback_batch' 
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
+      console.log(`Chunked batch processing completed: ${allCategories.length} total categories`);
+      
+      return new Response(JSON.stringify({ 
+        categories: allCategories,
+        source: 'ai_batch_chunked',
+        chunksProcessed: chunks.length
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     // Handle single transaction
