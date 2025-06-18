@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -131,7 +132,16 @@ serve(async (req) => {
       });
 
       if (!response.ok) {
-        throw new Error(`Groq API error: ${response.status} ${response.statusText}`);
+        // Enhanced error logging for batch processing
+        let errorDetails = `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const errorBody = await response.text();
+          console.error('Groq API Error Details (Batch):', errorBody);
+          errorDetails += ` - ${errorBody}`;
+        } catch (parseError) {
+          console.error('Could not parse Groq API error response (Batch):', parseError);
+        }
+        throw new Error(`Groq API error: ${errorDetails}`);
       }
 
       const data = await response.json();
@@ -213,7 +223,18 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      throw new Error(`Groq API error: ${response.status} ${response.statusText}`);
+      // Enhanced error logging for single transaction processing
+      let errorDetails = `HTTP ${response.status}: ${response.statusText}`;
+      try {
+        const errorBody = await response.text();
+        console.error('Groq API Error Details (Single):', errorBody);
+        console.error('Failed transaction description:', body.description);
+        console.error('Model used:', model);
+        errorDetails += ` - ${errorBody}`;
+      } catch (parseError) {
+        console.error('Could not parse Groq API error response (Single):', parseError);
+      }
+      throw new Error(`Groq API error: ${errorDetails}`);
     }
 
     const data = await response.json();
