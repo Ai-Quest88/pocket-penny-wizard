@@ -38,6 +38,10 @@ export const DefaultSettingsSection: React.FC<DefaultSettingsSectionProps> = ({
   const hasNoAccounts = validAccounts.length === 0 && !accountsLoading
   const isAccountNotSelected = !defaultAccount || defaultAccount === 'Default Account' || defaultAccount.trim() === ''
 
+  // Separate accounts by type
+  const assetAccounts = validAccounts.filter(acc => acc.accountType === 'asset')
+  const liabilityAccounts = validAccounts.filter(acc => acc.accountType === 'liability')
+
   return (
     <div className="space-y-4">
       {hasNoAccounts && (
@@ -93,41 +97,37 @@ export const DefaultSettingsSection: React.FC<DefaultSettingsSectionProps> = ({
                 </SelectItem>
               ) : (
                 <>
-                  {validAccounts.filter(acc => acc.accountType === 'asset').length > 0 && (
+                  {assetAccounts.length > 0 && (
                     <>
                       <SelectItem value="assets-header" disabled className="font-semibold">
                         --- Assets ---
                       </SelectItem>
-                      {validAccounts
-                        .filter(acc => acc.accountType === 'asset')
-                        .map(account => (
-                          <SelectItem key={account.id} value={`${account.name} - ${account.entityName} (${account.accountType})`}>
-                            {account.name} - {account.entityName} ({account.type})
-                            {account.accountNumber && ` - ${account.accountNumber}`}
-                            <span className="ml-2 text-sm text-muted-foreground">
-                              Balance: ${account.currentBalance.toLocaleString()}
-                            </span>
-                          </SelectItem>
-                        ))}
+                      {assetAccounts.map(account => (
+                        <SelectItem key={account.id} value={`${account.name} - ${account.entityName} (${account.accountType})`}>
+                          {account.name} - {account.entityName} ({account.type})
+                          {account.accountNumber && ` - ${account.accountNumber}`}
+                          <span className="ml-2 text-sm text-muted-foreground">
+                            Balance: ${account.currentBalance.toLocaleString()}
+                          </span>
+                        </SelectItem>
+                      ))}
                     </>
                   )}
                   
-                  {validAccounts.filter(acc => acc.accountType === 'liability').length > 0 && (
+                  {liabilityAccounts.length > 0 && (
                     <>
                       <SelectItem value="liabilities-header" disabled className="font-semibold">
                         --- Liabilities ---
                       </SelectItem>
-                      {validAccounts
-                        .filter(acc => acc.accountType === 'liability')
-                        .map(account => (
-                          <SelectItem key={account.id} value={`${account.name} - ${account.entityName} (${account.accountType})`}>
-                            {account.name} - {account.entityName} ({account.type})
-                            {account.accountNumber && ` - ${account.accountNumber}`}
-                            <span className="ml-2 text-sm text-muted-foreground">
-                              Balance: ${account.currentBalance.toLocaleString()}
-                            </span>
-                          </SelectItem>
-                        ))}
+                      {liabilityAccounts.map(account => (
+                        <SelectItem key={account.id} value={`${account.name} - ${account.entityName} (${account.accountType})`}>
+                          {account.name} - {account.entityName} ({account.type})
+                          {account.accountNumber && ` - ${account.accountNumber}`}
+                          <span className="ml-2 text-sm text-muted-foreground">
+                            Balance: ${account.currentBalance.toLocaleString()}
+                          </span>
+                        </SelectItem>
+                      ))}
                     </>
                   )}
                 </>
