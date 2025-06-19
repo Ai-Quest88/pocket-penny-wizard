@@ -32,6 +32,9 @@ interface EditLiabilityDialogProps {
 export function EditLiabilityDialog({ liability, onEditLiability }: EditLiabilityDialogProps) {
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
+  const [updateDate, setUpdateDate] = useState<string>(
+    new Date().toISOString().split('T')[0]
+  )
   const [formData, setFormData] = useState<Omit<Liability, "id">>({
     name: liability.name,
     amount: liability.amount,
@@ -77,7 +80,7 @@ export function EditLiabilityDialog({ liability, onEditLiability }: EditLiabilit
         ...formData,
         history: [
           ...liability.history,
-          { date: new Date().toISOString(), value: formData.amount }
+          { date: updateDate, value: formData.amount }
         ]
       }
       onEditLiability(liability.id, updatedLiability)
@@ -131,13 +134,26 @@ export function EditLiabilityDialog({ liability, onEditLiability }: EditLiabilit
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="liability-amount">Amount</Label>
+            <Label htmlFor="liability-amount">
+              {formData.type === "credit" ? "Credit Limit" : "Amount"}
+            </Label>
             <Input
               id="liability-amount"
               type="number"
+              step="0.01"
               value={formData.amount}
               onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
-              placeholder="0.00"
+              placeholder={formData.type === "credit" ? "Credit Limit" : "Amount"}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="update-date">Update Date</Label>
+            <Input
+              id="update-date"
+              type="date"
+              value={updateDate}
+              onChange={(e) => setUpdateDate(e.target.value)}
             />
           </div>
 

@@ -32,6 +32,9 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
   const [selectedEntityId, setSelectedEntityId] = useState<string>("")
+  const [openingBalanceDate, setOpeningBalanceDate] = useState<string>(
+    new Date().toISOString().split('T')[0]
+  )
   const [newLiability, setNewLiability] = useState<Omit<Liability, "id">>({
     name: "",
     amount: 0,
@@ -110,7 +113,7 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
     const liabilityWithEntity = {
       ...newLiability,
       entityId: selectedEntityId,
-      history: [{ date: new Date().toISOString(), value: newLiability.amount }]
+      history: [{ date: openingBalanceDate, value: newLiability.amount }]
     }
     
     console.log("Calling onAddLiability with:", liabilityWithEntity);
@@ -126,6 +129,7 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
       history: [{ date: new Date().toISOString(), value: 0 }]
     })
     setSelectedEntityId("")
+    setOpeningBalanceDate(new Date().toISOString().split('T')[0])
     setOpen(false)
     
     console.log("Liability added successfully, dialog closed");
@@ -145,6 +149,7 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
         history: [{ date: new Date().toISOString(), value: 0 }]
       })
       setSelectedEntityId("")
+      setOpeningBalanceDate(new Date().toISOString().split('T')[0])
     }
   }
 
@@ -204,17 +209,32 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="liability-amount">Amount</Label>
+            <Label htmlFor="liability-amount">
+              {newLiability.type === "credit" ? "Credit Limit" : "Amount"}
+            </Label>
             <Input
               id="liability-amount"
               type="number"
+              step="0.01"
               value={newLiability.amount}
               onChange={(e) => {
                 const amount = parseFloat(e.target.value) || 0;
                 console.log("Liability amount changed to:", amount);
                 setNewLiability({ ...newLiability, amount });
               }}
-              placeholder="0.00"
+              placeholder={newLiability.type === "credit" ? "Credit Limit" : "Amount"}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="opening-balance-date">
+              {newLiability.type === "credit" ? "Account Opening Date" : "Loan Start Date"}
+            </Label>
+            <Input
+              id="opening-balance-date"
+              type="date"
+              value={openingBalanceDate}
+              onChange={(e) => setOpeningBalanceDate(e.target.value)}
             />
           </div>
 
