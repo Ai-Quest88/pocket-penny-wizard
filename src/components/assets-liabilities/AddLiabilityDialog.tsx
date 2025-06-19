@@ -72,7 +72,12 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
   });
 
   const handleAddLiability = () => {
+    console.log("Add Liability button clicked");
+    console.log("Selected entity ID:", selectedEntityId);
+    console.log("New liability data:", newLiability);
+
     if (!selectedEntityId) {
+      console.log("No entity selected, showing error toast");
       toast({
         title: "Error",
         description: "Please select an entity",
@@ -81,37 +86,79 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
       return
     }
 
-    if (newLiability.name && newLiability.amount > 0) {
-      const liabilityWithEntity = {
-        ...newLiability,
-        entityId: selectedEntityId,
-        history: [{ date: new Date().toISOString(), value: newLiability.amount }]
-      }
-      onAddLiability(liabilityWithEntity)
-      
-      // Reset form and close dialog
+    if (!newLiability.name || !newLiability.name.trim()) {
+      console.log("No liability name provided, showing error toast");
+      toast({
+        title: "Error",
+        description: "Please enter a liability name",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (newLiability.amount <= 0) {
+      console.log("Invalid amount provided, showing error toast");
+      toast({
+        title: "Error", 
+        description: "Please enter a valid amount greater than 0",
+        variant: "destructive"
+      })
+      return
+    }
+
+    console.log("All validation passed, creating liability");
+    const liabilityWithEntity = {
+      ...newLiability,
+      entityId: selectedEntityId,
+      history: [{ date: new Date().toISOString(), value: newLiability.amount }]
+    }
+    
+    console.log("Calling onAddLiability with:", liabilityWithEntity);
+    onAddLiability(liabilityWithEntity)
+    
+    // Reset form and close dialog
+    setNewLiability({
+      name: "",
+      amount: 0,
+      type: "credit",
+      category: "credit_card",
+      entityId: "",
+      history: [{ date: new Date().toISOString(), value: 0 }]
+    })
+    setSelectedEntityId("")
+    setOpen(false)
+    
+    console.log("Liability added successfully, dialog closed");
+  }
+
+  const handleDialogOpenChange = (newOpen: boolean) => {
+    console.log("Dialog open state changing to:", newOpen);
+    setOpen(newOpen);
+    if (!newOpen) {
+      // Reset form when closing
       setNewLiability({
         name: "",
         amount: 0,
         type: "credit",
-        category: "credit_card",
+        category: "credit_card", 
         entityId: "",
         history: [{ date: new Date().toISOString(), value: 0 }]
       })
       setSelectedEntityId("")
-      setOpen(false)
-      
-      toast({
-        title: "Liability Added",
-        description: "Your new liability has been added successfully.",
-      })
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="flex items-center gap-2">
+        <Button 
+          variant="outline" 
+          className="flex items-center gap-2"
+          onClick={() => {
+            console.log("Add Liability dialog trigger clicked");
+            setOpen(true);
+          }}
+        >
           <Plus className="h-4 w-4" />
           Add Liability
         </Button>
@@ -125,7 +172,10 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
             <Label htmlFor="entity">Entity</Label>
             <Select
               value={selectedEntityId}
-              onValueChange={setSelectedEntityId}
+              onValueChange={(value) => {
+                console.log("Entity selected:", value);
+                setSelectedEntityId(value);
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select entity" />
@@ -145,7 +195,10 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
             <Input
               id="liability-name"
               value={newLiability.name}
-              onChange={(e) => setNewLiability({ ...newLiability, name: e.target.value })}
+              onChange={(e) => {
+                console.log("Liability name changed to:", e.target.value);
+                setNewLiability({ ...newLiability, name: e.target.value });
+              }}
               placeholder="e.g., Credit Card"
             />
           </div>
@@ -156,7 +209,11 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
               id="liability-amount"
               type="number"
               value={newLiability.amount}
-              onChange={(e) => setNewLiability({ ...newLiability, amount: parseFloat(e.target.value) || 0 })}
+              onChange={(e) => {
+                const amount = parseFloat(e.target.value) || 0;
+                console.log("Liability amount changed to:", amount);
+                setNewLiability({ ...newLiability, amount });
+              }}
               placeholder="0.00"
             />
           </div>
@@ -165,7 +222,10 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
             <Label htmlFor="liability-type">Type</Label>
             <Select
               value={newLiability.type}
-              onValueChange={(value: Liability["type"]) => setNewLiability({ ...newLiability, type: value })}
+              onValueChange={(value: Liability["type"]) => {
+                console.log("Liability type changed to:", value);
+                setNewLiability({ ...newLiability, type: value, category: liabilityCategoryGroups[value][0] });
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select type" />
@@ -183,7 +243,10 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
             <Label htmlFor="liability-category">Category</Label>
             <Select
               value={newLiability.category}
-              onValueChange={(value: LiabilityCategory) => setNewLiability({ ...newLiability, category: value })}
+              onValueChange={(value: LiabilityCategory) => {
+                console.log("Liability category changed to:", value);
+                setNewLiability({ ...newLiability, category: value });
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select category" />
@@ -198,7 +261,9 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
             </Select>
           </div>
           
-          <Button onClick={handleAddLiability} className="w-full">Add Liability</Button>
+          <Button onClick={handleAddLiability} className="w-full">
+            Add Liability
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
