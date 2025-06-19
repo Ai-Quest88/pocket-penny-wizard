@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -53,7 +52,7 @@ export const AccountManager = ({ onAccountAdded }: AccountManagerProps) => {
     accountType: "savings_account",
     currency: "AUD",
     openingBalance: 0,
-    date: new Date().toISOString().split('T')[0],
+    openingBalanceDate: new Date().toISOString().split('T')[0],
   });
 
   const accountTypes = [
@@ -144,7 +143,7 @@ export const AccountManager = ({ onAccountAdded }: AccountManagerProps) => {
         accountType: "savings_account",
         currency: "AUD",
         openingBalance: 0,
-        date: new Date().toISOString().split('T')[0],
+        openingBalanceDate: new Date().toISOString().split('T')[0],
       });
       
       setShowAddForm(false);
@@ -270,7 +269,9 @@ export const AccountManager = ({ onAccountAdded }: AccountManagerProps) => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="opening-balance">Opening Balance</Label>
+                <Label htmlFor="opening-balance">
+                  {newAccount.accountType === "credit_card" ? "Credit Limit" : "Opening Balance"}
+                </Label>
                 <Input
                   id="opening-balance"
                   type="number"
@@ -279,17 +280,19 @@ export const AccountManager = ({ onAccountAdded }: AccountManagerProps) => {
                   onChange={(e) =>
                     setNewAccount({ ...newAccount, openingBalance: parseFloat(e.target.value) || 0 })
                   }
-                  placeholder="Opening Balance"
+                  placeholder={newAccount.accountType === "credit_card" ? "Credit Limit" : "Opening Balance"}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="date">Date</Label>
+                <Label htmlFor="opening-balance-date">
+                  {newAccount.accountType === "credit_card" ? "Account Opening Date" : "Opening Balance Date"}
+                </Label>
                 <Input
-                  id="date"
+                  id="opening-balance-date"
                   type="date"
-                  value={newAccount.date}
-                  onChange={(e) => setNewAccount({ ...newAccount, date: e.target.value })}
+                  value={newAccount.openingBalanceDate}
+                  onChange={(e) => setNewAccount({ ...newAccount, openingBalanceDate: e.target.value })}
                 />
               </div>
 
