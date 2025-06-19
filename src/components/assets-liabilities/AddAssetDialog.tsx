@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -43,6 +42,9 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
     accountNumber: "",
     address: ""
   })
+  const [openingBalanceDate, setOpeningBalanceDate] = useState<string>(
+    new Date().toISOString().split('T')[0]
+  )
 
   // Fetch entities from Supabase
   const { data: entities = [] } = useQuery({
@@ -88,7 +90,7 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
       const assetWithEntity = {
         ...newAsset,
         entityId: selectedEntityId,
-        history: [{ date: new Date().toISOString(), value: newAsset.value }]
+        history: [{ date: openingBalanceDate, value: newAsset.value }]
       }
       onAddAsset(assetWithEntity)
       setNewAsset({
@@ -101,6 +103,7 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
         accountNumber: "",
         address: ""
       })
+      setOpeningBalanceDate(new Date().toISOString().split('T')[0])
       setSelectedEntityId("")
       setOpen(false)
       toast({
@@ -209,6 +212,18 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
               value={newAsset.value}
               onChange={(e) => setNewAsset({ ...newAsset, value: parseFloat(e.target.value) || 0 })}
               placeholder="0.00"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="opening-balance-date">
+              {newAsset.type === "cash" ? "Opening Balance Date" : "Value Date"}
+            </Label>
+            <Input
+              id="opening-balance-date"
+              type="date"
+              value={openingBalanceDate}
+              onChange={(e) => setOpeningBalanceDate(e.target.value)}
             />
           </div>
 
