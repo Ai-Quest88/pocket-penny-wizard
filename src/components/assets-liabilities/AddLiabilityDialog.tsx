@@ -41,7 +41,7 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
     type: "credit",
     category: "credit_card",
     entityId: "",
-    history: [{ date: new Date().toISOString(), value: 0 }]
+    history: []
   })
 
   // Fetch entities from Supabase
@@ -78,6 +78,7 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
     console.log("Add Liability button clicked");
     console.log("Selected entity ID:", selectedEntityId);
     console.log("New liability data:", newLiability);
+    console.log("Opening balance date:", openingBalanceDate);
 
     if (!selectedEntityId) {
       console.log("No entity selected, showing error toast");
@@ -126,7 +127,7 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
       type: "credit",
       category: "credit_card",
       entityId: "",
-      history: [{ date: new Date().toISOString(), value: 0 }]
+      history: []
     })
     setSelectedEntityId("")
     setOpeningBalanceDate(new Date().toISOString().split('T')[0])
@@ -146,7 +147,7 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
         type: "credit",
         category: "credit_card", 
         entityId: "",
-        history: [{ date: new Date().toISOString(), value: 0 }]
+        history: []
       })
       setSelectedEntityId("")
       setOpeningBalanceDate(new Date().toISOString().split('T')[0])
@@ -209,36 +210,6 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="liability-amount">
-              {newLiability.type === "credit" ? "Credit Limit" : "Amount"}
-            </Label>
-            <Input
-              id="liability-amount"
-              type="number"
-              step="0.01"
-              value={newLiability.amount}
-              onChange={(e) => {
-                const amount = parseFloat(e.target.value) || 0;
-                console.log("Liability amount changed to:", amount);
-                setNewLiability({ ...newLiability, amount });
-              }}
-              placeholder={newLiability.type === "credit" ? "Credit Limit" : "Amount"}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="opening-balance-date">
-              {newLiability.type === "credit" ? "Account Opening Date" : "Loan Start Date"}
-            </Label>
-            <Input
-              id="opening-balance-date"
-              type="date"
-              value={openingBalanceDate}
-              onChange={(e) => setOpeningBalanceDate(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="liability-type">Type</Label>
             <Select
               value={newLiability.type}
@@ -279,6 +250,41 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="liability-amount">
+              {newLiability.type === "credit" ? "Credit Limit" : "Amount"}
+            </Label>
+            <Input
+              id="liability-amount"
+              type="number"
+              step="0.01"
+              value={newLiability.amount}
+              onChange={(e) => {
+                const amount = parseFloat(e.target.value) || 0;
+                console.log("Liability amount changed to:", amount);
+                setNewLiability({ ...newLiability, amount });
+              }}
+              placeholder={newLiability.type === "credit" ? "Credit Limit" : "Amount"}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="opening-balance-date">
+              {newLiability.type === "credit" ? "Account Opening Date" : 
+               newLiability.type === "mortgage" ? "Loan Start Date" : 
+               "Start Date"}
+            </Label>
+            <Input
+              id="opening-balance-date"
+              type="date"
+              value={openingBalanceDate}
+              onChange={(e) => {
+                console.log("Opening balance date changed to:", e.target.value);
+                setOpeningBalanceDate(e.target.value);
+              }}
+            />
           </div>
           
           <Button onClick={handleAddLiability} className="w-full">

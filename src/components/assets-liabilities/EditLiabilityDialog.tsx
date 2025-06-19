@@ -32,9 +32,14 @@ interface EditLiabilityDialogProps {
 export function EditLiabilityDialog({ liability, onEditLiability }: EditLiabilityDialogProps) {
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
-  const [updateDate, setUpdateDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
-  )
+  
+  // Get the most recent date from history, or use current date as fallback
+  const latestHistoryDate = liability.history && liability.history.length > 0 
+    ? liability.history[liability.history.length - 1].date.split('T')[0]
+    : new Date().toISOString().split('T')[0]
+    
+  const [updateDate, setUpdateDate] = useState<string>(latestHistoryDate)
+  
   const [formData, setFormData] = useState<Omit<Liability, "id">>({
     name: liability.name,
     amount: liability.amount,
@@ -134,30 +139,6 @@ export function EditLiabilityDialog({ liability, onEditLiability }: EditLiabilit
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="liability-amount">
-              {formData.type === "credit" ? "Credit Limit" : "Amount"}
-            </Label>
-            <Input
-              id="liability-amount"
-              type="number"
-              step="0.01"
-              value={formData.amount}
-              onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
-              placeholder={formData.type === "credit" ? "Credit Limit" : "Amount"}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="update-date">Update Date</Label>
-            <Input
-              id="update-date"
-              type="date"
-              value={updateDate}
-              onChange={(e) => setUpdateDate(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="liability-type">Type</Label>
             <Select
               value={formData.type}
@@ -192,6 +173,34 @@ export function EditLiabilityDialog({ liability, onEditLiability }: EditLiabilit
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="liability-amount">
+              {formData.type === "credit" ? "Credit Limit" : "Amount"}
+            </Label>
+            <Input
+              id="liability-amount"
+              type="number"
+              step="0.01"
+              value={formData.amount}
+              onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
+              placeholder={formData.type === "credit" ? "Credit Limit" : "Amount"}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="update-date">
+              {formData.type === "credit" ? "Balance Update Date" : 
+               formData.type === "mortgage" ? "Balance Update Date" : 
+               "Update Date"}
+            </Label>
+            <Input
+              id="update-date"
+              type="date"
+              value={updateDate}
+              onChange={(e) => setUpdateDate(e.target.value)}
+            />
           </div>
           
           <Button onClick={handleSubmit} className="w-full">Update Liability</Button>
