@@ -171,6 +171,11 @@ const AppRoutes = () => {
                   <Route path="/liabilities" element={<Liabilities />} />
                   <Route path="/budgets" element={<Budgets />} />
                   <Route path="/reports" element={<Reports />} />
+                  <Route path="/reports/income-expense" element={<Reports />} />
+                  <Route path="/reports/cash-flow" element={<Reports />} />
+                  <Route path="/reports/trends" element={<Reports />} />
+                  <Route path="/reports/timeline" element={<Reports />} />
+                  <Route path="/reports/digest" element={<Reports />} />
                   <Route path="/notifications" element={<Notifications />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="*" element={<NotFound />} />

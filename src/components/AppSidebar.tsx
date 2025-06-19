@@ -1,6 +1,5 @@
 
-
-import { BarChart2, CreditCard, DollarSign, Home, Settings, Users, Wallet, List, Upload } from "lucide-react"
+import { BarChart2, CreditCard, DollarSign, Home, Settings, Users, Wallet, List, Upload, FileText, TrendingUp, Calendar, Activity, PieChart } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -136,8 +135,92 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Reports</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link 
+                    to="/reports"
+                    className="flex items-center gap-2"
+                    data-active={location.pathname === "/reports"}
+                  >
+                    <BarChart2 className="h-4 w-4" />
+                    <span>Net Worth</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link 
+                    to="/reports/income-expense"
+                    className="flex items-center gap-2"
+                    data-active={location.pathname === "/reports/income-expense"}
+                  >
+                    <FileText className="h-4 w-4" />
+                    <span>Income & Expense</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link 
+                    to="/reports/cash-flow"
+                    className="flex items-center gap-2"
+                    data-active={location.pathname === "/reports/cash-flow"}
+                  >
+                    <Activity className="h-4 w-4" />
+                    <span>Cash Flow</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link 
+                    to="/reports/trends"
+                    className="flex items-center gap-2"
+                    data-active={location.pathname === "/reports/trends"}
+                  >
+                    <TrendingUp className="h-4 w-4" />
+                    <span>Trends</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link 
+                    to="/reports/timeline"
+                    className="flex items-center gap-2"
+                    data-active={location.pathname === "/reports/timeline"}
+                  >
+                    <Calendar className="h-4 w-4" />
+                    <span>Timeline</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link 
+                    to="/reports/digest"
+                    className="flex items-center gap-2"
+                    data-active={location.pathname === "/reports/digest"}
+                  >
+                    <PieChart className="h-4 w-4" />
+                    <span>Digest Report</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
     </Sidebar>
   )
 }
-
