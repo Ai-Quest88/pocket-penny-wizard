@@ -6,7 +6,9 @@ export interface AccountBalance {
   accountName: string;
   entityName: string;
   accountType: 'asset' | 'liability';
-  calculatedBalance: number;
+  openingBalance: number;
+  transactionSum: number;
+  calculatedBalance: number; // This is the closing balance
 }
 
 export const calculateAccountBalances = async (userId: string): Promise<AccountBalance[]> => {
@@ -61,18 +63,21 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
     const accountTransactions = transactions.filter(t => t.account_id === asset.id);
     const transactionSum = accountTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
     
-    // For assets, start with initial value and add transaction amounts
-    const calculatedBalance = Number(asset.value) + transactionSum;
+    // For assets: Closing Balance = Opening Balance + Transactions
+    const openingBalance = Number(asset.value);
+    const calculatedBalance = openingBalance + transactionSum;
 
     balances.push({
       accountId: asset.id,
       accountName: asset.name,
       entityName: asset.entities.name,
       accountType: 'asset',
-      calculatedBalance
+      openingBalance,
+      transactionSum,
+      calculatedBalance // This is the closing balance
     });
 
-    console.log(`Asset ${asset.name}: Initial ${asset.value} + Transactions ${transactionSum} = ${calculatedBalance}`);
+    console.log(`Asset ${asset.name}: Opening ${openingBalance} + Transactions ${transactionSum} = Closing ${calculatedBalance}`);
   });
 
   // Calculate balances for liabilities  
@@ -81,21 +86,24 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
     const accountTransactions = transactions.filter(t => t.account_id === liability.id);
     const transactionSum = accountTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
     
-    // For liabilities, start with initial amount and subtract transaction amounts (payments reduce liability)
-    const calculatedBalance = Number(liability.amount) - transactionSum;
+    // For liabilities: Closing Balance = Opening Balance - Transactions (payments reduce liability)
+    const openingBalance = Number(liability.amount);
+    const calculatedBalance = openingBalance - transactionSum;
 
     balances.push({
       accountId: liability.id,
       accountName: liability.name,
       entityName: liability.entities.name,
       accountType: 'liability',
-      calculatedBalance
+      openingBalance,
+      transactionSum,
+      calculatedBalance // This is the closing balance
     });
 
-    console.log(`Liability ${liability.name}: Initial ${liability.amount} - Transactions ${transactionSum} = ${calculatedBalance}`);
+    console.log(`Liability ${liability.name}: Opening ${openingBalance} - Transactions ${transactionSum} = Closing ${calculatedBalance}`);
   });
 
-  console.log('Calculated balances:', balances);
+  console.log('Calculated balances with opening/closing:', balances);
   return balances;
 };
 
@@ -103,4 +111,15 @@ export const getAccountBalance = async (accountId: string, userId: string): Prom
   const balances = await calculateAccountBalances(userId);
   const accountBalance = balances.find(b => b.accountId === accountId);
   return accountBalance?.calculatedBalance || 0;
+};
+
+export const getAccountOpeningBalance = async (accountId: string, userId: string): Promise<number> => {
+  const balances = await calculateAccountBalances(userId);
+  const accountBalance = balances.find(b => b.accountId === accountId);
+  return accountBalance?.openingBalance || 0;
+};
+
+export const getAccountClosingBalance = async (accountId: string, userId: string): Promise<number> => {
+  // Closing balance is the same as calculated balance
+  return getAccountBalance(accountId, userId);
 };
