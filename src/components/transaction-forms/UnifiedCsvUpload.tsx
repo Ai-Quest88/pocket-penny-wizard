@@ -62,8 +62,8 @@ const UnifiedCsvUpload: React.FC<UnifiedCsvUploadProps> = ({ onSuccess }) => {
 
   const requiredFields = ['date', 'amount', 'description']
 
-  // Filter for cash accounts only
-  const cashAccounts = accounts.filter(account => account.accountType === 'asset')
+  // Use all accounts (both assets and liabilities) instead of filtering to only cash accounts
+  const allAccounts = accounts
 
   const handleMockDataUpload = async () => {
     if (!session?.user?.id) {
@@ -78,7 +78,7 @@ const UnifiedCsvUpload: React.FC<UnifiedCsvUploadProps> = ({ onSuccess }) => {
     if (!selectedAccountId) {
       toast({
         title: "Account Required",
-        description: "Please select a cash account for the mock transactions",
+        description: "Please select an account for the mock transactions",
         variant: "destructive",
       })
       return
@@ -128,7 +128,7 @@ const UnifiedCsvUpload: React.FC<UnifiedCsvUploadProps> = ({ onSuccess }) => {
         category: categories[index] || transaction.category || 'Miscellaneous',
         currency: defaultCurrency,
         user_id: session.user.id,
-        account_id: selectedAccountId, // Link to selected cash account
+        account_id: selectedAccountId, // Link to selected account
       }))
 
       // Phase 3: Save to database
@@ -552,31 +552,55 @@ const UnifiedCsvUpload: React.FC<UnifiedCsvUploadProps> = ({ onSuccess }) => {
       <CardContent className="space-y-6">
         {/* Account Selection Section */}
         <div className="space-y-4">
-          <Label>Select Cash Account</Label>
+          <Label>Select Account</Label>
           <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
             <SelectTrigger>
-              <SelectValue placeholder="Choose a cash account for transactions" />
+              <SelectValue placeholder="Choose an account for transactions" />
             </SelectTrigger>
             <SelectContent>
               {accountsLoading ? (
                 <SelectItem value="loading" disabled>Loading accounts...</SelectItem>
-              ) : cashAccounts.length === 0 ? (
-                <SelectItem value="no-accounts" disabled>No cash accounts found</SelectItem>
+              ) : allAccounts.length === 0 ? (
+                <SelectItem value="no-accounts" disabled>No accounts found</SelectItem>
               ) : (
-                cashAccounts.map(account => (
-                  <SelectItem key={account.id} value={account.id}>
-                    {account.name} ({account.entityName}) - ${account.currentBalance.toLocaleString()}
-                  </SelectItem>
-                ))
+                <>
+                  {/* Assets Section */}
+                  {allAccounts.filter(acc => acc.accountType === 'asset').length > 0 && (
+                    <>
+                      <SelectItem value="assets-header" disabled className="font-semibold text-blue-600">
+                        --- Assets ---
+                      </SelectItem>
+                      {allAccounts.filter(acc => acc.accountType === 'asset').map(account => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.name} ({account.entityName}) - ${account.currentBalance.toLocaleString()}
+                        </SelectItem>
+                      ))}
+                    </>
+                  )}
+                  
+                  {/* Liabilities Section */}
+                  {allAccounts.filter(acc => acc.accountType === 'liability').length > 0 && (
+                    <>
+                      <SelectItem value="liabilities-header" disabled className="font-semibold text-red-600">
+                        --- Liabilities ---
+                      </SelectItem>
+                      {allAccounts.filter(acc => acc.accountType === 'liability').map(account => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.name} ({account.entityName}) - ${account.currentBalance.toLocaleString()}
+                        </SelectItem>
+                      ))}
+                    </>
+                  )}
+                </>
               )}
             </SelectContent>
           </Select>
           
-          {cashAccounts.length === 0 && !accountsLoading && (
+          {allAccounts.length === 0 && !accountsLoading && (
             <Alert>
               <InfoIcon className="h-4 w-4" />
               <AlertDescription>
-                No cash accounts found. Please add a cash account in the Assets section before uploading transactions.
+                No accounts found. Please add accounts in the Assets or Liabilities sections before uploading transactions.
               </AlertDescription>
             </Alert>
           )}
@@ -607,7 +631,7 @@ const UnifiedCsvUpload: React.FC<UnifiedCsvUploadProps> = ({ onSuccess }) => {
           <Alert>
             <Zap className="h-4 w-4" />
             <AlertDescription>
-              Use "Create Mock Transactions" to instantly add 12 sample transactions to your selected cash account for testing the app without uploading a CSV file.
+              Use "Create Mock Transactions" to instantly add 12 sample transactions to your selected account for testing the app without uploading a CSV file.
             </AlertDescription>
           </Alert>
         </div>
@@ -768,7 +792,7 @@ const UnifiedCsvUpload: React.FC<UnifiedCsvUploadProps> = ({ onSuccess }) => {
 
               {duplicateCheckEnabled && (
                 <Alert>
-                  <InfoIcon className="h-4 w-4" />
+                  <InfoIcon className="h-4 w-4"  />
                   <AlertDescription>
                     Duplicate detection is enabled. Transactions with the same description, amount, and date will be automatically skipped.
                     Similar transactions (80%+ similarity) will also be detected and skipped.
