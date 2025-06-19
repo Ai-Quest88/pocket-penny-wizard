@@ -4,6 +4,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { NetWorthReport } from "@/components/reports/NetWorthReport"
 import { AssetsReport } from "@/components/reports/AssetsReport"
 import { LiabilitiesReport } from "@/components/reports/LiabilitiesReport"
+import { IncomeExpenseReport } from "@/components/reports/IncomeExpenseReport"
+import { CashFlowReport } from "@/components/reports/CashFlowReport"
+import { TrendsReport } from "@/components/reports/TrendsReport"
+import { TimelineReport } from "@/components/reports/TimelineReport"
+import { DigestReport } from "@/components/reports/DigestReport"
 import { useLocation } from "react-router-dom"
 import { useEffect, useState } from "react"
 
@@ -64,86 +69,31 @@ export default function Reports() {
 
           <TabsContent value="income-expense">
             <Card className="p-6">
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-2xl font-semibold">Income and Expense Statement</h2>
-                  <div className="flex gap-2">
-                    <button className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90">
-                      Export Excel
-                    </button>
-                    <button className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/90">
-                      Export CSV
-                    </button>
-                  </div>
-                </div>
-                <p className="text-muted-foreground">
-                  Personal profit and loss report showing earnings and spending categories with budget comparisons.
-                </p>
-                <div className="bg-muted/20 p-8 rounded-lg text-center">
-                  <p className="text-muted-foreground">Income and Expense Statement content will be implemented here</p>
-                </div>
-              </div>
+              <IncomeExpenseReport />
             </Card>
           </TabsContent>
 
           <TabsContent value="cash-flow">
             <Card className="p-6">
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-2xl font-semibold">Cash Flow Statement</h2>
-                  <button className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/90">
-                    Export CSV
-                  </button>
-                </div>
-                <p className="text-muted-foreground">
-                  Forecasts monthly cash flows with past and future finances in spreadsheet format.
-                </p>
-                <div className="bg-muted/20 p-8 rounded-lg text-center">
-                  <p className="text-muted-foreground">Cash Flow Statement content will be implemented here</p>
-                </div>
-              </div>
+              <CashFlowReport />
             </Card>
           </TabsContent>
 
           <TabsContent value="trends">
             <Card className="p-6">
-              <div className="space-y-4">
-                <h2 className="text-2xl font-semibold">Trends Analysis</h2>
-                <p className="text-muted-foreground">
-                  Identify patterns in earnings and spending with interactive bar charts and budget comparisons.
-                </p>
-                <div className="bg-muted/20 p-8 rounded-lg text-center">
-                  <p className="text-muted-foreground">Trends Analysis content will be implemented here</p>
-                </div>
-              </div>
+              <TrendsReport />
             </Card>
           </TabsContent>
 
           <TabsContent value="timeline">
             <Card className="p-6">
-              <div className="space-y-4">
-                <h2 className="text-2xl font-semibold">Financial Timeline</h2>
-                <p className="text-muted-foreground">
-                  Store financial memories including transactions with notes, images, and attachments.
-                </p>
-                <div className="bg-muted/20 p-8 rounded-lg text-center">
-                  <p className="text-muted-foreground">Financial Timeline content will be implemented here</p>
-                </div>
-              </div>
+              <TimelineReport />
             </Card>
           </TabsContent>
 
           <TabsContent value="digest">
             <Card className="p-6">
-              <div className="space-y-4">
-                <h2 className="text-2xl font-semibold">Digest Report</h2>
-                <p className="text-muted-foreground">
-                  Comprehensive report with graphs, charts, and visual representations of your financial habits.
-                </p>
-                <div className="bg-muted/20 p-8 rounded-lg text-center">
-                  <p className="text-muted-foreground">Digest Report content will be implemented here</p>
-                </div>
-              </div>
+              <DigestReport />
             </Card>
           </TabsContent>
         </Tabs>
