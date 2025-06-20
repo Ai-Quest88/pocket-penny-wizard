@@ -99,7 +99,7 @@ export function EditAssetDialog({ asset, onEditAsset }: EditAssetDialogProps) {
           <Pencil className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Asset</DialogTitle>
         </DialogHeader>
@@ -137,7 +137,14 @@ export function EditAssetDialog({ asset, onEditAsset }: EditAssetDialogProps) {
             <Label htmlFor="asset-type">Type</Label>
             <Select
               value={formData.type}
-              onValueChange={(value: Asset["type"]) => setFormData({ ...formData, type: value })}
+              onValueChange={(value: Asset["type"]) => {
+                const newFormData = { ...formData, type: value };
+                // Reset category when type changes
+                if (assetCategoryGroups[value] && assetCategoryGroups[value].length > 0) {
+                  newFormData.category = assetCategoryGroups[value][0];
+                }
+                setFormData(newFormData);
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select type" />
@@ -148,6 +155,25 @@ export function EditAssetDialog({ asset, onEditAsset }: EditAssetDialogProps) {
                 <SelectItem value="property">Property</SelectItem>
                 <SelectItem value="vehicle">Vehicle</SelectItem>
                 <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="asset-category">Category</Label>
+            <Select
+              value={formData.category}
+              onValueChange={(value: AssetCategory) => setFormData({ ...formData, category: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {assetCategoryGroups[formData.type]?.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category.split("_").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -185,28 +211,11 @@ export function EditAssetDialog({ asset, onEditAsset }: EditAssetDialogProps) {
                 value={formData.value}
                 onChange={(e) => setFormData({ ...formData, value: parseFloat(e.target.value) || 0 })}
                 placeholder="0.00"
+                step="0.01"
+                min="0"
               />
             </div>
           )}
-
-          <div className="space-y-2">
-            <Label htmlFor="asset-category">Category</Label>
-            <Select
-              value={formData.category}
-              onValueChange={(value: AssetCategory) => setFormData({ ...formData, category: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                {assetCategoryGroups[formData.type].map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category.split("_").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
           
           <Button onClick={handleSubmit} className="w-full">Update Asset</Button>
         </div>
