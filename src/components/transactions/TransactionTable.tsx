@@ -45,7 +45,7 @@ export const TransactionTable = ({
   selectedTransactions,
   onSelectionChange,
   onSelectAll,
-  showBalance = true,
+  showBalance = false, // Changed default to false
   readOnly = false,
 }: TransactionTableProps) => {
   const allSelected = transactions.length > 0 && selectedTransactions.length === transactions.length;

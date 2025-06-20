@@ -19,6 +19,11 @@ export const PreviewTable: React.FC<PreviewTableProps> = ({
            header.length > 0
   })
 
+  // Filter out balance column from display
+  const displayHeaders = validHeaders.filter(header => 
+    !header.toLowerCase().includes('balance')
+  )
+
   if (preview.length === 0) return null
 
   return (
@@ -28,7 +33,7 @@ export const PreviewTable: React.FC<PreviewTableProps> = ({
         <table className="w-full border-collapse border border-gray-300">
           <thead>
             <tr className="bg-gray-50">
-              {validHeaders.map(header => (
+              {displayHeaders.map(header => (
                 <th key={`preview-header-${header}`} className="border border-gray-300 px-3 py-2 text-left text-sm font-medium">
                   {header}
                 </th>
@@ -38,7 +43,7 @@ export const PreviewTable: React.FC<PreviewTableProps> = ({
           <tbody>
             {preview.map((row, index) => (
               <tr key={`preview-row-${index}`}>
-                {validHeaders.map(header => (
+                {displayHeaders.map(header => (
                   <td key={`preview-cell-${index}-${header}`} className="border border-gray-300 px-3 py-2 text-sm">
                     {row[header]}
                   </td>

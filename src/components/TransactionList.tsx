@@ -43,7 +43,7 @@ const currencySymbols: Record<string, string> = {
   AUD: "$"
 };
 
-export const TransactionList = ({ entityId, showBalance = true, readOnly = false }: TransactionListProps) => {
+export const TransactionList = ({ entityId, showBalance = false, readOnly = false }: TransactionListProps) => {
   const [displayCurrency, setDisplayCurrency] = useState("AUD");
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);

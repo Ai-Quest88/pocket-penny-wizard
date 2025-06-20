@@ -110,7 +110,7 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
 
       toast({
         title: "Success",
-        description: "Transaction added successfully. Account balance will update automatically.",
+        description: "Transaction added successfully.",
       });
 
       // Invalidate account balances to trigger recalculation
@@ -157,7 +157,7 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
           Add New Transaction
         </CardTitle>
         <CardDescription>
-          Manually add a new transaction to your records. Account balances will update automatically.
+          Manually add a new transaction to your records.
         </CardDescription>
       </CardHeader>
       <CardContent>

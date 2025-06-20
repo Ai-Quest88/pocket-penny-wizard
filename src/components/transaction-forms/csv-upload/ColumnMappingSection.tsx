@@ -30,7 +30,7 @@ export const ColumnMappingSection: React.FC<ColumnMappingSectionProps> = ({
         Map your file columns to transaction fields. Required fields are marked with *
       </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <Label htmlFor="date-mapping">Date *</Label>
           <Select value={mapping.date || ''} onValueChange={(value) => onMappingChange('date', value)}>
@@ -68,21 +68,6 @@ export const ColumnMappingSection: React.FC<ColumnMappingSectionProps> = ({
             <SelectContent>
               {validHeaders.map(header => (
                 <SelectItem key={`description-${header}`} value={header}>{header}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Label htmlFor="balance-mapping">Balance</Label>
-          <Select value={mapping.balance || ''} onValueChange={(value) => onMappingChange('balance', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select balance column (optional)" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">None</SelectItem>
-              {validHeaders.map(header => (
-                <SelectItem key={`balance-${header}`} value={header}>{header}</SelectItem>
               ))}
             </SelectContent>
           </Select>

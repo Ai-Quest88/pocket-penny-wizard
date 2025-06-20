@@ -135,7 +135,7 @@ const detectHeaders = (firstRow: string[]): boolean => {
     /^amount$/i, /^debit$/i, /^credit$/i, /^value$/i,
     /^description$/i, /^narrative$/i, /^details$/i, /^memo$/i,
     /^category$/i, /^type$/i,
-    /^account$/i, /^currency$/i, /^balance$/i
+    /^account$/i, /^currency$/i
   ];
   
   // If any field matches header patterns and no field looks like actual data
@@ -188,10 +188,6 @@ const autoMapColumns = (headers: string[]): Record<string, string> => {
     // Currency mapping
     else if (/^currency/.test(normalizedHeader)) {
       mapping.currency = header;
-    }
-    // Balance mapping
-    else if (/^balance/.test(normalizedHeader)) {
-      mapping.balance = header;
     }
   });
   
@@ -262,9 +258,6 @@ export const parseCSV = (content: string): ParseResult => {
         amount: headers[1],
         description: headers[2]
       };
-      if (firstRowFields.length >= 4) {
-        autoMappedColumns.balance = headers[3];
-      }
     }
   }
   
@@ -302,32 +295,29 @@ export const parseCSV = (content: string): ParseResult => {
       continue;
     }
 
-    let date: string, description: string, amount: string, currency: string, balance: string | undefined;
+    let date: string, description: string, amount: string, currency: string;
 
     // Use auto-mapped columns if available
     if (hasHeaders && Object.keys(autoMappedColumns).length >= 3) {
       const dateIndex = firstRowFields.indexOf(autoMappedColumns.date);
       const amountIndex = firstRowFields.indexOf(autoMappedColumns.amount);
       const descriptionIndex = firstRowFields.indexOf(autoMappedColumns.description);
-      const balanceIndex = autoMappedColumns.balance ? firstRowFields.indexOf(autoMappedColumns.balance) : -1;
       
       date = dateIndex >= 0 ? fields[dateIndex] : fields[0];
       amount = amountIndex >= 0 ? fields[amountIndex] : fields[1];
       description = descriptionIndex >= 0 ? fields[descriptionIndex] : fields[2];
-      balance = balanceIndex >= 0 ? fields[balanceIndex] : (fields.length >= 4 ? fields[3] : undefined);
       currency = detectedCurrency;
     } else {
       // Fall back to format detection
       const format = detectCsvFormat(fields, content);
       
       if (format === 'format3' || format === 'format2') {
-        // Your format: Date, Amount, Description, Balance
-        [date, amount, description, balance] = fields;
+        // Format: Date, Amount, Description (removed balance)
+        [date, amount, description] = fields;
         currency = detectedCurrency;
       } else if (format === 'format1') {
         // Original format: Date, Description, Amount, Currency
         [date, description, amount, currency = detectedCurrency] = fields;
-        balance = undefined;
       } else {
         errors.push({
           row: i + 1,
@@ -379,8 +369,7 @@ export const parseCSV = (content: string): ParseResult => {
         date: parsedDate,
         currency: currency?.trim() || detectedCurrency,
         account: undefined,
-        comment: undefined,
-        balance: balance?.trim()
+        comment: undefined
       });
     }
   }
