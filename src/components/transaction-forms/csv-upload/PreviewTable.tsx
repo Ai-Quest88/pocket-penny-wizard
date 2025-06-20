@@ -1,58 +1,86 @@
 
-import React from 'react'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface PreviewTableProps {
-  headers: string[]
-  preview: Record<string, string>[]
+  data: any[];
+  mappings: {
+    description: string;
+    amount: string;
+    date: string;
+    currency: string;
+    category: string;
+  };
+  defaultSettings: {
+    description: string;
+    currency: string;
+    category: string;
+  };
+  selectedAccount?: {
+    id: string;
+    name: string;
+    type: string;
+    accountType: 'asset' | 'liability';
+  } | null;
 }
 
-export const PreviewTable: React.FC<PreviewTableProps> = ({
-  headers,
-  preview
-}) => {
-  const validHeaders = headers.filter(header => {
-    return header && 
-           typeof header === 'string' && 
-           header.trim() !== '' && 
-           header.trim() !== 'undefined' && 
-           header.trim() !== 'null' &&
-           header.length > 0
-  })
+export const PreviewTable = ({ data, mappings, defaultSettings, selectedAccount }: PreviewTableProps) => {
+  const previewData = data.slice(0, 5);
 
-  // Filter out balance column from display
-  const displayHeaders = validHeaders.filter(header => 
-    !header.toLowerCase().includes('balance')
-  )
-
-  if (preview.length === 0) return null
+  const getValue = (row: any, mapping: string, defaultValue: string) => {
+    return row[mapping] || defaultValue || 'Not set';
+  };
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Preview</h3>
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse border border-gray-300">
-          <thead>
-            <tr className="bg-gray-50">
-              {displayHeaders.map(header => (
-                <th key={`preview-header-${header}`} className="border border-gray-300 px-3 py-2 text-left text-sm font-medium">
-                  {header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {preview.map((row, index) => (
-              <tr key={`preview-row-${index}`}>
-                {displayHeaders.map(header => (
-                  <td key={`preview-cell-${index}-${header}`} className="border border-gray-300 px-3 py-2 text-sm">
-                    {row[header]}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Preview (first 5 rows)</h3>
+        {selectedAccount && (
+          <div className="text-sm text-muted-foreground">
+            Will be linked to: <span className="font-medium">{selectedAccount.name}</span>
+          </div>
+        )}
       </div>
+      
+      <div className="border rounded-lg overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Description</TableHead>
+              <TableHead>Amount</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Currency</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead>Account</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {previewData.map((row, index) => (
+              <TableRow key={index}>
+                <TableCell>{getValue(row, mappings.description, defaultSettings.description)}</TableCell>
+                <TableCell>{getValue(row, mappings.amount, '0')}</TableCell>
+                <TableCell>{getValue(row, mappings.date, new Date().toISOString().split('T')[0])}</TableCell>
+                <TableCell>{getValue(row, mappings.currency, defaultSettings.currency)}</TableCell>
+                <TableCell>{getValue(row, mappings.category, defaultSettings.category)}</TableCell>
+                <TableCell>
+                  {selectedAccount ? (
+                    <span className="text-sm text-muted-foreground">
+                      {selectedAccount.name}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-red-500">No account</span>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      
+      {data.length > 5 && (
+        <p className="text-sm text-muted-foreground">
+          ... and {data.length - 5} more transactions
+        </p>
+      )}
     </div>
-  )
-}
+  );
+};
