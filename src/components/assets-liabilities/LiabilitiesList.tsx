@@ -1,15 +1,29 @@
 import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Liability } from "@/types/assets-liabilities"
 import { useState, useEffect } from "react"
 import { FamilyMember, BusinessEntity } from "@/types/entities"
 import { EditLiabilityDialog } from "./EditLiabilityDialog"
+import { Trash2 } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 interface LiabilitiesListProps {
   liabilities: Liability[]
   onEditLiability?: (id: string, updatedLiability: Omit<Liability, "id">) => void
+  onDeleteLiability?: (id: string) => void
 }
 
-export function LiabilitiesList({ liabilities, onEditLiability }: LiabilitiesListProps) {
+export function LiabilitiesList({ liabilities, onEditLiability, onDeleteLiability }: LiabilitiesListProps) {
   const [entities, setEntities] = useState<(FamilyMember | BusinessEntity)[]>([])
 
   useEffect(() => {
@@ -52,6 +66,36 @@ export function LiabilitiesList({ liabilities, onEditLiability }: LiabilitiesLis
                   liability={liability} 
                   onEditLiability={onEditLiability}
                 />
+              )}
+              {onDeleteLiability && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Liability</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete "{liability.name}"? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => onDeleteLiability(liability.id)}
+                        className="bg-red-500 hover:bg-red-600"
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               )}
             </div>
           </div>

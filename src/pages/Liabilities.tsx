@@ -1,4 +1,3 @@
-
 import { DashboardCard } from "@/components/DashboardCard"
 import { LiabilitiesList } from "@/components/assets-liabilities/LiabilitiesList"
 import { AddLiabilityDialog } from "@/components/assets-liabilities/AddLiabilityDialog"
@@ -138,6 +137,33 @@ const Liabilities = () => {
     },
   });
 
+  // Delete liability mutation
+  const deleteLiabilityMutation = useMutation({
+    mutationFn: async (liabilityId: string) => {
+      const { error } = await supabase
+        .from('liabilities')
+        .delete()
+        .eq('id', liabilityId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['liabilities'] });
+      toast({
+        title: "Liability Deleted",
+        description: "The liability has been deleted successfully.",
+      });
+    },
+    onError: (error) => {
+      console.error('Error deleting liability:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete liability. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const totalLiabilities = liabilities.reduce((sum, liability) => sum + liability.amount, 0)
   const monthlyChange = -1.5 // This could be calculated based on historical data
 
@@ -147,6 +173,10 @@ const Liabilities = () => {
 
   const handleEditLiability = (id: string, updatedLiability: Omit<Liability, "id">) => {
     editLiabilityMutation.mutate({ id, updatedLiability });
+  }
+
+  const handleDeleteLiability = (id: string) => {
+    deleteLiabilityMutation.mutate(id);
   }
 
   if (isLoading) {
@@ -183,6 +213,7 @@ const Liabilities = () => {
         <LiabilitiesList 
           liabilities={liabilities} 
           onEditLiability={handleEditLiability}
+          onDeleteLiability={handleDeleteLiability}
         />
       </div>
     </div>
