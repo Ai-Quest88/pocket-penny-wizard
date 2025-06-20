@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -189,16 +190,31 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
     }
   }
 
-  // Comprehensive filtering to prevent empty values
-  const validCategories = categories.filter(cat => cat && typeof cat === 'string' && cat.trim() !== "");
+  // Enhanced filtering to prevent any empty values in categories
+  const validCategories = categories.filter(cat => 
+    cat && 
+    typeof cat === 'string' && 
+    cat.trim() !== "" &&
+    cat !== null &&
+    cat !== undefined &&
+    cat.length > 0
+  );
+
+  // Enhanced filtering to prevent any empty values in currencies
   const validCurrencies = currencies.filter(curr => 
     curr && 
     curr.code && 
     typeof curr.code === 'string' && 
     curr.code.trim() !== "" &&
+    curr.code !== null &&
+    curr.code !== undefined &&
+    curr.code.length > 0 &&
     curr.name &&
     typeof curr.name === 'string' &&
-    curr.name.trim() !== ""
+    curr.name.trim() !== "" &&
+    curr.name !== null &&
+    curr.name !== undefined &&
+    curr.name.length > 0
   );
 
   return (
@@ -275,7 +291,9 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
                 </SelectTrigger>
                 <SelectContent>
                   {validCategories.map((cat) => {
-                    if (!cat || cat.trim() === "") {
+                    // Final safety check - absolutely no empty values allowed
+                    if (!cat || cat.trim() === "" || cat === null || cat === undefined || cat.length === 0) {
+                      console.error("Skipping invalid category:", cat);
                       return null;
                     }
                     return (
@@ -296,7 +314,9 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
                 </SelectTrigger>
                 <SelectContent>
                   {validCurrencies.map((curr) => {
-                    if (!curr.code || curr.code.trim() === "") {
+                    // Final safety check - absolutely no empty values allowed
+                    if (!curr.code || curr.code.trim() === "" || curr.code === null || curr.code === undefined || curr.code.length === 0) {
+                      console.error("Skipping invalid currency:", curr);
                       return null;
                     }
                     return (

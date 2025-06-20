@@ -23,22 +23,36 @@ export const CategorySelect = <T extends FieldValues>({
 }: CategorySelectProps<T>) => {
   const [addCategoryOpen, setAddCategoryOpen] = useState(false);
 
-  // Comprehensive filtering to prevent empty values
+  // Enhanced filtering to prevent any empty values
   const validBuckets = availableBuckets
-    .filter(bucket => bucket && bucket.name && typeof bucket.name === 'string' && bucket.name.trim() !== "")
+    .filter(bucket => 
+      bucket && 
+      bucket.name && 
+      typeof bucket.name === 'string' && 
+      bucket.name.trim() !== "" &&
+      bucket.name !== null &&
+      bucket.name !== undefined
+    )
     .map(bucket => ({
       ...bucket,
       categories: bucket.categories
-        .filter(category => category && typeof category === 'string' && category.trim() !== "")
+        .filter(category => 
+          category && 
+          typeof category === 'string' && 
+          category.trim() !== "" &&
+          category !== null &&
+          category !== undefined &&
+          category.length > 0
+        )
     }))
     .filter(bucket => bucket.categories.length > 0);
 
-  // Debug logging
+  // Debug logging with enhanced checks
   console.log("CategorySelect validBuckets:", validBuckets);
   validBuckets.forEach(bucket => {
     bucket.categories.forEach(category => {
-      if (!category || category.trim() === "") {
-        console.error("Found empty category in bucket:", bucket.name, "category:", category);
+      if (!category || category.trim() === "" || category === null || category === undefined) {
+        console.error("Found invalid category in bucket:", bucket.name, "category:", category);
       }
     });
   });
@@ -81,9 +95,9 @@ export const CategorySelect = <T extends FieldValues>({
                       {bucket.name}
                     </div>
                     {bucket.categories.map((category) => {
-                      // Extra safety check before rendering
-                      if (!category || category.trim() === "") {
-                        console.error("Attempting to render empty category:", category);
+                      // Final safety check before rendering - absolutely no empty values
+                      if (!category || category.trim() === "" || category === null || category === undefined || category.length === 0) {
+                        console.error("Skipping invalid category:", category);
                         return null;
                       }
                       return (

@@ -1,60 +1,75 @@
 
-import React from 'react'
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 interface ColumnMappingSectionProps {
-  headers: string[]
-  mappings: Record<string, string>
-  onMappingChange: (field: string, column: string) => void
+  headers: string[];
+  mappings: Record<string, string>;
+  onMappingChange: (field: string, header: string) => void;
 }
 
-export const ColumnMappingSection: React.FC<ColumnMappingSectionProps> = ({
-  headers,
-  mappings,
-  onMappingChange
-}) => {
-  const validHeaders = headers.filter(header => {
-    return header && 
-           typeof header === 'string' && 
-           header.trim() !== '' && 
-           header.trim() !== 'undefined' && 
-           header.trim() !== 'null' &&
-           header.length > 0
-  })
+const requiredFields = [
+  { key: 'description', label: 'Description *' },
+  { key: 'amount', label: 'Amount *' },
+  { key: 'date', label: 'Date *' },
+  { key: 'currency', label: 'Currency' },
+  { key: 'category', label: 'Category' },
+];
 
-  const requiredFields = [
-    { key: 'date', label: 'Date *' },
-    { key: 'amount', label: 'Amount *' },
-    { key: 'description', label: 'Description *' },
-    { key: 'currency', label: 'Currency' },
-    { key: 'category', label: 'Category' }
-  ]
+export const ColumnMappingSection = ({ 
+  headers, 
+  mappings, 
+  onMappingChange 
+}: ColumnMappingSectionProps) => {
+  // Filter out any invalid headers
+  const validHeaders = headers.filter(header => 
+    header && 
+    typeof header === 'string' && 
+    header.trim() !== "" &&
+    header !== null &&
+    header !== undefined &&
+    header.length > 0
+  );
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Map File Columns</h3>
-      <p className="text-sm text-muted-foreground">
-        Map your file columns to transaction fields. Required fields are marked with *
-      </p>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div>
+        <h3 className="text-lg font-semibold">Map CSV Columns</h3>
+        <p className="text-sm text-muted-foreground">
+          Map your CSV columns to the transaction fields. Fields marked with * are required.
+        </p>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {requiredFields.map(field => (
-          <div key={field.key}>
-            <Label htmlFor={`${field.key}-mapping`}>{field.label}</Label>
-            <Select value={mappings[field.key] || ''} onValueChange={(value) => onMappingChange(field.key, value)}>
+          <div key={field.key} className="space-y-2">
+            <Label>{field.label}</Label>
+            <Select 
+              value={mappings[field.key] || ""} 
+              onValueChange={(value) => onMappingChange(field.key, value)}
+            >
               <SelectTrigger>
-                <SelectValue placeholder={`Select ${field.key} column`} />
+                <SelectValue placeholder="Select column" />
               </SelectTrigger>
               <SelectContent>
-                {validHeaders.map(header => (
-                  <SelectItem key={`${field.key}-${header}`} value={header}>{header}</SelectItem>
-                ))}
+                <SelectItem value="">None</SelectItem>
+                {validHeaders.map(header => {
+                  // Final safety check - absolutely no empty values allowed
+                  if (!header || header.trim() === "" || header === null || header === undefined || header.length === 0) {
+                    console.error("Skipping invalid header:", header);
+                    return null;
+                  }
+                  return (
+                    <SelectItem key={header} value={header}>
+                      {header}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
         ))}
       </div>
     </div>
-  )
-}
+  );
+};
