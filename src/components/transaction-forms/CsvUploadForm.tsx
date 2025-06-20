@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,11 +10,13 @@ import { AutoMappingAlert } from "./csv-upload/AutoMappingAlert"
 import { ColumnMappingSection } from "./csv-upload/ColumnMappingSection"
 import { PreviewTable } from "./csv-upload/PreviewTable"
 import { DefaultSettingsSection } from "./csv-upload/DefaultSettingsSection"
+import { AccountSelectionSection } from "./csv-upload/AccountSelectionSection"
 import { ProgressiveUpload } from "./ProgressiveUpload"
 import { categorizeTransactionsBatch } from "@/utils/aiCategorization"
 import { useAuth } from "@/contexts/AuthContext"
 import { useQueryClient } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
+import { useAccounts } from "@/hooks/useAccounts"
 import type { CsvUploadProps, Transaction } from "@/types/transaction-forms"
 
 interface UploadProgress {
@@ -33,64 +36,54 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
   const [totalRows, setTotalRows] = useState(0)
   const [columnMappings, setColumnMappings] = useState<Record<string, string>>({})
   const [autoMapped, setAutoMapped] = useState<Record<string, string>>({})
-  const [defaultCurrency, setDefaultCurrency] = useState('AUD')
-  const [defaultAccount, setDefaultAccount] = useState('Default Account')
+  const [defaultSettings, setDefaultSettings] = useState({
+    description: '',
+    currency: 'AUD',
+    category: 'Other'
+  })
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null)
   const [showAccountError, setShowAccountError] = useState(false)
   
   const { session } = useAuth()
   const queryClient = useQueryClient()
+  const { accounts } = useAccounts()
 
   const requiredFields = ['date', 'amount', 'description']
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = event.target.files?.[0]
-    if (!selectedFile) return
-
-    setFile(selectedFile)
-    setIsProcessing(true)
+  const handleFileUpload = (data: any[], fileHeaders: string[]) => {
+    setFile(null) // We don't need the file object in this simplified version
+    setIsProcessing(false)
     setError(null)
-    setUploadProgress({
-      phase: 'uploading',
-      currentStep: 1,
-      totalSteps: 1,
-      message: 'Reading and parsing file...',
-      processedTransactions: []
-    })
 
-    try {
-      const result = await parseCsvFile(selectedFile)
-      
-      if (!result.success) {
-        setError(result.error || 'Unknown error occurred')
-        setHeaders([])
-        setPreview([])
-        setTotalRows(0)
-        setColumnMappings({})
-        setAutoMapped({})
-        setUploadProgress(null)
-        return
-      }
-
-      if (!result.headers || result.headers.length === 0) {
-        setError('No headers found in the file')
-        setUploadProgress(null)
-        return
-      }
-
-      setHeaders(result.headers)
-      setPreview(result.preview || [])
-      setTotalRows(result.totalRows || 0)
-      setColumnMappings(result.autoMappings || {})
-      setAutoMapped(result.autoMappings || {})
-      setUploadProgress(null)
-    } catch (err) {
-      console.error('Error processing file:', err)
-      setError('Error reading file. Please ensure it is a valid CSV or Excel file.')
-      setUploadProgress(null)
-    } finally {
-      setIsProcessing(false)
+    if (!fileHeaders || fileHeaders.length === 0) {
+      setError('No headers found in the file')
+      return
     }
+
+    setHeaders(fileHeaders)
+    setPreview(data.slice(0, 5) || [])
+    setTotalRows(data.length || 0)
+    
+    // Auto-map columns
+    const autoMappings: Record<string, string> = {}
+    fileHeaders.forEach(header => {
+      const lowerHeader = header.toLowerCase()
+      if (lowerHeader.includes('description') || lowerHeader.includes('narration')) {
+        autoMappings.description = header
+      } else if (lowerHeader.includes('amount')) {
+        autoMappings.amount = header
+      } else if (lowerHeader.includes('date')) {
+        autoMappings.date = header
+      } else if (lowerHeader.includes('currency')) {
+        autoMappings.currency = header
+      } else if (lowerHeader.includes('category')) {
+        autoMappings.category = header
+      }
+    })
+    
+    setColumnMappings(autoMappings)
+    setAutoMapped(autoMappings)
   }
 
   const handleMappingChange = (field: string, column: string) => {
@@ -100,12 +93,23 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
     }))
   }
 
+  const handleDefaultSettingsChange = (field: string, value: string) => {
+    setDefaultSettings(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  const handleAcceptAutoMapping = () => {
+    setColumnMappings(autoMapped)
+  }
+
   const validateMappings = (): boolean => {
     return requiredFields.every(field => columnMappings[field])
   }
 
   const validateAccountSelection = (): boolean => {
-    return defaultAccount && defaultAccount !== 'Default Account' && defaultAccount.trim() !== ''
+    return selectedAccountId !== null
   }
 
   const hasRequiredMappings = validateMappings()
@@ -120,177 +124,50 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
       return
     }
 
-    if (!file || !hasRequiredMappings || !session?.user) return
+    if (!hasRequiredMappings || !session?.user) return
 
     setIsProcessing(true)
     setError(null)
 
     try {
-      // Phase 1: Parse file
-      setUploadProgress({
-        phase: 'uploading',
-        currentStep: 1,
-        totalSteps: 1,
-        message: 'Parsing CSV file...',
-        processedTransactions: []
-      })
-
-      const result = await parseCsvFile(file, columnMappings, {
-        defaultCurrency,
-        defaultAccount
-      })
-
-      if (!result.success || !result.transactions) {
-        setError(result.error || 'Failed to process transactions')
-        setUploadProgress(null)
-        return
-      }
-
-      const rawTransactions = result.transactions.map(row => ({
-        date: row.date,
-        amount: parseFloat(row.amount),
-        description: row.description,
-        category: row.category || 'Other',
-        currency: row.currency || defaultCurrency,
-        account: row.account || defaultAccount,
-        comment: row.comment
-      }))
-
-      console.log(`Starting intelligent categorization of ${rawTransactions.length} transactions`);
-
-      // Phase 2: Progressive categorization
-      setUploadProgress({
-        phase: 'categorizing',
-        currentStep: 0,
-        totalSteps: rawTransactions.length,
-        message: 'Starting categorization: checking database for similar transactions...',
-        processedTransactions: []
-      })
-
-      const descriptions = rawTransactions.map(t => t.description)
-      
-      const categories = await categorizeTransactionsBatch(
-        descriptions, 
-        session.user.id,
-        (processed, total, results) => {
-          const processedTransactions = rawTransactions.slice(0, processed).map((transaction, index) => ({
-            ...transaction,
-            category: results[index] || 'Miscellaneous',
-            id: `temp-${index}`,
-            user_id: session.user.id
-          }))
-
-          setUploadProgress(prev => prev ? {
-            ...prev,
-            currentStep: processed,
-            totalSteps: total,
-            message: `Processing ${processed} of ${total} transactions (DB lookup → AI fallback → Save)`,
-            processedTransactions
-          } : null)
+      // Simple upload process - you can extend this as needed
+      const transactionsToInsert = preview.map((row) => {
+        const selectedAccount = selectedAccountId ? accounts.find(acc => acc.id === selectedAccountId) : null
+        
+        return {
+          user_id: session.user.id,
+          description: String(row[columnMappings.description] || defaultSettings.description || 'Unknown transaction'),
+          amount: Number(row[columnMappings.amount] || 0),
+          date: String(row[columnMappings.date] || new Date().toISOString().split('T')[0]),
+          currency: String(row[columnMappings.currency] || defaultSettings.currency || 'AUD'),
+          category: String(row[columnMappings.category] || defaultSettings.category || 'Other'),
+          asset_account_id: selectedAccount?.accountType === 'asset' ? selectedAccountId : null,
+          liability_account_id: selectedAccount?.accountType === 'liability' ? selectedAccountId : null,
         }
-      )
+      })
 
-      const processedTransactions = rawTransactions.map((transaction, index) => ({
-        ...transaction,
-        category: categories[index] || 'Miscellaneous',
-        id: `temp-${index}`,
-        user_id: session.user.id
-      }))
-
-      // Phase 3: Save to database
-      setUploadProgress(prev => prev ? {
-        ...prev,
-        phase: 'saving',
-        currentStep: rawTransactions.length,
-        totalSteps: rawTransactions.length,
-        message: 'Categorization complete! Saving transactions to database...',
-        processedTransactions
-      } : null)
-
-      // Get account details to determine if it's an asset or liability
-      const { data: assets, error: assetsError } = await supabase
-        .from('assets')
-        .select('id, name, entities!inner(name)')
-        .eq('user_id', session.user.id)
-        .eq('id', defaultAccount);
-
-      const { data: liabilities, error: liabilitiesError } = await supabase
-        .from('liabilities')
-        .select('id, name, entities!inner(name)')
-        .eq('user_id', session.user.id)
-        .eq('id', defaultAccount);
-
-      if (assetsError && liabilitiesError) {
-        console.error('Error fetching account details:', { assetsError, liabilitiesError });
-        throw new Error('Could not determine account type');
-      }
-
-      const isAsset = assets && assets.length > 0;
-      const isLiability = liabilities && liabilities.length > 0;
-
-      // Prepare transactions for database insertion
-      const transactionsForDb = rawTransactions.map((transaction, index) => ({
-        user_id: session.user.id,
-        description: transaction.description,
-        amount: transaction.amount,
-        category: categories[index] || 'Miscellaneous',
-        date: transaction.date,
-        currency: transaction.currency,
-        comment: transaction.comment || null,
-        asset_account_id: isAsset ? defaultAccount : null,
-        liability_account_id: isLiability ? defaultAccount : null,
-      }));
-
-      console.log("Inserting transactions to database with intelligent categorization:", transactionsForDb.length);
-
-      const { data, error: insertError } = await supabase
+      const { error: insertError } = await supabase
         .from('transactions')
-        .insert(transactionsForDb)
-        .select();
+        .insert(transactionsToInsert)
 
       if (insertError) {
-        console.error('Error inserting transactions:', insertError);
-        throw insertError;
+        throw insertError
       }
-
-      // Phase 4: Update balances
-      setUploadProgress(prev => prev ? {
-        ...prev,
-        phase: 'updating-balances',
-        message: 'Updating account balances...'
-      } : null)
-
-      await new Promise(resolve => setTimeout(resolve, 500))
-
-      // Phase 5: Complete
-      setUploadProgress(prev => prev ? {
-        ...prev,
-        phase: 'complete',
-        message: `Successfully processed ${rawTransactions.length} transactions with intelligent categorization!`,
-        processedTransactions
-      } : null)
-
-      console.log('Intelligent categorization and upload process completed successfully')
 
       // Refresh queries
       await queryClient.invalidateQueries({ queryKey: ['transactions'] })
       await queryClient.invalidateQueries({ queryKey: ['assets'] })
       await queryClient.invalidateQueries({ queryKey: ['liabilities'] })
 
-      // Call the callback to notify parent component and close dialog
-      console.log('Calling onTransactionsUploaded callback')
-      onTransactionsUploaded(rawTransactions)
+      // Call the callback to notify parent component
+      onTransactionsUploaded(transactionsToInsert)
 
-      // Auto-reset after a short delay to show completion
-      setTimeout(() => {
-        console.log('Auto-resetting form after completion')
-        resetForm()
-      }, 1500)
+      // Reset form
+      resetForm()
 
     } catch (err) {
       console.error('Error in upload process:', err)
       setError('Failed to upload transactions. Please try again.')
-      setUploadProgress(null)
     } finally {
       setIsProcessing(false)
     }
@@ -305,15 +182,10 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
     setColumnMappings({})
     setAutoMapped({})
     setError(null)
-    
-    const fileInput = document.getElementById('file-upload') as HTMLInputElement
-    if (fileInput) {
-      fileInput.value = ''
-    }
+    setSelectedAccountId(null)
   }
 
   const handleCancel = () => {
-    console.log('Upload cancelled by user')
     setIsProcessing(false)
     setUploadProgress(null)
   }
@@ -359,27 +231,37 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
         {headers.length > 0 && (
           <>
             <AutoMappingAlert 
-              autoMapped={autoMapped}
-              hasRequiredMappings={hasRequiredMappings}
+              autoMappedColumns={autoMapped}
+              onAcceptMapping={handleAcceptAutoMapping}
             />
 
             <ColumnMappingSection
               headers={headers}
-              mapping={columnMappings}
+              mappings={columnMappings}
               onMappingChange={handleMappingChange}
             />
 
             <DefaultSettingsSection
-              defaultCurrency={defaultCurrency}
-              setDefaultCurrency={setDefaultCurrency}
-              defaultAccount={defaultAccount}
-              setDefaultAccount={setDefaultAccount}
-              showAccountError={showAccountError}
+              defaultSettings={defaultSettings}
+              onSettingsChange={handleDefaultSettingsChange}
             />
 
-            <PreviewTable 
-              headers={headers}
-              preview={preview}
+            <AccountSelectionSection
+              selectedAccountId={selectedAccountId}
+              onAccountChange={setSelectedAccountId}
+            />
+
+            <PreviewTable
+              data={preview}
+              mappings={{
+                description: columnMappings.description || '',
+                amount: columnMappings.amount || '',
+                date: columnMappings.date || '',
+                currency: columnMappings.currency || '',
+                category: columnMappings.category || ''
+              }}
+              defaultSettings={defaultSettings}
+              selectedAccount={selectedAccountId ? accounts.find(acc => acc.id === selectedAccountId) : null}
             />
 
             <div className="flex justify-end space-x-4">

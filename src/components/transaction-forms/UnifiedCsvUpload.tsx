@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { FileUploadSection } from "./csv-upload/FileUploadSection";
 import { ColumnMappingSection } from "./csv-upload/ColumnMappingSection";
@@ -16,14 +17,6 @@ interface CSVRow {
   [key: string]: string | number | boolean;
 }
 
-interface Mappings {
-  description: string;
-  amount: string;
-  date: string;
-  currency: string;
-  category: string;
-}
-
 interface DefaultSettings {
   description: string;
   currency: string;
@@ -34,7 +27,7 @@ interface UnifiedCsvUploadProps {
   onComplete?: () => void;
 }
 
-const initialMappings: Mappings = {
+const initialMappings: Record<string, string> = {
   description: '',
   amount: '',
   date: '',
@@ -71,7 +64,7 @@ const formatDateForSupabase = (dateString: string): string => {
 export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
   const [parsedData, setParsedData] = useState<CSVRow[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
-  const [mappings, setMappings] = useState<Mappings>(initialMappings);
+  const [mappings, setMappings] = useState<Record<string, string>>(initialMappings);
   const [defaultSettings, setDefaultSettings] = useState<DefaultSettings>(initialSettings);
   const [isProcessing, setIsProcessing] = useState(false);
   const [autoMappedColumns, setAutoMappedColumns] = useState<{ [key: string]: string }>({});
@@ -112,7 +105,7 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
     setAutoMappedColumns(autoMappings);
   };
 
-  const handleMappingChange = (field: keyof Mappings, header: string) => {
+  const handleMappingChange = (field: string, header: string) => {
     setMappings(prev => ({ ...prev, [field]: header }));
   };
 
@@ -220,7 +213,13 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
           
           <PreviewTable
             data={parsedData}
-            mappings={mappings}
+            mappings={{
+              description: mappings.description,
+              amount: mappings.amount,
+              date: mappings.date,
+              currency: mappings.currency,
+              category: mappings.category
+            }}
             defaultSettings={defaultSettings}
             selectedAccount={selectedAccountId ? accounts.find(acc => acc.id === selectedAccountId) : null}
           />
