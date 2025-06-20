@@ -1,4 +1,3 @@
-
 import { DashboardCard } from "@/components/DashboardCard"
 import { AssetsList } from "@/components/assets-liabilities/AssetsList"
 import { AddAssetDialog } from "@/components/assets-liabilities/AddAssetDialog"
@@ -163,6 +162,34 @@ const Assets = () => {
     },
   });
 
+  // Delete asset mutation
+  const deleteAssetMutation = useMutation({
+    mutationFn: async (assetId: string) => {
+      const { error } = await supabase
+        .from('assets')
+        .delete()
+        .eq('id', assetId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assets'] });
+      queryClient.invalidateQueries({ queryKey: ['account-balances'] });
+      toast({
+        title: "Asset Deleted",
+        description: "The asset has been deleted successfully.",
+      });
+    },
+    onError: (error) => {
+      console.error('Error deleting asset:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete asset. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const totalAssets = transformedAssets.reduce((sum, asset) => sum + asset.value, 0)
   const monthlyChange = 3.2 // This could be calculated based on historical data
 
@@ -172,6 +199,10 @@ const Assets = () => {
 
   const handleEditAsset = (id: string, updatedAsset: Omit<Asset, "id">) => {
     editAssetMutation.mutate({ id, updatedAsset });
+  }
+
+  const handleDeleteAsset = (id: string) => {
+    deleteAssetMutation.mutate(id);
   }
 
   if (isLoading) {
@@ -205,7 +236,11 @@ const Assets = () => {
           className="bg-card"
         />
 
-        <AssetsList assets={transformedAssets} onEditAsset={handleEditAsset} />
+        <AssetsList 
+          assets={transformedAssets} 
+          onEditAsset={handleEditAsset} 
+          onDeleteAsset={handleDeleteAsset}
+        />
       </div>
     </div>
   )

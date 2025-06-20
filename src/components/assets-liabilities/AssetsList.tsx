@@ -1,17 +1,30 @@
-
 import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Asset } from "@/types/assets-liabilities"
 import { EditAssetDialog } from "./EditAssetDialog"
 import { FamilyMember, BusinessEntity } from "@/types/entities"
 import { supabase } from "@/integrations/supabase/client"
 import { useQuery } from "@tanstack/react-query"
+import { Trash2 } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 interface AssetsListProps {
   assets: Asset[]
   onEditAsset?: (id: string, updatedAsset: Omit<Asset, "id">) => void
+  onDeleteAsset?: (id: string) => void
 }
 
-export function AssetsList({ assets, onEditAsset }: AssetsListProps) {
+export function AssetsList({ assets, onEditAsset, onDeleteAsset }: AssetsListProps) {
   // Fetch entities from Supabase
   const { data: entities = [] } = useQuery({
     queryKey: ['entities'],
@@ -78,6 +91,36 @@ export function AssetsList({ assets, onEditAsset }: AssetsListProps) {
             </div>
             <div className="flex items-center gap-2">
               {onEditAsset && <EditAssetDialog asset={asset} onEditAsset={onEditAsset} />}
+              {onDeleteAsset && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Asset</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete "{asset.name}"? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => onDeleteAsset(asset.id)}
+                        className="bg-red-500 hover:bg-red-600"
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
               <p className="text-lg font-semibold text-green-600">
                 ${asset.value.toLocaleString()}
               </p>
