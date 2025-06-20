@@ -5,13 +5,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 interface ColumnMappingSectionProps {
   headers: string[]
-  mapping: Record<string, string>
+  mappings: Record<string, string>
   onMappingChange: (field: string, column: string) => void
 }
 
 export const ColumnMappingSection: React.FC<ColumnMappingSectionProps> = ({
   headers,
-  mapping,
+  mappings,
   onMappingChange
 }) => {
   const validHeaders = headers.filter(header => {
@@ -23,6 +23,14 @@ export const ColumnMappingSection: React.FC<ColumnMappingSectionProps> = ({
            header.length > 0
   })
 
+  const requiredFields = [
+    { key: 'date', label: 'Date *' },
+    { key: 'amount', label: 'Amount *' },
+    { key: 'description', label: 'Description *' },
+    { key: 'currency', label: 'Currency' },
+    { key: 'category', label: 'Category' }
+  ]
+
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Map File Columns</h3>
@@ -31,47 +39,21 @@ export const ColumnMappingSection: React.FC<ColumnMappingSectionProps> = ({
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <Label htmlFor="date-mapping">Date *</Label>
-          <Select value={mapping.date || ''} onValueChange={(value) => onMappingChange('date', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select date column" />
-            </SelectTrigger>
-            <SelectContent>
-              {validHeaders.map(header => (
-                <SelectItem key={`date-${header}`} value={header}>{header}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Label htmlFor="amount-mapping">Amount *</Label>
-          <Select value={mapping.amount || ''} onValueChange={(value) => onMappingChange('amount', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select amount column" />
-            </SelectTrigger>
-            <SelectContent>
-              {validHeaders.map(header => (
-                <SelectItem key={`amount-${header}`} value={header}>{header}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Label htmlFor="description-mapping">Description *</Label>
-          <Select value={mapping.description || ''} onValueChange={(value) => onMappingChange('description', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select description column" />
-            </SelectTrigger>
-            <SelectContent>
-              {validHeaders.map(header => (
-                <SelectItem key={`description-${header}`} value={header}>{header}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {requiredFields.map(field => (
+          <div key={field.key}>
+            <Label htmlFor={`${field.key}-mapping`}>{field.label}</Label>
+            <Select value={mappings[field.key] || ''} onValueChange={(value) => onMappingChange(field.key, value)}>
+              <SelectTrigger>
+                <SelectValue placeholder={`Select ${field.key} column`} />
+              </SelectTrigger>
+              <SelectContent>
+                {validHeaders.map(header => (
+                  <SelectItem key={`${field.key}-${header}`} value={header}>{header}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ))}
       </div>
     </div>
   )

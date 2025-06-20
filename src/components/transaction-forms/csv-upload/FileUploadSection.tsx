@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label"
 import { Download } from "lucide-react"
 
 interface FileUploadSectionProps {
-  onFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => void
+  onFileUpload: (data: any[], fileHeaders: string[]) => void
   isProcessing: boolean
 }
 
@@ -15,7 +15,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
   isProcessing
 }) => {
   const downloadTemplate = () => {
-    const template = 'Date,Amount,Description,Category,Account\n2024-01-01,-50.00,Coffee Shop,Food & Dining,Main Account\n2024-01-02,2000.00,Salary,Income,Main Account'
+    const template = 'Date,Amount,Description,Category,Currency\n2024-01-01,-50.00,Coffee Shop,Food & Dining,AUD\n2024-01-02,2000.00,Salary,Income,AUD'
     const blob = new Blob([template], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -23,6 +23,26 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
     a.download = 'transaction_template.csv'
     a.click()
     URL.revokeObjectURL(url)
+  }
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Simple CSV parsing for demo purposes
+    const text = await file.text()
+    const lines = text.split('\n').filter(line => line.trim())
+    const headers = lines[0].split(',').map(h => h.trim())
+    const data = lines.slice(1).map(line => {
+      const values = line.split(',')
+      const row: any = {}
+      headers.forEach((header, index) => {
+        row[header] = values[index]?.trim() || ''
+      })
+      return row
+    })
+
+    onFileUpload(data, headers)
   }
 
   return (
@@ -39,7 +59,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
         id="file-upload"
         type="file"
         accept=".csv,.xlsx,.xls"
-        onChange={onFileUpload}
+        onChange={handleFileChange}
         disabled={isProcessing}
       />
       <p className="text-sm text-muted-foreground">

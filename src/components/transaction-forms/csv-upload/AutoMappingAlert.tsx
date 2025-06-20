@@ -1,37 +1,36 @@
 
 import React from 'react'
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { CheckCircle } from "lucide-react"
+import { CheckCircle, Info } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 interface AutoMappingAlertProps {
-  autoMapped: Record<string, string>
-  hasRequiredMappings: boolean
+  autoMappedColumns: Record<string, string>
+  onAcceptMapping: () => void
 }
 
 export const AutoMappingAlert: React.FC<AutoMappingAlertProps> = ({
-  autoMapped,
-  hasRequiredMappings
+  autoMappedColumns,
+  onAcceptMapping
 }) => {
-  if (Object.keys(autoMapped).length === 0) return null
+  if (Object.keys(autoMappedColumns).length === 0) return null
 
   return (
     <Alert>
-      <CheckCircle className="h-4 w-4" />
+      <Info className="h-4 w-4" />
       <AlertDescription>
-        <div className="space-y-2">
-          <p className="font-medium">Headers detected and automatically mapped:</p>
+        <div className="space-y-3">
+          <p className="font-medium">Auto-detected column mappings:</p>
           <ul className="text-sm space-y-1">
-            {Object.entries(autoMapped).map(([field, column]) => (
+            {Object.entries(autoMappedColumns).map(([field, column]) => (
               <li key={field}>
                 <strong>{field}:</strong> {column}
               </li>
             ))}
           </ul>
-          {hasRequiredMappings ? (
-            <p className="text-green-600 font-medium">✓ All required fields mapped successfully!</p>
-          ) : (
-            <p className="text-amber-600">Some required fields need manual mapping below.</p>
-          )}
+          <Button onClick={onAcceptMapping} size="sm" variant="outline">
+            Accept Auto-Mapping
+          </Button>
         </div>
       </AlertDescription>
     </Alert>
