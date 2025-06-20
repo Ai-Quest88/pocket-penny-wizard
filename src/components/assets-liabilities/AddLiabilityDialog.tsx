@@ -41,7 +41,9 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
     type: "credit",
     category: "credit_card",
     entityId: "",
-    history: []
+    history: [],
+    openingBalance: 0,
+    openingBalanceDate: new Date().toISOString().split('T')[0]
   })
 
   // Fetch entities from Supabase
@@ -114,6 +116,8 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
     const liabilityWithEntity = {
       ...newLiability,
       entityId: selectedEntityId,
+      openingBalance: newLiability.amount,
+      openingBalanceDate: openingBalanceDate,
       history: [{ date: openingBalanceDate, value: newLiability.amount }]
     }
     
@@ -127,7 +131,9 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
       type: "credit",
       category: "credit_card",
       entityId: "",
-      history: []
+      history: [],
+      openingBalance: 0,
+      openingBalanceDate: new Date().toISOString().split('T')[0]
     })
     setSelectedEntityId("")
     setOpeningBalanceDate(new Date().toISOString().split('T')[0])
@@ -147,7 +153,9 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
         type: "credit",
         category: "credit_card", 
         entityId: "",
-        history: []
+        history: [],
+        openingBalance: 0,
+        openingBalanceDate: new Date().toISOString().split('T')[0]
       })
       setSelectedEntityId("")
       setOpeningBalanceDate(new Date().toISOString().split('T')[0])

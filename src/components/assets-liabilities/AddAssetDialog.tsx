@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -32,6 +33,9 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
   const [selectedEntityId, setSelectedEntityId] = useState<string>("")
+  const [openingBalanceDate, setOpeningBalanceDate] = useState<string>(
+    new Date().toISOString().split('T')[0]
+  )
   const [newAsset, setNewAsset] = useState<Omit<Asset, "id">>({
     name: "",
     value: 0,
@@ -40,11 +44,10 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
     entityId: "",
     history: [{ date: new Date().toISOString(), value: 0 }],
     accountNumber: "",
-    address: ""
+    address: "",
+    openingBalance: 0,
+    openingBalanceDate: new Date().toISOString().split('T')[0]
   })
-  const [openingBalanceDate, setOpeningBalanceDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
-  )
 
   // Fetch entities from Supabase
   const { data: entities = [] } = useQuery({
@@ -90,6 +93,8 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
       const assetWithEntity = {
         ...newAsset,
         entityId: selectedEntityId,
+        openingBalance: newAsset.value,
+        openingBalanceDate: openingBalanceDate,
         history: [{ date: openingBalanceDate, value: newAsset.value }]
       }
       onAddAsset(assetWithEntity)
@@ -101,7 +106,9 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
         entityId: "",
         history: [{ date: new Date().toISOString(), value: 0 }],
         accountNumber: "",
-        address: ""
+        address: "",
+        openingBalance: 0,
+        openingBalanceDate: new Date().toISOString().split('T')[0]
       })
       setOpeningBalanceDate(new Date().toISOString().split('T')[0])
       setSelectedEntityId("")
