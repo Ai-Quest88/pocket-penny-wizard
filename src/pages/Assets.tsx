@@ -1,3 +1,4 @@
+
 import { DashboardCard } from "@/components/DashboardCard"
 import { AssetsList } from "@/components/assets-liabilities/AssetsList"
 import { AddAssetDialog } from "@/components/assets-liabilities/AddAssetDialog"
@@ -71,6 +72,8 @@ const Assets = () => {
           history: [], // Historical values would be fetched separately if needed
           accountNumber: asset.account_number || undefined,
           address: asset.address || undefined,
+          openingBalance: Number(asset.opening_balance) || 0,
+          openingBalanceDate: asset.opening_balance_date || new Date().toISOString().split('T')[0],
         };
       }) as Asset[];
     },
@@ -97,6 +100,8 @@ const Assets = () => {
           category: newAsset.category,
           account_number: newAsset.accountNumber || null,
           address: newAsset.address || null,
+          opening_balance: newAsset.openingBalance,
+          opening_balance_date: newAsset.openingBalanceDate,
         }])
         .select()
         .single();
@@ -135,6 +140,8 @@ const Assets = () => {
           category: updatedAsset.category,
           account_number: updatedAsset.accountNumber || null,
           address: updatedAsset.address || null,
+          opening_balance: updatedAsset.openingBalance,
+          opening_balance_date: updatedAsset.openingBalanceDate,
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)

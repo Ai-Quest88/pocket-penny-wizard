@@ -18,6 +18,8 @@ export type Database = {
           entity_id: string
           id: string
           name: string
+          opening_balance: number
+          opening_balance_date: string
           type: string
           updated_at: string
           user_id: string
@@ -31,6 +33,8 @@ export type Database = {
           entity_id: string
           id?: string
           name: string
+          opening_balance?: number
+          opening_balance_date?: string
           type: string
           updated_at?: string
           user_id: string
@@ -44,6 +48,8 @@ export type Database = {
           entity_id?: string
           id?: string
           name?: string
+          opening_balance?: number
+          opening_balance_date?: string
           type?: string
           updated_at?: string
           user_id?: string
@@ -216,6 +222,8 @@ export type Database = {
           interest_rate: number | null
           monthly_payment: number | null
           name: string
+          opening_balance: number
+          opening_balance_date: string
           term_months: number | null
           type: string
           updated_at: string
@@ -231,6 +239,8 @@ export type Database = {
           interest_rate?: number | null
           monthly_payment?: number | null
           name: string
+          opening_balance?: number
+          opening_balance_date?: string
           term_months?: number | null
           type: string
           updated_at?: string
@@ -246,6 +256,8 @@ export type Database = {
           interest_rate?: number | null
           monthly_payment?: number | null
           name?: string
+          opening_balance?: number
+          opening_balance_date?: string
           term_months?: number | null
           type?: string
           updated_at?: string

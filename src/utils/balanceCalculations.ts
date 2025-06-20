@@ -30,14 +30,14 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
     supabase
       .from('assets')
       .select(`
-        id, name, type, category, account_number, value,
+        id, name, type, category, account_number, value, opening_balance, opening_balance_date,
         entities!inner(name, type)
       `)
       .eq('user_id', userId),
     supabase
       .from('liabilities')
       .select(`
-        id, name, type, category, account_number, amount,
+        id, name, type, category, account_number, amount, opening_balance, opening_balance_date,
         entities!inner(name, type)
       `)
       .eq('user_id', userId)
@@ -59,12 +59,16 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
 
   // Calculate balances for assets
   assets.forEach(asset => {
-    // Find all transactions for this asset account
-    const accountTransactions = transactions.filter(t => t.account_id === asset.id);
+    // Find all transactions for this asset account that are after opening balance date
+    const openingBalanceDate = new Date(asset.opening_balance_date);
+    const accountTransactions = transactions.filter(t => 
+      t.account_id === asset.id && 
+      new Date(t.date) >= openingBalanceDate
+    );
     const transactionSum = accountTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
     
     // For assets: Closing Balance = Opening Balance + Transactions
-    const openingBalance = Number(asset.value);
+    const openingBalance = Number(asset.opening_balance);
     const calculatedBalance = openingBalance + transactionSum;
 
     balances.push({
@@ -82,12 +86,16 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
 
   // Calculate balances for liabilities  
   liabilities.forEach(liability => {
-    // Find all transactions for this liability account
-    const accountTransactions = transactions.filter(t => t.account_id === liability.id);
+    // Find all transactions for this liability account that are after opening balance date
+    const openingBalanceDate = new Date(liability.opening_balance_date);
+    const accountTransactions = transactions.filter(t => 
+      t.account_id === liability.id && 
+      new Date(t.date) >= openingBalanceDate
+    );
     const transactionSum = accountTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
     
     // For liabilities: Closing Balance = Opening Balance - Transactions (payments reduce liability)
-    const openingBalance = Number(liability.amount);
+    const openingBalance = Number(liability.opening_balance);
     const calculatedBalance = openingBalance - transactionSum;
 
     balances.push({

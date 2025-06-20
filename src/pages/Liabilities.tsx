@@ -1,3 +1,4 @@
+
 import { DashboardCard } from "@/components/DashboardCard"
 import { LiabilitiesList } from "@/components/assets-liabilities/LiabilitiesList"
 import { AddLiabilityDialog } from "@/components/assets-liabilities/AddLiabilityDialog"
@@ -48,6 +49,8 @@ const Liabilities = () => {
         interestRate: liability.interest_rate ? Number(liability.interest_rate) : undefined,
         termMonths: liability.term_months || undefined,
         monthlyPayment: liability.monthly_payment ? Number(liability.monthly_payment) : undefined,
+        openingBalance: Number(liability.opening_balance) || 0,
+        openingBalanceDate: liability.opening_balance_date || new Date().toISOString().split('T')[0],
       })) as Liability[];
     },
     enabled: !!session?.user,
@@ -72,6 +75,8 @@ const Liabilities = () => {
           interest_rate: newLiability.interestRate || null,
           term_months: newLiability.termMonths || null,
           monthly_payment: newLiability.monthlyPayment || null,
+          opening_balance: newLiability.openingBalance,
+          opening_balance_date: newLiability.openingBalanceDate,
         }])
         .select()
         .single();
@@ -111,6 +116,8 @@ const Liabilities = () => {
           interest_rate: updatedLiability.interestRate || null,
           term_months: updatedLiability.termMonths || null,
           monthly_payment: updatedLiability.monthlyPayment || null,
+          opening_balance: updatedLiability.openingBalance,
+          opening_balance_date: updatedLiability.openingBalanceDate,
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)

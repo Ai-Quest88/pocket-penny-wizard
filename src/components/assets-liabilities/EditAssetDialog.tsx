@@ -33,13 +33,6 @@ export function EditAssetDialog({ asset, onEditAsset }: EditAssetDialogProps) {
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
   
-  // Get the most recent date from history, or use current date as fallback
-  const latestHistoryDate = asset.history && asset.history.length > 0 
-    ? asset.history[asset.history.length - 1].date.split('T')[0]
-    : new Date().toISOString().split('T')[0]
-    
-  const [updateDate, setUpdateDate] = useState<string>(latestHistoryDate)
-  
   const [formData, setFormData] = useState<Omit<Asset, "id">>({
     name: asset.name,
     value: asset.value,
@@ -48,7 +41,9 @@ export function EditAssetDialog({ asset, onEditAsset }: EditAssetDialogProps) {
     entityId: asset.entityId,
     history: asset.history,
     accountNumber: asset.accountNumber || "",
-    address: asset.address || ""
+    address: asset.address || "",
+    openingBalance: asset.openingBalance || 0,
+    openingBalanceDate: asset.openingBalanceDate || new Date().toISOString().split('T')[0]
   })
 
   // Fetch entities from Supabase
@@ -83,15 +78,7 @@ export function EditAssetDialog({ asset, onEditAsset }: EditAssetDialogProps) {
 
   const handleSubmit = () => {
     if (formData.name && (formData.type === "cash" || formData.value > 0)) {
-      const updatedAsset = {
-        ...formData,
-        value: formData.type === "cash" ? 0 : formData.value,
-        history: [
-          ...asset.history,
-          { date: updateDate, value: formData.type === "cash" ? 0 : formData.value }
-        ]
-      }
-      onEditAsset(asset.id, updatedAsset)
+      onEditAsset(asset.id, formData)
       setOpen(false)
       toast({
         title: "Asset Updated",
@@ -210,11 +197,33 @@ export function EditAssetDialog({ asset, onEditAsset }: EditAssetDialogProps) {
             </div>
           )}
 
+          <div className="space-y-2">
+            <Label htmlFor="opening-balance">Opening Balance</Label>
+            <Input
+              id="opening-balance"
+              type="number"
+              value={formData.openingBalance}
+              onChange={(e) => setFormData({ ...formData, openingBalance: parseFloat(e.target.value) || 0 })}
+              placeholder="0.00"
+              step="0.01"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="opening-balance-date">Opening Balance Date</Label>
+            <Input
+              id="opening-balance-date"
+              type="date"
+              value={formData.openingBalanceDate}
+              onChange={(e) => setFormData({ ...formData, openingBalanceDate: e.target.value })}
+            />
+          </div>
+
           {formData.type !== "cash" && (
             <div className="space-y-2">
-              <Label htmlFor="asset-value">Value</Label>
+              <Label htmlFor="current-value">Current Value</Label>
               <Input
-                id="asset-value"
+                id="current-value"
                 type="number"
                 value={formData.value}
                 onChange={(e) => setFormData({ ...formData, value: parseFloat(e.target.value) || 0 })}
@@ -224,32 +233,6 @@ export function EditAssetDialog({ asset, onEditAsset }: EditAssetDialogProps) {
               />
             </div>
           )}
-
-          {formData.type === "cash" && (
-            <div className="space-y-2">
-              <Label htmlFor="opening-balance">Opening Balance</Label>
-              <Input
-                id="opening-balance"
-                type="number"
-                value={formData.value}
-                onChange={(e) => setFormData({ ...formData, value: parseFloat(e.target.value) || 0 })}
-                placeholder="0.00"
-                step="0.01"
-              />
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="update-date">
-              {formData.type === "cash" ? "Opening Balance Date" : "Value Update Date"}
-            </Label>
-            <Input
-              id="update-date"
-              type="date"
-              value={updateDate}
-              onChange={(e) => setUpdateDate(e.target.value)}
-            />
-          </div>
           
           <Button onClick={handleSubmit} className="w-full">Update Asset</Button>
         </div>

@@ -33,20 +33,19 @@ export function EditLiabilityDialog({ liability, onEditLiability }: EditLiabilit
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
   
-  // Get the most recent date from history, or use current date as fallback
-  const latestHistoryDate = liability.history && liability.history.length > 0 
-    ? liability.history[liability.history.length - 1].date.split('T')[0]
-    : new Date().toISOString().split('T')[0]
-    
-  const [updateDate, setUpdateDate] = useState<string>(latestHistoryDate)
-  
   const [formData, setFormData] = useState<Omit<Liability, "id">>({
     name: liability.name,
     amount: liability.amount,
     type: liability.type,
     category: liability.category,
     entityId: liability.entityId,
-    history: liability.history
+    history: liability.history,
+    accountNumber: liability.accountNumber || "",
+    interestRate: liability.interestRate,
+    termMonths: liability.termMonths,
+    monthlyPayment: liability.monthlyPayment,
+    openingBalance: liability.openingBalance || 0,
+    openingBalanceDate: liability.openingBalanceDate || new Date().toISOString().split('T')[0]
   })
 
   // Fetch entities from Supabase
@@ -81,14 +80,7 @@ export function EditLiabilityDialog({ liability, onEditLiability }: EditLiabilit
 
   const handleSubmit = () => {
     if (formData.name && formData.amount > 0) {
-      const updatedLiability = {
-        ...formData,
-        history: [
-          ...liability.history,
-          { date: updateDate, value: formData.amount }
-        ]
-      }
-      onEditLiability(liability.id, updatedLiability)
+      onEditLiability(liability.id, formData)
       setOpen(false)
       toast({
         title: "Liability Updated",
@@ -175,9 +167,43 @@ export function EditLiabilityDialog({ liability, onEditLiability }: EditLiabilit
             </Select>
           </div>
 
+          {(formData.type === "credit" || formData.type === "loan") && (
+            <div className="space-y-2">
+              <Label htmlFor="account-number">Account Number</Label>
+              <Input
+                id="account-number"
+                value={formData.accountNumber || ""}
+                onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
+                placeholder="e.g., 1234567890"
+              />
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="opening-balance">Opening Balance</Label>
+            <Input
+              id="opening-balance"
+              type="number"
+              value={formData.openingBalance}
+              onChange={(e) => setFormData({ ...formData, openingBalance: parseFloat(e.target.value) || 0 })}
+              placeholder="0.00"
+              step="0.01"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="opening-balance-date">Opening Balance Date</Label>
+            <Input
+              id="opening-balance-date"
+              type="date"
+              value={formData.openingBalanceDate}
+              onChange={(e) => setFormData({ ...formData, openingBalanceDate: e.target.value })}
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="liability-amount">
-              {formData.type === "credit" ? "Credit Limit" : "Amount"}
+              {formData.type === "credit" ? "Credit Limit" : "Current Amount"}
             </Label>
             <Input
               id="liability-amount"
@@ -185,21 +211,7 @@ export function EditLiabilityDialog({ liability, onEditLiability }: EditLiabilit
               step="0.01"
               value={formData.amount}
               onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
-              placeholder={formData.type === "credit" ? "Credit Limit" : "Amount"}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="update-date">
-              {formData.type === "credit" ? "Balance Update Date" : 
-               formData.type === "mortgage" ? "Balance Update Date" : 
-               "Update Date"}
-            </Label>
-            <Input
-              id="update-date"
-              type="date"
-              value={updateDate}
-              onChange={(e) => setUpdateDate(e.target.value)}
+              placeholder={formData.type === "credit" ? "Credit Limit" : "Current Amount"}
             />
           </div>
           

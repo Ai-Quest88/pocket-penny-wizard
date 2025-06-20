@@ -56,6 +56,8 @@ export interface Asset {
   history: HistoricalValue[];
   accountNumber?: string; // For cash assets
   address?: string; // For property assets
+  openingBalance: number; // New field
+  openingBalanceDate: string; // New field
 }
 
 export interface Liability {
@@ -70,4 +72,6 @@ export interface Liability {
   interestRate?: number; // Interest rate percentage
   termMonths?: number; // Loan term in months
   monthlyPayment?: number; // Monthly payment amount
+  openingBalance: number; // New field
+  openingBalanceDate: string; // New field
 }
