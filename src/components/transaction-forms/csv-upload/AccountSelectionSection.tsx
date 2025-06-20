@@ -14,6 +14,8 @@ export const AccountSelectionSection = ({
 }: AccountSelectionSectionProps) => {
   const { accounts, isLoading } = useAccounts();
 
+  console.log("AccountSelectionSection - accounts:", accounts, "isLoading:", isLoading, "selectedAccountId:", selectedAccountId);
+
   if (isLoading) {
     return (
       <div className="space-y-2">
@@ -24,6 +26,7 @@ export const AccountSelectionSection = ({
   }
 
   const handleValueChange = (value: string) => {
+    console.log("Account selection changed:", value);
     if (value === "no-account") {
       onAccountChange(null);
     } else {
@@ -40,16 +43,27 @@ export const AccountSelectionSection = ({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="no-account">No account (manual assignment later)</SelectItem>
-          {accounts.map((account) => (
-            <SelectItem key={account.id} value={account.id}>
-              {account.name} ({account.type}) - {account.entityName}
+          {accounts && accounts.length > 0 ? (
+            accounts.map((account) => (
+              <SelectItem key={account.id} value={account.id}>
+                {account.name} ({account.type}) - {account.entityName}
+              </SelectItem>
+            ))
+          ) : (
+            <SelectItem value="no-accounts-available" disabled>
+              No accounts available
             </SelectItem>
-          ))}
+          )}
         </SelectContent>
       </Select>
       {selectedAccountId && (
         <p className="text-sm text-muted-foreground">
           All transactions will be linked to the selected account
+        </p>
+      )}
+      {accounts && accounts.length === 0 && !isLoading && (
+        <p className="text-sm text-muted-foreground">
+          No accounts found. Create accounts in Assets or Liabilities sections first.
         </p>
       )}
     </div>
