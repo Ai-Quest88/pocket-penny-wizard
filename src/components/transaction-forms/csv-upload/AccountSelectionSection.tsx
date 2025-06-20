@@ -23,15 +23,23 @@ export const AccountSelectionSection = ({
     );
   }
 
+  const handleValueChange = (value: string) => {
+    if (value === "no-account") {
+      onAccountChange(null);
+    } else {
+      onAccountChange(value);
+    }
+  };
+
   return (
     <div className="space-y-2">
       <Label htmlFor="account-select">Link transactions to account</Label>
-      <Select value={selectedAccountId || ""} onValueChange={(value) => onAccountChange(value || null)}>
+      <Select value={selectedAccountId || "no-account"} onValueChange={handleValueChange}>
         <SelectTrigger>
           <SelectValue placeholder="Select an account for these transactions" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">No account (manual assignment later)</SelectItem>
+          <SelectItem value="no-account">No account (manual assignment later)</SelectItem>
           {accounts.map((account) => (
             <SelectItem key={account.id} value={account.id}>
               {account.name} ({account.type}) - {account.entityName}
