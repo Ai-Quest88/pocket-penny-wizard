@@ -275,8 +275,8 @@ export type Database = {
       }
       transactions: {
         Row: {
-          account_id: string | null
           amount: number
+          asset_account_id: string | null
           category: string
           comment: string | null
           created_at: string | null
@@ -284,12 +284,13 @@ export type Database = {
           date: string
           description: string
           id: string
+          liability_account_id: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
-          account_id?: string | null
           amount: number
+          asset_account_id?: string | null
           category: string
           comment?: string | null
           created_at?: string | null
@@ -297,12 +298,13 @@ export type Database = {
           date: string
           description: string
           id?: string
+          liability_account_id?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
-          account_id?: string | null
           amount?: number
+          asset_account_id?: string | null
           category?: string
           comment?: string | null
           created_at?: string | null
@@ -310,15 +312,23 @@ export type Database = {
           date?: string
           description?: string
           id?: string
+          liability_account_id?: string | null
           updated_at?: string | null
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "transactions_account_id_fkey"
-            columns: ["account_id"]
+            foreignKeyName: "transactions_asset_account_id_fkey"
+            columns: ["asset_account_id"]
             isOneToOne: false
             referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_liability_account_id_fkey"
+            columns: ["liability_account_id"]
+            isOneToOne: false
+            referencedRelation: "liabilities"
             referencedColumns: ["id"]
           },
         ]

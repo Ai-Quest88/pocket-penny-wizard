@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -32,12 +31,13 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
-  // Fetch cash/savings accounts with their associated entities
-  const { data: accountsWithEntities = [], isLoading: accountsLoading } = useQuery({
-    queryKey: ['accounts-with-entities', session?.user?.id],
+  // Fetch both assets and liabilities to create a combined accounts list
+  const { data: allAccounts = [], isLoading: accountsLoading } = useQuery({
+    queryKey: ['all-accounts', session?.user?.id],
     queryFn: async () => {
       if (!session?.user) return [];
 
+      // Fetch cash assets (savings, checking accounts)
       const { data: assets, error: assetsError } = await supabase
         .from('assets')
         .select(`
@@ -59,19 +59,59 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
         .order('name');
 
       if (assetsError) {
-        console.error('Error fetching accounts:', assetsError);
+        console.error('Error fetching assets:', assetsError);
         throw assetsError;
       }
 
-      return assets.map(asset => ({
-        id: asset.id,
-        name: asset.name,
-        type: asset.category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
-        accountNumber: asset.account_number,
-        entityName: asset.entities.name,
-        entityType: asset.entities.type,
-        currentBalance: Number(asset.value) // This will be calculated dynamically in the UI
-      }));
+      // Fetch liabilities (credit cards, loans)
+      const { data: liabilities, error: liabilitiesError } = await supabase
+        .from('liabilities')
+        .select(`
+          id,
+          name,
+          type,
+          category,
+          account_number,
+          amount,
+          entities!inner(
+            id,
+            name,
+            type
+          )
+        `)
+        .eq('user_id', session.user.id)
+        .order('name');
+
+      if (liabilitiesError) {
+        console.error('Error fetching liabilities:', liabilitiesError);
+        throw liabilitiesError;
+      }
+
+      // Combine assets and liabilities into one list
+      const combinedAccounts = [
+        ...assets.map(asset => ({
+          id: asset.id,
+          name: asset.name,
+          type: asset.category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          accountNumber: asset.account_number,
+          entityName: asset.entities.name,
+          entityType: asset.entities.type,
+          accountType: 'asset' as const,
+          displayType: 'Asset'
+        })),
+        ...liabilities.map(liability => ({
+          id: liability.id,
+          name: liability.name,
+          type: liability.category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          accountNumber: liability.account_number,
+          entityName: liability.entities.name,
+          entityType: liability.entities.type,
+          accountType: 'liability' as const,
+          displayType: 'Liability'
+        }))
+      ];
+
+      return combinedAccounts;
     },
     enabled: !!session?.user,
   });
@@ -86,19 +126,29 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
     setIsSubmitting(true)
 
     try {
-      // Save transaction with account_id
+      // Find the selected account to determine if it's an asset or liability
+      const selectedAccount = allAccounts.find(acc => acc.id === account);
+      
+      if (!selectedAccount) {
+        throw new Error('Selected account not found');
+      }
+
+      // Prepare transaction data with appropriate account field
+      const transactionData = {
+        user_id: session.user.id,
+        description,
+        amount: parseFloat(amount),
+        category,
+        date: format(date, 'yyyy-MM-dd'),
+        currency,
+        comment: comment || null,
+        asset_account_id: selectedAccount.accountType === 'asset' ? account : null,
+        liability_account_id: selectedAccount.accountType === 'liability' ? account : null
+      };
+
       const { data, error } = await supabase
         .from('transactions')
-        .insert({
-          user_id: session.user.id,
-          description,
-          amount: parseFloat(amount),
-          category,
-          date: format(date, 'yyyy-MM-dd'),
-          currency,
-          comment: comment || null,
-          account_id: account // Use the account ID directly
-        })
+        .insert(transactionData)
         .select();
 
       if (error) {
@@ -113,10 +163,12 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
         description: "Transaction added successfully.",
       });
 
-      // Invalidate account balances to trigger recalculation
+      // Invalidate relevant queries
       await queryClient.invalidateQueries({ queryKey: ['account-balances'] });
       await queryClient.invalidateQueries({ queryKey: ['accounts'] });
       await queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      await queryClient.invalidateQueries({ queryKey: ['assets'] });
+      await queryClient.invalidateQueries({ queryKey: ['liabilities'] });
       
       // Reset form
       setAmount('')
@@ -265,26 +317,23 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
                 <SelectValue placeholder="Select account" />
               </SelectTrigger>
               <SelectContent>
-                {accountsWithEntities.length === 0 && !accountsLoading ? (
+                {allAccounts.length === 0 && !accountsLoading ? (
                   <SelectItem value="no-accounts" disabled>
-                    No cash accounts found. Create accounts in Assets first.
+                    No accounts found. Create accounts in Assets or Liabilities first.
                   </SelectItem>
                 ) : (
-                  accountsWithEntities.map((acc) => (
+                  allAccounts.map((acc) => (
                     <SelectItem key={acc.id} value={acc.id}>
-                      {acc.name} - {acc.entityName} ({acc.type})
+                      {acc.name} - {acc.entityName} ({acc.type}) [{acc.displayType}]
                       {acc.accountNumber && ` - ${acc.accountNumber}`}
-                      <span className="text-muted-foreground ml-2">
-                        (Balance calculated from transactions)
-                      </span>
                     </SelectItem>
                   ))
                 )}
               </SelectContent>
             </Select>
-            {accountsWithEntities.length === 0 && !accountsLoading && (
+            {allAccounts.length === 0 && !accountsLoading && (
               <p className="text-sm text-muted-foreground">
-                You need to create cash accounts under entities first. Go to Assets → Add Asset.
+                You need to create accounts under Assets (savings, checking) or Liabilities (credit cards, loans) first.
               </p>
             )}
           </div>
@@ -313,7 +362,7 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
             </Button>
             <Button 
               type="submit" 
-              disabled={isSubmitting || !amount || !description || !category || !account || accountsWithEntities.length === 0}
+              disabled={isSubmitting || !amount || !description || !category || !account || allAccounts.length === 0}
             >
               {isSubmitting ? 'Adding...' : 'Add Transaction'}
             </Button>

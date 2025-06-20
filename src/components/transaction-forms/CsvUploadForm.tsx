@@ -158,7 +158,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
 
       console.log(`Starting intelligent categorization of ${rawTransactions.length} transactions`);
 
-      // Phase 2: Progressive categorization with DB lookup and AI fallback
+      // Phase 2: Progressive categorization
       setUploadProgress({
         phase: 'categorizing',
         currentStep: 0,
@@ -169,12 +169,10 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
 
       const descriptions = rawTransactions.map(t => t.description)
       
-      // Use progressive batch processing with responsive UI updates
       const categories = await categorizeTransactionsBatch(
         descriptions, 
         session.user.id,
         (processed, total, results) => {
-          // Create processed transactions for real-time progress display
           const processedTransactions = rawTransactions.slice(0, processed).map((transaction, index) => ({
             ...transaction,
             category: results[index] || 'Miscellaneous',
@@ -192,7 +190,6 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
         }
       )
 
-      // Create final processed transactions
       const processedTransactions = rawTransactions.map((transaction, index) => ({
         ...transaction,
         category: categories[index] || 'Miscellaneous',
@@ -210,40 +207,39 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
         processedTransactions
       } : null)
 
-      // Get account mapping for account names to IDs
+      // Get account details to determine if it's an asset or liability
       const { data: assets, error: assetsError } = await supabase
         .from('assets')
         .select('id, name, entities!inner(name)')
         .eq('user_id', session.user.id)
-        .eq('type', 'cash');
+        .eq('id', defaultAccount);
 
-      if (assetsError) {
-        console.error('Error fetching assets for account mapping:', assetsError);
-        throw assetsError;
+      const { data: liabilities, error: liabilitiesError } = await supabase
+        .from('liabilities')
+        .select('id, name, entities!inner(name)')
+        .eq('user_id', session.user.id)
+        .eq('id', defaultAccount);
+
+      if (assetsError && liabilitiesError) {
+        console.error('Error fetching account details:', { assetsError, liabilitiesError });
+        throw new Error('Could not determine account type');
       }
 
-      // Prepare transactions for database insertion with categorization and account_id
-      const transactionsForDb = rawTransactions.map((transaction, index) => {
-        let accountId = null;
-        if (transaction.account && transaction.account !== 'Default Account') {
-          const matchingAsset = assets.find(asset => 
-            transaction.account.includes(asset.name) && 
-            transaction.account.includes(asset.entities.name)
-          );
-          accountId = matchingAsset?.id || null;
-        }
+      const isAsset = assets && assets.length > 0;
+      const isLiability = liabilities && liabilities.length > 0;
 
-        return {
-          user_id: session.user.id,
-          description: transaction.description,
-          amount: transaction.amount,
-          category: categories[index] || 'Miscellaneous',
-          date: transaction.date,
-          currency: transaction.currency,
-          comment: transaction.comment || null,
-          account_id: accountId,
-        };
-      });
+      // Prepare transactions for database insertion
+      const transactionsForDb = rawTransactions.map((transaction, index) => ({
+        user_id: session.user.id,
+        description: transaction.description,
+        amount: transaction.amount,
+        category: categories[index] || 'Miscellaneous',
+        date: transaction.date,
+        currency: transaction.currency,
+        comment: transaction.comment || null,
+        asset_account_id: isAsset ? defaultAccount : null,
+        liability_account_id: isLiability ? defaultAccount : null,
+      }));
 
       console.log("Inserting transactions to database with intelligent categorization:", transactionsForDb.length);
 
@@ -279,6 +275,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
       // Refresh queries
       await queryClient.invalidateQueries({ queryKey: ['transactions'] })
       await queryClient.invalidateQueries({ queryKey: ['assets'] })
+      await queryClient.invalidateQueries({ queryKey: ['liabilities'] })
 
       // Call the callback to notify parent component and close dialog
       console.log('Calling onTransactionsUploaded callback')
