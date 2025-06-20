@@ -206,7 +206,6 @@ const Liabilities = () => {
         <DashboardCard
           title="Total Liabilities"
           value={`$${totalLiabilities.toLocaleString()}`}
-          trend={{ value: Math.abs(monthlyChange), isPositive: false }}
           className="bg-card"
         />
 
