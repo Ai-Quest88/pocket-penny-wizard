@@ -21,15 +21,25 @@ export const ColumnMappingSection = ({
   mappings, 
   onMappingChange 
 }: ColumnMappingSectionProps) => {
-  // Filter out any invalid headers
-  const validHeaders = headers.filter(header => 
-    header && 
-    typeof header === 'string' && 
-    header.trim() !== "" &&
-    header !== null &&
-    header !== undefined &&
-    header.length > 0
-  );
+  // Enhanced filtering to ensure absolutely no empty values
+  const validHeaders = headers
+    .filter(header => {
+      const isValid = header && 
+        typeof header === 'string' && 
+        header.trim().length > 0 &&
+        header !== null &&
+        header !== undefined;
+      
+      if (!isValid) {
+        console.warn("Filtering out invalid header:", header);
+      }
+      
+      return isValid;
+    })
+    .map(header => header.trim()) // Ensure no whitespace issues
+    .filter(header => header.length > 0); // Final check after trimming
+
+  console.log("ColumnMappingSection - validHeaders:", validHeaders);
 
   return (
     <div className="space-y-4">
@@ -52,19 +62,12 @@ export const ColumnMappingSection = ({
                 <SelectValue placeholder="Select column" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
-                {validHeaders.map(header => {
-                  // Final safety check - absolutely no empty values allowed
-                  if (!header || header.trim() === "" || header === null || header === undefined || header.length === 0) {
-                    console.error("Skipping invalid header:", header);
-                    return null;
-                  }
-                  return (
-                    <SelectItem key={header} value={header}>
-                      {header}
-                    </SelectItem>
-                  );
-                })}
+                <SelectItem value="none">None</SelectItem>
+                {validHeaders.map(header => (
+                  <SelectItem key={header} value={header}>
+                    {header}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

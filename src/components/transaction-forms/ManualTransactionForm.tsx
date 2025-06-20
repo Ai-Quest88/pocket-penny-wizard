@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -190,32 +189,45 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
     }
   }
 
-  // Enhanced filtering to prevent any empty values in categories
-  const validCategories = categories.filter(cat => 
-    cat && 
-    typeof cat === 'string' && 
-    cat.trim() !== "" &&
-    cat !== null &&
-    cat !== undefined &&
-    cat.length > 0
-  );
+  // Enhanced filtering with comprehensive validation for categories
+  const validCategories = categories
+    .filter(cat => {
+      const isValid = cat && 
+        typeof cat === 'string' && 
+        cat.trim().length > 0;
+      
+      if (!isValid) {
+        console.warn("Filtering out invalid category:", cat);
+      }
+      
+      return isValid;
+    })
+    .map(cat => cat.trim())
+    .filter(cat => cat.length > 0);
 
-  // Enhanced filtering to prevent any empty values in currencies
-  const validCurrencies = currencies.filter(curr => 
-    curr && 
-    curr.code && 
-    typeof curr.code === 'string' && 
-    curr.code.trim() !== "" &&
-    curr.code !== null &&
-    curr.code !== undefined &&
-    curr.code.length > 0 &&
-    curr.name &&
-    typeof curr.name === 'string' &&
-    curr.name.trim() !== "" &&
-    curr.name !== null &&
-    curr.name !== undefined &&
-    curr.name.length > 0
-  );
+  // Enhanced filtering with comprehensive validation for currencies
+  const validCurrencies = currencies
+    .filter(curr => {
+      const isValid = curr && 
+        curr.code && 
+        curr.name &&
+        typeof curr.code === 'string' && 
+        typeof curr.name === 'string' &&
+        curr.code.trim().length > 0 &&
+        curr.name.trim().length > 0;
+      
+      if (!isValid) {
+        console.warn("Filtering out invalid currency:", curr);
+      }
+      
+      return isValid;
+    })
+    .map(curr => ({
+      ...curr,
+      code: curr.code.trim(),
+      name: curr.name.trim()
+    }))
+    .filter(curr => curr.code.length > 0 && curr.name.length > 0);
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
@@ -290,18 +302,11 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {validCategories.map((cat) => {
-                    // Final safety check - absolutely no empty values allowed
-                    if (!cat || cat.trim() === "" || cat === null || cat === undefined || cat.length === 0) {
-                      console.error("Skipping invalid category:", cat);
-                      return null;
-                    }
-                    return (
-                      <SelectItem key={cat} value={cat}>
-                        {cat}
-                      </SelectItem>
-                    );
-                  })}
+                  {validCategories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -313,18 +318,11 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {validCurrencies.map((curr) => {
-                    // Final safety check - absolutely no empty values allowed
-                    if (!curr.code || curr.code.trim() === "" || curr.code === null || curr.code === undefined || curr.code.length === 0) {
-                      console.error("Skipping invalid currency:", curr);
-                      return null;
-                    }
-                    return (
-                      <SelectItem key={curr.code} value={curr.code}>
-                        {curr.code} - {curr.name}
-                      </SelectItem>
-                    );
-                  })}
+                  {validCurrencies.map((curr) => (
+                    <SelectItem key={curr.code} value={curr.code}>
+                      {curr.code} - {curr.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
