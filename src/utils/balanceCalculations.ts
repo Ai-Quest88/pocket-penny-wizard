@@ -62,7 +62,7 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
     // Find all transactions for this asset account that are after opening balance date
     const openingBalanceDate = new Date(asset.opening_balance_date);
     const accountTransactions = transactions.filter(t => 
-      t.account_id === asset.id && 
+      t.asset_account_id === asset.id && 
       new Date(t.date) >= openingBalanceDate
     );
     const transactionSum = accountTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
@@ -89,7 +89,7 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
     // Find all transactions for this liability account that are after opening balance date
     const openingBalanceDate = new Date(liability.opening_balance_date);
     const accountTransactions = transactions.filter(t => 
-      t.account_id === liability.id && 
+      t.liability_account_id === liability.id && 
       new Date(t.date) >= openingBalanceDate
     );
     const transactionSum = accountTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
