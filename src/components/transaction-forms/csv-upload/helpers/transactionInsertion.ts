@@ -7,7 +7,8 @@ interface TransactionData {
   date: string;
   currency: string;
   category: string;
-  account_id?: string | null;
+  asset_account_id?: string | null;
+  liability_account_id?: string | null;
   user_id: string;
 }
 
@@ -87,10 +88,19 @@ export const insertTransactionsWithDuplicateCheck = async (
         console.log(`Duplicate found (${result.reason}): ${result.transaction.description} - ${result.transaction.amount} on ${result.transaction.date}`);
         duplicateCount++;
       } else {
-        // Insert the transaction
+        // Insert the transaction with the new column structure
         const { error: insertError } = await supabase
           .from('transactions')
-          .insert([result.transaction]);
+          .insert([{
+            user_id: result.transaction.user_id,
+            description: result.transaction.description,
+            amount: result.transaction.amount,
+            date: result.transaction.date,
+            currency: result.transaction.currency,
+            category: result.transaction.category,
+            asset_account_id: result.transaction.asset_account_id,
+            liability_account_id: result.transaction.liability_account_id,
+          }]);
 
         if (insertError) {
           console.error('Error inserting transaction:', insertError);
