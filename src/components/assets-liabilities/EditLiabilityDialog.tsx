@@ -116,26 +116,10 @@ export function EditLiabilityDialog({ liability, onEditLiability }: EditLiabilit
       }
     } else {
       // For loans, mortgages, and other liabilities
-      if (formData.amount <= 0) {
+      if (formData.openingBalance <= 0) {
         toast({
           title: "Error", 
-          description: "Please enter a valid original amount greater than 0",
-          variant: "destructive"
-        })
-        return
-      }
-      if (formData.openingBalance < 0) {
-        toast({
-          title: "Error", 
-          description: "Current outstanding balance cannot be negative",
-          variant: "destructive"
-        })
-        return
-      }
-      if (formData.openingBalance > formData.amount) {
-        toast({
-          title: "Error", 
-          description: "Current outstanding balance cannot exceed original amount",
+          description: "Please enter a valid outstanding balance greater than 0",
           variant: "destructive"
         })
         return
@@ -281,31 +265,8 @@ export function EditLiabilityDialog({ liability, onEditLiability }: EditLiabilit
               </div>
             </>
           ) : (
-            // Loan/Mortgage/Other Fields: Original Amount and Current Outstanding Balance
+            // Loan/Mortgage/Other Fields: Current Outstanding Balance Only
             <>
-              <div className="space-y-2">
-                <Label htmlFor="original-amount">
-                  {formData.type === "mortgage" ? "Original Mortgage Amount" : 
-                   formData.type === "loan" ? "Original Loan Amount" : 
-                   "Original Amount"}
-                </Label>
-                <Input
-                  id="original-amount"
-                  type="number"
-                  step="0.01"
-                  value={formData.amount}
-                  onChange={(e) => {
-                    const amount = parseFloat(e.target.value) || 0;
-                    setFormData({ ...formData, amount });
-                  }}
-                  placeholder={
-                    formData.type === "mortgage" ? "Enter original mortgage amount" : 
-                    formData.type === "loan" ? "Enter original loan amount" : 
-                    "Enter original amount"
-                  }
-                />
-              </div>
-
               <div className="space-y-2">
                 <Label htmlFor="current-balance">
                   {formData.type === "mortgage" ? "Current Outstanding Balance" : 
@@ -319,7 +280,7 @@ export function EditLiabilityDialog({ liability, onEditLiability }: EditLiabilit
                   value={formData.openingBalance}
                   onChange={(e) => {
                     const openingBalance = parseFloat(e.target.value) || 0;
-                    setFormData({ ...formData, openingBalance });
+                    setFormData({ ...formData, openingBalance, amount: openingBalance });
                   }}
                   placeholder={
                     formData.type === "mortgage" ? "Enter current amount owed" : 
@@ -327,20 +288,22 @@ export function EditLiabilityDialog({ liability, onEditLiability }: EditLiabilit
                     "Enter current balance"
                   }
                 />
+                <p className="text-xs text-muted-foreground">
+                  How much you currently owe on this {formData.type === "mortgage" ? "mortgage" : formData.type}
+                </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="opening-balance-date">
-                  {formData.type === "mortgage" ? "Loan Start Date" : 
-                   formData.type === "loan" ? "Loan Start Date" : 
-                   "Start Date"}
-                </Label>
+                <Label htmlFor="opening-balance-date">Balance Date</Label>
                 <Input
                   id="opening-balance-date"
                   type="date"
                   value={formData.openingBalanceDate}
                   onChange={(e) => setFormData({ ...formData, openingBalanceDate: e.target.value })}
                 />
+                <p className="text-xs text-muted-foreground">
+                  When this balance was recorded
+                </p>
               </div>
             </>
           )}

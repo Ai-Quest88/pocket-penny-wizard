@@ -133,29 +133,11 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
       }
     } else {
       // For loans, mortgages, and other liabilities
-      if (newLiability.amount <= 0) {
-        console.log("Invalid original amount provided, showing error toast");
-        toast({
-          title: "Error", 
-          description: "Please enter a valid original amount greater than 0",
-          variant: "destructive"
-        })
-        return
-      }
-      if (newLiability.openingBalance < 0) {
+      if (newLiability.openingBalance <= 0) {
         console.log("Invalid current balance provided, showing error toast");
         toast({
           title: "Error", 
-          description: "Current outstanding balance cannot be negative",
-          variant: "destructive"
-        })
-        return
-      }
-      if (newLiability.openingBalance > newLiability.amount) {
-        console.log("Current balance exceeds original amount, showing error toast");
-        toast({
-          title: "Error", 
-          description: "Current outstanding balance cannot exceed original amount",
+          description: "Please enter a valid outstanding balance greater than 0",
           variant: "destructive"
         })
         return
@@ -347,62 +329,40 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
               </div>
             </>
           ) : (
-            // Loan/Mortgage/Other Fields: Original Amount and Current Outstanding Balance
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="original-amount">
-                  {newLiability.type === "mortgage" ? "Original Mortgage Amount" : 
-                   newLiability.type === "loan" ? "Original Loan Amount" : 
-                   "Original Amount"}
-                </Label>
-                <Input
-                  id="original-amount"
-                  type="number"
-                  step="0.01"
-                  value={newLiability.amount}
-                  onChange={(e) => {
-                    const amount = parseFloat(e.target.value) || 0;
-                    console.log("Original amount changed to:", amount);
-                    setNewLiability({ ...newLiability, amount });
-                  }}
-                  placeholder={
-                    newLiability.type === "mortgage" ? "Enter original mortgage amount" : 
-                    newLiability.type === "loan" ? "Enter original loan amount" : 
-                    "Enter original amount"
-                  }
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="current-balance">
-                  {newLiability.type === "mortgage" ? "Current Outstanding Balance" : 
-                   newLiability.type === "loan" ? "Current Outstanding Balance" : 
-                   "Current Balance"}
-                </Label>
-                <Input
-                  id="current-balance"
-                  type="number"
-                  step="0.01"
-                  value={newLiability.openingBalance}
-                  onChange={(e) => {
-                    const openingBalance = parseFloat(e.target.value) || 0;
-                    console.log("Current outstanding balance changed to:", openingBalance);
-                    setNewLiability({ ...newLiability, openingBalance });
-                  }}
-                  placeholder={
-                    newLiability.type === "mortgage" ? "Enter current amount owed" : 
-                    newLiability.type === "loan" ? "Enter current amount owed" : 
-                    "Enter current balance"
-                  }
-                />
-              </div>
-            </>
+            // Loan/Mortgage/Other Fields: Current Outstanding Balance Only
+            <div className="space-y-2">
+              <Label htmlFor="current-balance">
+                {newLiability.type === "mortgage" ? "Current Outstanding Balance" : 
+                 newLiability.type === "loan" ? "Current Outstanding Balance" : 
+                 "Current Balance"}
+              </Label>
+              <Input
+                id="current-balance"
+                type="number"
+                step="0.01"
+                value={newLiability.openingBalance}
+                onChange={(e) => {
+                  const openingBalance = parseFloat(e.target.value) || 0;
+                  console.log("Current outstanding balance changed to:", openingBalance);
+                  setNewLiability({ ...newLiability, openingBalance, amount: openingBalance });
+                }}
+                placeholder={
+                  newLiability.type === "mortgage" ? "Enter current amount owed" : 
+                  newLiability.type === "loan" ? "Enter current amount owed" : 
+                  "Enter current balance"
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                How much you currently owe on this {newLiability.type === "mortgage" ? "mortgage" : newLiability.type}
+              </p>
+            </div>
           )}
 
           <div className="space-y-2">
             <Label htmlFor="opening-balance-date">
               {newLiability.type === "credit" ? "Account Opening Date" : 
-               newLiability.type === "mortgage" ? "Loan Start Date" : 
+               newLiability.type === "mortgage" ? "Balance Date" : 
+               newLiability.type === "loan" ? "Balance Date" :
                "Start Date"}
             </Label>
             <Input
@@ -414,6 +374,11 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
                 setOpeningBalanceDate(e.target.value);
               }}
             />
+            {(newLiability.type === "loan" || newLiability.type === "mortgage") && (
+              <p className="text-xs text-muted-foreground">
+                When the current outstanding balance was recorded
+              </p>
+            )}
           </div>
           
           <Button onClick={handleAddLiability} className="w-full">
