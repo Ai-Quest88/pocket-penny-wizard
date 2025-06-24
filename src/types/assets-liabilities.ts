@@ -23,6 +23,13 @@ export type LiabilityCategory =
   | "auto_loan"
   | "home_loan"
   | "investment_loan"
+  | "family_loan"
+  | "tax_liability"
+  | "accounts_payable"
+  | "buy_now_pay_later"
+  | "overdraft"
+  | "lease_obligation"
+  | "legal_obligation"
   | "other_liability";
 
 export const assetCategoryGroups: Record<AssetType, AssetCategory[]> = {
@@ -37,7 +44,7 @@ export const liabilityCategoryGroups: Record<LiabilityType, LiabilityCategory[]>
   credit: ["credit_card"],
   loan: ["personal_loan", "student_loan", "auto_loan"],
   mortgage: ["home_loan", "investment_loan"],
-  other: ["other_liability"],
+  other: ["family_loan", "tax_liability", "accounts_payable", "buy_now_pay_later", "overdraft", "lease_obligation", "legal_obligation", "other_liability"],
 };
 
 export interface HistoricalValue {

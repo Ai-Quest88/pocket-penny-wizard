@@ -352,9 +352,11 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
                   "Enter current balance"
                 }
               />
-              <p className="text-xs text-muted-foreground">
-                How much you currently owe on this {newLiability.type === "mortgage" ? "mortgage" : newLiability.type}
-              </p>
+                              <p className="text-xs text-muted-foreground">
+                  {newLiability.type === "other" 
+                    ? "Current amount owed (e.g., family loan, tax debt, accounts payable)"
+                    : `How much you currently owe on this ${newLiability.type === "mortgage" ? "mortgage" : newLiability.type}`}
+                </p>
             </div>
           )}
 
@@ -374,9 +376,11 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
                 setOpeningBalanceDate(e.target.value);
               }}
             />
-            {(newLiability.type === "loan" || newLiability.type === "mortgage") && (
+            {(newLiability.type === "loan" || newLiability.type === "mortgage" || newLiability.type === "other") && (
               <p className="text-xs text-muted-foreground">
-                When the current outstanding balance was recorded
+                {newLiability.type === "other" 
+                  ? "When this balance was recorded (for tracking payments/changes from this date)"
+                  : "When the current outstanding balance was recorded"}
               </p>
             )}
           </div>

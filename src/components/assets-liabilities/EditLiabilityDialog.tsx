@@ -289,7 +289,9 @@ export function EditLiabilityDialog({ liability, onEditLiability }: EditLiabilit
                   }
                 />
                 <p className="text-xs text-muted-foreground">
-                  How much you currently owe on this {formData.type === "mortgage" ? "mortgage" : formData.type}
+                  {formData.type === "other" 
+                    ? "Current amount owed (e.g., family loan, tax debt, accounts payable)"
+                    : `How much you currently owe on this ${formData.type === "mortgage" ? "mortgage" : formData.type}`}
                 </p>
               </div>
 
@@ -302,7 +304,9 @@ export function EditLiabilityDialog({ liability, onEditLiability }: EditLiabilit
                   onChange={(e) => setFormData({ ...formData, openingBalanceDate: e.target.value })}
                 />
                 <p className="text-xs text-muted-foreground">
-                  When this balance was recorded
+                  {formData.type === "other" 
+                    ? "When this balance was recorded (for tracking payments/changes from this date)"
+                    : "When this balance was recorded"}
                 </p>
               </div>
             </>
