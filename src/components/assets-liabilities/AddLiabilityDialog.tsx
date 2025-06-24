@@ -132,11 +132,30 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
         return
       }
     } else {
+      // For loans, mortgages, and other liabilities
       if (newLiability.amount <= 0) {
-        console.log("Invalid amount provided, showing error toast");
+        console.log("Invalid original amount provided, showing error toast");
         toast({
           title: "Error", 
-          description: "Please enter a valid amount greater than 0",
+          description: "Please enter a valid original amount greater than 0",
+          variant: "destructive"
+        })
+        return
+      }
+      if (newLiability.openingBalance < 0) {
+        console.log("Invalid current balance provided, showing error toast");
+        toast({
+          title: "Error", 
+          description: "Current outstanding balance cannot be negative",
+          variant: "destructive"
+        })
+        return
+      }
+      if (newLiability.openingBalance > newLiability.amount) {
+        console.log("Current balance exceeds original amount, showing error toast");
+        toast({
+          title: "Error", 
+          description: "Current outstanding balance cannot exceed original amount",
           variant: "destructive"
         })
         return
@@ -328,24 +347,56 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
               </div>
             </>
           ) : (
-            // Non-Credit Card Fields: Single Amount
-            <div className="space-y-2">
-              <Label htmlFor="liability-amount">
-                {newLiability.type === "mortgage" ? "Loan Amount" : "Amount"}
-              </Label>
-              <Input
-                id="liability-amount"
-                type="number"
-                step="0.01"
-                value={newLiability.amount}
-                onChange={(e) => {
-                  const amount = parseFloat(e.target.value) || 0;
-                  console.log("Liability amount changed to:", amount);
-                  setNewLiability({ ...newLiability, amount, openingBalance: amount });
-                }}
-                placeholder={newLiability.type === "mortgage" ? "Loan Amount" : "Amount"}
-              />
-            </div>
+            // Loan/Mortgage/Other Fields: Original Amount and Current Outstanding Balance
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="original-amount">
+                  {newLiability.type === "mortgage" ? "Original Mortgage Amount" : 
+                   newLiability.type === "loan" ? "Original Loan Amount" : 
+                   "Original Amount"}
+                </Label>
+                <Input
+                  id="original-amount"
+                  type="number"
+                  step="0.01"
+                  value={newLiability.amount}
+                  onChange={(e) => {
+                    const amount = parseFloat(e.target.value) || 0;
+                    console.log("Original amount changed to:", amount);
+                    setNewLiability({ ...newLiability, amount });
+                  }}
+                  placeholder={
+                    newLiability.type === "mortgage" ? "Enter original mortgage amount" : 
+                    newLiability.type === "loan" ? "Enter original loan amount" : 
+                    "Enter original amount"
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="current-balance">
+                  {newLiability.type === "mortgage" ? "Current Outstanding Balance" : 
+                   newLiability.type === "loan" ? "Current Outstanding Balance" : 
+                   "Current Balance"}
+                </Label>
+                <Input
+                  id="current-balance"
+                  type="number"
+                  step="0.01"
+                  value={newLiability.openingBalance}
+                  onChange={(e) => {
+                    const openingBalance = parseFloat(e.target.value) || 0;
+                    console.log("Current outstanding balance changed to:", openingBalance);
+                    setNewLiability({ ...newLiability, openingBalance });
+                  }}
+                  placeholder={
+                    newLiability.type === "mortgage" ? "Enter current amount owed" : 
+                    newLiability.type === "loan" ? "Enter current amount owed" : 
+                    "Enter current balance"
+                  }
+                />
+              </div>
+            </>
           )}
 
           <div className="space-y-2">

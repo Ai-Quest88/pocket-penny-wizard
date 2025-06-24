@@ -115,10 +115,27 @@ export function EditLiabilityDialog({ liability, onEditLiability }: EditLiabilit
         return
       }
     } else {
+      // For loans, mortgages, and other liabilities
       if (formData.amount <= 0) {
         toast({
           title: "Error", 
-          description: "Please enter a valid amount greater than 0",
+          description: "Please enter a valid original amount greater than 0",
+          variant: "destructive"
+        })
+        return
+      }
+      if (formData.openingBalance < 0) {
+        toast({
+          title: "Error", 
+          description: "Current outstanding balance cannot be negative",
+          variant: "destructive"
+        })
+        return
+      }
+      if (formData.openingBalance > formData.amount) {
+        toast({
+          title: "Error", 
+          description: "Current outstanding balance cannot exceed original amount",
           variant: "destructive"
         })
         return
@@ -264,25 +281,60 @@ export function EditLiabilityDialog({ liability, onEditLiability }: EditLiabilit
               </div>
             </>
           ) : (
-            // Non-Credit Card Fields
+            // Loan/Mortgage/Other Fields: Original Amount and Current Outstanding Balance
             <>
               <div className="space-y-2">
-                <Label htmlFor="opening-balance">Opening Balance</Label>
+                <Label htmlFor="original-amount">
+                  {formData.type === "mortgage" ? "Original Mortgage Amount" : 
+                   formData.type === "loan" ? "Original Loan Amount" : 
+                   "Original Amount"}
+                </Label>
                 <Input
-                  id="opening-balance"
+                  id="original-amount"
                   type="number"
-                  value={formData.openingBalance}
-                  onChange={(e) => {
-                    const openingBalance = parseFloat(e.target.value) || 0;
-                    setFormData({ ...formData, openingBalance, amount: openingBalance });
-                  }}
-                  placeholder="0.00"
                   step="0.01"
+                  value={formData.amount}
+                  onChange={(e) => {
+                    const amount = parseFloat(e.target.value) || 0;
+                    setFormData({ ...formData, amount });
+                  }}
+                  placeholder={
+                    formData.type === "mortgage" ? "Enter original mortgage amount" : 
+                    formData.type === "loan" ? "Enter original loan amount" : 
+                    "Enter original amount"
+                  }
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="opening-balance-date">Opening Balance Date</Label>
+                <Label htmlFor="current-balance">
+                  {formData.type === "mortgage" ? "Current Outstanding Balance" : 
+                   formData.type === "loan" ? "Current Outstanding Balance" : 
+                   "Current Balance"}
+                </Label>
+                <Input
+                  id="current-balance"
+                  type="number"
+                  step="0.01"
+                  value={formData.openingBalance}
+                  onChange={(e) => {
+                    const openingBalance = parseFloat(e.target.value) || 0;
+                    setFormData({ ...formData, openingBalance });
+                  }}
+                  placeholder={
+                    formData.type === "mortgage" ? "Enter current amount owed" : 
+                    formData.type === "loan" ? "Enter current amount owed" : 
+                    "Enter current balance"
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="opening-balance-date">
+                  {formData.type === "mortgage" ? "Loan Start Date" : 
+                   formData.type === "loan" ? "Loan Start Date" : 
+                   "Start Date"}
+                </Label>
                 <Input
                   id="opening-balance-date"
                   type="date"
