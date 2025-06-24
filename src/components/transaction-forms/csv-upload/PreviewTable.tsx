@@ -1,4 +1,3 @@
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface PreviewTableProps {
@@ -8,7 +7,6 @@ interface PreviewTableProps {
     amount: string;
     date: string;
     currency: string;
-    category: string;
   };
   defaultSettings: {
     description: string;
@@ -49,7 +47,6 @@ export const PreviewTable = ({ data, mappings, defaultSettings, selectedAccount 
               <TableHead>Amount</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Currency</TableHead>
-              <TableHead>Category</TableHead>
               <TableHead>Account</TableHead>
             </TableRow>
           </TableHeader>
@@ -60,7 +57,6 @@ export const PreviewTable = ({ data, mappings, defaultSettings, selectedAccount 
                 <TableCell>{getValue(row, mappings.amount, '0')}</TableCell>
                 <TableCell>{getValue(row, mappings.date, new Date().toISOString().split('T')[0])}</TableCell>
                 <TableCell>{getValue(row, mappings.currency, defaultSettings.currency)}</TableCell>
-                <TableCell>{getValue(row, mappings.category, defaultSettings.category)}</TableCell>
                 <TableCell>
                   {selectedAccount ? (
                     <span className="text-sm text-muted-foreground">

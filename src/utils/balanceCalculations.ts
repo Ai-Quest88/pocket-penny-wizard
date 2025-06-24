@@ -19,6 +19,8 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
     .from('transactions')
     .select('*')
     .eq('user_id', userId);
+  
+
 
   if (transactionsError) {
     console.error('Error fetching transactions:', transactionsError);
@@ -61,10 +63,21 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
   assets.forEach(asset => {
     // Find all transactions for this asset account that are after opening balance date
     const openingBalanceDate = new Date(asset.opening_balance_date);
-    const accountTransactions = transactions.filter(t => 
-      t.asset_account_id === asset.id && 
-      new Date(t.date) >= openingBalanceDate
-    );
+    console.log(`🔍 Asset ${asset.name}:`);
+    console.log(`  Opening balance date: ${asset.opening_balance_date} (${openingBalanceDate.toISOString()})`);
+    
+    // Find all transactions for this asset account
+    const allAccountTransactions = transactions.filter(t => t.asset_account_id === asset.id);
+    console.log(`  Total transactions for this account: ${allAccountTransactions.length}`);
+    
+    // Filter by date
+    const accountTransactions = allAccountTransactions.filter(t => new Date(t.date) >= openingBalanceDate);
+    console.log(`  Transactions after opening date: ${accountTransactions.length}`);
+    
+    if (allAccountTransactions.length > 0) {
+      console.log(`  Sample transaction dates:`, allAccountTransactions.slice(0, 3).map(t => t.date));
+    }
+    
     const transactionSum = accountTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
     
     // For assets: Closing Balance = Opening Balance + Transactions
@@ -92,11 +105,22 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
       t.liability_account_id === liability.id && 
       new Date(t.date) >= openingBalanceDate
     );
+    
     const transactionSum = accountTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
     
-    // For liabilities: Closing Balance = Opening Balance - Transactions (payments reduce liability)
     const openingBalance = Number(liability.opening_balance);
-    const calculatedBalance = openingBalance - transactionSum;
+    let calculatedBalance: number;
+    
+    // Different calculation logic based on liability type
+    if (liability.type === 'credit') {
+      // For credit cards: Outstanding balance = Opening balance + Purchases (debt increases)
+      calculatedBalance = openingBalance + transactionSum;
+      console.log(`Credit Card ${liability.name}: Opening ${openingBalance} + Purchases ${transactionSum} = Outstanding ${calculatedBalance}`);
+    } else {
+      // For loans/mortgages: Remaining debt = Opening balance - Payments (debt decreases)
+      calculatedBalance = openingBalance - transactionSum;
+      console.log(`${liability.type} ${liability.name}: Opening ${openingBalance} - Payments ${transactionSum} = Remaining ${calculatedBalance}`);
+    }
 
     balances.push({
       accountId: liability.id,
@@ -107,8 +131,6 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
       transactionSum,
       calculatedBalance // This is the closing balance
     });
-
-    console.log(`Liability ${liability.name}: Opening ${openingBalance} - Transactions ${transactionSum} = Closing ${calculatedBalance}`);
   });
 
   console.log('Calculated balances with opening/closing:', balances);

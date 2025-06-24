@@ -1,4 +1,3 @@
-
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 
@@ -13,7 +12,6 @@ const requiredFields = [
   { key: 'amount', label: 'Amount *' },
   { key: 'date', label: 'Date *' },
   { key: 'currency', label: 'Currency' },
-  { key: 'category', label: 'Category' },
 ];
 
 export const ColumnMappingSection = ({ 

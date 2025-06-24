@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -75,10 +74,6 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
         autoMappings.amount = header
       } else if (lowerHeader.includes('date')) {
         autoMappings.date = header
-      } else if (lowerHeader.includes('currency')) {
-        autoMappings.currency = header
-      } else if (lowerHeader.includes('category')) {
-        autoMappings.category = header
       }
     })
     
@@ -241,11 +236,6 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
               onMappingChange={handleMappingChange}
             />
 
-            <DefaultSettingsSection
-              defaultSettings={defaultSettings}
-              onSettingsChange={handleDefaultSettingsChange}
-            />
-
             <AccountSelectionSection
               selectedAccountId={selectedAccountId}
               onAccountChange={setSelectedAccountId}
@@ -257,8 +247,8 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                 description: columnMappings.description || '',
                 amount: columnMappings.amount || '',
                 date: columnMappings.date || '',
-                currency: columnMappings.currency || '',
-                category: columnMappings.category || ''
+                currency: '',
+                category: ''
               }}
               defaultSettings={defaultSettings}
               selectedAccount={selectedAccountId ? accounts.find(acc => acc.id === selectedAccountId) : null}

@@ -7,14 +7,18 @@ import { useToast } from "@/components/ui/use-toast"
 import { supabase } from "@/integrations/supabase/client"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useAuth } from "@/contexts/AuthContext"
+import { useAccountBalances } from "@/hooks/useAccountBalances"
 
 const Liabilities = () => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { session } = useAuth()
 
+  // First fetch account balances
+  const { data: accountBalances = [], isLoading: balancesLoading } = useAccountBalances()
+
   // Fetch liabilities from Supabase with user authentication
-  const { data: liabilities = [], isLoading } = useQuery({
+  const { data: liabilities = [], isLoading: liabilitiesLoading } = useQuery({
     queryKey: ['liabilities', session?.user?.id],
     queryFn: async () => {
       if (!session?.user) {
@@ -56,6 +60,34 @@ const Liabilities = () => {
     enabled: !!session?.user,
   });
 
+  // Transform liabilities with calculated balances - this runs after both queries complete
+  const liabilitiesWithBalances = useQuery({
+    queryKey: ['liabilities-with-balances', liabilities, accountBalances],
+    queryFn: () => {
+      console.log('Transforming liabilities with calculated balances');
+      console.log('Liabilities:', liabilities);
+      console.log('Available account balances:', accountBalances);
+
+      return liabilities.map(liability => {
+        // Get the calculated balance for this liability
+        const calculatedBalance = accountBalances.find(b => b.accountId === liability.id);
+        console.log(`Liability ${liability.name}: Looking for balance with accountId ${liability.id}`);
+        console.log(`Found calculated balance:`, calculatedBalance);
+        
+        const finalAmount = calculatedBalance?.calculatedBalance ?? Number(liability.amount);
+        console.log(`Final amount for ${liability.name}: ${finalAmount}`);
+        
+        return {
+          ...liability,
+          amount: finalAmount, // Use calculated balance instead of static amount
+        };
+      }) as Liability[];
+    },
+    enabled: !liabilitiesLoading && !balancesLoading && liabilities.length >= 0 && accountBalances.length >= 0,
+  });
+
+  const transformedLiabilities = liabilitiesWithBalances.data || [];
+
   // Add liability mutation
   const addLiabilityMutation = useMutation({
     mutationFn: async (newLiability: Omit<Liability, "id">) => {
@@ -86,6 +118,7 @@ const Liabilities = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['liabilities'] });
+      queryClient.invalidateQueries({ queryKey: ['account-balances'] });
       toast({
         title: "Liability Added",
         description: "The liability has been added successfully.",
@@ -129,6 +162,7 @@ const Liabilities = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['liabilities'] });
+      queryClient.invalidateQueries({ queryKey: ['account-balances'] });
       toast({
         title: "Liability Updated",
         description: "Your liability has been updated successfully.",
@@ -156,6 +190,7 @@ const Liabilities = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['liabilities'] });
+      queryClient.invalidateQueries({ queryKey: ['account-balances'] });
       toast({
         title: "Liability Deleted",
         description: "The liability has been deleted successfully.",
@@ -171,8 +206,9 @@ const Liabilities = () => {
     },
   });
 
-  const totalLiabilities = liabilities.reduce((sum, liability) => sum + liability.amount, 0)
+  const totalLiabilities = transformedLiabilities.reduce((sum, liability) => sum + liability.amount, 0)
   const monthlyChange = -1.5 // This could be calculated based on historical data
+  const isLoading = liabilitiesLoading || balancesLoading || liabilitiesWithBalances.isLoading;
 
   const handleAddLiability = (newLiability: Omit<Liability, "id">) => {
     addLiabilityMutation.mutate(newLiability);
@@ -217,7 +253,7 @@ const Liabilities = () => {
         />
 
         <LiabilitiesList 
-          liabilities={liabilities} 
+          liabilities={transformedLiabilities} 
           onEditLiability={handleEditLiability}
           onDeleteLiability={handleDeleteLiability}
         />

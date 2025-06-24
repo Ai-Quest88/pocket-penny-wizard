@@ -1,5 +1,4 @@
-
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useState, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
@@ -19,10 +18,7 @@ interface ImportTransactionsProps {
 }
 
 interface CSVRow {
-  date: string;
-  description: string;
-  amount: string;
-  currency: string;
+  [key: string]: any;
 }
 
 const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
@@ -35,10 +31,18 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
   });
   const [isMappingHeaders, setIsMappingHeaders] = useState(false);
   const [previewData, setPreviewData] = useState<CSVRow[]>([]);
+  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const { session } = useAuth();
   const { readString } = usePapaParse();
   const [uploading, setUploading] = useState(false);
   const [duplicateCheckEnabled, setDuplicateCheckEnabled] = useState(true);
+
+  useEffect(() => {
+    if (csvHeaders.length > 0) {
+      const autoMappings = autoDetectHeaders(csvHeaders);
+      setHeaderMappings(autoMappings);
+    }
+  }, [csvHeaders]);
 
   const onDrop = (acceptedFiles: File[]) => {
     setCsvFile(acceptedFiles[0]);
@@ -70,13 +74,18 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
         skipEmptyLines: true,
         complete: (results) => {
           if (results.data && results.data.length > 0) {
-            // Auto-detect headers for better user experience
-            const headers = Object.keys(results.data[0] as object);
-            const autoMappings = autoDetectHeaders(headers);
-            setHeaderMappings(autoMappings);
-            
-            // Limit preview data to first 5 rows
-            setPreviewData(results.data.slice(0, 5) as CSVRow[]);
+            const headers = (results.meta.fields || []).filter(h => h);
+            if (headers.length > 0) {
+              setPreviewData(results.data.slice(0, 5) as CSVRow[]);
+              setCsvHeaders(headers);
+            } else {
+              toast({
+                title: "Error parsing CSV",
+                description: "Could not detect headers in the CSV file.",
+                variant: "destructive",
+              });
+              setIsMappingHeaders(false);
+            }
           } else {
             toast({
               title: "Error parsing CSV",
@@ -236,30 +245,26 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
     try {
       console.log(`Processing ${transactions.length} uploaded transactions`);
 
-      // Categorize transactions in batch
       const descriptions = transactions.map(t => t.description);
       console.log("Starting batch categorization for uploaded transactions");
       
       const categories = await categorizeTransactionsBatch(descriptions, session.user.id);
       console.log("Batch categorization completed");
 
-      // Prepare transactions with categories and user ID
       const transactionsWithCategories = transactions.map((transaction, index) => ({
         ...transaction,
         category: categories[index],
         user_id: session.user.id,
-        account_id: null, // Set to null since we don't have accounts table
+        account_id: null, 
       }));
 
       console.log(`Processing transactions with duplicate checking: ${transactionsWithCategories.length}`);
 
-      // Use duplicate checking or direct insertion based on user preference
       let result;
       if (duplicateCheckEnabled) {
         const { insertTransactionsWithDuplicateCheck } = await import('@/components/transaction-forms/csv-upload/helpers/transactionInsertion');
         result = await insertTransactionsWithDuplicateCheck(transactionsWithCategories);
       } else {
-        // Direct insertion without duplicate checking
         const { error: insertError } = await supabase
           .from('transactions')
           .insert(transactionsWithCategories);
@@ -276,7 +281,7 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
       if (result.inserted > 0) {
         toast({
           title: "Success",
-          description: `Successfully uploaded ${result.inserted} transactions${result.duplicates > 0 ? ` (${result.duplicates} duplicates skipped)` : ''}`,
+          description: `Successfully uploaded ${result.inserted} transactions${result.duplicates > 0 ? ` (${result.duplicates} skipped)` : ''}`,
         });
       } else if (result.duplicates > 0) {
         toast({
@@ -336,7 +341,7 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
                   <SelectValue placeholder="Select header" />
                 </SelectTrigger>
                 <SelectContent>
-                  {previewData.length > 0 && Object.keys(previewData[0]).map((header) => (
+                  {csvHeaders.map((header) => (
                     <SelectItem key={header} value={header}>{header}</SelectItem>
                   ))}
                 </SelectContent>
@@ -350,7 +355,7 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
                   <SelectValue placeholder="Select header" />
                 </SelectTrigger>
                 <SelectContent>
-                  {previewData.length > 0 && Object.keys(previewData[0]).map((header) => (
+                  {csvHeaders.map((header) => (
                     <SelectItem key={header} value={header}>{header}</SelectItem>
                   ))}
                 </SelectContent>
@@ -364,22 +369,7 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
                   <SelectValue placeholder="Select header" />
                 </SelectTrigger>
                 <SelectContent>
-                  {previewData.length > 0 && Object.keys(previewData[0]).map((header) => (
-                    <SelectItem key={header} value={header}>{header}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="currency">Currency (Optional)</Label>
-              <Select onValueChange={(value) => handleHeaderMappingChange(value, 'currency')} value={headerMappings.currency}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select header or leave empty" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">None (defaults to AUD)</SelectItem>
-                  {previewData.length > 0 && Object.keys(previewData[0]).map((header) => (
+                  {csvHeaders.map((header) => (
                     <SelectItem key={header} value={header}>{header}</SelectItem>
                   ))}
                 </SelectContent>
@@ -415,7 +405,7 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
                 <table className="w-full border border-border rounded-md">
                   <thead>
                     <tr className="border-b bg-muted">
-                      {Object.keys(previewData[0]).map((header) => (
+                      {csvHeaders.map((header) => (
                         <th key={header} className="text-left p-2 text-sm font-medium">
                           {header}
                         </th>
@@ -425,9 +415,9 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
                   <tbody>
                     {previewData.map((row, index) => (
                       <tr key={index} className="border-b">
-                        {Object.values(row).map((value, cellIndex) => (
-                          <td key={cellIndex} className="p-2 text-sm">
-                            {String(value)}
+                        {csvHeaders.map((header) => (
+                          <td key={header} className="p-2 text-sm">
+                            {String(row[header])}
                           </td>
                         ))}
                       </tr>
