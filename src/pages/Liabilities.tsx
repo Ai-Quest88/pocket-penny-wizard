@@ -55,6 +55,7 @@ const Liabilities = () => {
         monthlyPayment: liability.monthly_payment ? Number(liability.monthly_payment) : undefined,
         openingBalance: Number(liability.opening_balance) || 0,
         openingBalanceDate: liability.opening_balance_date || new Date().toISOString().split('T')[0],
+        creditLimit: liability.credit_limit ? Number(liability.credit_limit) : undefined,
       })) as Liability[];
     },
     enabled: !!session?.user,
@@ -109,6 +110,7 @@ const Liabilities = () => {
           monthly_payment: newLiability.monthlyPayment || null,
           opening_balance: newLiability.openingBalance,
           opening_balance_date: newLiability.openingBalanceDate,
+          credit_limit: newLiability.creditLimit || null,
         }])
         .select()
         .single();
@@ -151,6 +153,7 @@ const Liabilities = () => {
           monthly_payment: updatedLiability.monthlyPayment || null,
           opening_balance: updatedLiability.openingBalance,
           opening_balance_date: updatedLiability.openingBalanceDate,
+          credit_limit: updatedLiability.creditLimit || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)
