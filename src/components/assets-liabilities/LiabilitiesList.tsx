@@ -56,11 +56,32 @@ export function LiabilitiesList({ liabilities, onEditLiability, onDeleteLiabilit
                 <span className="text-sm text-muted-foreground">•</span>
                 <span className="text-sm text-muted-foreground">{getEntityName(liability.entityId)}</span>
               </div>
+              {liability.type === "credit" && liability.creditLimit && (
+                <div className="mt-2 space-y-1">
+                  <div className="text-sm text-muted-foreground">
+                    Credit Utilization: {((liability.amount / liability.creditLimit) * 100).toFixed(1)}%
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Available Credit: ${(liability.creditLimit - liability.amount).toLocaleString()}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-2">
-              <p className="text-lg font-semibold text-red-600">
-                ${liability.amount.toLocaleString()}
-              </p>
+              {liability.type === "credit" && liability.creditLimit ? (
+                <div className="text-right">
+                  <p className="text-lg font-semibold text-red-600">
+                    ${liability.amount.toLocaleString()}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    of ${liability.creditLimit.toLocaleString()}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-lg font-semibold text-red-600">
+                  ${liability.amount.toLocaleString()}
+                </p>
+              )}
               {onEditLiability && (
                 <EditLiabilityDialog 
                   liability={liability} 

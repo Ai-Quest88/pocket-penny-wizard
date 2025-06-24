@@ -1,4 +1,3 @@
-
 export type AssetType = "cash" | "investment" | "property" | "vehicle" | "other";
 export type LiabilityType = "credit" | "loan" | "mortgage" | "other";
 
@@ -72,6 +71,7 @@ export interface Liability {
   interestRate?: number; // Interest rate percentage
   termMonths?: number; // Loan term in months
   monthlyPayment?: number; // Monthly payment amount
-  openingBalance: number; // New field
-  openingBalanceDate: string; // New field
+  openingBalance: number; // Current debt/outstanding amount
+  openingBalanceDate: string; // Date of the opening balance
+  creditLimit?: number; // Credit limit for credit cards
 }

@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -45,7 +44,8 @@ export function EditLiabilityDialog({ liability, onEditLiability }: EditLiabilit
     termMonths: liability.termMonths,
     monthlyPayment: liability.monthlyPayment,
     openingBalance: liability.openingBalance || 0,
-    openingBalanceDate: liability.openingBalanceDate || new Date().toISOString().split('T')[0]
+    openingBalanceDate: liability.openingBalanceDate || new Date().toISOString().split('T')[0],
+    creditLimit: liability.creditLimit || 0
   })
 
   // Fetch entities from Supabase
@@ -79,14 +79,58 @@ export function EditLiabilityDialog({ liability, onEditLiability }: EditLiabilit
   });
 
   const handleSubmit = () => {
-    if (formData.name && formData.amount > 0) {
-      onEditLiability(liability.id, formData)
-      setOpen(false)
+    if (!formData.name || !formData.name.trim()) {
       toast({
-        title: "Liability Updated",
-        description: "Your liability has been updated successfully.",
+        title: "Error",
+        description: "Please enter a liability name",
+        variant: "destructive"
       })
+      return
     }
+
+    // Validate amounts based on liability type
+    if (formData.type === "credit") {
+      if (!formData.creditLimit || formData.creditLimit <= 0) {
+        toast({
+          title: "Error", 
+          description: "Please enter a valid credit limit greater than 0",
+          variant: "destructive"
+        })
+        return
+      }
+      if (formData.openingBalance < 0) {
+        toast({
+          title: "Error", 
+          description: "Opening balance cannot be negative",
+          variant: "destructive"
+        })
+        return
+      }
+      if (formData.openingBalance > formData.creditLimit) {
+        toast({
+          title: "Error", 
+          description: "Outstanding balance cannot exceed credit limit",
+          variant: "destructive"
+        })
+        return
+      }
+    } else {
+      if (formData.amount <= 0) {
+        toast({
+          title: "Error", 
+          description: "Please enter a valid amount greater than 0",
+          variant: "destructive"
+        })
+        return
+      }
+    }
+
+    onEditLiability(liability.id, formData)
+    setOpen(false)
+    toast({
+      title: "Liability Updated",
+      description: "Your liability has been updated successfully.",
+    })
   }
 
   return (
@@ -179,41 +223,75 @@ export function EditLiabilityDialog({ liability, onEditLiability }: EditLiabilit
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="opening-balance">Opening Balance</Label>
-            <Input
-              id="opening-balance"
-              type="number"
-              value={formData.openingBalance}
-              onChange={(e) => setFormData({ ...formData, openingBalance: parseFloat(e.target.value) || 0 })}
-              placeholder="0.00"
-              step="0.01"
-            />
-          </div>
+          {formData.type === "credit" ? (
+            // Credit Card Fields: Credit Limit and Opening Balance
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="credit-limit">Credit Limit</Label>
+                <Input
+                  id="credit-limit"
+                  type="number"
+                  step="0.01"
+                  value={formData.creditLimit || 0}
+                  onChange={(e) => {
+                    const creditLimit = parseFloat(e.target.value) || 0;
+                    setFormData({ ...formData, creditLimit, amount: creditLimit });
+                  }}
+                  placeholder="Enter credit limit"
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="opening-balance-date">Opening Balance Date</Label>
-            <Input
-              id="opening-balance-date"
-              type="date"
-              value={formData.openingBalanceDate}
-              onChange={(e) => setFormData({ ...formData, openingBalanceDate: e.target.value })}
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="opening-balance">Current Outstanding Balance</Label>
+                <Input
+                  id="opening-balance"
+                  type="number"
+                  step="0.01"
+                  value={formData.openingBalance}
+                  onChange={(e) => setFormData({ ...formData, openingBalance: parseFloat(e.target.value) || 0 })}
+                  placeholder="Enter current debt amount"
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="liability-amount">
-              {formData.type === "credit" ? "Credit Limit" : "Current Amount"}
-            </Label>
-            <Input
-              id="liability-amount"
-              type="number"
-              step="0.01"
-              value={formData.amount}
-              onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
-              placeholder={formData.type === "credit" ? "Credit Limit" : "Current Amount"}
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="opening-balance-date">Balance Date</Label>
+                <Input
+                  id="opening-balance-date"
+                  type="date"
+                  value={formData.openingBalanceDate}
+                  onChange={(e) => setFormData({ ...formData, openingBalanceDate: e.target.value })}
+                />
+              </div>
+            </>
+          ) : (
+            // Non-Credit Card Fields
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="opening-balance">Opening Balance</Label>
+                <Input
+                  id="opening-balance"
+                  type="number"
+                  value={formData.openingBalance}
+                  onChange={(e) => {
+                    const openingBalance = parseFloat(e.target.value) || 0;
+                    setFormData({ ...formData, openingBalance, amount: openingBalance });
+                  }}
+                  placeholder="0.00"
+                  step="0.01"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="opening-balance-date">Opening Balance Date</Label>
+                <Input
+                  id="opening-balance-date"
+                  type="date"
+                  value={formData.openingBalanceDate}
+                  onChange={(e) => setFormData({ ...formData, openingBalanceDate: e.target.value })}
+                />
+              </div>
+            </>
+          )}
           
           <Button onClick={handleSubmit} className="w-full">Update Liability</Button>
         </div>

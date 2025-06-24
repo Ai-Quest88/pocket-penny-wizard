@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -43,7 +42,8 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
     entityId: "",
     history: [],
     openingBalance: 0,
-    openingBalanceDate: new Date().toISOString().split('T')[0]
+    openingBalanceDate: new Date().toISOString().split('T')[0],
+    creditLimit: 0
   })
 
   // Fetch entities from Supabase
@@ -102,23 +102,53 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
       return
     }
 
-    if (newLiability.amount <= 0) {
-      console.log("Invalid amount provided, showing error toast");
-      toast({
-        title: "Error", 
-        description: "Please enter a valid amount greater than 0",
-        variant: "destructive"
-      })
-      return
+    // Validate amounts based on liability type
+    if (newLiability.type === "credit") {
+      if (!newLiability.creditLimit || newLiability.creditLimit <= 0) {
+        console.log("Invalid credit limit provided, showing error toast");
+        toast({
+          title: "Error", 
+          description: "Please enter a valid credit limit greater than 0",
+          variant: "destructive"
+        })
+        return
+      }
+      if (newLiability.openingBalance < 0) {
+        console.log("Invalid opening balance provided, showing error toast");
+        toast({
+          title: "Error", 
+          description: "Opening balance cannot be negative",
+          variant: "destructive"
+        })
+        return
+      }
+      if (newLiability.openingBalance > newLiability.creditLimit) {
+        console.log("Opening balance exceeds credit limit, showing error toast");
+        toast({
+          title: "Error", 
+          description: "Outstanding balance cannot exceed credit limit",
+          variant: "destructive"
+        })
+        return
+      }
+    } else {
+      if (newLiability.amount <= 0) {
+        console.log("Invalid amount provided, showing error toast");
+        toast({
+          title: "Error", 
+          description: "Please enter a valid amount greater than 0",
+          variant: "destructive"
+        })
+        return
+      }
     }
 
     console.log("All validation passed, creating liability");
     const liabilityWithEntity = {
       ...newLiability,
       entityId: selectedEntityId,
-      openingBalance: newLiability.amount,
       openingBalanceDate: openingBalanceDate,
-      history: [{ date: openingBalanceDate, value: newLiability.amount }]
+      history: [{ date: openingBalanceDate, value: newLiability.openingBalance }]
     }
     
     console.log("Calling onAddLiability with:", liabilityWithEntity);
@@ -133,7 +163,8 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
       entityId: "",
       history: [],
       openingBalance: 0,
-      openingBalanceDate: new Date().toISOString().split('T')[0]
+      openingBalanceDate: new Date().toISOString().split('T')[0],
+      creditLimit: 0
     })
     setSelectedEntityId("")
     setOpeningBalanceDate(new Date().toISOString().split('T')[0])
@@ -155,7 +186,8 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
         entityId: "",
         history: [],
         openingBalance: 0,
-        openingBalanceDate: new Date().toISOString().split('T')[0]
+        openingBalanceDate: new Date().toISOString().split('T')[0],
+        creditLimit: 0
       })
       setSelectedEntityId("")
       setOpeningBalanceDate(new Date().toISOString().split('T')[0])
@@ -260,23 +292,61 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="liability-amount">
-              {newLiability.type === "credit" ? "Credit Limit" : "Amount"}
-            </Label>
-            <Input
-              id="liability-amount"
-              type="number"
-              step="0.01"
-              value={newLiability.amount}
-              onChange={(e) => {
-                const amount = parseFloat(e.target.value) || 0;
-                console.log("Liability amount changed to:", amount);
-                setNewLiability({ ...newLiability, amount });
-              }}
-              placeholder={newLiability.type === "credit" ? "Credit Limit" : "Amount"}
-            />
-          </div>
+          {newLiability.type === "credit" ? (
+            // Credit Card Fields: Credit Limit and Opening Balance
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="credit-limit">Credit Limit</Label>
+                <Input
+                  id="credit-limit"
+                  type="number"
+                  step="0.01"
+                  value={newLiability.creditLimit || 0}
+                  onChange={(e) => {
+                    const creditLimit = parseFloat(e.target.value) || 0;
+                    console.log("Credit limit changed to:", creditLimit);
+                    setNewLiability({ ...newLiability, creditLimit, amount: creditLimit });
+                  }}
+                  placeholder="Enter credit limit"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="opening-balance">Current Outstanding Balance</Label>
+                <Input
+                  id="opening-balance"
+                  type="number"
+                  step="0.01"
+                  value={newLiability.openingBalance}
+                  onChange={(e) => {
+                    const openingBalance = parseFloat(e.target.value) || 0;
+                    console.log("Opening balance changed to:", openingBalance);
+                    setNewLiability({ ...newLiability, openingBalance });
+                  }}
+                  placeholder="Enter current debt amount"
+                />
+              </div>
+            </>
+          ) : (
+            // Non-Credit Card Fields: Single Amount
+            <div className="space-y-2">
+              <Label htmlFor="liability-amount">
+                {newLiability.type === "mortgage" ? "Loan Amount" : "Amount"}
+              </Label>
+              <Input
+                id="liability-amount"
+                type="number"
+                step="0.01"
+                value={newLiability.amount}
+                onChange={(e) => {
+                  const amount = parseFloat(e.target.value) || 0;
+                  console.log("Liability amount changed to:", amount);
+                  setNewLiability({ ...newLiability, amount, openingBalance: amount });
+                }}
+                placeholder={newLiability.type === "mortgage" ? "Loan Amount" : "Amount"}
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="opening-balance-date">
