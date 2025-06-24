@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Download } from "lucide-react"
 import * as Papa from 'papaparse'
+import * as XLSX from 'xlsx'
 
 interface FileUploadSectionProps {
   onFileUpload: (data: any[], fileHeaders: string[]) => void
@@ -23,6 +24,46 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
     a.download = 'transaction_template.csv'
     a.click()
     URL.revokeObjectURL(url)
+  }
+
+  const downloadExcelTemplate = () => {
+    // Create sample data
+    const templateData = [
+      ['Date', 'Amount', 'Description', 'Category', 'Currency'],
+      ['2024-01-01', -50.00, 'Coffee Shop', 'Food & Dining', 'AUD'],
+      ['2024-01-02', 2000.00, 'Salary', 'Income', 'AUD'],
+      ['2024-01-03', -25.50, 'Gas Station', 'Transportation', 'AUD'],
+      ['2024-01-04', -120.00, 'Grocery Store', 'Food & Dining', 'AUD']
+    ]
+
+    // Create workbook and worksheet
+    const workbook = XLSX.utils.book_new()
+    const worksheet = XLSX.utils.aoa_to_sheet(templateData)
+    
+    // Add some formatting - make headers bold (if supported)
+    const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:E1')
+    for (let col = range.s.c; col <= range.e.c; col++) {
+      const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col })
+      if (!worksheet[cellAddress]) continue
+      worksheet[cellAddress].s = {
+        font: { bold: true },
+        fill: { fgColor: { rgb: 'E2E8F0' } }
+      }
+    }
+    
+    // Set column widths
+    worksheet['!cols'] = [
+      { width: 12 }, // Date
+      { width: 10 }, // Amount
+      { width: 20 }, // Description
+      { width: 15 }, // Category
+      { width: 10 }  // Currency
+    ]
+    
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Transactions')
+    
+    // Save the file
+    XLSX.writeFile(workbook, 'transaction_template.xlsx')
   }
 
   // Function to detect column types based on data patterns
@@ -130,6 +171,20 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
     const file = event.target.files?.[0]
     if (!file) return
 
+    const fileExtension = file.name.toLowerCase().split('.').pop()
+    console.log('File extension:', fileExtension)
+
+    if (fileExtension === 'csv') {
+      handleCSVFile(file)
+    } else if (fileExtension === 'xlsx' || fileExtension === 'xls') {
+      handleExcelFile(file)
+    } else {
+      console.error('Unsupported file format:', fileExtension)
+      alert('Please upload a CSV or Excel file (.csv, .xlsx, .xls)')
+    }
+  }
+
+  const handleCSVFile = (file: File) => {
     Papa.parse(file, {
       header: false, // Parse without headers first to detect if headers exist
       skipEmptyLines: true,
@@ -189,6 +244,133 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
     });
   }
 
+  const handleExcelFile = (file: File) => {
+    console.log('Starting Excel file processing for:', file.name);
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        
+        console.log('Workbook loaded, sheet names:', workbook.SheetNames);
+        
+        // Get the first worksheet
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        
+        console.log('Excel file loaded, sheet name:', sheetName);
+        
+        // Convert to array of arrays first to detect headers
+        const rawData = XLSX.utils.sheet_to_json(worksheet, { 
+          header: 1, // Returns array of arrays
+          defval: '', // Default value for empty cells
+          blankrows: false // Skip blank rows
+        }) as any[][];
+        
+        console.log('Raw Excel data:', rawData);
+        console.log('First few rows:', rawData.slice(0, 3));
+        
+        if (rawData.length === 0) {
+          console.error('No data found in Excel file');
+          alert('No data found in the Excel file');
+          return;
+        }
+        
+        const firstRow = rawData[0];
+        console.log('First row for header detection:', firstRow);
+        
+        // Convert first row to strings for header detection
+        const firstRowStrings = firstRow.map(cell => String(cell || '').trim());
+        const hasHeaders = detectHeaders(firstRowStrings);
+        console.log('Excel has headers:', hasHeaders);
+        
+        let headers: string[];
+        let processedData: any[];
+        
+        if (hasHeaders) {
+          // Use first row as headers
+          headers = firstRowStrings;
+          
+          // Convert remaining rows to objects
+          processedData = rawData.slice(1).map((row, rowIndex) => {
+            const obj: any = {};
+            headers.forEach((header, index) => {
+              let cellValue = row[index];
+              
+              // Handle Excel date serial numbers
+              if (typeof cellValue === 'number' && cellValue > 40000 && cellValue < 50000) {
+                try {
+                  // This looks like an Excel date serial number
+                  const excelDate = XLSX.SSF.parse_date_code(cellValue);
+                  if (excelDate) {
+                    cellValue = `${excelDate.y}-${String(excelDate.m).padStart(2, '0')}-${String(excelDate.d).padStart(2, '0')}`;
+                  }
+                } catch (dateError) {
+                  console.warn(`Error parsing date for row ${rowIndex}, column ${index}:`, dateError);
+                  // Keep original value if date parsing fails
+                }
+              }
+              
+              obj[header] = cellValue || '';
+            });
+            return obj;
+          });
+        } else {
+          // No headers detected, analyze data patterns to create smart headers
+          // Convert mixed types to strings for analysis
+          const stringData = rawData.map(row => 
+            row.map(cell => String(cell || ''))
+          );
+          const columnTypes = detectColumnTypes(stringData);
+          headers = createSmartHeaders(columnTypes);
+          
+          // Convert all rows to objects using smart headers
+          processedData = rawData.map((row, rowIndex) => {
+            const obj: any = {};
+            headers.forEach((header, index) => {
+              let cellValue = row[index];
+              
+              // Handle Excel date serial numbers
+              if (typeof cellValue === 'number' && cellValue > 40000 && cellValue < 50000) {
+                try {
+                  const excelDate = XLSX.SSF.parse_date_code(cellValue);
+                  if (excelDate) {
+                    cellValue = `${excelDate.y}-${String(excelDate.m).padStart(2, '0')}-${String(excelDate.d).padStart(2, '0')}`;
+                  }
+                } catch (dateError) {
+                  console.warn(`Error parsing date for row ${rowIndex}, column ${index}:`, dateError);
+                }
+              }
+              
+              obj[header] = cellValue || '';
+            });
+            return obj;
+          });
+        }
+        
+        console.log('Excel file parsed successfully:', { 
+          headers, 
+          dataLength: processedData.length,
+          sampleData: processedData.slice(0, 3)
+        });
+        
+        onFileUpload(processedData, headers);
+        
+      } catch (error) {
+        console.error('Error parsing Excel file:', error);
+        alert(`Error reading Excel file: ${error instanceof Error ? error.message : 'Unknown error'}. Please make sure it's a valid Excel file.`);
+      }
+    };
+    
+    reader.onerror = (error) => {
+      console.error('FileReader error:', error);
+      alert('Error reading the file. Please try again.');
+    };
+    
+    reader.readAsArrayBuffer(file);
+  }
+
   const detectHeaders = (firstRow: string[]): boolean => {
     const headerKeywords = ['date', 'description', 'amount', 'currency', 'memo', 'transaction', 'value', 'debit', 'credit'];
     
@@ -203,10 +385,16 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <Label htmlFor="file-upload">Select File</Label>
-        <Button variant="outline" size="sm" onClick={downloadTemplate}>
-          <Download className="h-4 w-4 mr-2" />
-          Download CSV Template
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={downloadTemplate}>
+            <Download className="h-4 w-4 mr-2" />
+            CSV Template
+          </Button>
+          <Button variant="outline" size="sm" onClick={downloadExcelTemplate}>
+            <Download className="h-4 w-4 mr-2" />
+            Excel Template
+          </Button>
+        </div>
       </div>
       
       <Input
