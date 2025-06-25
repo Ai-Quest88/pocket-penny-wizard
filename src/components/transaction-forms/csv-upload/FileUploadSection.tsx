@@ -1,3 +1,4 @@
+
 import React from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,7 +17,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
   isProcessing
 }) => {
   const downloadTemplate = () => {
-    const template = 'Date,Amount,Description,Category,Currency\n2024-01-01,-50.00,Coffee Shop,Food & Dining,AUD\n2024-01-02,2000.00,Salary,Income,AUD'
+    const template = 'Date,Amount,Description,Category,Currency\n01/01/2024,-50.00,Coffee Shop,Food & Dining,AUD\n02/01/2024,2000.00,Salary,Income,AUD'
     const blob = new Blob([template], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -27,13 +28,13 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
   }
 
   const downloadExcelTemplate = () => {
-    // Create sample data
+    // Create sample data with DD/MM/YYYY format
     const templateData = [
       ['Date', 'Amount', 'Description', 'Category', 'Currency'],
-      ['2024-01-01', -50.00, 'Coffee Shop', 'Food & Dining', 'AUD'],
-      ['2024-01-02', 2000.00, 'Salary', 'Income', 'AUD'],
-      ['2024-01-03', -25.50, 'Gas Station', 'Transportation', 'AUD'],
-      ['2024-01-04', -120.00, 'Grocery Store', 'Food & Dining', 'AUD']
+      ['01/01/2024', -50.00, 'Coffee Shop', 'Food & Dining', 'AUD'],
+      ['02/01/2024', 2000.00, 'Salary', 'Income', 'AUD'],
+      ['03/01/2024', -25.50, 'Gas Station', 'Transportation', 'AUD'],
+      ['04/01/2024', -120.00, 'Grocery Store', 'Food & Dining', 'AUD']
     ]
 
     // Create workbook and worksheet
@@ -65,6 +66,32 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
     // Save the file
     XLSX.writeFile(workbook, 'transaction_template.xlsx')
   }
+
+  // Helper function to convert Excel serial number to DD/MM/YYYY format
+  const convertExcelDateToDDMMYYYY = (excelDate: number): string => {
+    try {
+      // Excel serial date starts from 1900-01-01, but Excel incorrectly treats 1900 as a leap year
+      // So we need to adjust for this
+      const excelEpoch = new Date(1900, 0, 1); // January 1, 1900
+      const msPerDay = 24 * 60 * 60 * 1000;
+      
+      // Adjust for Excel's leap year bug (subtract 1 if date is after Feb 28, 1900)
+      const adjustedSerialDate = excelDate > 59 ? excelDate - 1 : excelDate;
+      
+      // Convert to JavaScript date
+      const jsDate = new Date(excelEpoch.getTime() + (adjustedSerialDate - 1) * msPerDay);
+      
+      // Format as DD/MM/YYYY
+      const day = String(jsDate.getDate()).padStart(2, '0');
+      const month = String(jsDate.getMonth() + 1).padStart(2, '0');
+      const year = jsDate.getFullYear();
+      
+      return `${day}/${month}/${year}`;
+    } catch (error) {
+      console.warn('Error converting Excel date:', error);
+      return String(excelDate);
+    }
+  };
 
   // Function to detect column types based on data patterns
   const detectColumnTypes = (data: string[][]): string[] => {
@@ -125,12 +152,12 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
 
   // Helper functions to detect data patterns
   const isDateLike = (value: string): boolean => {
-    // Common date patterns
+    // Common date patterns including DD/MM/YYYY
     const datePatterns = [
       /^\d{4}-\d{1,2}-\d{1,2}$/,        // YYYY-MM-DD
-      /^\d{1,2}\/\d{1,2}\/\d{4}$/,      // MM/DD/YYYY or DD/MM/YYYY
-      /^\d{1,2}-\d{1,2}-\d{4}$/,        // MM-DD-YYYY or DD-MM-YYYY
-      /^\d{1,2}\.\d{1,2}\.\d{4}$/,      // MM.DD.YYYY or DD.MM.YYYY
+      /^\d{1,2}\/\d{1,2}\/\d{4}$/,      // DD/MM/YYYY or MM/DD/YYYY
+      /^\d{1,2}-\d{1,2}-\d{4}$/,        // DD-MM-YYYY or MM-DD-YYYY
+      /^\d{1,2}\.\d{1,2}\.\d{4}$/,      // DD.MM.YYYY or MM.DD.YYYY
     ];
     
     return datePatterns.some(pattern => pattern.test(value)) || !isNaN(Date.parse(value));
@@ -298,18 +325,11 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
             headers.forEach((header, index) => {
               let cellValue = row[index];
               
-              // Handle Excel date serial numbers
+              // Handle Excel date serial numbers - convert to DD/MM/YYYY format
               if (typeof cellValue === 'number' && cellValue > 40000 && cellValue < 50000) {
-                try {
-                  // This looks like an Excel date serial number
-                  const excelDate = XLSX.SSF.parse_date_code(cellValue);
-                  if (excelDate) {
-                    cellValue = `${excelDate.y}-${String(excelDate.m).padStart(2, '0')}-${String(excelDate.d).padStart(2, '0')}`;
-                  }
-                } catch (dateError) {
-                  console.warn(`Error parsing date for row ${rowIndex}, column ${index}:`, dateError);
-                  // Keep original value if date parsing fails
-                }
+                console.log(`Converting Excel date serial ${cellValue} to DD/MM/YYYY`);
+                cellValue = convertExcelDateToDDMMYYYY(cellValue);
+                console.log(`Converted to: ${cellValue}`);
               }
               
               obj[header] = cellValue || '';
@@ -318,9 +338,15 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
           });
         } else {
           // No headers detected, analyze data patterns to create smart headers
-          // Convert mixed types to strings for analysis
+          // Convert mixed types to strings for analysis, but handle dates first
           const stringData = rawData.map(row => 
-            row.map(cell => String(cell || ''))
+            row.map(cell => {
+              // Convert Excel date serial numbers to DD/MM/YYYY format before analysis
+              if (typeof cell === 'number' && cell > 40000 && cell < 50000) {
+                return convertExcelDateToDDMMYYYY(cell);
+              }
+              return String(cell || '');
+            })
           );
           const columnTypes = detectColumnTypes(stringData);
           headers = createSmartHeaders(columnTypes);
@@ -331,16 +357,11 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
             headers.forEach((header, index) => {
               let cellValue = row[index];
               
-              // Handle Excel date serial numbers
+              // Handle Excel date serial numbers - convert to DD/MM/YYYY format
               if (typeof cellValue === 'number' && cellValue > 40000 && cellValue < 50000) {
-                try {
-                  const excelDate = XLSX.SSF.parse_date_code(cellValue);
-                  if (excelDate) {
-                    cellValue = `${excelDate.y}-${String(excelDate.m).padStart(2, '0')}-${String(excelDate.d).padStart(2, '0')}`;
-                  }
-                } catch (dateError) {
-                  console.warn(`Error parsing date for row ${rowIndex}, column ${index}:`, dateError);
-                }
+                console.log(`Converting Excel date serial ${cellValue} to DD/MM/YYYY`);
+                cellValue = convertExcelDateToDDMMYYYY(cellValue);
+                console.log(`Converted to: ${cellValue}`);
               }
               
               obj[header] = cellValue || '';
