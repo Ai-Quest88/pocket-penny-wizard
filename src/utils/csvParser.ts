@@ -23,7 +23,7 @@ export interface ParseResult {
   headers?: string[];
   preview?: Record<string, string>[];
   autoMappings?: Record<string, string>;
-  totalRows?: number; // Add totalRows property
+  totalRows?: number;
   error?: string;
 }
 
@@ -32,13 +32,21 @@ const parseDate = (dateStr: string): string | null => {
   
   const cleanDate = dateStr.trim().replace(/"/g, '');
   
-  // Try d/m/yyyy or dd/mm/yyyy format first (Australian format)
-  const auMatch = cleanDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (auMatch) {
-    const [, day, month, year] = auMatch;
-    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-    if (!isNaN(date.getTime()) && parseInt(day) <= 31 && parseInt(month) <= 12) {
-      return date.toISOString().split('T')[0];
+  // Try DD/MM/YYYY format first (Australian/UK format) - prioritize this format
+  const ddmmyyyyMatch = cleanDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (ddmmyyyyMatch) {
+    const [, day, month, year] = ddmmyyyyMatch;
+    const dayNum = parseInt(day);
+    const monthNum = parseInt(month);
+    const yearNum = parseInt(year);
+    
+    // Validate the date components
+    if (dayNum >= 1 && dayNum <= 31 && monthNum >= 1 && monthNum <= 12 && yearNum >= 1900) {
+      const date = new Date(yearNum, monthNum - 1, dayNum);
+      // Double check the date is valid (handles leap years, month lengths)
+      if (date.getFullYear() === yearNum && date.getMonth() === monthNum - 1 && date.getDate() === dayNum) {
+        return date.toISOString().split('T')[0];
+      }
     }
   }
 
@@ -52,13 +60,20 @@ const parseDate = (dateStr: string): string | null => {
     }
   }
 
-  // Try MM/DD/YYYY format (US format) as fallback
-  const usMatch = cleanDate.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-  if (usMatch) {
-    const [, month, day, year] = usMatch;
-    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-    if (!isNaN(date.getTime()) && parseInt(day) <= 31 && parseInt(month) <= 12) {
-      return date.toISOString().split('T')[0];
+  // Try MM/DD/YYYY format (US format) as last resort
+  const mmddyyyyMatch = cleanDate.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (mmddyyyyMatch) {
+    const [, month, day, year] = mmddyyyyMatch;
+    const dayNum = parseInt(day);
+    const monthNum = parseInt(month);
+    const yearNum = parseInt(year);
+    
+    // Only accept if day is <= 12 (to avoid confusion with DD/MM)
+    if (dayNum <= 12 && monthNum >= 1 && monthNum <= 12 && yearNum >= 1900) {
+      const date = new Date(yearNum, monthNum - 1, dayNum);
+      if (date.getFullYear() === yearNum && date.getMonth() === monthNum - 1 && date.getDate() === dayNum) {
+        return date.toISOString().split('T')[0];
+      }
     }
   }
 
@@ -338,7 +353,7 @@ export const parseCSV = (content: string): ParseResult => {
         row: i + 1,
         field: 'date',
         value: date,
-        message: 'Invalid date format. Expected DD/MM/YYYY, MM/DD/YYYY, or YYYY-MM-DD'
+        message: 'Invalid date format. Expected DD/MM/YYYY, YYYY-MM-DD, or MM/DD/YYYY'
       });
     }
 
@@ -378,10 +393,10 @@ export const parseCSV = (content: string): ParseResult => {
     success: errors.length === 0 || transactions.length > 0,
     transactions, 
     errors, 
-    headers: headers, // Always return headers
+    headers: headers,
     preview,
     autoMappings: autoMappedColumns,
-    totalRows: totalDataRows, // Return total number of data rows
+    totalRows: totalDataRows,
     error: errors.length > 0 && transactions.length === 0 ? errors.map(e => e.message).join(', ') : undefined
   };
 };

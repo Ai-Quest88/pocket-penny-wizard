@@ -28,6 +28,21 @@ interface TransactionTableRowProps {
   readOnly?: boolean;
 }
 
+const formatDateForDisplay = (dateString: string): string => {
+  try {
+    const date = new Date(dateString);
+    // Format as DD/MM/YYYY for Australian/UK format
+    return date.toLocaleDateString('en-AU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  } catch (error) {
+    console.error('Error formatting date for display:', error);
+    return dateString;
+  }
+};
+
 export const TransactionTableRow = ({
   transaction,
   convertedAmount,
@@ -60,7 +75,7 @@ export const TransactionTableRow = ({
         </TableCell>
       )}
       <TableCell className="font-medium">
-        {new Date(transaction.date).toLocaleDateString()}
+        {formatDateForDisplay(transaction.date)}
       </TableCell>
       <TableCell>
         <div 

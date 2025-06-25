@@ -49,16 +49,23 @@ const formatDateForSupabase = (dateString: string): string => {
   try {
     console.log(`🗓️ Formatting date: "${dateString}"`);
     
-    // Handle DD/MM/YYYY format specifically
+    // Handle DD/MM/YYYY format specifically - this is the main format we want to support
     const ddmmyyyyPattern = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
     const match = dateString.match(ddmmyyyyPattern);
     
     if (match) {
       const [, day, month, year] = match;
-      // Create date in YYYY-MM-DD format for proper parsing
-      const isoDateString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-      console.log(`🗓️ Converted ${dateString} -> ${isoDateString}`);
-      return isoDateString;
+      const dayNum = parseInt(day);
+      const monthNum = parseInt(month);
+      const yearNum = parseInt(year);
+      
+      // Validate date components
+      if (dayNum >= 1 && dayNum <= 31 && monthNum >= 1 && monthNum <= 12 && yearNum >= 1900) {
+        // Create date in YYYY-MM-DD format for proper parsing
+        const isoDateString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        console.log(`🗓️ Converted DD/MM/YYYY ${dateString} -> ${isoDateString}`);
+        return isoDateString;
+      }
     }
     
     // Fallback for other formats
