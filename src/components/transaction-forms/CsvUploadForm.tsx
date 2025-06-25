@@ -247,8 +247,7 @@ export const CsvUploadForm: React.FC<CsvUploadProps> = ({ onTransactionsUploaded
                 description: columnMappings.description || '',
                 amount: columnMappings.amount || '',
                 date: columnMappings.date || '',
-                currency: '',
-                category: ''
+                currency: columnMappings.currency || ''
               }}
               defaultSettings={defaultSettings}
               selectedAccount={selectedAccountId ? accounts.find(acc => acc.id === selectedAccountId) : null}
