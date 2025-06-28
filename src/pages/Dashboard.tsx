@@ -9,9 +9,12 @@ import { HistoricalValueChart } from "@/components/assets-liabilities/Historical
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CurrencySelector } from "@/components/transactions/CurrencySelector"
 import { useCurrency } from "@/contexts/CurrencyContext"
-import { useState, useEffect } from "react"
+import { useAuth } from "@/contexts/AuthContext"
+import { useState } from "react"
 import { FamilyMember, BusinessEntity } from "@/types/entities"
 import { Banknote, TrendingUp } from "lucide-react"
+import { useQuery } from "@tanstack/react-query"
+import { supabase } from "@/integrations/supabase/client"
 
 const mockData = {
   assetHistory: [
@@ -32,15 +35,42 @@ interface DashboardProps {
 
 const Dashboard = () => {
   const { displayCurrency, setDisplayCurrency, isRatesLoading } = useCurrency();
+  const { session } = useAuth();
   const [selectedEntityType, setSelectedEntityType] = useState<string>("all");
-  const [entities, setEntities] = useState<(FamilyMember | BusinessEntity)[]>([]);
 
-  useEffect(() => {
-    const savedEntities = localStorage.getItem('entities');
-    if (savedEntities) {
-      setEntities(JSON.parse(savedEntities));
-    }
-  }, []);
+  // Fetch entities from Supabase
+  const { data: entities = [], isLoading: entitiesLoading } = useQuery({
+    queryKey: ['entities', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user) return [];
+
+      const { data, error } = await supabase
+        .from('entities')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching entities:', error);
+        throw error;
+      }
+
+      return data.map(entity => ({
+        id: entity.id,
+        name: entity.name,
+        type: entity.type,
+        description: entity.description || '',
+        taxIdentifier: entity.tax_identifier || '',
+        countryOfResidence: entity.country_of_residence,
+        dateAdded: entity.date_added,
+        relationship: entity.relationship || '',
+        dateOfBirth: entity.date_of_birth || '',
+        registrationNumber: entity.registration_number || '',
+        incorporationDate: entity.incorporation_date || '',
+      })) as (FamilyMember | BusinessEntity)[];
+    },
+    enabled: !!session?.user,
+  });
 
   return (
     <div className="p-8">
@@ -80,11 +110,18 @@ const Dashboard = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Entities</SelectItem>
-                    {entities.map((entity) => (
-                      <SelectItem key={entity.id} value={entity.id}>
-                        {entity.name}
-                      </SelectItem>
-                    ))}
+                    {entitiesLoading ? (
+                      <SelectItem value="loading" disabled>Loading entities...</SelectItem>
+                    ) : (
+                      entities.map((entity) => (
+                        <SelectItem key={entity.id} value={entity.id}>
+                          {entity.name} ({entity.type === 'individual' ? 'Individual' : 
+                                         entity.type === 'company' ? 'Company' : 
+                                         entity.type === 'trust' ? 'Trust' :
+                                         entity.type === 'super_fund' ? 'Super Fund' : 'Other'})
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -97,6 +134,17 @@ const Dashboard = () => {
               <div className="flex items-center gap-2 text-blue-700">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700"></div>
                 <span className="text-sm">Updating exchange rates...</span>
+              </div>
+            </Card>
+          )}
+          
+          {/* Entities Info */}
+          {entities.length > 0 && (
+            <Card className="p-3 bg-green-50 border-green-200">
+              <div className="flex items-center gap-2 text-green-700">
+                <span className="text-sm">
+                  {entities.length} entit{entities.length !== 1 ? 'ies' : 'y'} available for filtering
+                </span>
               </div>
             </Card>
           )}
@@ -119,6 +167,11 @@ const Dashboard = () => {
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   Recent Transactions
                   <span className="text-sm text-muted-foreground">({displayCurrency})</span>
+                  {selectedEntityType !== "all" && (
+                    <span className="text-sm text-blue-600">
+                      - {entities.find(e => e.id === selectedEntityType)?.name}
+                    </span>
+                  )}
                 </h3>
                 <TransactionList 
                   entityId={selectedEntityType === "all" ? undefined : selectedEntityType}
@@ -137,6 +190,11 @@ const Dashboard = () => {
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   Monthly Cash Flow
                   <span className="text-sm text-muted-foreground">({displayCurrency})</span>
+                  {selectedEntityType !== "all" && (
+                    <span className="text-sm text-blue-600">
+                      - {entities.find(e => e.id === selectedEntityType)?.name}
+                    </span>
+                  )}
                 </h3>
                 <CashFlowChart entityId={selectedEntityType === "all" ? undefined : selectedEntityType} />
               </div>
@@ -152,7 +210,6 @@ const Dashboard = () => {
               <HistoricalValueChart 
                 assetHistory={mockData.assetHistory}
                 liabilityHistory={mockData.liabilityHistory}
-                entityId={selectedEntityType === "all" ? undefined : selectedEntityType}
               />
             </TabsContent>
           </Tabs>
