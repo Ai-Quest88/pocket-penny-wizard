@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import { AuthProvider, useAuth } from "./contexts/AuthContext"
+import { CurrencyProvider } from "./contexts/CurrencyContext"
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "./components/AppSidebar"
 import { Button } from "@/components/ui/button"
@@ -193,21 +194,23 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <BrowserRouter>
       <AuthProvider>
-        <TooltipProvider>
-          <div className="relative min-h-screen bg-gradient-to-br from-background to-background-muted">
-            <div 
-              className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1519389950473-47ba0277781c')] bg-cover bg-center opacity-5 pointer-events-none"
-              style={{ mixBlendMode: 'overlay' }}
-            />
-            <Toaster />
-            <Sonner />
-            <SidebarProvider>
-              <div className="relative min-h-screen flex w-full">
-                <AppRoutes />
-              </div>
-            </SidebarProvider>
-          </div>
-        </TooltipProvider>
+        <CurrencyProvider>
+          <TooltipProvider>
+            <div className="relative min-h-screen bg-gradient-to-br from-background to-background-muted">
+              <div 
+                className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1519389950473-47ba0277781c')] bg-cover bg-center opacity-5 pointer-events-none"
+                style={{ mixBlendMode: 'overlay' }}
+              />
+              <Toaster />
+              <Sonner />
+              <SidebarProvider>
+                <div className="relative min-h-screen flex w-full">
+                  <AppRoutes />
+                </div>
+              </SidebarProvider>
+            </div>
+          </TooltipProvider>
+        </CurrencyProvider>
       </AuthProvider>
     </BrowserRouter>
   </QueryClientProvider>

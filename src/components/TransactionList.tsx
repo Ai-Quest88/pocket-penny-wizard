@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchExchangeRates } from "@/utils/currencyUtils";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { TransactionListHeader } from "./transactions/TransactionListHeader";
@@ -35,16 +35,8 @@ interface SearchFilters {
   amountRange: string;
 }
 
-const currencySymbols: Record<string, string> = {
-  USD: "$",
-  EUR: "€",
-  GBP: "£",
-  JPY: "¥",
-  AUD: "$"
-};
-
 export const TransactionList = ({ entityId, showBalance = false, readOnly = false }: TransactionListProps) => {
-  const [displayCurrency, setDisplayCurrency] = useState("AUD");
+  const { displayCurrency, setDisplayCurrency, convertAmount, currencySymbols, exchangeRates } = useCurrency();
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedTransactions, setSelectedTransactions] = useState<string[]>([]);
@@ -131,12 +123,6 @@ export const TransactionList = ({ entityId, showBalance = false, readOnly = fals
     enabled: !!session?.user,
   });
 
-  const { data: exchangeRates, isLoading: ratesLoading } = useQuery({
-    queryKey: ["exchangeRates", displayCurrency],
-    queryFn: () => fetchExchangeRates(displayCurrency),
-    staleTime: 1000 * 60 * 60,
-  });
-
   // Filter transactions based on search criteria
   const filteredTransactions = useMemo(() => {
     let filtered = [...transactions];
@@ -202,12 +188,6 @@ export const TransactionList = ({ entityId, showBalance = false, readOnly = fals
 
     return filtered;
   }, [transactions, searchFilters]);
-
-  const convertAmount = (amount: number, fromCurrency: string): number => {
-    if (!exchangeRates || fromCurrency === displayCurrency) return amount;
-    const rate = exchangeRates[fromCurrency];
-    return amount / rate * exchangeRates[displayCurrency];
-  };
 
   // Calculate running balance
   const calculateBalance = (index: number): number => {
@@ -317,7 +297,6 @@ export const TransactionList = ({ entityId, showBalance = false, readOnly = fals
           <TransactionListHeader
             displayCurrency={displayCurrency}
             onCurrencyChange={setDisplayCurrency}
-            currencySymbols={currencySymbols}
           />
         )}
         <TransactionSearch
@@ -348,7 +327,7 @@ export const TransactionList = ({ entityId, showBalance = false, readOnly = fals
             ) : (
               <TransactionTable
                 transactions={filteredTransactions}
-                convertAmount={convertAmount}
+                convertAmount={(amount: number, fromCurrency: string) => convertAmount(amount, fromCurrency)}
                 calculateBalance={showBalance ? calculateBalance : undefined}
                 displayCurrency={displayCurrency}
                 currencySymbols={currencySymbols}

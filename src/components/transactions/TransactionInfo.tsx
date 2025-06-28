@@ -1,3 +1,5 @@
+import { Badge } from "@/components/ui/badge";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface Transaction {
   id: string;
@@ -6,36 +8,37 @@ interface Transaction {
   category: string;
   date: string;
   currency: string;
-  comment?: string;
 }
 
 interface TransactionInfoProps {
   transaction: Transaction;
 }
 
-export const TransactionInfo = ({ transaction }: TransactionInfoProps) => {
+export function TransactionInfo({ transaction }: TransactionInfoProps) {
+  const { displayCurrency, convertAmount, currencySymbols } = useCurrency();
+  
+  const convertedAmount = convertAmount(transaction.amount, transaction.currency);
+  
   return (
-    <>
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <div className="bg-muted p-3 rounded-lg">
-          <p className="text-sm text-muted-foreground">Amount</p>
-          <p className="text-lg font-semibold">
-            {transaction.amount > 0 ? "+" : ""}
-            ${Math.abs(transaction.amount).toFixed(2)}
+    <div className="p-4 border rounded-lg bg-muted/30">
+      <div className="flex justify-between items-start mb-2">
+        <h4 className="font-medium text-lg">{transaction.description}</h4>
+        <div className="text-right">
+          <p className={`text-lg font-semibold ${convertedAmount > 0 ? "text-green-600" : "text-red-600"}`}>
+            {convertedAmount > 0 ? "+" : ""}
+            {currencySymbols[displayCurrency]}{Math.abs(convertedAmount).toFixed(2)}
           </p>
-        </div>
-        <div className="bg-muted p-3 rounded-lg">
-          <p className="text-sm text-muted-foreground">Date</p>
-          <p className="text-lg font-semibold">
-            {new Date(transaction.date).toLocaleDateString()}
-          </p>
+          {transaction.currency !== displayCurrency && (
+            <p className="text-sm text-muted-foreground">
+              {currencySymbols[transaction.currency]}{Math.abs(transaction.amount).toFixed(2)}
+            </p>
+          )}
         </div>
       </div>
-
-      <div className="bg-muted p-3 rounded-lg mb-4">
-        <p className="text-sm text-muted-foreground">Description</p>
-        <p className="font-medium">{transaction.description}</p>
+      <div className="flex justify-between items-center">
+        <Badge variant="secondary">{transaction.category}</Badge>
+        <span className="text-sm text-muted-foreground">{transaction.date}</span>
       </div>
-    </>
+    </div>
   );
-};
+}

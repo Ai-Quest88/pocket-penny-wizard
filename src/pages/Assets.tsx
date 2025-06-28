@@ -1,4 +1,3 @@
-
 import { DashboardCard } from "@/components/DashboardCard"
 import { AssetsList } from "@/components/assets-liabilities/AssetsList"
 import { AddAssetDialog } from "@/components/assets-liabilities/AddAssetDialog"
@@ -8,11 +7,13 @@ import { supabase } from "@/integrations/supabase/client"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useAuth } from "@/contexts/AuthContext"
 import { useAccountBalances } from "@/hooks/useAccountBalances"
+import { useCurrency } from "@/contexts/CurrencyContext"
 
 const Assets = () => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { session } = useAuth()
+  const { formatCurrency, displayCurrency } = useCurrency()
 
   // First fetch account balances
   const { data: accountBalances = [], isLoading: balancesLoading } = useAccountBalances()
@@ -231,14 +232,14 @@ const Assets = () => {
         <header className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold">Assets</h1>
-            <p className="text-muted-foreground">Manage your assets</p>
+            <p className="text-muted-foreground">Manage your assets • All amounts in {displayCurrency}</p>
           </div>
           <AddAssetDialog onAddAsset={handleAddAsset} />
         </header>
 
         <DashboardCard
           title="Total Assets"
-          value={`$${totalAssets.toLocaleString()}`}
+          value={formatCurrency(totalAssets)}
           className="bg-card"
         />
 

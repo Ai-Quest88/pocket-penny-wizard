@@ -1,29 +1,25 @@
-
-import { Card } from "@/components/ui/card";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Area, AreaChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts";
 import { useQuery } from "@tanstack/react-query";
-import { fetchExchangeRates } from "@/utils/currencyUtils";
 import { useState } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { CurrencySelector } from "@/components/transactions/CurrencySelector";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format, subMonths } from "date-fns";
 
 const COLORS = ["#8CA891", "#A8DADC", "#457B9D", "#E63946", "#F1FAEE", "#E76F51", "#264653", "#2A9D8F"];
 
-const currencySymbols: Record<string, string> = {
-  USD: "$",
-  EUR: "€",
-  GBP: "£",
-  JPY: "¥",
-  AUD: "$"
-};
+interface ExpenseChartProps {
+  entityId?: string;
+}
+
+interface Transaction {
+  id: string;
+  amount: number;
+  date: string;
+  currency: string;
+}
 
 const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
@@ -35,7 +31,7 @@ const CustomTooltip = ({ active, payload }: any) => {
       <div className="bg-white p-2 border rounded shadow-sm">
         <p className="text-sm font-medium">{data.name}</p>
         <p className="text-sm text-muted-foreground">
-          {percentage}% ({currencySymbols[data.displayCurrency]}{data.value.toFixed(2)})
+          {percentage}% ({data.symbol}{data.value.toFixed(2)})
         </p>
       </div>
     );
@@ -43,168 +39,103 @@ const CustomTooltip = ({ active, payload }: any) => {
   return null;
 };
 
-interface ExpenseChartProps {
-  entityId?: string;
-}
-
-export const ExpenseChart = ({ entityId }: ExpenseChartProps) => {
-  const [displayCurrency, setDisplayCurrency] = useState("AUD");
+export const ExpenseChart = () => {
   const { session } = useAuth();
+  const { displayCurrency, convertAmount, currencySymbols } = useCurrency();
 
-  const { data: exchangeRates, isLoading: ratesLoading } = useQuery({
-    queryKey: ["exchangeRates", displayCurrency],
-    queryFn: () => fetchExchangeRates(displayCurrency),
-    staleTime: 1000 * 60 * 60, // Cache for 1 hour
-  });
-
-  const { data: expenseData = [], isLoading: dataLoading } = useQuery({
-    queryKey: ['expense-breakdown', session?.user?.id, entityId, displayCurrency],
+  const { data: transactions = [], isLoading } = useQuery({
+    queryKey: ['expense-chart-transactions', session?.user?.id, displayCurrency],
     queryFn: async () => {
       if (!session?.user) return [];
-
-      // Get last 3 months of expense data
-      const endDate = new Date();
-      const startDate = subMonths(endDate, 3);
-
-      const { data: transactions, error } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .gte('date', format(startDate, 'yyyy-MM-dd'))
-        .lt('amount', 0); // Only expenses
-
-      if (error) throw error;
-
-      // Group by category
-      const categoryTotals: Record<string, { amount: number; currency: string }> = {};
       
-      transactions?.forEach(transaction => {
-        const category = transaction.category;
-        if (!categoryTotals[category]) {
-          categoryTotals[category] = { amount: 0, currency: transaction.currency };
-        }
-        categoryTotals[category].amount += Math.abs(transaction.amount);
-      });
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('id, amount, date, currency')
+        .eq('user_id', session.user.id)
+        .lt('amount', 0)
+        .order('date', { ascending: true });
 
-      // Convert to display currency and format for chart
-      const chartData = Object.entries(categoryTotals)
-        .map(([category, data]) => {
-          const convertedAmount = exchangeRates 
-            ? data.amount / exchangeRates[data.currency] * exchangeRates[displayCurrency]
-            : data.amount;
-          
-          return {
-            name: category,
-            value: convertedAmount,
-            displayCurrency,
-            currency: data.currency
-          };
-        })
-        .filter(item => item.value > 0)
-        .sort((a, b) => b.value - a.value)
-        .slice(0, 8); // Top 8 categories
+      if (error) {
+        console.error('Error fetching transactions:', error);
+        throw error;
+      }
 
-      // Calculate total for percentage calculations
-      const total = chartData.reduce((sum, item) => sum + item.value, 0);
-      return chartData.map(item => ({ ...item, total }));
+      return data || [];
     },
-    enabled: !!session?.user && !!exchangeRates,
+    enabled: !!session?.user,
   });
 
-  const isLoading = dataLoading || ratesLoading;
+  // Process data for the chart
+  const chartData = transactions.reduce((acc: { [key: string]: { date: string; expenses: number } }, transaction) => {
+    const date = new Date(transaction.date);
+    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    
+    if (!acc[monthKey]) {
+      acc[monthKey] = {
+        date: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        expenses: 0,
+      };
+    }
+    
+    // Convert amount to display currency before adding
+    const convertedAmount = convertAmount(
+      Math.abs(transaction.amount),
+      transaction.currency
+    );
+    
+    acc[monthKey].expenses += convertedAmount;
+    
+    return acc;
+  }, {});
+
+  const formattedData = Object.values(chartData);
 
   if (isLoading) {
     return (
-      <Card className="p-6 h-[400px] animate-fadeIn">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-text">
-            Expense Breakdown ({currencySymbols[displayCurrency]}{displayCurrency})
-          </h3>
-        </div>
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-2 text-sm text-muted-foreground">Loading expense data...</p>
+      <Card>
+        <CardHeader>
+          <CardTitle>Monthly Expenses</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px] flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
-        </div>
-      </Card>
-    );
-  }
-
-  if (expenseData.length === 0) {
-    return (
-      <Card className="p-6 h-[400px] animate-fadeIn">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-text">
-            Expense Breakdown ({currencySymbols[displayCurrency]}{displayCurrency})
-          </h3>
-          <div className="w-32">
-            <Select value={displayCurrency} onValueChange={setDisplayCurrency}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select currency" />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.keys(currencySymbols).map((currency) => (
-                  <SelectItem key={currency} value={currency}>
-                    {currencySymbols[currency]} {currency}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center">
-            <p className="text-muted-foreground">No expense data available</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Add some transactions to see your expense breakdown
-            </p>
-          </div>
-        </div>
+        </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="p-6 h-[400px] animate-fadeIn">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold text-text">
-          Expense Breakdown ({currencySymbols[displayCurrency]}{displayCurrency})
-        </h3>
-        <div className="w-32">
-          <Select value={displayCurrency} onValueChange={setDisplayCurrency}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select currency" />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.keys(currencySymbols).map((currency) => (
-                <SelectItem key={currency} value={currency}>
-                  {currencySymbols[currency]} {currency}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+    <Card>
+      <CardHeader>
+        <CardTitle>Monthly Expenses ({displayCurrency})</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="h-[300px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={formattedData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis 
+                tickFormatter={(value) => `${currencySymbols[displayCurrency]}${value.toFixed(0)}`}
+              />
+              <Tooltip 
+                formatter={(value: number) => [
+                  `${currencySymbols[displayCurrency]}${value.toFixed(2)}`, 
+                  'Expenses'
+                ]}
+              />
+              <Area
+                type="monotone"
+                dataKey="expenses"
+                stroke="#ef4444"
+                fill="#ef444433"
+                strokeWidth={2}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
-      </div>
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          <Pie
-            data={expenseData}
-            cx="50%"
-            cy="50%"
-            innerRadius={60}
-            outerRadius={80}
-            paddingAngle={5}
-            dataKey="value"
-          >
-            {expenseData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-            ))}
-          </Pie>
-          <Tooltip content={<CustomTooltip />} />
-          <Legend />
-        </PieChart>
-      </ResponsiveContainer>
+      </CardContent>
     </Card>
   );
 };

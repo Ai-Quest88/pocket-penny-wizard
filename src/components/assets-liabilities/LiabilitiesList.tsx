@@ -5,6 +5,7 @@ import { useState, useEffect } from "react"
 import { FamilyMember, BusinessEntity } from "@/types/entities"
 import { EditLiabilityDialog } from "./EditLiabilityDialog"
 import { Trash2 } from "lucide-react"
+import { useCurrency } from "@/contexts/CurrencyContext"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +26,7 @@ interface LiabilitiesListProps {
 
 export function LiabilitiesList({ liabilities, onEditLiability, onDeleteLiability }: LiabilitiesListProps) {
   const [entities, setEntities] = useState<(FamilyMember | BusinessEntity)[]>([])
+  const { formatCurrency } = useCurrency()
 
   useEffect(() => {
     const savedEntities = localStorage.getItem('entities')
@@ -62,7 +64,7 @@ export function LiabilitiesList({ liabilities, onEditLiability, onDeleteLiabilit
                     Credit Utilization: {((liability.amount / liability.creditLimit) * 100).toFixed(1)}%
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    Available Credit: ${(liability.creditLimit - liability.amount).toLocaleString()}
+                    Available Credit: {formatCurrency(liability.creditLimit - liability.amount)}
                   </div>
                 </div>
               )}
@@ -71,15 +73,15 @@ export function LiabilitiesList({ liabilities, onEditLiability, onDeleteLiabilit
               {liability.type === "credit" && liability.creditLimit ? (
                 <div className="text-right">
                   <p className="text-lg font-semibold text-red-600">
-                    ${liability.amount.toLocaleString()}
+                    {formatCurrency(liability.amount)}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    of ${liability.creditLimit.toLocaleString()}
+                    of {formatCurrency(liability.creditLimit)}
                   </p>
                 </div>
               ) : (
                 <p className="text-lg font-semibold text-red-600">
-                  ${liability.amount.toLocaleString()}
+                  {formatCurrency(liability.amount)}
                 </p>
               )}
               {onEditLiability && (

@@ -1,4 +1,3 @@
-
 import { DashboardCard } from "@/components/DashboardCard"
 import { LiabilitiesList } from "@/components/assets-liabilities/LiabilitiesList"
 import { AddLiabilityDialog } from "@/components/assets-liabilities/AddLiabilityDialog"
@@ -8,11 +7,13 @@ import { supabase } from "@/integrations/supabase/client"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useAuth } from "@/contexts/AuthContext"
 import { useAccountBalances } from "@/hooks/useAccountBalances"
+import { useCurrency } from "@/contexts/CurrencyContext"
 
 const Liabilities = () => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { session } = useAuth()
+  const { formatCurrency, displayCurrency } = useCurrency()
 
   // First fetch account balances
   const { data: accountBalances = [], isLoading: balancesLoading } = useAccountBalances()
@@ -244,14 +245,14 @@ const Liabilities = () => {
         <header className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold">Liabilities</h1>
-            <p className="text-muted-foreground">Manage your liabilities</p>
+            <p className="text-muted-foreground">Manage your liabilities • All amounts in {displayCurrency}</p>
           </div>
           <AddLiabilityDialog onAddLiability={handleAddLiability} />
         </header>
 
         <DashboardCard
           title="Total Liabilities"
-          value={`$${totalLiabilities.toLocaleString()}`}
+          value={formatCurrency(totalLiabilities)}
           className="bg-card"
         />
 

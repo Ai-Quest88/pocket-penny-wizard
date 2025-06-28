@@ -1,5 +1,5 @@
-
 import { supabase } from "@/integrations/supabase/client";
+import { fetchExchangeRates, convertAmount, ExchangeRates } from "./currencyUtils";
 
 export interface AccountBalance {
   accountId: string;
@@ -13,6 +13,17 @@ export interface AccountBalance {
 
 export const calculateAccountBalances = async (userId: string): Promise<AccountBalance[]> => {
   console.log('Calculating dynamic account balances for user:', userId);
+  
+  // Get exchange rates for currency conversion
+  const DEFAULT_CURRENCY = 'AUD';
+  let exchangeRates: ExchangeRates;
+  
+  try {
+    exchangeRates = await fetchExchangeRates(DEFAULT_CURRENCY);
+  } catch (error) {
+    console.error('Failed to fetch exchange rates, using fallback:', error);
+    exchangeRates = {}; // Will use original amounts if no rates available
+  }
 
   // Fetch all transactions
   const { data: transactions, error: transactionsError } = await supabase
@@ -78,7 +89,19 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
       console.log(`  Sample transaction dates:`, allAccountTransactions.slice(0, 3).map(t => t.date));
     }
     
-    const transactionSum = accountTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
+    // Convert transaction amounts to DEFAULT_CURRENCY before summing
+    const transactionSum = accountTransactions.reduce((sum, t) => {
+      const amount = Number(t.amount);
+      const transactionCurrency = t.currency || DEFAULT_CURRENCY;
+      
+      // Convert to default currency if needed
+      const convertedAmount = transactionCurrency === DEFAULT_CURRENCY || !exchangeRates
+        ? amount 
+        : convertAmount(amount, transactionCurrency, DEFAULT_CURRENCY, exchangeRates);
+      
+      console.log(`  Transaction: ${amount} ${transactionCurrency} → ${convertedAmount} ${DEFAULT_CURRENCY}`);
+      return sum + convertedAmount;
+    }, 0);
     
     // For assets: Closing Balance = Opening Balance + Transactions
     const openingBalance = Number(asset.opening_balance);
@@ -106,7 +129,19 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
       new Date(t.date) >= openingBalanceDate
     );
     
-    const transactionSum = accountTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
+    // Convert transaction amounts to DEFAULT_CURRENCY before summing
+    const transactionSum = accountTransactions.reduce((sum, t) => {
+      const amount = Number(t.amount);
+      const transactionCurrency = t.currency || DEFAULT_CURRENCY;
+      
+      // Convert to default currency if needed
+      const convertedAmount = transactionCurrency === DEFAULT_CURRENCY || !exchangeRates
+        ? amount 
+        : convertAmount(amount, transactionCurrency, DEFAULT_CURRENCY, exchangeRates);
+      
+      console.log(`  Transaction: ${amount} ${transactionCurrency} → ${convertedAmount} ${DEFAULT_CURRENCY}`);
+      return sum + convertedAmount;
+    }, 0);
     
     const openingBalance = Number(liability.opening_balance);
     let calculatedBalance: number;

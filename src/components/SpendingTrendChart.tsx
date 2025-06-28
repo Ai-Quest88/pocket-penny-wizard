@@ -1,5 +1,4 @@
-
-import { Card } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   LineChart,
   Line,
@@ -12,110 +11,113 @@ import {
 import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/contexts/AuthContext"
-import { format, subMonths, startOfMonth, endOfMonth } from "date-fns"
+import { useCurrency } from "@/contexts/CurrencyContext"
 
-interface SpendingTrendChartProps {
-  entityId?: string;
+interface Transaction {
+  id: string;
+  amount: number;
+  date: string;
+  currency: string;
 }
 
-export const SpendingTrendChart = ({ entityId }: SpendingTrendChartProps) => {
+export const SpendingTrendChart = () => {
   const { session } = useAuth();
+  const { displayCurrency, convertAmount, currencySymbols } = useCurrency();
 
-  const { data: chartData = [], isLoading } = useQuery({
-    queryKey: ['spending-trend', session?.user?.id, entityId],
+  const { data: transactions = [], isLoading } = useQuery({
+    queryKey: ['spending-trend-transactions', session?.user?.id, displayCurrency],
     queryFn: async () => {
       if (!session?.user) return [];
-
-      // Get last 6 months of data
-      const endDate = new Date();
-      const startDate = subMonths(endDate, 5);
-
-      const { data: transactions, error } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .gte('date', format(startDate, 'yyyy-MM-dd'))
-        .lte('date', format(endDate, 'yyyy-MM-dd'))
-        .lt('amount', 0); // Only expenses
-
-      if (error) throw error;
-
-      // Group by month
-      const monthlyData: Record<string, number> = {};
       
-      // Initialize all months with 0
-      for (let i = 0; i < 6; i++) {
-        const monthDate = subMonths(endDate, 5 - i);
-        const monthKey = format(monthDate, 'MMM');
-        monthlyData[monthKey] = 0;
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('id, amount, date, currency')
+        .eq('user_id', session.user.id)
+        .lt('amount', 0) // Only expenses
+        .order('date', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching transactions:', error);
+        throw error;
       }
 
-      // Sum transactions by month
-      transactions?.forEach(transaction => {
-        const transactionDate = new Date(transaction.date);
-        const monthKey = format(transactionDate, 'MMM');
-        if (monthKey in monthlyData) {
-          monthlyData[monthKey] += Math.abs(transaction.amount);
-        }
-      });
-
-      return Object.entries(monthlyData).map(([month, amount]) => ({
-        month,
-        amount: Math.round(amount)
-      }));
+      return data || [];
     },
     enabled: !!session?.user,
   });
 
+  // Process data for the chart with currency conversion
+  const chartData = transactions.reduce((acc: { [key: string]: { month: string; amount: number } }, transaction) => {
+    const date = new Date(transaction.date);
+    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    
+    if (!acc[monthKey]) {
+      acc[monthKey] = {
+        month: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        amount: 0,
+      };
+    }
+    
+    // Convert amount to display currency before adding
+    const convertedAmount = convertAmount(
+      Math.abs(transaction.amount),
+      transaction.currency
+    );
+    
+    acc[monthKey].amount += convertedAmount;
+    
+    return acc;
+  }, {});
+
+  const formattedData = Object.values(chartData);
+
   if (isLoading) {
     return (
-      <div className="h-[400px] w-full flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-sm text-muted-foreground">Loading spending trend...</p>
-        </div>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Spending Trend</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px] flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="h-[400px] w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart
-          data={chartData}
-          margin={{
-            top: 5,
-            right: 30,
-            left: 20,
-            bottom: 5,
-          }}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="month" />
-          <YAxis />
-          <Tooltip
-            content={({ active, payload, label }) => {
-              if (active && payload && payload.length) {
-                return (
-                  <Card className="p-2 border bg-background">
-                    <p className="font-medium">{label}</p>
-                    <p className="text-sm text-muted-foreground">
-                      ${payload[0].value?.toLocaleString()}
-                    </p>
-                  </Card>
-                )
-              }
-              return null
-            }}
-          />
-          <Line
-            type="monotone"
-            dataKey="amount"
-            stroke="#8884d8"
-            activeDot={{ r: 8 }}
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Spending Trend ({displayCurrency})</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="h-[300px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={formattedData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" />
+              <YAxis 
+                tickFormatter={(value) => `${currencySymbols[displayCurrency]}${value.toFixed(0)}`}
+              />
+              <Tooltip 
+                formatter={(value: number) => [
+                  `${currencySymbols[displayCurrency]}${value.toFixed(2)}`, 
+                  'Spending'
+                ]}
+              />
+              <Line
+                type="monotone"
+                dataKey="amount"
+                stroke="#ef4444"
+                strokeWidth={3}
+                dot={{ fill: "#ef4444", strokeWidth: 2, r: 4 }}
+                activeDot={{ r: 6, stroke: "#ef4444", strokeWidth: 2 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

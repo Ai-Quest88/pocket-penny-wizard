@@ -6,6 +6,7 @@ import { FamilyMember, BusinessEntity } from "@/types/entities"
 import { supabase } from "@/integrations/supabase/client"
 import { useQuery } from "@tanstack/react-query"
 import { Trash2 } from "lucide-react"
+import { useCurrency } from "@/contexts/CurrencyContext"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +26,8 @@ interface AssetsListProps {
 }
 
 export function AssetsList({ assets, onEditAsset, onDeleteAsset }: AssetsListProps) {
+  const { formatCurrency } = useCurrency()
+  
   // Fetch entities from Supabase
   const { data: entities = [] } = useQuery({
     queryKey: ['entities'],
@@ -122,7 +125,7 @@ export function AssetsList({ assets, onEditAsset, onDeleteAsset }: AssetsListPro
                 </AlertDialog>
               )}
               <p className="text-lg font-semibold text-green-600">
-                ${asset.value.toLocaleString()}
+                {formatCurrency(asset.value)}
               </p>
             </div>
           </div>

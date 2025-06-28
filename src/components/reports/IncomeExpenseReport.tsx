@@ -1,11 +1,13 @@
-
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { FileSpreadsheet, Download } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/contexts/AuthContext"
 import { format, startOfMonth, endOfMonth } from "date-fns"
-import { Download, FileSpreadsheet } from "lucide-react"
+import { useState } from "react"
+import { CurrencySelector } from "@/components/transactions/CurrencySelector"
+import { fetchExchangeRates, convertAmount, formatCurrency } from "@/utils/currencyUtils"
 
 interface CategoryData {
   category: string;
@@ -14,57 +16,81 @@ interface CategoryData {
   variance: number;
 }
 
+interface ReportData {
+  income: CategoryData[];
+  expenses: CategoryData[];
+  totalIncome: number;
+  totalExpenses: number;
+  budgetedIncome: number;
+  budgetedExpenses: number;
+  period: string;
+}
+
 export function IncomeExpenseReport() {
   const { session } = useAuth();
+  const [displayCurrency, setDisplayCurrency] = useState("AUD");
+  const currentMonth = startOfMonth(new Date());
 
-  const { data: reportData, isLoading } = useQuery({
-    queryKey: ['income-expense-report', session?.user?.id],
+  const { data: exchangeRates, isLoading: ratesLoading } = useQuery({
+    queryKey: ["exchangeRates", displayCurrency],
+    queryFn: () => fetchExchangeRates(displayCurrency),
+    staleTime: 1000 * 60 * 60, // Cache for 1 hour
+  });
+
+  const { data: reportData, isLoading } = useQuery<ReportData>({
+    queryKey: ['income-expense-report', session?.user?.id, displayCurrency, currentMonth],
     queryFn: async () => {
-      if (!session?.user) return null;
+      if (!session?.user) throw new Error('No authenticated user');
 
-      const currentMonth = new Date();
-      const monthStart = startOfMonth(currentMonth);
-      const monthEnd = endOfMonth(currentMonth);
+      const monthStart = format(startOfMonth(currentMonth), 'yyyy-MM-dd');
+      const monthEnd = format(endOfMonth(currentMonth), 'yyyy-MM-dd');
 
-      // Get transactions for current month
-      const { data: transactions } = await supabase
+      // Fetch transactions for the current month
+      const { data: transactions, error: transactionsError } = await supabase
         .from('transactions')
         .select('*')
         .eq('user_id', session.user.id)
-        .gte('date', monthStart.toISOString().split('T')[0])
-        .lte('date', monthEnd.toISOString().split('T')[0]);
+        .gte('date', monthStart)
+        .lte('date', monthEnd);
 
-      // Get budgets for current month
-      const { data: budgets } = await supabase
+      if (transactionsError) throw transactionsError;
+
+      // Fetch budgets for the current month
+      const { data: budgets, error: budgetsError } = await supabase
         .from('budgets')
         .select('*')
         .eq('user_id', session.user.id)
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .lte('start_date', monthEnd)
+        .or(`end_date.gte.${monthStart},end_date.is.null`);
 
-      // Process income and expense categories
-      const incomeCategories: CategoryData[] = [];
-      const expenseCategories: CategoryData[] = [];
+      if (budgetsError) throw budgetsError;
 
-      // Group transactions by category
-      const transactionsByCategory = (transactions || []).reduce((acc, transaction) => {
-        if (!acc[transaction.category]) {
-          acc[transaction.category] = 0;
-        }
-        acc[transaction.category] += Number(transaction.amount);
-        return acc;
-      }, {} as Record<string, number>);
+      // Group transactions by category with currency conversion
+      const transactionsByCategory: Record<string, number> = {};
+      transactions?.forEach(transaction => {
+        const category = transaction.category || 'Other';
+        const convertedAmount = exchangeRates
+          ? convertAmount(transaction.amount, transaction.currency, displayCurrency, exchangeRates)
+          : transaction.amount;
+        transactionsByCategory[category] = (transactionsByCategory[category] || 0) + convertedAmount;
+      });
 
       // Group budgets by category
-      const budgetsByCategory = (budgets || []).reduce((acc, budget) => {
-        acc[budget.category] = Number(budget.amount);
-        return acc;
-      }, {} as Record<string, number>);
+      const budgetsByCategory: Record<string, number> = {};
+      budgets?.forEach(budget => {
+        const category = budget.category;
+        budgetsByCategory[category] = (budgetsByCategory[category] || 0) + budget.amount;
+      });
 
-      // Combine all categories
-      const allCategories = new Set([
+      // Get all unique categories
+      const allCategories = Array.from(new Set([
         ...Object.keys(transactionsByCategory),
         ...Object.keys(budgetsByCategory)
-      ]);
+      ]));
+
+      const incomeCategories: CategoryData[] = [];
+      const expenseCategories: CategoryData[] = [];
 
       allCategories.forEach(category => {
         const actual = transactionsByCategory[category] || 0;
@@ -95,14 +121,26 @@ export function IncomeExpenseReport() {
         period: format(currentMonth, 'MMMM yyyy')
       };
     },
-    enabled: !!session?.user,
+    enabled: !!session?.user && !!exchangeRates,
   });
 
-  if (isLoading) {
+  const convertToDisplayCurrency = (amount: number, fromCurrency: string = "AUD"): number => {
+    if (!exchangeRates || fromCurrency === displayCurrency) return amount;
+    return convertAmount(amount, fromCurrency, displayCurrency, exchangeRates);
+  };
+
+  if (isLoading || ratesLoading) {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-semibold">Income and Expense Statement</h2>
+          <div className="flex items-center gap-4">
+            <CurrencySelector
+              displayCurrency={displayCurrency}
+              onCurrencyChange={setDisplayCurrency}
+              variant="compact"
+            />
+          </div>
         </div>
         <div className="h-[400px] flex items-center justify-center">
           <div className="text-center">
@@ -119,6 +157,13 @@ export function IncomeExpenseReport() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-semibold">Income and Expense Statement</h2>
+          <div className="flex items-center gap-4">
+            <CurrencySelector
+              displayCurrency={displayCurrency}
+              onCurrencyChange={setDisplayCurrency}
+              variant="compact"
+            />
+          </div>
         </div>
         <div className="text-center py-8">
           <p className="text-muted-foreground">No data available for the selected period</p>
@@ -134,15 +179,22 @@ export function IncomeExpenseReport() {
           <h2 className="text-2xl font-semibold">Income and Expense Statement</h2>
           <p className="text-sm text-muted-foreground">Period: {reportData.period}</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <FileSpreadsheet className="h-4 w-4 mr-2" />
-            Export Excel
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
-          </Button>
+        <div className="flex items-center gap-4">
+          <CurrencySelector
+            displayCurrency={displayCurrency}
+            onCurrencyChange={setDisplayCurrency}
+            variant="compact"
+          />
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm">
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              Export Excel
+            </Button>
+            <Button variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -160,19 +212,19 @@ export function IncomeExpenseReport() {
             {reportData.income.map((category, index) => (
               <div key={index} className="grid grid-cols-4 gap-2 text-sm">
                 <span className="capitalize">{category.category}</span>
-                <span className="text-right">${category.actual.toFixed(2)}</span>
-                <span className="text-right">${category.budgeted.toFixed(2)}</span>
+                <span className="text-right">{formatCurrency(category.actual, displayCurrency)}</span>
+                <span className="text-right">{formatCurrency(category.budgeted, displayCurrency)}</span>
                 <span className={`text-right ${category.variance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  ${category.variance.toFixed(2)}
+                  {formatCurrency(category.variance, displayCurrency)}
                 </span>
               </div>
             ))}
             <div className="grid grid-cols-4 gap-2 text-sm font-semibold border-t pt-2">
               <span>Total Income</span>
-              <span className="text-right">${reportData.totalIncome.toFixed(2)}</span>
-              <span className="text-right">${reportData.budgetedIncome.toFixed(2)}</span>
+              <span className="text-right">{formatCurrency(reportData.totalIncome, displayCurrency)}</span>
+              <span className="text-right">{formatCurrency(reportData.budgetedIncome, displayCurrency)}</span>
               <span className={`text-right ${(reportData.totalIncome - reportData.budgetedIncome) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                ${(reportData.totalIncome - reportData.budgetedIncome).toFixed(2)}
+                {formatCurrency(reportData.totalIncome - reportData.budgetedIncome, displayCurrency)}
               </span>
             </div>
           </div>
@@ -191,19 +243,19 @@ export function IncomeExpenseReport() {
             {reportData.expenses.map((category, index) => (
               <div key={index} className="grid grid-cols-4 gap-2 text-sm">
                 <span className="capitalize">{category.category}</span>
-                <span className="text-right">${Math.abs(category.actual).toFixed(2)}</span>
-                <span className="text-right">${Math.abs(category.budgeted).toFixed(2)}</span>
+                <span className="text-right">{formatCurrency(Math.abs(category.actual), displayCurrency)}</span>
+                <span className="text-right">{formatCurrency(Math.abs(category.budgeted), displayCurrency)}</span>
                 <span className={`text-right ${Math.abs(category.variance) <= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  ${Math.abs(category.variance).toFixed(2)}
+                  {formatCurrency(Math.abs(category.variance), displayCurrency)}
                 </span>
               </div>
             ))}
             <div className="grid grid-cols-4 gap-2 text-sm font-semibold border-t pt-2">
               <span>Total Expenses</span>
-              <span className="text-right">${reportData.totalExpenses.toFixed(2)}</span>
-              <span className="text-right">${reportData.budgetedExpenses.toFixed(2)}</span>
+              <span className="text-right">{formatCurrency(reportData.totalExpenses, displayCurrency)}</span>
+              <span className="text-right">{formatCurrency(reportData.budgetedExpenses, displayCurrency)}</span>
               <span className={`text-right ${(reportData.budgetedExpenses - reportData.totalExpenses) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                ${Math.abs(reportData.budgetedExpenses - reportData.totalExpenses).toFixed(2)}
+                {formatCurrency(Math.abs(reportData.budgetedExpenses - reportData.totalExpenses), displayCurrency)}
               </span>
             </div>
           </div>
@@ -216,19 +268,19 @@ export function IncomeExpenseReport() {
           <div>
             <p className="text-sm text-muted-foreground">Net Income</p>
             <p className="text-2xl font-bold text-green-600">
-              ${(reportData.totalIncome - reportData.totalExpenses).toFixed(2)}
+              {formatCurrency(reportData.totalIncome - reportData.totalExpenses, displayCurrency)}
             </p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Budgeted Net</p>
             <p className="text-2xl font-bold">
-              ${(reportData.budgetedIncome - reportData.budgetedExpenses).toFixed(2)}
+              {formatCurrency(reportData.budgetedIncome - reportData.budgetedExpenses, displayCurrency)}
             </p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Variance</p>
             <p className={`text-2xl font-bold ${((reportData.totalIncome - reportData.totalExpenses) - (reportData.budgetedIncome - reportData.budgetedExpenses)) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              ${((reportData.totalIncome - reportData.totalExpenses) - (reportData.budgetedIncome - reportData.budgetedExpenses)).toFixed(2)}
+              {formatCurrency((reportData.totalIncome - reportData.totalExpenses) - (reportData.budgetedIncome - reportData.budgetedExpenses), displayCurrency)}
             </p>
           </div>
         </div>

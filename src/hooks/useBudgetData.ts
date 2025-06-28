@@ -1,14 +1,22 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { BudgetCategory } from '@/types/budget';
+import { useAuth } from '@/contexts/AuthContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 export const useBudgetData = (entityId?: string, timeframe: string = '3m') => {
   const [budgetCategories, setBudgetCategories] = useState<BudgetCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { session } = useAuth();
+  const { displayCurrency, convertAmount } = useCurrency();
 
   useEffect(() => {
     const fetchBudgetData = async () => {
+      if (!session?.user) {
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       try {
         // Calculate date range based on timeframe
@@ -39,6 +47,7 @@ export const useBudgetData = (entityId?: string, timeframe: string = '3m') => {
         const { data: allTransactions, error: transactionsError } = await supabase
           .from('transactions')
           .select('*')
+          .eq('user_id', session.user.id)
           .gte('date', startDate.toISOString().split('T')[0])
           .lte('date', now.toISOString().split('T')[0])
           .lt('amount', 0); // Only get expenses (negative amounts)
@@ -54,6 +63,7 @@ export const useBudgetData = (entityId?: string, timeframe: string = '3m') => {
         let budgetsQuery = supabase
           .from('budgets')
           .select('*')
+          .eq('user_id', session.user.id)
           .eq('is_active', true);
 
         // Only filter by entity if a specific entity is selected
@@ -78,20 +88,23 @@ export const useBudgetData = (entityId?: string, timeframe: string = '3m') => {
           console.log('Entity filtering not implemented for transactions yet');
         }
 
-        // Group transactions by category and calculate spent amounts
+        // Group transactions by category and calculate spent amounts with currency conversion
         const categorySpending: Record<string, number> = {};
         
         transactions.forEach(transaction => {
-          // Use absolute value for spending amounts since we're dealing with negative amounts
-          const spentAmount = Math.abs(Number(transaction.amount));
+          // Convert transaction amount to display currency before calculating
+          const convertedAmount = convertAmount(
+            Math.abs(Number(transaction.amount)),
+            transaction.currency || 'AUD'
+          );
           
           if (!categorySpending[transaction.category]) {
             categorySpending[transaction.category] = 0;
           }
-          categorySpending[transaction.category] += spentAmount;
+          categorySpending[transaction.category] += convertedAmount;
         });
 
-        console.log('Category spending calculated:', categorySpending);
+        console.log('Category spending calculated (in', displayCurrency, '):', categorySpending);
 
         // Create budget categories with actual budget data
         const categories: BudgetCategory[] = [];
@@ -106,7 +119,7 @@ export const useBudgetData = (entityId?: string, timeframe: string = '3m') => {
           categories.push({
             category: budget.category,
             spent: spent,
-            total: Number(budget.amount),
+            total: Number(budget.amount), // Budget amounts are stored in AUD, may need conversion too
             budgetId: budget.id,
           });
         });
@@ -132,7 +145,7 @@ export const useBudgetData = (entityId?: string, timeframe: string = '3m') => {
     };
 
     fetchBudgetData();
-  }, [entityId, timeframe]);
+  }, [entityId, timeframe, session?.user, displayCurrency, convertAmount]);
 
   return { budgetCategories, isLoading };
 };

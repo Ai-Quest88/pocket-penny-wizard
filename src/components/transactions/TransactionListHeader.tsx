@@ -1,16 +1,13 @@
-
 import { CurrencySelector } from "./CurrencySelector";
 
 interface TransactionListHeaderProps {
   displayCurrency: string;
   onCurrencyChange: (currency: string) => void;
-  currencySymbols: Record<string, string>;
 }
 
 export const TransactionListHeader = ({
   displayCurrency,
   onCurrencyChange,
-  currencySymbols,
 }: TransactionListHeaderProps) => {
   return (
     <div className="p-6 border-b border-accent">
@@ -19,7 +16,7 @@ export const TransactionListHeader = ({
         <CurrencySelector
           displayCurrency={displayCurrency}
           onCurrencyChange={onCurrencyChange}
-          currencySymbols={currencySymbols}
+          variant="compact"
         />
       </div>
     </div>

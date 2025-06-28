@@ -7,8 +7,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card } from "@/components/ui/card"
 import { HistoricalValueChart } from "@/components/assets-liabilities/HistoricalValueChart"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { CurrencySelector } from "@/components/transactions/CurrencySelector"
+import { useCurrency } from "@/contexts/CurrencyContext"
 import { useState, useEffect } from "react"
 import { FamilyMember, BusinessEntity } from "@/types/entities"
+import { Banknote, TrendingUp } from "lucide-react"
 
 const mockData = {
   assetHistory: [
@@ -28,56 +31,95 @@ interface DashboardProps {
 }
 
 const Dashboard = () => {
-  const [selectedEntityType, setSelectedEntityType] = useState<string>("all")
-  const [entities, setEntities] = useState<(FamilyMember | BusinessEntity)[]>([])
+  const { displayCurrency, setDisplayCurrency, isRatesLoading } = useCurrency();
+  const [selectedEntityType, setSelectedEntityType] = useState<string>("all");
+  const [entities, setEntities] = useState<(FamilyMember | BusinessEntity)[]>([]);
 
   useEffect(() => {
-    const savedEntities = localStorage.getItem('entities')
+    const savedEntities = localStorage.getItem('entities');
     if (savedEntities) {
-      setEntities(JSON.parse(savedEntities))
+      setEntities(JSON.parse(savedEntities));
     }
-  }, [])
+  }, []);
 
   return (
     <div className="p-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        <header className="space-y-2">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-text">Financial Overview</h1>
-              <p className="text-text-muted">Track your spending and savings</p>
+        <header className="space-y-4">
+          <div className="flex justify-between items-start">
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <TrendingUp className="h-8 w-8 text-primary" />
+                <div>
+                  <h1 className="text-3xl font-bold text-text">Financial Overview</h1>
+                  <p className="text-text-muted">Track your spending and savings across currencies</p>
+                </div>
+              </div>
             </div>
-            <Select value={selectedEntityType} onValueChange={setSelectedEntityType}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by entity" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Entities</SelectItem>
-                {entities.map((entity) => (
-                  <SelectItem key={entity.id} value={entity.id}>
-                    {entity.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            
+            <div className="flex items-center gap-4">
+              {/* Global Currency Selector */}
+              <div className="flex items-center gap-2">
+                <Banknote className="h-5 w-5 text-muted-foreground" />
+                <div className="flex flex-col">
+                  <span className="text-xs text-muted-foreground">Display Currency</span>
+                  <CurrencySelector
+                    displayCurrency={displayCurrency}
+                    onCurrencyChange={setDisplayCurrency}
+                    variant="compact"
+                  />
+                </div>
+              </div>
+              
+              {/* Entity Filter */}
+              <div className="flex flex-col">
+                <span className="text-xs text-muted-foreground">Entity Filter</span>
+                <Select value={selectedEntityType} onValueChange={setSelectedEntityType}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Filter by entity" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Entities</SelectItem>
+                    {entities.map((entity) => (
+                      <SelectItem key={entity.id} value={entity.id}>
+                        {entity.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
+
+          {/* Currency Loading Indicator */}
+          {isRatesLoading && (
+            <Card className="p-3 bg-blue-50 border-blue-200">
+              <div className="flex items-center gap-2 text-blue-700">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700"></div>
+                <span className="text-sm">Updating exchange rates...</span>
+              </div>
+            </Card>
+          )}
         </header>
 
         <NetWorthWidget entityId={selectedEntityType === "all" ? undefined : selectedEntityType} />
 
         <Card className="p-6">
           <Tabs defaultValue="transactions" className="space-y-4">
-            <TabsList>
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="transactions">Transactions</TabsTrigger>
               <TabsTrigger value="budget">Budget</TabsTrigger>
               <TabsTrigger value="cash-flow">Cash Flow</TabsTrigger>
               <TabsTrigger value="categories">Categories</TabsTrigger>
-              <TabsTrigger value="historical">Historical Net Worth</TabsTrigger>
+              <TabsTrigger value="historical">Net Worth History</TabsTrigger>
             </TabsList>
             
-            <TabsContent value="transactions" className="mt-4">
+            <TabsContent value="transactions" className="mt-6">
               <div className="bg-white rounded-lg">
-                <h3 className="text-lg font-semibold mb-4">Recent Transactions</h3>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  Recent Transactions
+                  <span className="text-sm text-muted-foreground">({displayCurrency})</span>
+                </h3>
                 <TransactionList 
                   entityId={selectedEntityType === "all" ? undefined : selectedEntityType}
                   showBalance={false}
@@ -86,24 +128,27 @@ const Dashboard = () => {
               </div>
             </TabsContent>
             
-            <TabsContent value="budget" className="mt-4">
+            <TabsContent value="budget" className="mt-6">
               <IncomeExpenseAnalysis entityId={selectedEntityType === "all" ? undefined : selectedEntityType} />
             </TabsContent>
             
-            <TabsContent value="cash-flow" className="mt-4">
+            <TabsContent value="cash-flow" className="mt-6">
               <div className="bg-white rounded-lg">
-                <h3 className="text-lg font-semibold mb-4">Monthly Cash Flow</h3>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  Monthly Cash Flow
+                  <span className="text-sm text-muted-foreground">({displayCurrency})</span>
+                </h3>
                 <CashFlowChart entityId={selectedEntityType === "all" ? undefined : selectedEntityType} />
               </div>
             </TabsContent>
 
-            <TabsContent value="categories" className="mt-4">
+            <TabsContent value="categories" className="mt-6">
               <div className="bg-white rounded-lg">
                 <CategoryPieChart entityId={selectedEntityType === "all" ? undefined : selectedEntityType} />
               </div>
             </TabsContent>
 
-            <TabsContent value="historical" className="mt-4">
+            <TabsContent value="historical" className="mt-6">
               <HistoricalValueChart 
                 assetHistory={mockData.assetHistory}
                 liabilityHistory={mockData.liabilityHistory}
@@ -114,7 +159,7 @@ const Dashboard = () => {
         </Card>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Dashboard
+export default Dashboard;

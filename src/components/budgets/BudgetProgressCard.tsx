@@ -1,10 +1,10 @@
-
 import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { useState } from "react"
 import { CategoryTransactionsList } from "./CategoryTransactionsList"
 import { ChevronDown, ChevronUp, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useCurrency } from "@/contexts/CurrencyContext"
 
 interface BudgetProgressCardProps {
   category: string
@@ -14,10 +14,22 @@ interface BudgetProgressCardProps {
 
 export const BudgetProgressCard = ({ category, spent, total }: BudgetProgressCardProps) => {
   const [showTransactions, setShowTransactions] = useState(false);
+  const { formatCurrency, displayCurrency } = useCurrency();
+  
   const percentage = total > 0 ? Math.round((spent / total) * 100) : 0;
   const remaining = total - spent;
   const isOverBudget = spent > total && total > 0;
   const noBudgetSet = total === 0;
+
+  // Calculate time range for transactions (default to last 3 months)
+  const now = new Date();
+  const startDate = new Date();
+  startDate.setMonth(now.getMonth() - 3);
+  
+  const timeRange = {
+    start: startDate.toISOString().split('T')[0],
+    end: now.toISOString().split('T')[0]
+  };
 
   return (
     <div className="space-y-2">
@@ -46,7 +58,7 @@ export const BudgetProgressCard = ({ category, spent, total }: BudgetProgressCar
             <div className="bg-background-muted p-3 rounded-lg">
               <p className="text-sm text-text-muted">Spent</p>
               <p className={`text-lg font-semibold ${isOverBudget ? 'text-red-600' : ''}`}>
-                ${spent.toFixed(2)}
+                {formatCurrency(spent)}
               </p>
             </div>
             <div className="bg-background-muted p-3 rounded-lg">
@@ -54,7 +66,7 @@ export const BudgetProgressCard = ({ category, spent, total }: BudgetProgressCar
                 {noBudgetSet ? 'No Budget Set' : isOverBudget ? 'Over Budget' : 'Remaining'}
               </p>
               <p className={`text-lg font-semibold ${noBudgetSet ? 'text-yellow-600' : isOverBudget ? 'text-red-600' : ''}`}>
-                {noBudgetSet ? 'Set Budget' : `$${Math.abs(remaining).toFixed(2)}`}
+                {noBudgetSet ? 'Set Budget' : formatCurrency(Math.abs(remaining))}
               </p>
             </div>
           </div>
@@ -63,7 +75,7 @@ export const BudgetProgressCard = ({ category, spent, total }: BudgetProgressCar
             <div className="space-y-2">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-text-muted">
-                  ${spent.toFixed(2)} / ${total.toFixed(2)}
+                  {formatCurrency(spent)} / {formatCurrency(total)}
                 </span>
                 <span className={`text-sm ${isOverBudget ? 'text-red-600' : 'text-text-muted'}`}>
                   {percentage}% {isOverBudget ? 'over budget' : 'spent'}
@@ -75,7 +87,7 @@ export const BudgetProgressCard = ({ category, spent, total }: BudgetProgressCar
               />
               {isOverBudget && (
                 <p className="text-xs text-red-600">
-                  You've exceeded your budget by ${(spent - total).toFixed(2)}
+                  You've exceeded your budget by {formatCurrency(spent - total)}
                 </p>
               )}
             </div>
@@ -92,7 +104,7 @@ export const BudgetProgressCard = ({ category, spent, total }: BudgetProgressCar
       </Card>
       
       {showTransactions && (
-        <CategoryTransactionsList category={category} />
+        <CategoryTransactionsList categoryName={category} timeRange={timeRange} />
       )}
     </div>
   )
