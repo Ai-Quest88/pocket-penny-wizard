@@ -12,7 +12,11 @@ interface NetWorthWidgetProps {
 export function NetWorthWidget({ entityId }: NetWorthWidgetProps) {
   const { session } = useAuth();
   const { displayCurrency, formatCurrency } = useCurrency();
-  const { data: accountBalances = [], isLoading } = useAccountBalances();
+  const { data: allAccountBalances = [], isLoading } = useAccountBalances();
+
+  // Note: Account balances don't have entityId directly in the balance calculation
+  // For now, we'll use all balances since the entityId filtering should happen at the asset/liability level
+  const accountBalances = allAccountBalances;
 
   const netWorthData = {
     totalAssets: accountBalances

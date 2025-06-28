@@ -20,15 +20,22 @@ export const CategoryPieChart = ({ entityId }: CategoryPieChartProps) => {
   const { displayCurrency, convertAmount, currencySymbols } = useCurrency();
 
   const { data: transactions = [], isLoading } = useQuery({
-    queryKey: ['category-pie-chart', session?.user?.id, displayCurrency],
+    queryKey: ['category-pie-chart', session?.user?.id, entityId],
     queryFn: async () => {
       if (!session?.user) return [];
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('transactions')
         .select('*')
         .eq('user_id', session.user.id)
         .lt('amount', 0); // Only expenses
+
+      // Filter by entity if specified
+      if (entityId) {
+        query = query.eq('entity_id', entityId);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching transactions:', error);

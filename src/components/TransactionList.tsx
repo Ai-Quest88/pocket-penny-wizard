@@ -57,7 +57,7 @@ export const TransactionList = ({ entityId, showBalance = false, readOnly = fals
   }, []);
 
   const { data: transactions = [], isLoading, error } = useQuery({
-    queryKey: ['transactions', session?.user?.id],
+    queryKey: ['transactions', session?.user?.id, entityId],
     queryFn: async () => {
       if (!session?.user) {
         console.log('No authenticated user, returning empty transactions');
@@ -65,11 +65,18 @@ export const TransactionList = ({ entityId, showBalance = false, readOnly = fals
       }
 
       console.log('Fetching transactions for user:', session.user.id);
-      const { data, error } = await supabase
+      let query = supabase
         .from('transactions')
         .select('*')
         .eq('user_id', session.user.id)
         .order('date', { ascending: false });
+
+      // Filter by entity if specified
+      if (entityId) {
+        query = query.eq('entity_id', entityId);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching transactions:', error);

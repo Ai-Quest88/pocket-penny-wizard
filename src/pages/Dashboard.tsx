@@ -210,6 +210,7 @@ const Dashboard = () => {
               <HistoricalValueChart 
                 assetHistory={mockData.assetHistory}
                 liabilityHistory={mockData.liabilityHistory}
+                entityId={selectedEntityType === "all" ? undefined : selectedEntityType}
               />
             </TabsContent>
           </Tabs>

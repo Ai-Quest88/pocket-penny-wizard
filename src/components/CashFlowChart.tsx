@@ -12,20 +12,31 @@ interface Transaction {
   currency: string;
 }
 
-export const CashFlowChart = () => {
+interface CashFlowChartProps {
+  entityId?: string;
+}
+
+export const CashFlowChart = ({ entityId }: CashFlowChartProps) => {
   const { session } = useAuth()
   const { displayCurrency, convertAmount, currencySymbols } = useCurrency()
 
   const { data: transactions = [], isLoading: transactionLoading } = useQuery({
-    queryKey: ['cashflow-transactions', session?.user?.id, displayCurrency],
+    queryKey: ['cashflow-transactions', session?.user?.id, entityId],
     queryFn: async () => {
       if (!session?.user) return [];
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('transactions')
         .select('id, amount, date, currency')
         .eq('user_id', session.user.id)
         .order('date', { ascending: true });
+
+      // Filter by entity if specified
+      if (entityId) {
+        query = query.eq('entity_id', entityId);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching transactions:', error);
