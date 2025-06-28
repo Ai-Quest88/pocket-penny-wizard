@@ -201,11 +201,10 @@ export function EditAssetDialog({ asset, onEditAsset }: EditAssetDialogProps) {
             <Label htmlFor="opening-balance">Opening Balance</Label>
             <Input
               id="opening-balance"
-              type="number"
+              type="text"
               value={formData.openingBalance}
               onChange={(e) => setFormData({ ...formData, openingBalance: parseFloat(e.target.value) || 0 })}
               placeholder="0.00"
-              step="0.01"
             />
           </div>
 
@@ -224,12 +223,10 @@ export function EditAssetDialog({ asset, onEditAsset }: EditAssetDialogProps) {
               <Label htmlFor="current-value">Current Value</Label>
               <Input
                 id="current-value"
-                type="number"
+                type="text"
                 value={formData.value}
                 onChange={(e) => setFormData({ ...formData, value: parseFloat(e.target.value) || 0 })}
                 placeholder="0.00"
-                step="0.01"
-                min="0"
               />
             </div>
           )}

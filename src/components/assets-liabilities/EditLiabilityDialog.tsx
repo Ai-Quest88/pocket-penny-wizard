@@ -231,8 +231,7 @@ export function EditLiabilityDialog({ liability, onEditLiability }: EditLiabilit
                 <Label htmlFor="credit-limit">Credit Limit</Label>
                 <Input
                   id="credit-limit"
-                  type="number"
-                  step="0.01"
+                  type="text"
                   value={formData.creditLimit || 0}
                   onChange={(e) => {
                     const creditLimit = parseFloat(e.target.value) || 0;
@@ -246,8 +245,7 @@ export function EditLiabilityDialog({ liability, onEditLiability }: EditLiabilit
                 <Label htmlFor="opening-balance">Current Outstanding Balance</Label>
                 <Input
                   id="opening-balance"
-                  type="number"
-                  step="0.01"
+                  type="text"
                   value={formData.openingBalance}
                   onChange={(e) => setFormData({ ...formData, openingBalance: parseFloat(e.target.value) || 0 })}
                   placeholder="Enter current debt amount"
@@ -275,8 +273,7 @@ export function EditLiabilityDialog({ liability, onEditLiability }: EditLiabilit
                 </Label>
                 <Input
                   id="current-balance"
-                  type="number"
-                  step="0.01"
+                  type="text"
                   value={formData.openingBalance}
                   onChange={(e) => {
                     const openingBalance = parseFloat(e.target.value) || 0;

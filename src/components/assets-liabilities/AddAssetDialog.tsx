@@ -214,8 +214,7 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
             </Label>
             <Input
               id="asset-value"
-              type="number"
-              step="0.01"
+              type="text"
               value={newAsset.value}
               onChange={(e) => setNewAsset({ ...newAsset, value: parseFloat(e.target.value) || 0 })}
               placeholder="0.00"

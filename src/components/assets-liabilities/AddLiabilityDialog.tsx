@@ -300,8 +300,7 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
                 <Label htmlFor="credit-limit">Credit Limit</Label>
                 <Input
                   id="credit-limit"
-                  type="number"
-                  step="0.01"
+                  type="text"
                   value={newLiability.creditLimit || 0}
                   onChange={(e) => {
                     const creditLimit = parseFloat(e.target.value) || 0;
@@ -316,8 +315,7 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
                 <Label htmlFor="opening-balance">Current Outstanding Balance</Label>
                 <Input
                   id="opening-balance"
-                  type="number"
-                  step="0.01"
+                  type="text"
                   value={newLiability.openingBalance}
                   onChange={(e) => {
                     const openingBalance = parseFloat(e.target.value) || 0;
@@ -338,8 +336,7 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
               </Label>
               <Input
                 id="current-balance"
-                type="number"
-                step="0.01"
+                type="text"
                 value={newLiability.openingBalance}
                 onChange={(e) => {
                   const openingBalance = parseFloat(e.target.value) || 0;
