@@ -30,9 +30,42 @@ export const CategoryPieChart = ({ entityId }: CategoryPieChartProps) => {
         .eq('user_id', session.user.id)
         .lt('amount', 0); // Only expenses
 
-      // Filter by entity if specified
+      // Filter by entity if specified - need to join through assets/liabilities
       if (entityId) {
-        query = query.eq('entity_id', entityId);
+        // Get asset and liability IDs for this entity
+        const [assetsResponse, liabilitiesResponse] = await Promise.all([
+          supabase
+            .from('assets')
+            .select('id')
+            .eq('entity_id', entityId)
+            .eq('user_id', session.user.id),
+          supabase
+            .from('liabilities')
+            .select('id')
+            .eq('entity_id', entityId)
+            .eq('user_id', session.user.id)
+        ]);
+
+        const assetIds = assetsResponse.data?.map(a => a.id) || [];
+        const liabilityIds = liabilitiesResponse.data?.map(l => l.id) || [];
+
+        if (assetIds.length === 0 && liabilityIds.length === 0) {
+          // No accounts for this entity, return empty array
+          return [];
+        }
+
+        // Build filter conditions
+        const conditions = [];
+        if (assetIds.length > 0) {
+          conditions.push(`asset_account_id.in.(${assetIds.join(',')})`);
+        }
+        if (liabilityIds.length > 0) {
+          conditions.push(`liability_account_id.in.(${liabilityIds.join(',')})`);
+        }
+
+        if (conditions.length > 0) {
+          query = query.or(conditions.join(','));
+        }
       }
 
       const { data, error } = await query;
