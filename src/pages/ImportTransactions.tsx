@@ -21,6 +21,83 @@ interface CSVRow {
   [key: string]: any;
 }
 
+// Date conversion function to handle various formats
+const formatDateForSupabase = (dateString: string): string => {
+  if (!dateString || dateString.trim() === '') {
+    return new Date().toISOString().split('T')[0];
+  }
+
+  try {
+    console.log(`🗓️ Formatting date: "${dateString}"`);
+    
+    // Handle DD/MM/YYYY format specifically (Australian/UK format)
+    const ddmmyyyyPattern = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
+    const match = dateString.trim().match(ddmmyyyyPattern);
+    
+    if (match) {
+      const [, day, month, year] = match;
+      const dayNum = parseInt(day);
+      const monthNum = parseInt(month);
+      const yearNum = parseInt(year);
+      
+      // Validate date components
+      if (dayNum >= 1 && dayNum <= 31 && monthNum >= 1 && monthNum <= 12 && yearNum >= 1900) {
+        // Create date in YYYY-MM-DD format for proper parsing
+        const isoDateString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        console.log(`🗓️ Converted DD/MM/YYYY ${dateString} -> ${isoDateString}`);
+        return isoDateString;
+      }
+    }
+    
+    // Handle YYYY-MM-DD format (ISO format)
+    const isoPattern = /^(\d{4})-(\d{1,2})-(\d{1,2})$/;
+    const isoMatch = dateString.trim().match(isoPattern);
+    if (isoMatch) {
+      const [, year, month, day] = isoMatch;
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      if (!isNaN(date.getTime())) {
+        const result = date.toISOString().split('T')[0];
+        console.log(`🗓️ ISO format ${dateString} -> ${result}`);
+        return result;
+      }
+    }
+    
+    // Handle MM/DD/YYYY format (US format) as fallback
+    const mmddyyyyPattern = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
+    const usMatch = dateString.trim().match(mmddyyyyPattern);
+    if (usMatch) {
+      const [, month, day, year] = usMatch;
+      const dayNum = parseInt(day);
+      const monthNum = parseInt(month);
+      const yearNum = parseInt(year);
+      
+      // Only accept if day is <= 12 (to avoid confusion with DD/MM)
+      if (dayNum <= 12 && monthNum >= 1 && monthNum <= 12 && yearNum >= 1900) {
+        const date = new Date(yearNum, monthNum - 1, dayNum);
+        if (!isNaN(date.getTime())) {
+          const result = date.toISOString().split('T')[0];
+          console.log(`🗓️ US format ${dateString} -> ${result}`);
+          return result;
+        }
+      }
+    }
+    
+    // Fallback for other formats
+    const date = new Date(dateString);
+    if (!isNaN(date.getTime())) {
+      const result = date.toISOString().split('T')[0];
+      console.log(`🗓️ Fallback conversion ${dateString} -> ${result}`);
+      return result;
+    }
+    
+    console.warn(`Invalid date format: ${dateString}. Using current date.`);
+    return new Date().toISOString().split('T')[0];
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return new Date().toISOString().split('T')[0];
+  }
+};
+
 const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [headerMappings, setHeaderMappings] = useState<{ [key: string]: string }>({
@@ -200,7 +277,7 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
           }
 
           const transactions = results.data.map((row: any) => ({
-            date: row[headerMappings.date],
+            date: formatDateForSupabase(String(row[headerMappings.date] || '')),
             description: row[headerMappings.description],
             amount: parseFloat(row[headerMappings.amount]),
             currency: row[headerMappings.currency] || 'AUD',
@@ -319,7 +396,7 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
             Drag 'n' drop a CSV file here, or click to select files
           </p>
           <p className="text-sm text-muted-foreground mt-2">
-            CSV files with transaction data are supported
+            CSV files with transaction data are supported. Supports DD/MM/YYYY, YYYY-MM-DD, and MM/DD/YYYY date formats.
           </p>
         </div>
       </div>
@@ -329,7 +406,7 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
           <div>
             <h3 className="text-lg font-semibold">Map CSV Headers</h3>
             <p className="text-sm text-muted-foreground">
-              Please map the columns from your CSV to the corresponding fields.
+              Please map the columns from your CSV to the corresponding fields. Date formats supported: DD/MM/YYYY, YYYY-MM-DD, MM/DD/YYYY.
             </p>
           </div>
 
