@@ -44,13 +44,56 @@ export const useBudgetData = (entityId?: string, timeframe: string = '3m') => {
         console.log('To date:', now.toISOString().split('T')[0]);
 
         // Fetch ALL transactions from the specified date range
-        const { data: allTransactions, error: transactionsError } = await supabase
+        let transactionsQuery = supabase
           .from('transactions')
           .select('*')
           .eq('user_id', session.user.id)
           .gte('date', startDate.toISOString().split('T')[0])
           .lte('date', now.toISOString().split('T')[0])
           .lt('amount', 0); // Only get expenses (negative amounts)
+
+        // Filter transactions based on entity selection
+        if (entityId && entityId !== 'all') {
+          // Get asset and liability IDs for this entity
+          const [assetsResponse, liabilitiesResponse] = await Promise.all([
+            supabase
+              .from('assets')
+              .select('id')
+              .eq('entity_id', entityId)
+              .eq('user_id', session.user.id),
+            supabase
+              .from('liabilities')
+              .select('id')
+              .eq('entity_id', entityId)
+              .eq('user_id', session.user.id)
+          ]);
+
+          const assetIds = assetsResponse.data?.map(a => a.id) || [];
+          const liabilityIds = liabilitiesResponse.data?.map(l => l.id) || [];
+
+          if (assetIds.length > 0 || liabilityIds.length > 0) {
+            // Build filter conditions
+            const conditions = [];
+            if (assetIds.length > 0) {
+              conditions.push(`asset_account_id.in.(${assetIds.join(',')})`);
+            }
+            if (liabilityIds.length > 0) {
+              conditions.push(`liability_account_id.in.(${liabilityIds.join(',')})`);
+            }
+
+            if (conditions.length > 0) {
+              transactionsQuery = transactionsQuery.or(conditions.join(','));
+            }
+          } else {
+            // No accounts for this entity, set transactions to empty array
+            console.log('No accounts found for entity, returning empty transactions');
+            setBudgetCategories([]);
+            setIsLoading(false);
+            return;
+          }
+        }
+
+        const { data: allTransactions, error: transactionsError } = await transactionsQuery;
 
         if (transactionsError) {
           console.error('Error fetching transactions for budget:', transactionsError);
@@ -80,13 +123,8 @@ export const useBudgetData = (entityId?: string, timeframe: string = '3m') => {
 
         console.log('Fetched budgets:', budgets);
 
-        // Filter transactions based on entity selection (if any)
-        let transactions = allTransactions || [];
-        if (entityId && entityId !== 'all') {
-          // If a specific entity is selected, we would need to filter transactions by entity
-          // For now, we'll use all transactions since transactions don't have entity_id field
-          console.log('Entity filtering not implemented for transactions yet');
-        }
+        // Use the filtered transactions (already filtered by entity if needed)
+        const transactions = allTransactions || [];
 
         // Group transactions by category and calculate spent amounts with currency conversion
         const categorySpending: Record<string, number> = {};

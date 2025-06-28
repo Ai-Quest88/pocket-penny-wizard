@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { useAuth } from "@/contexts/AuthContext"
 import { useCurrency } from "@/contexts/CurrencyContext"
 import { useAccountBalances } from "@/hooks/useAccountBalances"
+import { supabase } from "@/integrations/supabase/client"
 
 interface NetWorthWidgetProps {
   entityId?: string;
@@ -14,9 +15,56 @@ export function NetWorthWidget({ entityId }: NetWorthWidgetProps) {
   const { displayCurrency, formatCurrency } = useCurrency();
   const { data: allAccountBalances = [], isLoading } = useAccountBalances();
 
-  // Note: Account balances don't have entityId directly in the balance calculation
-  // For now, we'll use all balances since the entityId filtering should happen at the asset/liability level
-  const accountBalances = allAccountBalances;
+  // Filter account balances by entity if specified
+  // Since account balances don't have entityId directly, we need to fetch entity's assets/liabilities
+  const { data: entityAssets = [] } = useQuery({
+    queryKey: ['entity-assets', entityId, session?.user?.id],
+    queryFn: async () => {
+      if (!entityId || !session?.user) return [];
+      
+      const { data, error } = await supabase
+        .from('assets')
+        .select('id')
+        .eq('entity_id', entityId)
+        .eq('user_id', session.user.id);
+
+      if (error) {
+        console.error('Error fetching entity assets:', error);
+        return [];
+      }
+      
+      return data.map(a => a.id);
+    },
+    enabled: !!entityId && !!session?.user,
+  });
+
+  const { data: entityLiabilities = [] } = useQuery({
+    queryKey: ['entity-liabilities', entityId, session?.user?.id],
+    queryFn: async () => {
+      if (!entityId || !session?.user) return [];
+      
+      const { data, error } = await supabase
+        .from('liabilities')
+        .select('id')
+        .eq('entity_id', entityId)
+        .eq('user_id', session.user.id);
+
+      if (error) {
+        console.error('Error fetching entity liabilities:', error);
+        return [];
+      }
+      
+      return data.map(l => l.id);
+    },
+    enabled: !!entityId && !!session?.user,
+  });
+
+  // Filter account balances based on entity selection
+  const accountBalances = entityId 
+    ? allAccountBalances.filter(account => 
+        entityAssets.includes(account.accountId) || entityLiabilities.includes(account.accountId)
+      )
+    : allAccountBalances;
 
   const netWorthData = {
     totalAssets: accountBalances
