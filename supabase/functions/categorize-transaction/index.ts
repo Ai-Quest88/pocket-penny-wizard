@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -7,7 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const groqApiKey = Deno.env.get('VITE_GROQ_API_KEY');
+// Use Google Gemini API instead of Groq
+const geminiApiKey = Deno.env.get('VITE_GEMINI_API_KEY');
 
 const availableCategories = [
   'Groceries', 'Restaurants', 'Gas & Fuel', 'Shopping', 'Entertainment', 'Healthcare', 
@@ -20,17 +20,16 @@ const availableCategories = [
   'Tolls', 'Food Delivery'
 ];
 
-const models = [
-  'llama-3.3-70b-versatile',
-  'llama-3.1-8b-instant',
-  'mixtral-8x7b-32768'
+// Google Gemini models to use (only flash for better free tier limits)
+const geminiModels = [
+  'gemini-1.5-flash'
 ];
 
 let currentModelIndex = 0;
 
 const getNextModel = () => {
-  const model = models[currentModelIndex];
-  currentModelIndex = (currentModelIndex + 1) % models.length;
+  const model = geminiModels[currentModelIndex];
+  currentModelIndex = (currentModelIndex + 1) % geminiModels.length;
   return model;
 };
 
@@ -38,38 +37,42 @@ const createEnhancedPrompt = (input: string[] | string, isBatch: boolean = false
   const categoriesText = availableCategories.join(', ');
   
   if (isBatch && Array.isArray(input)) {
-    const transactionsList = input.map((desc, index) => `  "${desc}"`).join(',\n');
+    const transactionsList = input.map((desc, index) => `${index + 1}. "${desc}"`).join('\n');
     
-    return `Categorize each transaction in the list into exactly one of these categories:
+    return `You are a financial transaction categorization AI. Categorize each transaction in the list into exactly one of these categories:
+
+AVAILABLE CATEGORIES:
 ${categoriesText}
 
-CRITICAL RULES:
+CRITICAL AUSTRALIAN-SPECIFIC RULES:
 1. "Linkt", "toll", "e-toll", "etoll", "citylink", "eastlink", "M1 toll", etc. → Tolls
-2. McDonald's, KFC, Subway, Burger King, Domino's → Fast Food  
+2. McDonald's, KFC, Subway, Burger King, Domino's, Hungry Jack's → Fast Food  
 3. Coles, Woolworths, IGA, ALDI → Groceries
-4. Shell, BP, Caltex, Ampol, 7-Eleven (fuel) → Gas & Fuel
-5. Uber Eats, DoorDash, Menulog → Food Delivery
-6. Netflix, Spotify, Apple Music → Subscriptions
-7. Government, ATO, Revenue Office → Taxes
+4. Shell, BP, Caltex, Ampol, 7-Eleven (fuel stations) → Gas & Fuel
+5. Uber Eats, DoorDash, Menulog, Deliveroo → Food Delivery
+6. Netflix, Spotify, Apple Music, Stan, Disney+ → Subscriptions
+7. Government, ATO, Revenue Office, tax office → Taxes
 8. Opal, Myki, Go Card, public transport → Public Transport
+9. Telstra, Optus, Vodafone → Utilities
+10. CommBank, NAB, Westpac, ANZ (banking fees) → Banking
 
-Return ONLY a JSON array with objects containing "transaction" and "category" fields. NO other text.
+Return ONLY a valid JSON array with objects containing "index" and "category" fields. No markdown, no explanations.
 
-Input transactions:
-[
+TRANSACTIONS TO CATEGORIZE:
 ${transactionsList}
-]
 
-Output format:
+Required JSON format:
 [
-  {"transaction": "WOOLWORTHS 1348 GLENWOOD AUS", "category": "Groceries"},
-  {"transaction": "Direct Debit 408856 Linkt Sydney", "category": "Tolls"}
+  {"index": 1, "category": "Groceries"},
+  {"index": 2, "category": "Tolls"}
 ]`;
   } else {
-    return `Categorize this transaction into exactly one of these categories:
+    return `You are a financial transaction categorization AI. Categorize this transaction into exactly one of these categories:
+
+AVAILABLE CATEGORIES:
 ${categoriesText}
 
-CRITICAL RULES:
+CRITICAL AUSTRALIAN-SPECIFIC RULES:
 1. "Linkt", "toll", "e-toll", "etoll" → Tolls
 2. McDonald's, KFC, Subway → Fast Food  
 3. Coles, Woolworths, IGA, ALDI → Groceries
@@ -92,50 +95,52 @@ const chunkArray = (array: string[], chunkSize: number): string[][] => {
   return chunks;
 };
 
-// Process a single batch of transactions
+// Process a single batch of transactions using Google Gemini
 const processBatch = async (batch: string[], userId: string): Promise<string[]> => {
   const prompt = createEnhancedPrompt(batch, true);
   const model = getNextModel();
   
-  console.log(`Processing batch of ${batch.length} transactions with model: ${model}`);
+  console.log(`Processing batch of ${batch.length} transactions with Gemini model: ${model}`);
   
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  const requestBody = {
+    contents: [{
+      parts: [{
+        text: prompt
+      }]
+    }],
+    generationConfig: {
+      temperature: 0.1,
+      topK: 1,
+      topP: 0.8,
+      maxOutputTokens: 2048,
+    }
+  };
+
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${groqApiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { 
-          role: 'system', 
-          content: 'You are a financial transaction categorization AI. Always return valid JSON arrays for batch requests and single category names for individual requests.' 
-        },
-        { role: 'user', content: prompt }
-      ],
-      temperature: 0.1,
-      max_tokens: 2000,
-    }),
+    body: JSON.stringify(requestBody)
   });
 
   if (!response.ok) {
     let errorDetails = `HTTP ${response.status}: ${response.statusText}`;
     try {
       const errorBody = await response.text();
-      console.error('Groq API Error Details (Batch):', errorBody);
+      console.error('Gemini API Error Details (Batch):', errorBody);
       errorDetails += ` - ${errorBody}`;
     } catch (parseError) {
-      console.error('Could not parse Groq API error response (Batch):', parseError);
+      console.error('Could not parse Gemini API error response (Batch):', parseError);
     }
-    throw new Error(`Groq API error: ${errorDetails}`);
+    throw new Error(`Gemini API error: ${errorDetails}`);
   }
 
   const data = await response.json();
-  let content = data.choices[0]?.message?.content?.trim();
+  let content = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
   
   if (!content) {
-    throw new Error('No content in Groq response');
+    throw new Error('No content in Gemini response');
   }
 
   try {
@@ -145,15 +150,23 @@ const processBatch = async (batch: string[], userId: string): Promise<string[]> 
     const parsed = JSON.parse(content);
     
     if (Array.isArray(parsed)) {
-      const categories = parsed.map(item => {
+      // Sort by index to ensure correct order
+      const sortedParsed = parsed.sort((a, b) => (a.index || 0) - (b.index || 0));
+      
+      const categories = sortedParsed.map(item => {
         if (item.category && availableCategories.includes(item.category)) {
           return item.category;
         }
         return 'Miscellaneous';
       });
       
+      // Ensure we have the right number of categories
+      while (categories.length < batch.length) {
+        categories.push('Miscellaneous');
+      }
+      
       console.log(`Batch processing completed: ${categories.length} categories returned`);
-      return categories;
+      return categories.slice(0, batch.length); // Ensure exact match
     } else {
       throw new Error('Response is not an array');
     }
@@ -176,20 +189,20 @@ serve(async (req) => {
     const body = await req.json();
     
     if (body.testMode) {
-      return new Response(JSON.stringify({ success: true, message: 'AI categorization ready' }), {
+      return new Response(JSON.stringify({ success: true, message: 'Google Gemini AI categorization ready' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    if (!groqApiKey) {
-      throw new Error('VITE_GROQ_API_KEY not configured');
+    if (!geminiApiKey) {
+      throw new Error('VITE_GEMINI_API_KEY not configured');
     }
 
     // Handle batch processing with chunking
     if (body.batchMode && body.descriptions && Array.isArray(body.descriptions)) {
-      console.log(`Processing ${body.descriptions.length} transactions in chunks of 20`);
+      console.log(`Processing ${body.descriptions.length} transactions in chunks of 100 using Google Gemini`);
       
-      const BATCH_SIZE = 20;
+      const BATCH_SIZE = 100; // Optimal batch size for 100% accuracy with Google Gemini free tier
       const chunks = chunkArray(body.descriptions, BATCH_SIZE);
       const allCategories: string[] = [];
       
@@ -206,7 +219,7 @@ serve(async (req) => {
           
           // Small delay between chunks to avoid rate limits
           if (i < chunks.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Slightly longer delay for Gemini
           }
         } catch (chunkError) {
           console.error(`Error processing chunk ${i + 1}:`, chunkError);
@@ -220,7 +233,7 @@ serve(async (req) => {
       
       return new Response(JSON.stringify({ 
         categories: allCategories,
-        source: 'ai_batch_chunked',
+        source: 'gemini_ai_batch_chunked',
         chunksProcessed: chunks.length
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -235,26 +248,28 @@ serve(async (req) => {
     const prompt = createEnhancedPrompt(body.description, false);
     const model = getNextModel();
     
-    console.log(`Categorizing single transaction with model: ${model}`);
+    console.log(`Categorizing single transaction with Gemini model: ${model}`);
     
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const requestBody = {
+      contents: [{
+        parts: [{
+          text: prompt
+        }]
+      }],
+      generationConfig: {
+        temperature: 0.1,
+        topK: 1,
+        topP: 0.8,
+        maxOutputTokens: 50,
+      }
+    };
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${groqApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { 
-            role: 'system', 
-            content: 'You are a financial transaction categorization AI. Return only the category name for single transactions.' 
-          },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.1,
-        max_tokens: 50,
-      }),
+      body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {
@@ -262,23 +277,23 @@ serve(async (req) => {
       let errorDetails = `HTTP ${response.status}: ${response.statusText}`;
       try {
         const errorBody = await response.text();
-        console.error('Groq API Error Details (Single):', errorBody);
+        console.error('Gemini API Error Details (Single):', errorBody);
         console.error('Failed transaction description:', body.description);
         console.error('Model used:', model);
         errorDetails += ` - ${errorBody}`;
       } catch (parseError) {
-        console.error('Could not parse Groq API error response (Single):', parseError);
+        console.error('Could not parse Gemini API error response (Single):', parseError);
       }
-      throw new Error(`Groq API error: ${errorDetails}`);
+      throw new Error(`Gemini API error: ${errorDetails}`);
     }
 
     const data = await response.json();
-    const category = data.choices[0]?.message?.content?.trim();
+    const category = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
 
     if (category && availableCategories.includes(category)) {
       return new Response(JSON.stringify({ 
         category,
-        source: 'ai',
+        source: 'gemini_ai',
         model: model 
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

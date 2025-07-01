@@ -3,10 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 
 let isInitialized = false;
 
-// Test Groq API connectivity via edge function
-export const testGroqConnection = async (): Promise<{ success: boolean; error?: string }> => {
+// Test Google Gemini API connectivity via edge function
+export const testGeminiConnection = async (): Promise<{ success: boolean; error?: string }> => {
   try {
-    console.log('Testing Groq API connection via edge function...');
+    console.log('Testing Google Gemini API connection via edge function...');
     
     const response = await fetch('https://nqqbvlvuzyctmysablzw.supabase.co/functions/v1/categorize-transaction', {
       method: 'POST',
@@ -31,7 +31,7 @@ export const testGroqConnection = async (): Promise<{ success: boolean; error?: 
     }
 
     const data = await response.json();
-    console.log('Groq API test successful via edge function:', data);
+    console.log('Google Gemini API test successful via edge function:', data);
     
     if (data.success) {
       return { success: true };
@@ -40,7 +40,7 @@ export const testGroqConnection = async (): Promise<{ success: boolean; error?: 
     }
     
   } catch (error) {
-    console.error('Groq connection test failed:', error);
+    console.error('Gemini connection test failed:', error);
     return { 
       success: false, 
       error: error instanceof Error ? error.message : 'Unknown error' 
@@ -48,11 +48,11 @@ export const testGroqConnection = async (): Promise<{ success: boolean; error?: 
   }
 };
 
-// Initialize the Groq classifier
+// Initialize the Google Gemini classifier
 export const initializeAIClassifier = async () => {
   if (isInitialized) return true;
   
-  console.log('Groq AI classifier ready (using edge function with model alternation)');
+  console.log('Google Gemini AI classifier ready (using edge function with model alternation)');
   isInitialized = true;
   return true;
 };
@@ -456,7 +456,7 @@ export const categorizeTransactionsBatch = async (
   
   if (finalMiscCount > descriptions.length * 0.3) {
     console.warn(`⚠️ HIGH MISCELLANEOUS RATE: ${finalMiscCount}/${descriptions.length} (${(finalMiscCount/descriptions.length*100).toFixed(1)}%) transactions could not be categorized`);
-    console.warn(`💡 Consider: 1) Checking Groq API status, 2) Adding more comprehensive rules, 3) Reviewing transaction descriptions`);
+    console.warn(`💡 Consider: 1) Checking Google Gemini API status, 2) Adding more comprehensive rules, 3) Reviewing transaction descriptions`);
   }
   
   return results;
@@ -505,15 +505,15 @@ async function processBatchWithRetry(
         
         // Log specific error details for different status codes
         if (response.status === 429) {
-          console.error(`🚫 RATE LIMIT: Groq API rate limit exceeded on attempt ${attempt}`);
+          console.error(`🚫 RATE LIMIT: Google Gemini API rate limit exceeded on attempt ${attempt}`);
         } else if (response.status === 500) {
-          console.error(`💥 SERVER ERROR: Groq API internal server error on attempt ${attempt}`);
+          console.error(`💥 SERVER ERROR: Google Gemini API internal server error on attempt ${attempt}`);
         } else if (response.status === 503) {
-          console.error(`🔧 SERVICE UNAVAILABLE: Groq API temporarily unavailable on attempt ${attempt}`);
+          console.error(`🔧 SERVICE UNAVAILABLE: Google Gemini API temporarily unavailable on attempt ${attempt}`);
         } else if (response.status === 401) {
-          console.error(`🔑 UNAUTHORIZED: Groq API authentication failed on attempt ${attempt}`);
+          console.error(`🔑 UNAUTHORIZED: Google Gemini API authentication failed on attempt ${attempt}`);
         } else if (response.status === 400) {
-          console.error(`📝 BAD REQUEST: Invalid request to Groq API on attempt ${attempt}`);
+          console.error(`📝 BAD REQUEST: Invalid request to Google Gemini API on attempt ${attempt}`);
           console.error(`📦 Request body that caused error:`, JSON.stringify(requestBody, null, 2));
         }
         
