@@ -36,9 +36,10 @@ const formatDateForSupabase = (dateValue: string | number): string => {
       const serialDate = Number(dateValue);
       if (serialDate > 40000 && serialDate < 60000) { // Reasonable range for Excel dates (2009-2164)
         // Excel serial date: days since 1900-01-01 (with leap year bug correction)
-        const excelEpoch = new Date(1900, 0, 1);
-        const days = serialDate - 1; // Excel counts from 1, JavaScript from 0
-        const date = new Date(excelEpoch.getTime() + days * 24 * 60 * 60 * 1000);
+        // Excel incorrectly treats 1900 as a leap year, so we need to adjust
+        const excelEpochCorrection = new Date(1899, 11, 30); // December 30, 1899
+        const days = serialDate; // Excel serial dates are days since December 30, 1899
+        const date = new Date(excelEpochCorrection.getTime() + days * 24 * 60 * 60 * 1000);
         const result = date.toISOString().split('T')[0];
         console.log(`🗓️ Excel serial date ${serialDate} -> ${result}`);
         return result;
@@ -232,30 +233,102 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
           defval: ''
         }) as any[][];
 
-        if (jsonData.length < 2) {
+        if (jsonData.length < 1) {
           toast({
             title: "Error parsing Excel",
-            description: "Excel file must have at least a header row and one data row.",
+            description: "Excel file appears to be empty.",
             variant: "destructive",
           });
           setIsMappingHeaders(false);
           return;
         }
 
-        // First row contains headers
-        const headers = jsonData[0].map(h => String(h).trim()).filter(h => h);
-        
-        // Convert data rows to objects
-        const dataRows = jsonData.slice(1).map(row => {
-          const obj: CSVRow = {};
-          headers.forEach((header, index) => {
-            obj[header] = row[index] !== undefined ? row[index] : '';
+        console.log("📊 Raw Excel data (first 3 rows):", jsonData.slice(0, 3));
+
+        // Check if first row looks like headers or data
+        const firstRow = jsonData[0];
+        const hasProperHeaders = firstRow.every(cell => 
+          typeof cell === 'string' && 
+          cell.toString().toLowerCase().match(/(date|description|amount|transaction|balance|currency)/)
+        );
+
+        let headers: string[];
+        let dataRows: CSVRow[];
+
+        if (hasProperHeaders) {
+          console.log("📋 Excel file has proper headers");
+          // First row contains headers
+          headers = firstRow.map(h => String(h).trim()).filter(h => h);
+          
+          // Convert data rows to objects
+          dataRows = jsonData.slice(1).map(row => {
+            const obj: CSVRow = {};
+            headers.forEach((header, index) => {
+              obj[header] = row[index] !== undefined ? row[index] : '';
+            });
+            return obj;
+          }).filter(row => {
+            return Object.values(row).some(value => value !== '' && value !== null && value !== undefined);
           });
-          return obj;
-        }).filter(row => {
-          // Filter out completely empty rows
-          return Object.values(row).some(value => value !== '' && value !== null && value !== undefined);
-        });
+        } else {
+          console.log("📋 Excel file has NO headers - generating column names");
+          // No proper headers, generate column names based on data analysis
+          const numColumns = Math.max(...jsonData.map(row => row.length));
+          headers = [];
+          const usedNames = new Set<string>();
+          
+          for (let i = 0; i < numColumns; i++) {
+            // Try to detect column type based on data
+            const columnData = jsonData.slice(0, 5).map(row => row[i]).filter(cell => cell !== undefined && cell !== '');
+            
+            let headerName = `Column_${i + 1}`;
+            
+            if (columnData.length > 0) {
+              const firstCell = columnData[0];
+              const allCells = columnData.slice(0, 3); // Look at first 3 cells for pattern
+              
+              // Check if it looks like a date column (Excel serial dates)
+              if (typeof firstCell === 'number' && firstCell > 40000 && firstCell < 60000) {
+                headerName = usedNames.has('Date') ? `Date_${i + 1}` : 'Date';
+                console.log(`📅 Column ${i}: Detected as Date (Excel serial: ${firstCell})`);
+              }
+              // Check if it looks like transaction amounts (small numbers, can be negative, usually < 10000)
+              else if (typeof firstCell === 'number' && Math.abs(firstCell) <= 20000 && 
+                       allCells.some(cell => typeof cell === 'number' && cell < 0)) {
+                headerName = usedNames.has('Amount') ? `Amount_${i + 1}` : 'Amount';
+                console.log(`💰 Column ${i}: Detected as Amount (transaction values with negatives)`);
+              }
+              // Check if it looks like a description (string)
+              else if (typeof firstCell === 'string' && firstCell.length > 10) {
+                headerName = usedNames.has('Description') ? `Description_${i + 1}` : 'Description';
+                console.log(`📝 Column ${i}: Detected as Description (long text)`);
+              }
+              // Check if it looks like balance (large positive numbers, usually > 1000)
+              else if (typeof firstCell === 'number' && firstCell > 1000 && 
+                       allCells.every(cell => typeof cell === 'number' && cell > 0)) {
+                headerName = usedNames.has('Balance') ? `Balance_${i + 1}` : 'Balance';
+                console.log(`🏦 Column ${i}: Detected as Balance (large positive numbers)`);
+              }
+              else {
+                console.log(`❓ Column ${i}: Unknown type, using generic name`);
+              }
+            }
+            
+            usedNames.add(headerName);
+            headers.push(headerName);
+          }
+          
+          // Convert all rows to objects (no header row to skip)
+          dataRows = jsonData.map(row => {
+            const obj: CSVRow = {};
+            headers.forEach((header, index) => {
+              obj[header] = row[index] !== undefined ? row[index] : '';
+            });
+            return obj;
+          }).filter(row => {
+            return Object.values(row).some(value => value !== '' && value !== null && value !== undefined);
+          });
+        }
 
         if (dataRows.length === 0) {
           toast({
@@ -314,7 +387,18 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
     headers.forEach(header => {
       const lowerHeader = header.toLowerCase();
       
-      if (lowerHeader.includes('date') || lowerHeader.includes('transaction') && lowerHeader.includes('date')) {
+      // Direct header matching (for auto-detected headers)
+      if (lowerHeader === 'date') {
+        mappings.date = header;
+      } else if (lowerHeader === 'description') {
+        mappings.description = header;
+      } else if (lowerHeader === 'amount') {
+        mappings.amount = header;
+      } else if (lowerHeader === 'currency') {
+        mappings.currency = header;
+      }
+      // Standard header detection (for proper CSV headers)
+      else if (lowerHeader.includes('date') || (lowerHeader.includes('transaction') && lowerHeader.includes('date'))) {
         mappings.date = header;
       } else if (lowerHeader.includes('description') || lowerHeader.includes('memo') || lowerHeader.includes('detail')) {
         mappings.description = header;
@@ -325,6 +409,36 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
       }
     });
 
+    // Fallback: if no mappings found, try to find any reasonable columns
+    if (!mappings.date || !mappings.description || !mappings.amount) {
+      console.log("🔍 Fallback: Looking for any suitable columns");
+      
+      if (!mappings.date) {
+        const dateCol = headers.find(h => h.toLowerCase().includes('date') || h.toLowerCase().includes('column_1'));
+        if (dateCol) {
+          mappings.date = dateCol;
+          console.log(`📅 Fallback date mapping: ${dateCol}`);
+        }
+      }
+      
+      if (!mappings.amount) {
+        const amountCol = headers.find(h => h.toLowerCase().includes('amount') || h.toLowerCase().includes('column_2'));
+        if (amountCol) {
+          mappings.amount = amountCol;
+          console.log(`💰 Fallback amount mapping: ${amountCol}`);
+        }
+      }
+      
+      if (!mappings.description) {
+        const descCol = headers.find(h => h.toLowerCase().includes('description') || h.toLowerCase().includes('column_3'));
+        if (descCol) {
+          mappings.description = descCol;
+          console.log(`📝 Fallback description mapping: ${descCol}`);
+        }
+      }
+    }
+
+    console.log("🗂️ Auto-detected mappings:", mappings);
     return mappings;
   };
 
