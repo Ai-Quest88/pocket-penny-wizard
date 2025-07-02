@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { categorizeTransactionsBatch } from "@/utils/aiCategorization";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
+import * as XLSX from 'xlsx';
 
 interface ImportTransactionsProps {
   onSuccess?: () => void;
@@ -21,18 +22,34 @@ interface CSVRow {
   [key: string]: any;
 }
 
-// Date conversion function to handle various formats
-const formatDateForSupabase = (dateString: string): string => {
-  if (!dateString || dateString.trim() === '') {
+// Date conversion function to handle various formats including Excel serial dates
+const formatDateForSupabase = (dateValue: string | number): string => {
+  if (!dateValue && dateValue !== 0) {
     return new Date().toISOString().split('T')[0];
   }
 
   try {
-    console.log(`🗓️ Formatting date: "${dateString}"`);
+    console.log(`🗓️ Formatting date: "${dateValue}" (type: ${typeof dateValue})`);
+    
+    // Handle Excel serial dates (numbers)
+    if (typeof dateValue === 'number' || (!isNaN(Number(dateValue)) && Number(dateValue) > 40000)) {
+      const serialDate = Number(dateValue);
+      if (serialDate > 40000 && serialDate < 60000) { // Reasonable range for Excel dates (2009-2164)
+        // Excel serial date: days since 1900-01-01 (with leap year bug correction)
+        const excelEpoch = new Date(1900, 0, 1);
+        const days = serialDate - 1; // Excel counts from 1, JavaScript from 0
+        const date = new Date(excelEpoch.getTime() + days * 24 * 60 * 60 * 1000);
+        const result = date.toISOString().split('T')[0];
+        console.log(`🗓️ Excel serial date ${serialDate} -> ${result}`);
+        return result;
+      }
+    }
+
+    const dateString = String(dateValue).trim();
     
     // Handle DD/MM/YYYY format specifically (Australian/UK format)
     const ddmmyyyyPattern = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
-    const match = dateString.trim().match(ddmmyyyyPattern);
+    const match = dateString.match(ddmmyyyyPattern);
     
     if (match) {
       const [, day, month, year] = match;
@@ -51,7 +68,7 @@ const formatDateForSupabase = (dateString: string): string => {
     
     // Handle YYYY-MM-DD format (ISO format)
     const isoPattern = /^(\d{4})-(\d{1,2})-(\d{1,2})$/;
-    const isoMatch = dateString.trim().match(isoPattern);
+    const isoMatch = dateString.match(isoPattern);
     if (isoMatch) {
       const [, year, month, day] = isoMatch;
       const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
@@ -64,7 +81,7 @@ const formatDateForSupabase = (dateString: string): string => {
     
     // Handle MM/DD/YYYY format (US format) as fallback
     const mmddyyyyPattern = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
-    const usMatch = dateString.trim().match(mmddyyyyPattern);
+    const usMatch = dateString.match(mmddyyyyPattern);
     if (usMatch) {
       const [, month, day, year] = usMatch;
       const dayNum = parseInt(day);
@@ -90,7 +107,7 @@ const formatDateForSupabase = (dateString: string): string => {
       return result;
     }
     
-    console.warn(`Invalid date format: ${dateString}. Using current date.`);
+    console.warn(`Invalid date format: ${dateValue}. Using current date.`);
     return new Date().toISOString().split('T')[0];
   } catch (error) {
     console.error("Error formatting date:", error);
@@ -124,12 +141,16 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
   const onDrop = (acceptedFiles: File[]) => {
     setCsvFile(acceptedFiles[0]);
     setIsMappingHeaders(true);
-    parseCSV(acceptedFiles[0]);
+    parseFile(acceptedFiles[0]);
   };
 
   const { getRootProps, getInputProps } = useDropzone({ 
     onDrop, 
-    accept: { 'text/csv': ['.csv'] },
+    accept: { 
+      'text/csv': ['.csv'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'application/vnd.ms-excel': ['.xls']
+    },
     multiple: false
   });
 
@@ -183,6 +204,103 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
       });
     };
     reader.readAsText(file);
+  };
+
+  const parseExcel = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result;
+        if (!data) {
+          toast({
+            title: "Error",
+            description: "Could not read Excel file content",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        console.log("📊 Parsing Excel file...");
+        const workbook = XLSX.read(data, { type: 'array', cellDates: false });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        
+        // Convert to JSON with raw values to handle dates properly
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+          header: 1,
+          raw: true,
+          defval: ''
+        }) as any[][];
+
+        if (jsonData.length < 2) {
+          toast({
+            title: "Error parsing Excel",
+            description: "Excel file must have at least a header row and one data row.",
+            variant: "destructive",
+          });
+          setIsMappingHeaders(false);
+          return;
+        }
+
+        // First row contains headers
+        const headers = jsonData[0].map(h => String(h).trim()).filter(h => h);
+        
+        // Convert data rows to objects
+        const dataRows = jsonData.slice(1).map(row => {
+          const obj: CSVRow = {};
+          headers.forEach((header, index) => {
+            obj[header] = row[index] !== undefined ? row[index] : '';
+          });
+          return obj;
+        }).filter(row => {
+          // Filter out completely empty rows
+          return Object.values(row).some(value => value !== '' && value !== null && value !== undefined);
+        });
+
+        if (dataRows.length === 0) {
+          toast({
+            title: "Error parsing Excel",
+            description: "No data rows found in the Excel file.",
+            variant: "destructive",
+          });
+          setIsMappingHeaders(false);
+          return;
+        }
+
+        console.log(`📊 Excel parsed: ${headers.length} headers, ${dataRows.length} data rows`);
+        setPreviewData(dataRows.slice(0, 5));
+        setCsvHeaders(headers);
+
+      } catch (error) {
+        console.error("Excel parsing error:", error);
+        toast({
+          title: "Error parsing Excel",
+          description: `Failed to parse Excel file: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          variant: "destructive",
+        });
+        setIsMappingHeaders(false);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  const parseFile = (file: File) => {
+    const fileExtension = file.name.toLowerCase().split('.').pop();
+    
+    if (fileExtension === 'csv') {
+      console.log("📄 Parsing as CSV file");
+      parseCSV(file);
+    } else if (fileExtension === 'xlsx' || fileExtension === 'xls') {
+      console.log("📊 Parsing as Excel file");
+      parseExcel(file);
+    } else {
+      toast({
+        title: "Unsupported file type",
+        description: "Please upload a CSV or Excel (.xlsx/.xls) file.",
+        variant: "destructive",
+      });
+      setIsMappingHeaders(false);
+    }
   };
 
   const autoDetectHeaders = (headers: string[]): { [key: string]: string } => {
@@ -249,35 +367,117 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
 
     setUploading(true);
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const csvText = e.target?.result as string;
-      if (!csvText) {
-        toast({
-          title: "Error",
-          description: "Could not read file content",
-          variant: "destructive",
-        });
-        setUploading(false);
-        return;
-      }
+    const fileExtension = csvFile.name.toLowerCase().split('.').pop();
+    
+    if (fileExtension === 'csv') {
+      // Handle CSV files
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const csvText = e.target?.result as string;
+        if (!csvText) {
+          toast({
+            title: "Error",
+            description: "Could not read file content",
+            variant: "destructive",
+          });
+          setUploading(false);
+          return;
+        }
 
-      readString(csvText, {
-        header: true,
-        skipEmptyLines: true,
-        complete: async (results) => {
-          if (!results.data || results.data.length === 0) {
+        readString(csvText, {
+          header: true,
+          skipEmptyLines: true,
+          complete: async (results) => {
+            if (!results.data || results.data.length === 0) {
+              toast({
+                title: "Parse Error",
+                description: "No data found in the CSV file.",
+                variant: "destructive",
+              });
+              setUploading(false);
+              return;
+            }
+
+            const transactions = results.data.map((row: any) => ({
+              date: formatDateForSupabase(row[headerMappings.date]),
+              description: row[headerMappings.description],
+              amount: parseFloat(row[headerMappings.amount]),
+              currency: row[headerMappings.currency] || 'AUD',
+            })).filter(t => t.date && t.description && !isNaN(t.amount));
+
+            if (transactions.length === 0) {
+              toast({
+                title: "Data Error",
+                description: "No valid transactions found in the file.",
+                variant: "destructive",
+              });
+              setUploading(false);
+              return;
+            }
+
+            await handleTransactionsUploaded(transactions);
+            setUploading(false);
+          },
+          error: (error) => {
             toast({
-              title: "Parse Error",
-              description: "No data found in the CSV file.",
+              title: "Error parsing CSV",
+              description: error.message,
+              variant: "destructive",
+            });
+            setUploading(false);
+          },
+        });
+      };
+      reader.readAsText(csvFile);
+    } else if (fileExtension === 'xlsx' || fileExtension === 'xls') {
+      // Handle Excel files
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const data = e.target?.result;
+          if (!data) {
+            toast({
+              title: "Error",
+              description: "Could not read Excel file content",
               variant: "destructive",
             });
             setUploading(false);
             return;
           }
 
-          const transactions = results.data.map((row: any) => ({
-            date: formatDateForSupabase(String(row[headerMappings.date] || '')),
+          const workbook = XLSX.read(data, { type: 'array', cellDates: false });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+            header: 1,
+            raw: true,
+            defval: ''
+          }) as any[][];
+
+          if (jsonData.length < 2) {
+            toast({
+              title: "Parse Error",
+              description: "Excel file must have at least a header row and one data row.",
+              variant: "destructive",
+            });
+            setUploading(false);
+            return;
+          }
+
+          const headers = jsonData[0].map(h => String(h).trim()).filter(h => h);
+          const dataRows = jsonData.slice(1).map(row => {
+            const obj: CSVRow = {};
+            headers.forEach((header, index) => {
+              obj[header] = row[index] !== undefined ? row[index] : '';
+            });
+            return obj;
+          }).filter(row => {
+            return Object.values(row).some(value => value !== '' && value !== null && value !== undefined);
+          });
+
+          const transactions = dataRows.map((row: any) => ({
+            date: formatDateForSupabase(row[headerMappings.date]),
             description: row[headerMappings.description],
             amount: parseFloat(row[headerMappings.amount]),
             currency: row[headerMappings.currency] || 'AUD',
@@ -286,7 +486,7 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
           if (transactions.length === 0) {
             toast({
               title: "Data Error",
-              description: "No valid transactions found in the file.",
+              description: "No valid transactions found in the Excel file.",
               variant: "destructive",
             });
             setUploading(false);
@@ -295,18 +495,25 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
 
           await handleTransactionsUploaded(transactions);
           setUploading(false);
-        },
-        error: (error) => {
+        } catch (error) {
+          console.error("Excel upload error:", error);
           toast({
-            title: "Error parsing CSV",
-            description: error.message,
+            title: "Error parsing Excel",
+            description: `Failed to parse Excel file: ${error instanceof Error ? error.message : 'Unknown error'}`,
             variant: "destructive",
           });
           setUploading(false);
-        },
+        }
+      };
+      reader.readAsArrayBuffer(csvFile);
+    } else {
+      toast({
+        title: "Unsupported file type",
+        description: "Please upload a CSV or Excel (.xlsx/.xls) file.",
+        variant: "destructive",
       });
-    };
-    reader.readAsText(csvFile);
+      setUploading(false);
+    }
   };
 
   const handleTransactionsUploaded = async (transactions: any[]) => {
@@ -393,10 +600,10 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
         <input {...getInputProps()} />
         <div className="text-center">
           <p className="text-muted-foreground">
-            Drag 'n' drop a CSV file here, or click to select files
+            Drag 'n' drop a CSV or Excel file here, or click to select files
           </p>
           <p className="text-sm text-muted-foreground mt-2">
-            CSV files with transaction data are supported. Supports DD/MM/YYYY, YYYY-MM-DD, and MM/DD/YYYY date formats.
+            Supports CSV, Excel (.xlsx/.xls) files. Date formats: DD/MM/YYYY, YYYY-MM-DD, MM/DD/YYYY, and Excel serial dates.
           </p>
         </div>
       </div>
@@ -404,9 +611,9 @@ const ImportTransactions = ({ onSuccess }: ImportTransactionsProps) => {
       {isMappingHeaders && (
         <div className="space-y-4">
           <div>
-            <h3 className="text-lg font-semibold">Map CSV Headers</h3>
+            <h3 className="text-lg font-semibold">Map File Headers</h3>
             <p className="text-sm text-muted-foreground">
-              Please map the columns from your CSV to the corresponding fields. Date formats supported: DD/MM/YYYY, YYYY-MM-DD, MM/DD/YYYY.
+              Please map the columns from your file to the corresponding fields. Date formats supported: DD/MM/YYYY, YYYY-MM-DD, MM/DD/YYYY, and Excel serial dates.
             </p>
           </div>
 
