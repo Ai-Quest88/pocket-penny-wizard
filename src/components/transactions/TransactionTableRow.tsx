@@ -3,6 +3,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/utils/currencyUtils";
 
 interface Transaction {
   id: string;
@@ -97,12 +98,11 @@ export const TransactionTableRow = ({
             convertedAmount > 0 ? "text-green-600" : "text-red-600"
           )}>
             {convertedAmount > 0 ? "+" : ""}
-            {currencySymbols[displayCurrency]}
-            {Math.abs(convertedAmount).toFixed(2)}
+            {formatCurrency(Math.abs(convertedAmount), displayCurrency)}
           </p>
           {transaction.currency !== displayCurrency && (
             <p className="text-xs text-muted-foreground">
-              {currencySymbols[transaction.currency]}{Math.abs(transaction.amount).toFixed(2)}
+              {formatCurrency(Math.abs(transaction.amount), transaction.currency)}
             </p>
           )}
         </div>
@@ -110,8 +110,7 @@ export const TransactionTableRow = ({
       {showBalance && (
         <TableCell className="text-right">
           <p className="font-semibold">
-            {currencySymbols[displayCurrency]}
-            {Math.abs(balance).toFixed(2)}
+            {formatCurrency(Math.abs(balance), displayCurrency)}
           </p>
         </TableCell>
       )}

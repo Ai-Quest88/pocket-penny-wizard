@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/contexts/AuthContext"
 import { useCurrency } from "@/contexts/CurrencyContext"
+import { formatCurrency } from "@/utils/currencyUtils"
 
 const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7c7c", "#8dd1e1", "#d084d0"];
 
@@ -114,7 +115,7 @@ export const CategoryPieChart = ({ entityId }: CategoryPieChartProps) => {
         <div className="bg-background border rounded-lg p-3 shadow-md">
           <p className="font-semibold">{data.payload.name}</p>
           <p className="text-muted-foreground">
-            {currencySymbols[displayCurrency]}{data.value.toFixed(2)} ({percentage}%)
+            {formatCurrency(data.value, displayCurrency)} ({percentage}%)
           </p>
         </div>
       );
@@ -187,7 +188,7 @@ export const CategoryPieChart = ({ entityId }: CategoryPieChartProps) => {
           <div className="flex justify-between items-center">
             <span className="text-sm font-medium">Total Expenses</span>
             <span className="text-sm font-semibold">
-              {currencySymbols[displayCurrency]}{total.toFixed(2)}
+              {formatCurrency(total, displayCurrency)}
             </span>
           </div>
         </div>

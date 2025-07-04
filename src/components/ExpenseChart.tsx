@@ -7,6 +7,7 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format, subMonths } from "date-fns";
+import { formatCurrency } from "@/utils/currencyUtils";
 
 const COLORS = ["#8CA891", "#A8DADC", "#457B9D", "#E63946", "#F1FAEE", "#E76F51", "#264653", "#2A9D8F"];
 
@@ -31,7 +32,7 @@ const CustomTooltip = ({ active, payload }: any) => {
       <div className="bg-white p-2 border rounded shadow-sm">
         <p className="text-sm font-medium">{data.name}</p>
         <p className="text-sm text-muted-foreground">
-          {percentage}% ({data.symbol}{data.value.toFixed(2)})
+          {percentage}% ({data.symbol}{data.value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})})
         </p>
       </div>
     );
@@ -117,11 +118,11 @@ export const ExpenseChart = () => {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
               <YAxis 
-                tickFormatter={(value) => `${currencySymbols[displayCurrency]}${value.toFixed(0)}`}
+                tickFormatter={(value) => formatCurrency(value, displayCurrency, { precision: 0 })}
               />
               <Tooltip 
                 formatter={(value: number) => [
-                  `${currencySymbols[displayCurrency]}${value.toFixed(2)}`, 
+                  formatCurrency(value, displayCurrency), 
                   'Expenses'
                 ]}
               />

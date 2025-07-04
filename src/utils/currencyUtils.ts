@@ -175,7 +175,12 @@ export const formatCurrency = (
   const currency = currencies.find(c => c.code === currencyCode);
   const symbol = currency?.symbol || currencyCode;
   
-  const formattedAmount = Math.abs(amount).toFixed(precision);
+  // Format the number with commas for thousands separators
+  const formattedAmount = Math.abs(amount).toLocaleString('en-US', {
+    minimumFractionDigits: precision,
+    maximumFractionDigits: precision,
+  });
+  
   const sign = amount < 0 ? "-" : "";
   
   let result = `${sign}${showSymbol ? symbol : ""}${formattedAmount}`;
