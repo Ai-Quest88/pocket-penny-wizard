@@ -117,7 +117,7 @@ export const getCachedExchangeRates = (): ExchangeRates | null => {
   }
 };
 
-export const isRatesCacheValid = (rates: any): boolean => {
+export const isRatesCacheValid = (rates: Record<string, any>): boolean => {
   const timestamp = rates._timestamp;
   if (!timestamp) return false;
   
