@@ -1,5 +1,5 @@
 
-import { BarChart2, CreditCard, DollarSign, Home, Settings, Users, Wallet, List, Upload, FileText, TrendingUp, Calendar, Activity, PieChart } from "lucide-react"
+import { BarChart2, CreditCard, DollarSign, Home, Settings, Users, Wallet, List, Upload, FileText, TrendingUp, Calendar, Activity, PieChart, ArrowLeftRight } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -116,6 +116,19 @@ export function AppSidebar() {
                   >
                     <List className="h-4 w-4" />
                     <span>Transactions</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link 
+                    to="/transfers"
+                    className="flex items-center gap-2"
+                    data-active={location.pathname === "/transfers"}
+                  >
+                    <ArrowLeftRight className="h-4 w-4" />
+                    <span>Transfers</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

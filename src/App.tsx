@@ -22,6 +22,7 @@ import {
 import { useNavigate } from "react-router-dom"
 import Dashboard from "./pages/Dashboard"
 import Transactions from "./pages/Transactions"
+import Transfers from "./pages/Transfers"
 import Accounts from "./pages/Accounts"
 import Analytics from "./pages/Analytics"
 import Budgets from "./pages/Budgets"
@@ -165,6 +166,7 @@ const AppRoutes = () => {
                 <Routes>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/transactions" element={<Transactions />} />
+                  <Route path="/transfers" element={<Transfers />} />
                   <Route path="/analytics" element={<Analytics />} />
                   <Route path="/accounts" element={<Accounts />} />
                   <Route path="/entities" element={<Entities />} />
