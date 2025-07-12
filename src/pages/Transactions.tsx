@@ -1,12 +1,12 @@
 
 import { Button } from "@/components/ui/button"
-import { PlusCircle } from "lucide-react"
+import { PlusCircle, ArrowLeftRight } from "lucide-react"
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { UnifiedCsvUpload } from "@/components/transaction-forms/UnifiedCsvUpload"
 import { TransactionList } from "@/components/TransactionList"
 import { useAuth } from "@/contexts/AuthContext"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, Link } from "react-router-dom"
 
 const Transactions = () => {
   const [isAddingTransaction, setIsAddingTransaction] = useState(false)
@@ -43,6 +43,15 @@ const Transactions = () => {
             <p className="text-muted-foreground">Manage your transactions</p>
           </div>
           <div className="flex items-center gap-2">
+            <Link to="/transactions/transfers">
+              <Button 
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <ArrowLeftRight className="h-4 w-4" />
+                View Transfers
+              </Button>
+            </Link>
             <Dialog open={isAddingTransaction} onOpenChange={handleDialogOpenChange}>
               <DialogTrigger asChild>
                 <Button 
