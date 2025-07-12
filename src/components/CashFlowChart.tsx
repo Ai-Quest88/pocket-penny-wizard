@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/contexts/AuthContext"
 import { useCurrency } from "@/contexts/CurrencyContext"
+import { formatCurrency } from "@/utils/currencyUtils"
 
 interface Transaction {
   id: string;
@@ -138,11 +139,11 @@ export const CashFlowChart = ({ entityId }: CashFlowChartProps) => {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis 
-                tickFormatter={(value) => `${currencySymbols[displayCurrency]}${value.toFixed(0)}`}
+                tickFormatter={(value) => formatCurrency(value, displayCurrency, { precision: 0 })}
               />
               <Tooltip 
                 formatter={(value: number, name: string) => [
-                  `${currencySymbols[displayCurrency]}${value.toFixed(2)}`, 
+                  formatCurrency(value, displayCurrency), 
                   name.charAt(0).toUpperCase() + name.slice(1)
                 ]}
               />

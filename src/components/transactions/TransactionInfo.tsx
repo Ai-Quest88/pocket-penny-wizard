@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { formatCurrency } from "@/utils/currencyUtils";
 
 interface Transaction {
   id: string;
@@ -26,11 +27,11 @@ export function TransactionInfo({ transaction }: TransactionInfoProps) {
         <div className="text-right">
           <p className={`text-lg font-semibold ${convertedAmount > 0 ? "text-green-600" : "text-red-600"}`}>
             {convertedAmount > 0 ? "+" : ""}
-            {currencySymbols[displayCurrency]}{Math.abs(convertedAmount).toFixed(2)}
+            {formatCurrency(Math.abs(convertedAmount), displayCurrency)}
           </p>
           {transaction.currency !== displayCurrency && (
             <p className="text-sm text-muted-foreground">
-              {currencySymbols[transaction.currency]}{Math.abs(transaction.amount).toFixed(2)}
+              {formatCurrency(Math.abs(transaction.amount), transaction.currency)}
             </p>
           )}
         </div>

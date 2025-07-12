@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table"
 import { Edit, Trash2 } from "lucide-react"
 import { Budget } from "@/types/budget"
+import { formatCurrency } from "@/utils/currencyUtils"
 
 interface BudgetsListProps {
   budgets: Budget[]
@@ -51,7 +52,7 @@ export function BudgetsList({ budgets, onEditBudget, onDeleteBudget }: BudgetsLi
           {budgets.map((budget) => (
             <TableRow key={budget.id}>
               <TableCell className="font-medium">{budget.category}</TableCell>
-              <TableCell>${budget.amount.toFixed(2)}</TableCell>
+              <TableCell>{formatCurrency(budget.amount, "USD")}</TableCell>
               <TableCell className="capitalize">{budget.period}</TableCell>
               <TableCell>{new Date(budget.startDate).toLocaleDateString()}</TableCell>
               <TableCell>
