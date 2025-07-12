@@ -123,6 +123,19 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link 
+                    to="/transactions/transfers"
+                    className="flex items-center gap-2"
+                    data-active={location.pathname === "/transactions/transfers"}
+                  >
+                    <Upload className="h-4 w-4" />
+                    <span>Transfers</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link 
                     to="/settings"
                     className="flex items-center gap-2"
                     data-active={location.pathname === "/settings"}

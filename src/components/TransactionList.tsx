@@ -26,6 +26,11 @@ interface TransactionListProps {
   entityId?: string;
   showBalance?: boolean;
   readOnly?: boolean;
+  /**
+   * Optional category filter to restrict displayed transactions to a single category.
+   * Useful for dedicated pages such as Transfers that should only show a subset of data.
+   */
+  categoryFilter?: string;
 }
 
 interface SearchFilters {
@@ -35,7 +40,7 @@ interface SearchFilters {
   amountRange: string;
 }
 
-export const TransactionList = ({ entityId, showBalance = false, readOnly = false }: TransactionListProps) => {
+export const TransactionList = ({ entityId, showBalance = false, readOnly = false, categoryFilter }: TransactionListProps) => {
   const { displayCurrency, setDisplayCurrency, convertAmount, currencySymbols, exchangeRates } = useCurrency();
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -167,6 +172,11 @@ export const TransactionList = ({ entityId, showBalance = false, readOnly = fals
   const filteredTransactions = useMemo(() => {
     let filtered = [...transactions];
 
+    // Apply explicit category filter passed via props BEFORE interactive filters.
+    if (categoryFilter) {
+      filtered = filtered.filter(t => t.category === categoryFilter);
+    }
+
     if (searchFilters.searchTerm) {
       filtered = filtered.filter(transaction =>
         transaction.description.toLowerCase().includes(searchFilters.searchTerm.toLowerCase())
@@ -227,7 +237,7 @@ export const TransactionList = ({ entityId, showBalance = false, readOnly = fals
     }
 
     return filtered;
-  }, [transactions, searchFilters]);
+  }, [transactions, searchFilters, categoryFilter]);
 
   // Calculate running balance
   const calculateBalance = (index: number): number => {
