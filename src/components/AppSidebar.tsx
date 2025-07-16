@@ -123,6 +123,19 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link 
+                    to="/reports"
+                    className="flex items-center gap-2"
+                    data-active={location.pathname.startsWith("/reports")}
+                  >
+                    <BarChart2 className="h-4 w-4" />
+                    <span>Reports</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link 
                     to="/settings"
                     className="flex items-center gap-2"
                     data-active={location.pathname === "/settings"}
@@ -135,19 +148,6 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link 
-                    to="/reports"
-                    className="flex items-center gap-2"
-                    data-active={location.pathname.startsWith("/reports")}
-                  >
-                    <BarChart2 className="h-4 w-4" />
-                    <span>Reports</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
       </SidebarContent>
     </Sidebar>
   )
