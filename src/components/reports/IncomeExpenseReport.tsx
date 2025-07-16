@@ -45,14 +45,13 @@ export function IncomeExpenseReport() {
       const monthStart = format(startOfMonth(currentMonth), 'yyyy-MM-dd');
       const monthEnd = format(endOfMonth(currentMonth), 'yyyy-MM-dd');
 
-      // Fetch transactions for the current month (excluding transfers and internal transfers)
+      // Fetch transactions for the current month (excluding internal transfers only)
       const { data: transactions, error: transactionsError } = await supabase
         .from('transactions')
         .select('*')
         .eq('user_id', session.user.id)
         .gte('date', monthStart)
         .lte('date', monthEnd)
-        .neq('category', 'Transfer')
         .neq('category', 'Internal Transfer');
 
       if (transactionsError) throw transactionsError;
