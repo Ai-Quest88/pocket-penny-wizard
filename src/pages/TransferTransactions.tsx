@@ -38,6 +38,11 @@ const TransferTransactions = () => {
       const totalTransfers = data?.length || 0;
       const totalAmount = data?.reduce((sum, t) => sum + Math.abs(t.amount), 0) || 0;
       
+      // Calculate net transfer (transfers in - transfers out)
+      const transfersIn = data?.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0) || 0;
+      const transfersOut = data?.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0) || 0;
+      const netTransfer = transfersIn - transfersOut;
+      
       // Find potential internal transfers (matching amounts on same or close dates)
       const potentialInternalTransfers: any[] = [];
       
@@ -69,6 +74,9 @@ const TransferTransactions = () => {
       return {
         totalTransfers,
         totalAmount,
+        transfersIn,
+        transfersOut,
+        netTransfer,
         potentialInternalTransfers,
         recentTransfers: data?.slice(0, 5) || []
       };
@@ -141,23 +149,50 @@ const TransferTransactions = () => {
 
         {/* Statistics Cards */}
         {transferStats && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="p-6">
-              <h3 className="text-sm font-medium text-muted-foreground">Total Transfers</h3>
-              <p className="text-2xl font-bold mt-2">{transferStats.totalTransfers}</p>
-            </Card>
-            
-            <Card className="p-6">
-              <h3 className="text-sm font-medium text-muted-foreground">Total Transfer Volume</h3>
-              <p className="text-2xl font-bold mt-2">
-                ${transferStats.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
-            </Card>
-            
-            <Card className="p-6">
-              <h3 className="text-sm font-medium text-muted-foreground">Potential Internal Transfers</h3>
-              <p className="text-2xl font-bold mt-2">{transferStats.potentialInternalTransfers.length}</p>
-            </Card>
+          <div className="space-y-6">
+            {/* Primary Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card className="p-6">
+                <h3 className="text-sm font-medium text-muted-foreground">Total Transfers</h3>
+                <p className="text-2xl font-bold mt-2">{transferStats.totalTransfers}</p>
+              </Card>
+              
+              <Card className="p-6">
+                <h3 className="text-sm font-medium text-muted-foreground">Total Transfer Volume</h3>
+                <p className="text-2xl font-bold mt-2">
+                  ${transferStats.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </Card>
+              
+              <Card className="p-6">
+                <h3 className="text-sm font-medium text-muted-foreground">Potential Internal Transfers</h3>
+                <p className="text-2xl font-bold mt-2">{transferStats.potentialInternalTransfers.length}</p>
+              </Card>
+            </div>
+
+            {/* Transfer Breakdown */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card className="p-6">
+                <h3 className="text-sm font-medium text-muted-foreground">Transfers In</h3>
+                <p className="text-2xl font-bold mt-2 text-green-600">
+                  +${transferStats.transfersIn.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </Card>
+              
+              <Card className="p-6">
+                <h3 className="text-sm font-medium text-muted-foreground">Transfers Out</h3>
+                <p className="text-2xl font-bold mt-2 text-red-600">
+                  -${transferStats.transfersOut.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </Card>
+              
+              <Card className="p-6">
+                <h3 className="text-sm font-medium text-muted-foreground">Net Transfer</h3>
+                <p className={`text-2xl font-bold mt-2 ${transferStats.netTransfer >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {transferStats.netTransfer >= 0 ? '+' : ''}${transferStats.netTransfer.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </Card>
+            </div>
           </div>
         )}
 
