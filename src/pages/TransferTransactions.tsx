@@ -1,17 +1,20 @@
 import { Button } from "@/components/ui/button"
-import { ArrowLeftRight, Download } from "lucide-react"
+import { ArrowLeftRight, Download, RefreshCw } from "lucide-react"
 import { TransactionList } from "@/components/TransactionList"
 import { useAuth } from "@/contexts/AuthContext"
 import { useNavigate } from "react-router-dom"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
+import { useToast } from "@/hooks/use-toast"
 
 const TransferTransactions = () => {
   const { isAuthenticated, session } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   // Redirect to login if not authenticated
   if (!isAuthenticated) {
@@ -124,6 +127,45 @@ const TransferTransactions = () => {
     window.URL.revokeObjectURL(url);
   };
 
+  const autoCategorizeInternalTransfers = async () => {
+    if (!session?.user || !transferStats?.potentialInternalTransfers.length) return;
+
+    try {
+      // Update all potential internal transfer pairs to "Internal Transfer" category
+      const updatePromises = transferStats.potentialInternalTransfers.map(pair => {
+        const updates = [
+          supabase
+            .from('transactions')
+            .update({ category: 'Internal Transfer' })
+            .eq('id', pair.transaction1.id),
+          supabase
+            .from('transactions')
+            .update({ category: 'Internal Transfer' })
+            .eq('id', pair.transaction2.id)
+        ];
+        return Promise.all(updates);
+      });
+
+      await Promise.all(updatePromises);
+
+      // Refresh the data
+      queryClient.invalidateQueries({ queryKey: ['transfer-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+
+      toast({
+        title: "Internal Transfers Categorized",
+        description: `Successfully categorized ${transferStats.potentialInternalTransfers.length * 2} transactions as "Internal Transfer"`,
+      });
+    } catch (error) {
+      console.error('Error auto-categorizing internal transfers:', error);
+      toast({
+        title: "Error",
+        description: "Failed to categorize internal transfers. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="p-8 min-h-screen bg-background">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -150,28 +192,13 @@ const TransferTransactions = () => {
         {/* Statistics Cards */}
         {transferStats && (
           <div className="space-y-6">
-            {/* Primary Statistics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="p-6">
-                <h3 className="text-sm font-medium text-muted-foreground">Total Transfers</h3>
-                <p className="text-2xl font-bold mt-2">{transferStats.totalTransfers}</p>
-              </Card>
-              
-              <Card className="p-6">
-                <h3 className="text-sm font-medium text-muted-foreground">Total Transfer Volume</h3>
-                <p className="text-2xl font-bold mt-2">
-                  ${transferStats.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
-              </Card>
-              
+            {/* Transfer Breakdown */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <Card className="p-6">
                 <h3 className="text-sm font-medium text-muted-foreground">Potential Internal Transfers</h3>
                 <p className="text-2xl font-bold mt-2">{transferStats.potentialInternalTransfers.length}</p>
               </Card>
-            </div>
-
-            {/* Transfer Breakdown */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              
               <Card className="p-6">
                 <h3 className="text-sm font-medium text-muted-foreground">Transfers In</h3>
                 <p className="text-2xl font-bold mt-2 text-green-600">
@@ -234,6 +261,15 @@ const TransferTransactions = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+              <div className="flex justify-end mt-4">
+                <Button 
+                  onClick={autoCategorizeInternalTransfers}
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Auto-Categorize as Internal Transfers
+                </Button>
               </div>
             </div>
           </Card>

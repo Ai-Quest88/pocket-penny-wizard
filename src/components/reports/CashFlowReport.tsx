@@ -47,6 +47,7 @@ export function CashFlowReport() {
         .gte('date', format(startDate, 'yyyy-MM-dd'))
         .lte('date', format(endDate, 'yyyy-MM-dd'))
         .neq('category', 'Transfer')
+        .neq('category', 'Internal Transfer')
         .order('date', { ascending: true })
 
       if (error) throw error
@@ -55,13 +56,14 @@ export function CashFlowReport() {
       const monthlyData: Record<string, { income: number; expenses: number }> = {}
       let runningBalance = 0
 
-      // Calculate starting balance (transactions before the period, excluding transfers)
+      // Calculate starting balance (transactions before the period, excluding transfers and internal transfers)
       const { data: earlierTransactions } = await supabase
         .from('transactions')
         .select('amount, currency')
         .eq('user_id', session.user.id)
         .lt('date', format(startDate, 'yyyy-MM-dd'))
         .neq('category', 'Transfer')
+        .neq('category', 'Internal Transfer')
 
       const startingBalance = (earlierTransactions || []).reduce((sum, transaction) => {
         const convertedAmount = exchangeRates 

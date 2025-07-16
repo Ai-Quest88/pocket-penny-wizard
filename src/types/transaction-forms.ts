@@ -4,7 +4,7 @@ export const categories = [
   'Healthcare', 'Insurance', 'Utilities', 'Transportation', 'Education',
   'Travel', 'Gifts & Donations', 'Personal Care', 'Professional Services',
   'Home & Garden', 'Electronics', 'Clothing', 'Books', 'Subscriptions',
-  'Banking', 'Investment', 'Taxes', 'Legal', 'Miscellaneous', 'Transfer',
+  'Banking', 'Investment', 'Taxes', 'Legal', 'Miscellaneous', 'Transfer', 'Internal Transfer',
   'Income', 'Salary', 'Business', 'Freelance', 'Interest', 'Dividends',
   'Other Income', 'Rental Income', 'Government Benefits', 'Pension',
   'Child Support', 'Alimony', 'Gifts Received', 'Refunds',
@@ -47,7 +47,7 @@ export const categoryBuckets: CategoryBucket[] = [
   {
     name: "Financial",
     categories: [
-      "Banking", "Investment", "Taxes", "Legal", "Transfer", "Income",
+      "Banking", "Investment", "Taxes", "Legal", "Transfer", "Internal Transfer", "Income",
       "Salary", "Business", "Freelance", "Interest", "Dividends",
       "Other Income", "Rental Income", "Government Benefits", "Pension",
       "Child Support", "Alimony", "Gifts Received", "Refunds", "Cryptocurrency"
