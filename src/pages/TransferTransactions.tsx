@@ -32,7 +32,7 @@ const TransferTransactions = () => {
         .from('transactions')
         .select('*')
         .eq('user_id', session.user.id)
-        .eq('category', 'Transfer')
+        .in('category', ['Transfer In', 'Transfer Out'])
         .order('date', { ascending: false });
 
       if (error) throw error;
@@ -94,7 +94,7 @@ const TransferTransactions = () => {
       .from('transactions')
       .select('*')
       .eq('user_id', session.user.id)
-      .eq('category', 'Transfer')
+      .in('category', ['Transfer In', 'Transfer Out'])
       .order('date', { ascending: false });
 
     if (error || !data) {
@@ -293,10 +293,10 @@ const TransferTransactionList = () => {
     <Card className="animate-fadeIn">
       <div className="p-6">
         <p className="text-sm text-muted-foreground mb-4">
-          Note: The transactions below are filtered to show only those categorized as "Transfer".
+          Note: The transactions below are filtered to show only those categorized as "Transfer In" or "Transfer Out".
           You can edit individual transactions to update their categories if needed.
         </p>
-        <TransactionList initialCategoryFilter="Transfer" />
+        <TransactionList initialCategoryFilter={['Transfer In', 'Transfer Out']} />
       </div>
     </Card>
   );

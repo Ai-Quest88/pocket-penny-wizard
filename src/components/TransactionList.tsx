@@ -26,7 +26,7 @@ interface TransactionListProps {
   entityId?: string;
   showBalance?: boolean;
   readOnly?: boolean;
-  initialCategoryFilter?: string;
+  initialCategoryFilter?: string | string[];
   filterCategory?: string;
 }
 
@@ -44,7 +44,7 @@ export const TransactionList = ({ entityId, showBalance = false, readOnly = fals
   const [selectedTransactions, setSelectedTransactions] = useState<string[]>([]);
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
     searchTerm: "",
-    category: initialCategoryFilter || filterCategory || "",
+    category: Array.isArray(initialCategoryFilter) ? "" : (initialCategoryFilter || filterCategory || ""),
     dateRange: "",
     amountRange: ""
   });
@@ -177,6 +177,11 @@ export const TransactionList = ({ entityId, showBalance = false, readOnly = fals
 
     if (searchFilters.category) {
       filtered = filtered.filter(transaction => transaction.category === searchFilters.category);
+    }
+
+    // Handle array-based category filtering (for components that pass multiple categories)
+    if (Array.isArray(initialCategoryFilter)) {
+      filtered = filtered.filter(transaction => initialCategoryFilter.includes(transaction.category));
     }
 
     if (searchFilters.dateRange) {
