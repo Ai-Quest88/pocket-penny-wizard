@@ -1,114 +1,91 @@
 
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
-import { TransactionTableRow } from "./TransactionTableRow";
-import { useEffect, useRef } from "react";
-
-interface Transaction {
-  id: string;
-  description: string;
-  amount: number;
-  category: string;
-  date: string;
-  currency: string;
-}
+import React from 'react';
+import { TransactionTableRow } from './TransactionTableRow';
+import { Transaction } from '../TransactionList';
+import { Table, TableBody, TableHead, TableHeader, TableRow } from '../ui/table';
+import { Card } from '../ui/card';
 
 interface TransactionTableProps {
   transactions: Transaction[];
-  convertAmount: (amount: number, fromCurrency: string) => number;
-  calculateBalance?: (index: number) => number;
-  displayCurrency: string;
-  currencySymbols: Record<string, string>;
-  onTransactionClick: (transaction: Transaction) => void;
-  onTransactionDeleted?: () => void;
   selectedTransactions: string[];
-  onSelectionChange: (transactionId: string, isSelected: boolean) => void;
-  onSelectAll: (isSelected: boolean) => void;
-  showBalance?: boolean;
+  onTransactionSelect: (selectedIds: string[]) => void;
+  onTransactionUpdate: (transaction: Transaction) => void;
+  onTransactionDelete: (transactionId: string) => void;
   readOnly?: boolean;
+  onTransactionClick?: (transaction: Transaction) => void;
 }
 
-export const TransactionTable = ({
+export const TransactionTable: React.FC<TransactionTableProps> = ({
   transactions,
-  convertAmount,
-  calculateBalance,
-  displayCurrency,
-  currencySymbols,
-  onTransactionClick,
-  onTransactionDeleted,
   selectedTransactions,
-  onSelectionChange,
-  onSelectAll,
-  showBalance = false, // Changed default to false
+  onTransactionSelect,
+  onTransactionUpdate,
+  onTransactionDelete,
   readOnly = false,
-}: TransactionTableProps) => {
-  const allSelected = transactions.length > 0 && selectedTransactions.length === transactions.length;
-  const someSelected = selectedTransactions.length > 0 && selectedTransactions.length < transactions.length;
-  const checkboxRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (checkboxRef.current) {
-      const inputElement = checkboxRef.current.querySelector('input[type="checkbox"]') as HTMLInputElement;
-      if (inputElement) {
-        inputElement.indeterminate = someSelected;
-      }
+  onTransactionClick
+}) => {
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      onTransactionSelect(transactions.map(t => t.id));
+    } else {
+      onTransactionSelect([]);
     }
-  }, [someSelected]);
+  };
+
+  const handleRowSelect = (transactionId: string, checked: boolean) => {
+    if (checked) {
+      onTransactionSelect([...selectedTransactions, transactionId]);
+    } else {
+      onTransactionSelect(selectedTransactions.filter(id => id !== transactionId));
+    }
+  };
+
+  if (transactions.length === 0) {
+    return (
+      <Card className="p-8 text-center">
+        <p className="text-muted-foreground">No transactions found.</p>
+      </Card>
+    );
+  }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          {!readOnly && (
-            <TableHead className="w-8">
-              <Checkbox
-                ref={checkboxRef}
-                checked={allSelected}
-                onCheckedChange={onSelectAll}
-                aria-label="Select all transactions"
-              />
-            </TableHead>
-          )}
-          <TableHead>Date</TableHead>
-          <TableHead>Description</TableHead>
-          <TableHead>Category</TableHead>
-          <TableHead className="text-right">Amount</TableHead>
-          {showBalance && <TableHead className="text-right">Balance</TableHead>}
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {transactions.map((transaction, index) => {
-          const convertedAmount = convertAmount(
-            transaction.amount,
-            transaction.currency
-          );
-          const balance = showBalance && calculateBalance ? calculateBalance(index) : 0;
-          
-          return (
+    <Card>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {!readOnly && (
+              <TableHead className="w-12">
+                <input
+                  type="checkbox"
+                  checked={selectedTransactions.length === transactions.length && transactions.length > 0}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  className="rounded"
+                />
+              </TableHead>
+            )}
+            <TableHead>Date</TableHead>
+            <TableHead>Description</TableHead>
+            <TableHead>Category</TableHead>
+            <TableHead className="text-right">Amount</TableHead>
+            <TableHead>Account</TableHead>
+            {!readOnly && <TableHead className="w-12"></TableHead>}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {transactions.map((transaction) => (
             <TransactionTableRow
               key={transaction.id}
               transaction={transaction}
-              index={index}
-              convertedAmount={convertedAmount}
-              balance={balance}
-              displayCurrency={displayCurrency}
-              currencySymbols={currencySymbols}
-              onTransactionClick={onTransactionClick}
-              onTransactionDeleted={onTransactionDeleted}
               isSelected={selectedTransactions.includes(transaction.id)}
-              onSelectionChange={onSelectionChange}
-              showBalance={showBalance}
+              onSelect={(checked) => handleRowSelect(transaction.id, checked)}
+              onUpdate={onTransactionUpdate}
+              onDelete={onTransactionDelete}
               readOnly={readOnly}
+              onClick={onTransactionClick}
             />
-          );
-        })}
-      </TableBody>
-    </Table>
+          ))}
+        </TableBody>
+      </Table>
+    </Card>
   );
 };

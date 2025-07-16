@@ -1,33 +1,26 @@
-import { Card } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCurrency } from "@/contexts/CurrencyContext";
-import { useState, useMemo, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { TransactionListHeader } from "./transactions/TransactionListHeader";
-import { TransactionTable } from "./transactions/TransactionTable";
-import { TransactionSearch } from "./transactions/TransactionSearch";
-import { BulkEditActions } from "./transactions/BulkEditActions";
-import { EditTransactionDialog } from "./transactions/EditTransactionDialog";
-import { categorizeTransaction } from "@/utils/transactionCategories";
-import { initializeAIClassifier } from "@/utils/aiCategorization";
-import { useAuth } from "@/contexts/AuthContext";
+import React, { useState, useEffect } from 'react';
+import { TransactionTable } from './transactions/TransactionTable';
+import { TransactionListHeader } from './transactions/TransactionListHeader';
+import { BulkEditActions } from './transactions/BulkEditActions';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { Card } from './ui/card';
+import { Skeleton } from './ui/skeleton';
 
-interface Transaction {
+export interface Transaction {
   id: string;
   description: string;
   amount: number;
-  category: string;
   date: string;
+  category: string;
   currency: string;
-}
-
-interface TransactionListProps {
-  entityId?: string;
-  showBalance?: boolean;
-  readOnly?: boolean;
-  initialCategoryFilter?: string | string[];
-  filterCategory?: string;
+  comment?: string;
+  asset_account_id?: string;
+  liability_account_id?: string;
+  created_at?: string;
+  updated_at?: string;
+  user_id: string;
 }
 
 interface SearchFilters {
@@ -37,10 +30,29 @@ interface SearchFilters {
   amountRange: string;
 }
 
-export const TransactionList = ({ entityId, showBalance = false, readOnly = false, initialCategoryFilter, filterCategory }: TransactionListProps) => {
-  const { displayCurrency, setDisplayCurrency, convertAmount, currencySymbols, exchangeRates } = useCurrency();
-  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
+interface TransactionListProps {
+  accountId?: string;
+  entityId?: string;
+  showBalance?: boolean;
+  readOnly?: boolean;
+  initialCategoryFilter?: string | string[];
+  filterCategory?: string;
+  onTransactionSelect?: (transaction: Transaction) => void;
+}
+
+export const TransactionList: React.FC<TransactionListProps> = ({
+  accountId,
+  entityId,
+  showBalance = false,
+  readOnly = false,
+  initialCategoryFilter,
+  filterCategory,
+  onTransactionSelect
+}) => {
+  const { session } = useAuth();
+  const { toast } = useToast();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedTransactions, setSelectedTransactions] = useState<string[]>([]);
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
     searchTerm: "",
@@ -48,356 +60,185 @@ export const TransactionList = ({ entityId, showBalance = false, readOnly = fals
     dateRange: "",
     amountRange: ""
   });
-  const queryClient = useQueryClient();
-  const { session } = useAuth();
 
-  // Initialize AI classifier when component mounts
-  useEffect(() => {
-    initializeAIClassifier().catch(error => {
-      console.warn('Failed to initialize AI classifier:', error);
-    });
-  }, []);
+  const fetchTransactions = async () => {
+    if (!session?.user?.id) return;
 
-  const { data: transactions = [], isLoading, error } = useQuery({
-    queryKey: ['transactions', session?.user?.id, entityId],
-    queryFn: async () => {
-      if (!session?.user) {
-        console.log('No authenticated user, returning empty transactions');
-        return [];
-      }
-
+    try {
+      setLoading(true);
       console.log('Fetching transactions for user:', session.user.id);
+      
       let query = supabase
         .from('transactions')
         .select('*')
-        .eq('user_id', session.user.id)
-        .order('date', { ascending: false });
+        .eq('user_id', session.user.id);
 
-      // Filter by entity if specified - need to join through assets/liabilities
+      if (accountId) {
+        query = query.or(`asset_account_id.eq.${accountId},liability_account_id.eq.${accountId}`);
+      }
+
       if (entityId) {
-        // Get asset and liability IDs for this entity
-        const [assetsResponse, liabilitiesResponse] = await Promise.all([
-          supabase
-            .from('assets')
-            .select('id')
-            .eq('entity_id', entityId)
-            .eq('user_id', session.user.id),
-          supabase
-            .from('liabilities')
-            .select('id')
-            .eq('entity_id', entityId)
-            .eq('user_id', session.user.id)
-        ]);
+        const { data: accounts, error: accountsError } = await supabase
+          .from('assets')
+          .select('id')
+          .eq('entity_id', entityId);
 
-        const assetIds = assetsResponse.data?.map(a => a.id) || [];
-        const liabilityIds = liabilitiesResponse.data?.map(l => l.id) || [];
+        if (accountsError) throw accountsError;
 
-        if (assetIds.length === 0 && liabilityIds.length === 0) {
-          // No accounts for this entity, return empty array
-          return [];
-        }
-
-        // Build filter conditions
-        const conditions = [];
-        if (assetIds.length > 0) {
-          conditions.push(`asset_account_id.in.(${assetIds.join(',')})`);
-        }
-        if (liabilityIds.length > 0) {
-          conditions.push(`liability_account_id.in.(${liabilityIds.join(',')})`);
-        }
-
-        if (conditions.length > 0) {
-          query = query.or(conditions.join(','));
+        const accountIds = accounts?.map(acc => acc.id) || [];
+        if (accountIds.length > 0) {
+          query = query.in('asset_account_id', accountIds);
         }
       }
 
-      const { data, error } = await query;
+      const { data, error } = await query.order('date', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching transactions:', error);
-        throw error;
-      }
-      
-      console.log('Fetched transactions:', data?.length);
+      if (error) throw error;
 
-      // Only process transactions that have NO category at all or are null/empty string
-      // DO NOT re-process transactions that already have any valid category assigned
-      const transactionsToUpdate = data.filter(
-        transaction => !transaction.category || 
-                     transaction.category === null || 
-                     transaction.category.trim() === '' ||
-                     transaction.category === 'undefined'
-      );
-
-      console.log(`Found ${transactionsToUpdate.length} transactions that need initial categorization (out of ${data.length} total)`);
-
-      if (transactionsToUpdate.length > 0) {
-        // Process only the transactions that actually need updating
-        const updatePromises = transactionsToUpdate.map(async (transaction) => {
-          const newCategory = await categorizeTransaction(transaction.description, session.user.id, transaction.amount);
-          console.log(`Initial categorizing "${transaction.description}" to: ${newCategory}`);
-          
-          // Update the transaction in the database
-          const { error: updateError } = await supabase
-            .from('transactions')
-            .update({ category: newCategory })
-            .eq('id', transaction.id);
-
-          if (updateError) {
-            console.error('Error updating transaction category:', updateError);
-            return transaction;
-          }
-          
-          return { ...transaction, category: newCategory };
-        });
-
-        const updatedTransactions = await Promise.all(updatePromises);
-
-        // Return the data with updated categories
-        return data.map(transaction => {
-          const updatedTransaction = updatedTransactions.find(t => t.id === transaction.id);
-          return updatedTransaction || transaction;
-        });
-      }
-
-      return data;
-    },
-    enabled: !!session?.user,
-  });
-
-  // Filter transactions based on search criteria
-  const filteredTransactions = useMemo(() => {
-    let filtered = [...transactions];
-
-    if (searchFilters.searchTerm) {
-      filtered = filtered.filter(transaction =>
-        transaction.description.toLowerCase().includes(searchFilters.searchTerm.toLowerCase())
-      );
-    }
-
-    if (searchFilters.category) {
-      filtered = filtered.filter(transaction => transaction.category === searchFilters.category);
-    }
-
-    // Handle array-based category filtering (for components that pass multiple categories)
-    if (Array.isArray(initialCategoryFilter)) {
-      filtered = filtered.filter(transaction => initialCategoryFilter.includes(transaction.category));
-    }
-
-    if (searchFilters.dateRange) {
-      const now = new Date();
-      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      
-      filtered = filtered.filter(transaction => {
-        const transactionDate = new Date(transaction.date);
-        
-        switch (searchFilters.dateRange) {
-          case 'today':
-            return transactionDate >= startOfToday;
-          case 'week':
-            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-            return transactionDate >= weekAgo;
-          case 'month':
-            const monthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
-            return transactionDate >= monthAgo;
-          case 'quarter':
-            const quarterAgo = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
-            return transactionDate >= quarterAgo;
-          case 'year':
-            const yearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-            return transactionDate >= yearAgo;
-          default:
-            return true;
-        }
+      console.log(`Fetched ${data?.length || 0} transactions`);
+      setTransactions(data || []);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch transactions",
+        variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
+  };
 
-    if (searchFilters.amountRange) {
-      filtered = filtered.filter(transaction => {
-        const amount = Math.abs(transaction.amount);
-        
-        switch (searchFilters.amountRange) {
-          case 'income':
-            return transaction.amount > 0;
-          case 'expense':
-            return transaction.amount < 0;
-          case 'small':
-            return amount < 100;
-          case 'medium':
-            return amount >= 100 && amount <= 1000;
-          case 'large':
-            return amount > 1000;
-          default:
-            return true;
-        }
-      });
-    }
+  useEffect(() => {
+    fetchTransactions();
+  }, [session?.user?.id, accountId, entityId]);
 
-    return filtered;
-  }, [transactions, searchFilters]);
+  const handleTransactionUpdate = (updatedTransaction: Transaction) => {
+    setTransactions(prev => 
+      prev.map(t => t.id === updatedTransaction.id ? updatedTransaction : t)
+    );
+  };
 
-  // Calculate running balance
-  const calculateBalance = (index: number): number => {
-    let balance = 0;
-    for (let i = filteredTransactions.length - 1; i >= index; i--) {
-      const convertedAmount = convertAmount(filteredTransactions[i].amount, filteredTransactions[i].currency);
-      balance += convertedAmount;
-    }
-    return balance;
+  const handleTransactionDelete = (deletedTransactionId: string) => {
+    setTransactions(prev => prev.filter(t => t.id !== deletedTransactionId));
+    setSelectedTransactions(prev => prev.filter(id => id !== deletedTransactionId));
+  };
+
+  const handleBulkUpdate = (updates: Partial<Transaction>) => {
+    const updatedTransactions = transactions.map(transaction => 
+      selectedTransactions.includes(transaction.id) 
+        ? { ...transaction, ...updates }
+        : transaction
+    );
+    setTransactions(updatedTransactions);
+    setSelectedTransactions([]);
   };
 
   const handleTransactionClick = (transaction: Transaction) => {
-    if (!readOnly) {
-      setSelectedTransaction(transaction);
-      setEditDialogOpen(true);
+    if (onTransactionSelect) {
+      onTransactionSelect(transaction);
     }
   };
 
-  const handleTransactionDeleted = () => {
-    queryClient.invalidateQueries({ queryKey: ['transactions'] });
-    queryClient.invalidateQueries({ queryKey: ['account-balances'] });
-    queryClient.invalidateQueries({ queryKey: ['assets'] });
-    queryClient.invalidateQueries({ queryKey: ['liabilities'] });
-    queryClient.invalidateQueries({ queryKey: ['netWorth'] });
-    setSelectedTransactions([]);
-  };
+  let filtered = [...transactions];
 
-  const handleSelectionChange = (transactionId: string, isSelected: boolean) => {
-    if (!readOnly) {
-      setSelectedTransactions(prev => 
-        isSelected 
-          ? [...prev, transactionId]
-          : prev.filter(id => id !== transactionId)
-      );
-    }
-  };
-
-  const handleSelectAll = (isSelected: boolean) => {
-    if (!readOnly) {
-      setSelectedTransactions(isSelected ? filteredTransactions.map(t => t.id) : []);
-    }
-  };
-
-  const handleClearSelection = () => {
-    setSelectedTransactions([]);
-  };
-
-  const handleBulkUpdate = () => {
-    queryClient.invalidateQueries({ queryKey: ['transactions'] });
-    queryClient.invalidateQueries({ queryKey: ['account-balances'] });
-    queryClient.invalidateQueries({ queryKey: ['assets'] });
-    queryClient.invalidateQueries({ queryKey: ['liabilities'] });
-    queryClient.invalidateQueries({ queryKey: ['netWorth'] });
-  };
-
-  const selectedTransactionObjects = filteredTransactions.filter(t => 
-    selectedTransactions.includes(t.id)
-  );
-
-  if (!session?.user) {
-    return (
-      <Card className="animate-fadeIn">
-        <div className="p-6">
-          <div className="text-center">
-            <p className="text-muted-foreground">Please log in to view your transactions</p>
-          </div>
-        </div>
-      </Card>
+  if (searchFilters.searchTerm) {
+    filtered = filtered.filter(transaction =>
+      transaction.description.toLowerCase().includes(searchFilters.searchTerm.toLowerCase()) ||
+      transaction.category.toLowerCase().includes(searchFilters.searchTerm.toLowerCase())
     );
   }
 
-  if (isLoading) {
-    return (
-      <Card className="animate-fadeIn">
-        <div className="p-6">
-          <div className="flex items-center justify-center h-32">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-              <p className="mt-2 text-sm text-muted-foreground">Loading transactions...</p>
-            </div>
-          </div>
-        </div>
-      </Card>
+  if (searchFilters.category) {
+    filtered = filtered.filter(transaction => transaction.category === searchFilters.category);
+  }
+
+  // Handle array-based category filtering (for components that pass multiple categories)
+  if (Array.isArray(initialCategoryFilter)) {
+    filtered = filtered.filter(transaction => initialCategoryFilter.includes(transaction.category));
+  }
+
+  if (searchFilters.dateRange) {
+    const now = new Date();
+    let startDate = new Date();
+    
+    switch (searchFilters.dateRange) {
+      case '7days':
+        startDate.setDate(now.getDate() - 7);
+        break;
+      case '30days':
+        startDate.setDate(now.getDate() - 30);
+        break;
+      case '90days':
+        startDate.setDate(now.getDate() - 90);
+        break;
+      case '1year':
+        startDate.setFullYear(now.getFullYear() - 1);
+        break;
+    }
+    
+    filtered = filtered.filter(transaction => 
+      new Date(transaction.date) >= startDate
     );
   }
 
-  if (error) {
-    console.error('Transaction loading error:', error);
+  if (searchFilters.amountRange) {
+    const [min, max] = searchFilters.amountRange.split('-').map(Number);
+    filtered = filtered.filter(transaction => {
+      const amount = Math.abs(transaction.amount);
+      if (max) {
+        return amount >= min && amount <= max;
+      } else {
+        return amount >= min;
+      }
+    });
+  }
+
+  // Handle specific category filter (for pages like UncategorizedTransactions)
+  if (filterCategory) {
+    filtered = filtered.filter(transaction => transaction.category === filterCategory);
+  }
+
+  const totalAmount = filtered.reduce((sum, transaction) => sum + transaction.amount, 0);
+
+  if (loading) {
     return (
-      <Card className="animate-fadeIn">
-        <div className="p-6">
-          <div className="text-center">
-            <p className="text-destructive">Error loading transactions</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              {error instanceof Error ? error.message : 'Unknown error occurred'}
-            </p>
-          </div>
+      <Card className="p-6">
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-64 w-full" />
         </div>
       </Card>
     );
   }
 
   return (
-    <>
-      <Card className="animate-fadeIn">
-        {showBalance && (
-          <TransactionListHeader
-            displayCurrency={displayCurrency}
-            onCurrencyChange={setDisplayCurrency}
-          />
-        )}
-        <TransactionSearch
-          onFiltersChange={setSearchFilters}
-          totalResults={filteredTransactions.length}
-        />
-        {!readOnly && (
-          <BulkEditActions
-            selectedTransactions={selectedTransactionObjects}
-            onClearSelection={handleClearSelection}
-            onBulkUpdate={handleBulkUpdate}
-          />
-        )}
-        <ScrollArea className="h-[400px]">
-          <div className="p-4">
-            {filteredTransactions.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">
-                  {transactions.length === 0 ? "No transactions found" : "No transactions match your search criteria"}
-                </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  {transactions.length === 0 
-                    ? "Add your first transaction or upload a CSV file to get started"
-                    : "Try adjusting your search filters"
-                  }
-                </p>
-              </div>
-            ) : (
-              <TransactionTable
-                transactions={filteredTransactions}
-                convertAmount={(amount: number, fromCurrency: string) => convertAmount(amount, fromCurrency)}
-                calculateBalance={showBalance ? calculateBalance : undefined}
-                displayCurrency={displayCurrency}
-                currencySymbols={currencySymbols}
-                onTransactionClick={handleTransactionClick}
-                onTransactionDeleted={handleTransactionDeleted}
-                selectedTransactions={readOnly ? [] : selectedTransactions}
-                onSelectionChange={handleSelectionChange}
-                onSelectAll={handleSelectAll}
-                showBalance={showBalance}
-                readOnly={readOnly}
-              />
-            )}
-          </div>
-        </ScrollArea>
-      </Card>
-
-      {!readOnly && (
-        <EditTransactionDialog
-          transaction={selectedTransaction}
-          open={editDialogOpen}
-          onOpenChange={setEditDialogOpen}
+    <div className="space-y-6">
+      <TransactionListHeader
+        searchFilters={searchFilters}
+        onSearchFiltersChange={setSearchFilters}
+        totalTransactions={filtered.length}
+        totalAmount={totalAmount}
+        showBalance={showBalance}
+      />
+      
+      {selectedTransactions.length > 0 && (
+        <BulkEditActions
+          selectedTransactions={selectedTransactions}
+          onBulkUpdate={handleBulkUpdate}
+          onClearSelection={() => setSelectedTransactions([])}
         />
       )}
-    </>
+      
+      <TransactionTable
+        transactions={filtered}
+        selectedTransactions={selectedTransactions}
+        onTransactionSelect={setSelectedTransactions}
+        onTransactionUpdate={handleTransactionUpdate}
+        onTransactionDelete={handleTransactionDelete}
+        readOnly={readOnly}
+        onTransactionClick={handleTransactionClick}
+      />
+    </div>
   );
 };
