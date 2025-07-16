@@ -354,11 +354,11 @@ export const categorizeTransactionsBatch = async (
       processedCount += batchResults.length;
       
       // Analyze this batch's results
-      const miscCount = batchResults.filter(cat => cat === 'Miscellaneous').length;
+      const miscCount = batchResults.filter(cat => cat === 'Uncategorized').length;
       const batchSuccessRate = ((batchResults.length - miscCount) / batchResults.length * 100).toFixed(1);
       
       console.log(`✅ Batch ${batchNumber} AI SUCCESS in ${batchTime}ms: ${batchResults.length} transactions categorized`);
-      console.log(`📈 Batch ${batchNumber} success rate: ${batchSuccessRate}% (${batchResults.length - miscCount}/${batchResults.length} categorized, ${miscCount} miscellaneous)`);
+      console.log(`📈 Batch ${batchNumber} success rate: ${batchSuccessRate}% (${batchResults.length - miscCount}/${batchResults.length} categorized, ${miscCount} uncategorized)`);
       console.log(`📝 Sample categories: ${batchResults.slice(0, 3).join(', ')}`);
       
     } catch (error) {
@@ -379,10 +379,10 @@ export const categorizeTransactionsBatch = async (
       let fallbackMiscCount = 0;
       for (let j = 0; j < batchDescriptions.length; j++) {
         const description = batchDescriptions[j];
-        const category = comprehensiveAustralianRules(description) || 'Miscellaneous';
+        const category = comprehensiveAustralianRules(description) || 'Uncategorized';
         results[batchStartIndex + j] = category;
         
-        if (category === 'Miscellaneous') {
+        if (category === 'Uncategorized') {
           fallbackMiscCount++;
           console.log(`⚠️ UNCATEGORIZED (fallback): "${description.substring(0, 50)}..." -> ${category}`);
         } else {
@@ -427,14 +427,14 @@ export const categorizeTransactionsBatch = async (
   });
   
   // Final results analysis
-  const finalMiscCount = results.filter(r => r === 'Miscellaneous').length;
-  const finalSuccessCount = results.filter(r => r && r !== 'Miscellaneous').length;
+  const finalMiscCount = results.filter(r => r === 'Uncategorized').length;
+  const finalSuccessCount = results.filter(r => r && r !== 'Uncategorized').length;
   const overallSuccessRate = ((finalSuccessCount / descriptions.length) * 100).toFixed(1);
   
   console.log(`📈 FINAL CATEGORIZATION RESULTS:`, {
     totalProcessed: descriptions.length,
     successfullyCategorized: finalSuccessCount,
-    miscellaneous: finalMiscCount,
+    uncategorized: finalMiscCount,
     overallSuccessRate: `${overallSuccessRate}%`,
     timestamp: new Date().toISOString()
   });
@@ -455,7 +455,7 @@ export const categorizeTransactionsBatch = async (
   );
   
   if (finalMiscCount > descriptions.length * 0.3) {
-    console.warn(`⚠️ HIGH MISCELLANEOUS RATE: ${finalMiscCount}/${descriptions.length} (${(finalMiscCount/descriptions.length*100).toFixed(1)}%) transactions could not be categorized`);
+    console.warn(`⚠️ HIGH UNCATEGORIZED RATE: ${finalMiscCount}/${descriptions.length} (${(finalMiscCount/descriptions.length*100).toFixed(1)}%) transactions could not be categorized`);
     console.warn(`💡 Consider: 1) Checking Google Gemini API status, 2) Adding more comprehensive rules, 3) Reviewing transaction descriptions`);
   }
   
@@ -542,9 +542,9 @@ async function processBatchWithRetry(
         }, {} as Record<string, number>);
         console.log(`📊 Category distribution:`, categoryCount);
         
-        const miscCount = categoryCount['Miscellaneous'] || 0;
+        const miscCount = categoryCount['Uncategorized'] || 0;
         const successRate = ((data.categories.length - miscCount) / data.categories.length * 100).toFixed(1);
-        console.log(`📈 AI Success rate: ${successRate}% (${data.categories.length - miscCount}/${data.categories.length} categorized, ${miscCount} miscellaneous)`);
+        console.log(`📈 AI Success rate: ${successRate}% (${data.categories.length - miscCount}/${data.categories.length} categorized, ${miscCount} uncategorized)`);
       }
       
       if (data.categories && Array.isArray(data.categories) && data.categories.length === descriptions.length) {
@@ -646,7 +646,7 @@ export const categorizeTransaction = async (description: string, userId: string)
   }
   
   console.log(`Using essential rules fallback for "${description}"`);
-  return essentialBuiltInRules(description) || 'Miscellaneous';
+  return essentialBuiltInRules(description) || 'Uncategorized';
 };
 
 // Legacy function for backward compatibility
@@ -673,7 +673,7 @@ export const categorizeTransactionWithAI = async (description: string): Promise<
     throw new Error('Invalid category returned from AI');
   } catch (error) {
     console.warn(`Legacy AI categorization failed for "${description}":`, error);
-    return essentialBuiltInRules(description) || 'Miscellaneous';
+    return essentialBuiltInRules(description) || 'Uncategorized';
   }
 };
 

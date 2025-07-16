@@ -27,6 +27,7 @@ interface TransactionListProps {
   showBalance?: boolean;
   readOnly?: boolean;
   initialCategoryFilter?: string;
+  filterCategory?: string;
 }
 
 interface SearchFilters {
@@ -36,14 +37,14 @@ interface SearchFilters {
   amountRange: string;
 }
 
-export const TransactionList = ({ entityId, showBalance = false, readOnly = false, initialCategoryFilter }: TransactionListProps) => {
+export const TransactionList = ({ entityId, showBalance = false, readOnly = false, initialCategoryFilter, filterCategory }: TransactionListProps) => {
   const { displayCurrency, setDisplayCurrency, convertAmount, currencySymbols, exchangeRates } = useCurrency();
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedTransactions, setSelectedTransactions] = useState<string[]>([]);
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
     searchTerm: "",
-    category: initialCategoryFilter || "",
+    category: initialCategoryFilter || filterCategory || "",
     dateRange: "",
     amountRange: ""
   });

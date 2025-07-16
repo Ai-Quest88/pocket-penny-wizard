@@ -68,7 +68,7 @@ const findSimilarTransactionCategory = async (description: string, userId: strin
       .select('category, description')
       .eq('user_id', userId)
       .not('category', 'is', null)
-      .not('category', 'eq', 'Miscellaneous')
+      .not('category', 'eq', 'Uncategorized')
       .not('category', 'eq', 'Other')
       .limit(20);
 
@@ -271,9 +271,9 @@ export const categorizeTransaction = async (description: string, userId?: string
     console.warn('AI categorization failed, continuing to fallback:', error);
   }
 
-  // Priority 5: Miscellaneous (fallback)
-  console.log(`Priority 5 - Fallback: "${description}" -> Miscellaneous`);
-  return 'Miscellaneous';
+  // Priority 5: Uncategorized (fallback)
+  console.log(`Priority 5 - Fallback: "${description}" -> Uncategorized`);
+  return 'Uncategorized';
 };
 
 // Synchronous version for backward compatibility
@@ -292,9 +292,9 @@ export const categorizeTransactionSync = (description: string): string => {
     return essentialCategory;
   }
   
-  // Priority 3: Miscellaneous (fallback)
-  console.log(`Sync Priority 3 - Fallback: "${description}" -> Miscellaneous`);
-  return 'Miscellaneous';
+  // Priority 3: Uncategorized (fallback)
+  console.log(`Sync Priority 3 - Fallback: "${description}" -> Uncategorized`);
+  return 'Uncategorized';
 };
 
 // Initialize user rules on module load

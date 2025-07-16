@@ -114,26 +114,38 @@ export function AppSidebar() {
               </SidebarMenuItem>
 
               <SidebarMenuItem>
-                <SidebarMenuButton 
-                  onClick={() => setIsTransactionsOpen(!isTransactionsOpen)}
-                  className="flex items-center gap-2"
-                  data-active={location.pathname.startsWith("/transactions")}
-                >
-                  <List className="h-4 w-4" />
-                  <span>Transactions</span>
-                  <ChevronDown className={`h-4 w-4 ml-auto transition-transform ${isTransactionsOpen ? 'rotate-180' : ''}`} />
+                <SidebarMenuButton asChild>
+                  <div className="w-full">
+                    <Link 
+                      to="/transactions"
+                      className="flex items-center gap-2 flex-1"
+                      data-active={location.pathname === "/transactions"}
+                    >
+                      <List className="h-4 w-4" />
+                      <span>Transactions</span>
+                    </Link>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setIsTransactionsOpen(!isTransactionsOpen);
+                      }}
+                      className="ml-auto p-1"
+                    >
+                      <ChevronDown className={`h-4 w-4 transition-transform ${isTransactionsOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                  </div>
                 </SidebarMenuButton>
                 {isTransactionsOpen && (
                   <SidebarMenuSub>
                     <SidebarMenuSubItem>
                       <SidebarMenuSubButton asChild>
                         <Link 
-                          to="/transactions"
+                          to="/transactions/uncategorized"
                           className="flex items-center gap-2"
-                          data-active={location.pathname === "/transactions"}
+                          data-active={location.pathname === "/transactions/uncategorized"}
                         >
                           <List className="h-4 w-4" />
-                          <span>All Transactions</span>
+                          <span>Uncategorized</span>
                         </Link>
                       </SidebarMenuSubButton>
                     </SidebarMenuSubItem>

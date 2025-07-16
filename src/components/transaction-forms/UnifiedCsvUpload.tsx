@@ -202,17 +202,17 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
         return acc;
       }, {} as Record<string, number>);
       
-      const miscellaneousCount = categoryCounts['Miscellaneous'] || 0;
+      const miscellaneousCount = categoryCounts['Uncategorized'] || 0;
       const successfullyCategorizeed = categories.length - miscellaneousCount;
       
       console.log('📊 Categorization Summary:');
       console.log(`  Successfully categorized: ${successfullyCategorizeed}/${categories.length}`);
-      console.log(`  Miscellaneous: ${miscellaneousCount}/${categories.length}`);
+      console.log(`  Uncategorized: ${miscellaneousCount}/${categories.length}`);
       console.log('  Category breakdown:', categoryCounts);
       
       const uploadMessage = `${result.inserted} transactions inserted, ${result.duplicates} duplicates skipped`;
       const categorizationMessage = miscellaneousCount > 0 
-        ? ` • ${successfullyCategorizeed}/${categories.length} auto-categorized, ${miscellaneousCount} marked as Miscellaneous`
+        ? ` • ${successfullyCategorizeed}/${categories.length} auto-categorized, ${miscellaneousCount} marked as Uncategorized`
         : ` • All ${categories.length} transactions auto-categorized!`;
       
       toast({
