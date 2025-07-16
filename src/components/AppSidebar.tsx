@@ -1,5 +1,5 @@
 
-import { BarChart2, CreditCard, DollarSign, Home, Settings, Users, Wallet, List, Upload, FileText, TrendingUp, Calendar, Activity, PieChart } from "lucide-react"
+import { BarChart2, CreditCard, DollarSign, Home, Settings, Users, Wallet, List, Upload, FileText, TrendingUp, Calendar, Activity, PieChart, ArrowLeftRight, ChevronDown } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -9,6 +9,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
 import { Link, useLocation } from "react-router-dom"
 import { useEffect, useState } from "react"
@@ -17,6 +20,9 @@ import { FamilyMember, BusinessEntity } from "@/types/entities"
 export function AppSidebar() {
   const location = useLocation()
   const [entities, setEntities] = useState<(FamilyMember | BusinessEntity)[]>([])
+  const [isTransactionsOpen, setIsTransactionsOpen] = useState(
+    location.pathname.startsWith("/transactions")
+  )
 
   useEffect(() => {
     // Load entities from localStorage
@@ -108,16 +114,43 @@ export function AppSidebar() {
               </SidebarMenuItem>
 
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link 
-                    to="/transactions"
-                    className="flex items-center gap-2"
-                    data-active={location.pathname === "/transactions"}
-                  >
-                    <List className="h-4 w-4" />
-                    <span>Transactions</span>
-                  </Link>
+                <SidebarMenuButton 
+                  onClick={() => setIsTransactionsOpen(!isTransactionsOpen)}
+                  className="flex items-center gap-2"
+                  data-active={location.pathname.startsWith("/transactions")}
+                >
+                  <List className="h-4 w-4" />
+                  <span>Transactions</span>
+                  <ChevronDown className={`h-4 w-4 ml-auto transition-transform ${isTransactionsOpen ? 'rotate-180' : ''}`} />
                 </SidebarMenuButton>
+                {isTransactionsOpen && (
+                  <SidebarMenuSub>
+                    <SidebarMenuSubItem>
+                      <SidebarMenuSubButton asChild>
+                        <Link 
+                          to="/transactions"
+                          className="flex items-center gap-2"
+                          data-active={location.pathname === "/transactions"}
+                        >
+                          <List className="h-4 w-4" />
+                          <span>All Transactions</span>
+                        </Link>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                    <SidebarMenuSubItem>
+                      <SidebarMenuSubButton asChild>
+                        <Link 
+                          to="/transactions/transfers"
+                          className="flex items-center gap-2"
+                          data-active={location.pathname === "/transactions/transfers"}
+                        >
+                          <ArrowLeftRight className="h-4 w-4" />
+                          <span>Transfers</span>
+                        </Link>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                  </SidebarMenuSub>
+                )}
               </SidebarMenuItem>
 
               <SidebarMenuItem>
