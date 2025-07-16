@@ -134,7 +134,7 @@ export const TransactionList = ({ entityId, showBalance = false, readOnly = fals
       if (transactionsToUpdate.length > 0) {
         // Process only the transactions that actually need updating
         const updatePromises = transactionsToUpdate.map(async (transaction) => {
-          const newCategory = await categorizeTransaction(transaction.description, session.user.id);
+          const newCategory = await categorizeTransaction(transaction.description, session.user.id, transaction.amount);
           console.log(`Initial categorizing "${transaction.description}" to: ${newCategory}`);
           
           // Update the transaction in the database

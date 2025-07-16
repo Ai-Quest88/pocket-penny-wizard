@@ -297,12 +297,13 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
 
       // Use AI categorization for all transactions
       const descriptions = basicTransactions.map(t => t.description);
+      const amounts = basicTransactions.map(t => t.amount);
       console.log('Starting AI categorization for', descriptions.length, 'transactions');
       console.log('Sample descriptions:', descriptions.slice(0, 3));
       
       // Import the categorization function
       const { categorizeTransactionsBatch } = await import('@/utils/aiCategorization');
-      const categories = await categorizeTransactionsBatch(descriptions, session.user.id);
+      const categories = await categorizeTransactionsBatch(descriptions, session.user.id, amounts);
       console.log('AI categorization completed, got', categories.length, 'categories');
       console.log('Sample categories:', categories.slice(0, 3));
 

@@ -196,7 +196,7 @@ const comprehensiveAustralianRules = (description: string): string | null => {
       lowerDesc.includes('atm') || lowerDesc.includes('withdrawal') ||
       lowerDesc.includes('payid') || lowerDesc.includes('fast transfer') ||
       lowerDesc.includes('wdl atm') || lowerDesc.includes('non cba atm')) {
-    return 'Transfer';
+    return 'Transfer'; // Note: This will be handled by built-in rules for direction
   }
   
   // Credit card payments
@@ -290,7 +290,7 @@ const essentialBuiltInRules = (description: string): string | null => {
   // Only absolute essentials - let AI handle everything else
   if (lowerDesc.includes('transfer to') || lowerDesc.includes('transfer from') ||
       lowerDesc.includes('bpay') || lowerDesc.includes('direct credit')) {
-    return 'Transfer';
+    return 'Transfer'; // Note: This will be handled by built-in rules for direction
   }
   
   if (lowerDesc.includes('revenue') || lowerDesc.includes('tax office') || 
@@ -306,6 +306,7 @@ const essentialBuiltInRules = (description: string): string | null => {
 export const categorizeTransactionsBatch = async (
   descriptions: string[], 
   userId: string,
+  amounts?: number[],
   onProgress?: (processed: number, total: number, results: string[]) => void
 ): Promise<string[]> => {
   const overallStartTime = Date.now();
@@ -375,11 +376,15 @@ export const categorizeTransactionsBatch = async (
         timeSpent: batchTime
       });
       
-      // Fallback to comprehensive rules for this batch
+      // Fallback to enhanced built-in rules for this batch (includes transfer direction)
       let fallbackMiscCount = 0;
       for (let j = 0; j < batchDescriptions.length; j++) {
         const description = batchDescriptions[j];
-        const category = comprehensiveAustralianRules(description) || 'Uncategorized';
+        const amount = amounts ? amounts[batchStartIndex + j] : undefined;
+        
+        // Import the built-in rules function
+        const { categorizeByBuiltInRules } = await import('@/utils/transactionCategories');
+        const category = categorizeByBuiltInRules(description, amount) || comprehensiveAustralianRules(description) || 'Uncategorized';
         results[batchStartIndex + j] = category;
         
         if (category === 'Uncategorized') {
@@ -618,7 +623,7 @@ async function processBatchWithRetry(
 }
 
 // Single transaction categorization with correct priority order
-export const categorizeTransaction = async (description: string, userId: string): Promise<string> => {
+export const categorizeTransactionAI = async (description: string, userId: string): Promise<string> => {
   console.log(`AI categorization for: "${description}"`);
   
   try {
@@ -702,7 +707,7 @@ export const debugCategorization = async () => {
     
     // Test single AI categorization
     try {
-      const aiResult = await categorizeTransaction(description, 'debug-user');
+      const aiResult = await categorizeTransactionAI(description, 'debug-user');
       console.log(`🤖 AI: "${description}" -> ${aiResult}`);
     } catch (error) {
       console.error(`❌ AI failed: "${description}" ->`, error.message);

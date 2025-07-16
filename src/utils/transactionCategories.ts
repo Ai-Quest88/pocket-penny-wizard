@@ -16,14 +16,20 @@ let userDefinedRules: CategoryRule[] = [];
 export { categories };
 
 // Enhanced essential rules for critical financial categories
-export const categorizeByBuiltInRules = (description: string): string | null => {
+export const categorizeByBuiltInRules = (description: string, amount?: number): string | null => {
   const lowerDesc = description.toLowerCase();
   
-  // Critical financial categories first
+  // Critical financial categories first - distinguish transfer direction
   if (lowerDesc.includes('transfer to') || lowerDesc.includes('transfer from') ||
       lowerDesc.includes('bpay') || lowerDesc.includes('direct credit')) {
-    console.log(`Essential rule matched: "${description}" -> Transfer`);
-    return 'Transfer';
+    if (amount !== undefined) {
+      const category = amount > 0 ? 'Transfer In' : 'Transfer Out';
+      console.log(`Essential rule matched: "${description}" (${amount}) -> ${category}`);
+      return category;
+    } else {
+      console.log(`Essential rule matched: "${description}" -> Transfer In (fallback)`);
+      return 'Transfer In';
+    }
   }
   
   // Government and tax payments - critical for tax purposes
@@ -218,10 +224,10 @@ export const categorizeBatchTransactions = async (
     const batchResults = await Promise.all(
       batch.map(async (description) => {
         try {
-          return await categorizeTransaction(description, userId);
+          return await categorizeTransaction(description, userId, undefined); // Amount not available in batch processing
         } catch (error) {
           console.error(`Failed to categorize "${description}":`, error);
-          return categorizeTransactionSync(description);
+          return categorizeTransactionSync(description, undefined);
         }
       })
     );
@@ -233,7 +239,7 @@ export const categorizeBatchTransactions = async (
 };
 
 // Main categorization function with updated priority order
-export const categorizeTransaction = async (description: string, userId?: string): Promise<string> => {
+export const categorizeTransaction = async (description: string, userId?: string, amount?: number): Promise<string> => {
   console.log(`Categorizing with updated priority order: "${description}"`);
   
   // Priority 1: User-defined rules (HIGHEST priority - user preferences override everything)
@@ -253,7 +259,7 @@ export const categorizeTransaction = async (description: string, userId?: string
   }
 
   // Priority 3: Enhanced built-in rules (including Linkt/toll fixes)
-  const essentialCategory = categorizeByBuiltInRules(description);
+  const essentialCategory = categorizeByBuiltInRules(description, amount);
   if (essentialCategory) {
     console.log(`Priority 3 - Enhanced built-in rule matched: "${description}" -> ${essentialCategory}`);
     return essentialCategory;
@@ -261,6 +267,7 @@ export const categorizeTransaction = async (description: string, userId?: string
 
   // Priority 4: AI categorization (primary method for new transactions)
   try {
+    const { categorizeTransactionWithAI } = await import('@/utils/aiCategorization');
     const aiCategory = await categorizeTransactionWithAI(description);
     console.log(`Priority 4 - AI categorized: "${description}" -> ${aiCategory}`);
     
@@ -277,7 +284,7 @@ export const categorizeTransaction = async (description: string, userId?: string
 };
 
 // Synchronous version for backward compatibility
-export const categorizeTransactionSync = (description: string): string => {
+export const categorizeTransactionSync = (description: string, amount?: number): string => {
   // Priority 1: User-defined rules
   const userRuleCategory = matchUserDefinedRule(description);
   if (userRuleCategory) {
@@ -286,7 +293,7 @@ export const categorizeTransactionSync = (description: string): string => {
   }
   
   // Priority 2: Enhanced built-in rules (skip DB and AI in sync mode)
-  const essentialCategory = categorizeByBuiltInRules(description);
+  const essentialCategory = categorizeByBuiltInRules(description, amount);
   if (essentialCategory) {
     console.log(`Sync Priority 2 - Enhanced built-in rule matched: "${description}" -> ${essentialCategory}`);
     return essentialCategory;
