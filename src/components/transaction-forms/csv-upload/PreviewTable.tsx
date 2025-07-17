@@ -25,30 +25,41 @@ export const PreviewTable = ({ data, mappings, defaultSettings, selectedAccount 
   const previewData = data.slice(0, 5);
 
   // Debug what's in the data
-  console.log('Preview data:', previewData.slice(0, 3));
+  console.log('Preview data - full first row:', previewData[0]);
+  console.log('Preview data - all keys in first row:', previewData[0] ? Object.keys(previewData[0]) : 'no data');
   console.log('Mappings:', mappings);
+  console.log('Date mapping value:', mappings.date);
+  console.log('Date field in first row:', previewData[0] ? previewData[0][mappings.date] : 'no date field');
 
   const getValue = (row: any, mapping: string, defaultValue: string) => {
-    return row[mapping] || defaultValue || 'Not set';
+    const value = row[mapping] || defaultValue || 'Not set';
+    console.log(`Getting value for mapping "${mapping}": ${value}`);
+    return value;
   };
 
   // Special formatter for dates to preserve exact format from source
   const getDateValue = (row: any, dateMapping: string) => {
+    console.log('getDateValue called with:', { dateMapping, rowKeys: Object.keys(row) });
+    
     if (!dateMapping || !row[dateMapping]) {
+      console.log('No date mapping or value, using current date');
       return new Date().toLocaleDateString();
     }
     
     // Get the raw date value directly from the row without formatting
     const rawDateValue = row[dateMapping];
-    console.log('Raw date value:', rawDateValue, typeof rawDateValue);
+    console.log('Raw date value from row:', rawDateValue, 'type:', typeof rawDateValue);
     
     // If it's already a string, it's likely been pre-formatted correctly
     if (typeof rawDateValue === 'string') {
+      console.log('Date is string, returning as-is:', rawDateValue);
       return rawDateValue;
     }
     
     // Fallback to simple display
-    return String(rawDateValue);
+    const result = String(rawDateValue);
+    console.log('Date converted to string:', result);
+    return result;
   };
 
   return (
