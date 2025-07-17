@@ -70,25 +70,36 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
   // Helper function to convert Excel serial number to DD/MM/YYYY format
   const convertExcelDateToDDMMYYYY = (excelDate: number): string => {
     try {
-      // Excel serial date starts from 1900-01-01, but Excel incorrectly treats 1900 as a leap year
-      // So we need to adjust for this
-      const excelEpoch = new Date(1900, 0, 1); // January 1, 1900
-      const msPerDay = 24 * 60 * 60 * 1000;
+      console.log('Converting Excel date serial', excelDate, 'to DD/MM/YYYY');
       
-      // Adjust for Excel's leap year bug (subtract 1 if date is after Feb 28, 1900)
-      const adjustedSerialDate = excelDate > 59 ? excelDate - 1 : excelDate;
+      // Excel starts counting from January 1, 1900
+      // Excel has a leap year bug where it counts 1900 as a leap year
+      // so we need to adjust for dates after February 28, 1900
       
-      // Convert to JavaScript date
-      const jsDate = new Date(excelEpoch.getTime() + (adjustedSerialDate - 1) * msPerDay);
+      let adjustedDate = excelDate;
+      if (adjustedDate > 59) {
+        // Subtract 1 to account for Excel's leap year bug (1900 wasn't actually a leap year)
+        adjustedDate -= 1;
+      }
+      
+      // Convert to milliseconds
+      const millisecondsPerDay = 24 * 60 * 60 * 1000;
+      const excelEpoch = new Date(Date.UTC(1900, 0, 1)); // Jan 1, 1900 in UTC
+      
+      // Add days to the epoch date
+      const jsDate = new Date(excelEpoch.getTime() + (adjustedDate - 1) * millisecondsPerDay);
       
       // Format as DD/MM/YYYY
-      const day = String(jsDate.getDate()).padStart(2, '0');
-      const month = String(jsDate.getMonth() + 1).padStart(2, '0');
-      const year = jsDate.getFullYear();
+      const day = jsDate.getUTCDate().toString().padStart(2, '0');
+      const month = (jsDate.getUTCMonth() + 1).toString().padStart(2, '0');
+      const year = jsDate.getUTCFullYear();
       
-      return `${day}/${month}/${year}`;
+      const result = `${day}/${month}/${year}`;
+      console.log('Converted to:', result);
+      
+      return result;
     } catch (error) {
-      console.warn('Error converting Excel date:', error);
+      console.error('Error converting Excel date:', error);
       return String(excelDate);
     }
   };
@@ -364,11 +375,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
               
               // Handle Excel date serial numbers - convert to original format and preserve it
               if (typeof cellValue === 'number' && cellValue > 40000 && cellValue < 50000) {
-                const originalDateStr = convertExcelDateToDDMMYYYY(cellValue);
-                console.log(`Converting Excel date serial ${cellValue} to original format`);
-                console.log(`Converted to: ${originalDateStr}`);
-                // Keep the date in original DD/MM/YYYY format
-                cellValue = originalDateStr;
+                cellValue = convertExcelDateToDDMMYYYY(cellValue);
               }
               
               obj[header] = cellValue || '';
@@ -398,11 +405,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
               
               // Handle Excel date serial numbers - convert to original format and preserve it
               if (typeof cellValue === 'number' && cellValue > 40000 && cellValue < 50000) {
-                const originalDateStr = convertExcelDateToDDMMYYYY(cellValue);
-                console.log(`Converting Excel date serial ${cellValue} to original format`);
-                console.log(`Converted to: ${originalDateStr}`);
-                // Keep the date in original DD/MM/YYYY format
-                cellValue = originalDateStr;
+                cellValue = convertExcelDateToDDMMYYYY(cellValue);
               }
               
               obj[header] = cellValue || '';
