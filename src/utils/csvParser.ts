@@ -204,8 +204,9 @@ const analyzeColumnContent = (data: string[][], columnIndex: number): { isDate: 
       amountCount++;
     }
     
-    // Check if it's primarily text (longer strings, contains letters)
-    if (value.length > 5 && /[a-zA-Z]/.test(value)) {
+    // Check if it's primarily text (contains letters, but exclude date-like patterns)
+    const isDateLike = datePatterns.some(pattern => pattern.test(value)) || !isNaN(Date.parse(value));
+    if (value.length > 3 && /[a-zA-Z]/.test(value) && !isDateLike) {
       textCount++;
     }
   }
@@ -220,40 +221,62 @@ const analyzeColumnContent = (data: string[][], columnIndex: number): { isDate: 
 export const autoMapColumns = (headers: string[], data: string[][] = []): Record<string, string> => {
   const mapping: Record<string, string> = {};
   
+  // First pass: exact header matches only
+  headers.forEach((header, index) => {
+    const normalizedHeader = header.toLowerCase().trim();
+    
+    // Prioritize exact matches for key fields
+    if (!mapping.date && /^date$/i.test(normalizedHeader)) {
+      mapping.date = header;
+    }
+    if (!mapping.amount && /^amount$/i.test(normalizedHeader)) {
+      mapping.amount = header;
+    }
+    if (!mapping.description && normalizedHeader === 'description') {
+      mapping.description = header;
+    }
+  });
+  
+  // Second pass: content-based analysis and pattern matching
   headers.forEach((header, index) => {
     const normalizedHeader = header.toLowerCase().trim();
     
     // Analyze column content if data is available
     const contentAnalysis = data.length > 0 ? analyzeColumnContent(data, index) : null;
     
-    // Date mapping - check header name first, then content (but exclude description columns)
-    if (!mapping.date && 
-        !normalizedHeader.includes('description') &&
-        (/^date|transaction.*date|posting.*date/.test(normalizedHeader) || 
-         contentAnalysis?.isDate)) {
-      mapping.date = header;
+    // Date mapping - prioritize content analysis over header patterns
+    if (!mapping.date) {
+      if (contentAnalysis?.isDate) {
+        mapping.date = header;
+      } else if (/^date|transaction.*date|posting.*date/.test(normalizedHeader)) {
+        mapping.date = header;
+      }
     }
     
-    // Amount mapping - check header name first, then content
-    if (!mapping.amount && 
-             (/^amount|debit|credit|value/.test(normalizedHeader) || 
-              contentAnalysis?.isAmount)) {
-      mapping.amount = header;
+    // Amount mapping - prioritize content analysis
+    if (!mapping.amount) {
+      if (contentAnalysis?.isAmount) {
+        mapping.amount = header;
+      } else if (/^amount|debit|credit|value/.test(normalizedHeader)) {
+        mapping.amount = header;
+      }
     }
     
-    // Description mapping - prioritize exact "description" match over numbered variants
+    // Description mapping - prioritize text content analysis for auto-generated headers
     if (!mapping.description) {
-      if (normalizedHeader === 'description') {
+      if (contentAnalysis?.isText && !contentAnalysis.isDate && !contentAnalysis.isAmount) {
         mapping.description = header;
-      } else if (normalizedHeader.startsWith('description') && normalizedHeader !== 'description') {
-        // Only use "Description 2" etc. if no exact "description" exists
+      } else if (normalizedHeader.startsWith('description')) {
+        // Only use "Description 2" etc. if no exact "description" exists and no text content found
         const hasExactDescription = headers.some(h => h.toLowerCase().trim() === 'description');
-        if (!hasExactDescription) {
+        const hasTextContent = headers.some((h, i) => {
+          const analysis = data.length > 0 ? analyzeColumnContent(data, i) : null;
+          return analysis?.isText && !analysis.isDate && !analysis.isAmount;
+        });
+        if (!hasExactDescription && !hasTextContent) {
           mapping.description = header;
         }
       } else if (/^narrative|details|memo|payee/.test(normalizedHeader)) {
-        mapping.description = header;
-      } else if (contentAnalysis?.isText && !contentAnalysis.isDate && !contentAnalysis.isAmount) {
         mapping.description = header;
       }
     }
