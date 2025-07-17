@@ -180,28 +180,32 @@ const autoMapColumns = (headers: string[]): Record<string, string> => {
   headers.forEach((header, index) => {
     const normalizedHeader = header.toLowerCase().trim();
     
-    // Date mapping
-    if (/^date|transaction.*date|posting.*date/.test(normalizedHeader)) {
+    // Date mapping - only if not already mapped
+    if (!mapping.date && /^date|transaction.*date|posting.*date/.test(normalizedHeader)) {
       mapping.date = header;
     }
-    // Amount mapping
-    else if (/^amount|debit|credit|value/.test(normalizedHeader)) {
+    // Amount mapping - only if not already mapped
+    else if (!mapping.amount && /^amount|debit|credit|value/.test(normalizedHeader)) {
       mapping.amount = header;
     }
-    // Description mapping
-    else if (/^description|narrative|details|memo|payee/.test(normalizedHeader)) {
-      mapping.description = header;
+    // Description mapping - prioritize exact "description" match, only if not already mapped
+    else if (!mapping.description) {
+      if (normalizedHeader === 'description') {
+        mapping.description = header;
+      } else if (/^description|narrative|details|memo|payee/.test(normalizedHeader)) {
+        mapping.description = header;
+      }
     }
-    // Category mapping
-    else if (/^category|type/.test(normalizedHeader)) {
+    // Category mapping - only if not already mapped
+    else if (!mapping.category && /^category|type/.test(normalizedHeader)) {
       mapping.category = header;
     }
-    // Account mapping
-    else if (/^account/.test(normalizedHeader)) {
+    // Account mapping - only if not already mapped
+    else if (!mapping.account && /^account/.test(normalizedHeader)) {
       mapping.account = header;
     }
-    // Currency mapping
-    else if (/^currency/.test(normalizedHeader)) {
+    // Currency mapping - only if not already mapped
+    else if (!mapping.currency && /^currency/.test(normalizedHeader)) {
       mapping.currency = header;
     }
   });
