@@ -113,37 +113,45 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
 
   // Function to detect what type of data a column contains
   const detectColumnType = (values: string[]): string => {
-    const nonEmptyValues = values.filter(v => v && v.trim());
-    if (nonEmptyValues.length === 0) return 'Unknown';
+    const nonEmptyValues = values.filter(v => v && v.toString().trim() !== '');
+    if (nonEmptyValues.length === 0) return 'Description';
     
     let dateCount = 0;
     let amountCount = 0;
     let currencyCount = 0;
+    let excelDateCount = 0;
     
     for (const value of nonEmptyValues) {
-      const trimmed = value.trim();
+      const trimmed = value.toString().trim();
+      const numValue = parseFloat(trimmed);
       
-      // Check if it looks like a date
-      if (isDateLike(trimmed)) {
+      // Check for Excel serial dates (typically 5-digit numbers between 40000-50000 for recent years)
+      if (!isNaN(numValue) && numValue >= 40000 && numValue <= 50000 && Number.isInteger(numValue)) {
+        excelDateCount++;
+      }
+      // Check if it looks like a regular date string
+      else if (isDateLike(trimmed)) {
         dateCount++;
       }
-      
-      // Check if it looks like an amount/number
-      if (isAmountLike(trimmed)) {
+      // Check if it looks like an amount/number (including negative values)
+      else if (isAmountLike(trimmed)) {
         amountCount++;
       }
-      
       // Check if it looks like a currency code
-      if (isCurrencyLike(trimmed)) {
+      else if (isCurrencyLike(trimmed)) {
         currencyCount++;
       }
     }
     
     const total = nonEmptyValues.length;
     
-    // If 80% or more values match a pattern, consider it that type
+    // Prioritize Excel serial dates for date detection (must be high confidence)
+    if (excelDateCount / total >= 0.8) return 'Date';
+    // Regular date strings
     if (dateCount / total >= 0.8) return 'Date';
-    if (amountCount / total >= 0.8) return 'Amount';
+    // Amount detection (including negative numbers)
+    if (amountCount / total >= 0.7) return 'Amount';
+    // Currency detection
     if (currencyCount / total >= 0.8) return 'Currency';
     
     // Default to description for text columns
@@ -164,11 +172,13 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
   };
 
   const isAmountLike = (value: string): boolean => {
-    // Remove common currency symbols and whitespace
+    // Remove common currency symbols, whitespace, and thousand separators
     const cleaned = value.replace(/[$£€¥₹,\s]/g, '');
     
-    // Check if it's a valid number (including negative)
-    return /^-?\d+(\.\d{1,2})?$/.test(cleaned) && !isNaN(parseFloat(cleaned));
+    // Check if it's a valid number (including negative, with optional decimals)
+    // Allow for more decimal places and handle various formats
+    const numberPattern = /^-?\d+(\.\d+)?$/;
+    return numberPattern.test(cleaned) && !isNaN(parseFloat(cleaned));
   };
 
   const isCurrencyLike = (value: string): boolean => {
