@@ -174,25 +174,77 @@ const detectHeaders = (firstRow: string[]): boolean => {
   return hasHeaderPattern || (!hasHeaderPattern && !hasDataPattern && firstRow.length >= 3);
 };
 
-const autoMapColumns = (headers: string[]): Record<string, string> => {
+const analyzeColumnContent = (data: string[][], columnIndex: number): { isDate: boolean; isAmount: boolean; isText: boolean } => {
+  let dateCount = 0;
+  let amountCount = 0;
+  let textCount = 0;
+  
+  // Sample first 10 rows to determine column type
+  const sampleSize = Math.min(10, data.length);
+  
+  for (let i = 0; i < sampleSize; i++) {
+    const value = data[i][columnIndex]?.toString().trim();
+    if (!value) continue;
+    
+    // Check if it's a date
+    const datePatterns = [
+      /^\d{1,2}\/\d{1,2}\/\d{2,4}$/,  // MM/DD/YYYY or DD/MM/YYYY
+      /^\d{1,2}-\d{1,2}-\d{2,4}$/,   // MM-DD-YYYY or DD-MM-YYYY
+      /^\d{4}-\d{1,2}-\d{1,2}$/,     // YYYY-MM-DD
+      /^\d{1,2}\s+\w+\s+\d{4}$/,     // DD MMM YYYY
+    ];
+    
+    if (datePatterns.some(pattern => pattern.test(value)) || !isNaN(Date.parse(value))) {
+      dateCount++;
+    }
+    
+    // Check if it's an amount (number, possibly with currency symbols)
+    const cleanedValue = value.replace(/[$,£€¥₹\s]/g, '');
+    if (/^-?\d+\.?\d*$/.test(cleanedValue) && !isNaN(parseFloat(cleanedValue))) {
+      amountCount++;
+    }
+    
+    // Check if it's primarily text (longer strings, contains letters)
+    if (value.length > 5 && /[a-zA-Z]/.test(value)) {
+      textCount++;
+    }
+  }
+  
+  return {
+    isDate: dateCount >= sampleSize * 0.7,
+    isAmount: amountCount >= sampleSize * 0.7,
+    isText: textCount >= sampleSize * 0.5
+  };
+};
+
+const autoMapColumns = (headers: string[], data: string[][] = []): Record<string, string> => {
   const mapping: Record<string, string> = {};
   
   headers.forEach((header, index) => {
     const normalizedHeader = header.toLowerCase().trim();
     
-    // Date mapping - only if not already mapped
-    if (!mapping.date && /^date|transaction.*date|posting.*date/.test(normalizedHeader)) {
+    // Analyze column content if data is available
+    const contentAnalysis = data.length > 0 ? analyzeColumnContent(data, index) : null;
+    
+    // Date mapping - check header name first, then content
+    if (!mapping.date && 
+        (/^date|transaction.*date|posting.*date/.test(normalizedHeader) || 
+         contentAnalysis?.isDate)) {
       mapping.date = header;
     }
-    // Amount mapping - only if not already mapped
-    else if (!mapping.amount && /^amount|debit|credit|value/.test(normalizedHeader)) {
+    // Amount mapping - check header name first, then content
+    else if (!mapping.amount && 
+             (/^amount|debit|credit|value/.test(normalizedHeader) || 
+              contentAnalysis?.isAmount)) {
       mapping.amount = header;
     }
-    // Description mapping - prioritize exact "description" match, only if not already mapped
+    // Description mapping - prioritize exact match, then pattern, then text content
     else if (!mapping.description) {
       if (normalizedHeader === 'description') {
         mapping.description = header;
       } else if (/^description|narrative|details|memo|payee/.test(normalizedHeader)) {
+        mapping.description = header;
+      } else if (contentAnalysis?.isText && !contentAnalysis.isDate && !contentAnalysis.isAmount) {
         mapping.description = header;
       }
     }
@@ -267,17 +319,15 @@ export const parseCSV = (content: string): ParseResult => {
   let startIndex = 0;
   if (hasHeaders) {
     startIndex = 1;
-    autoMappedColumns = autoMapColumns(firstRowFields);
+    // Get data rows for content analysis
+    const dataRows = lines.slice(1, Math.min(11, lines.length)).map(line => parseCsvLine(line));
+    autoMappedColumns = autoMapColumns(firstRowFields, dataRows);
     console.log('Auto-mapped columns:', autoMappedColumns);
   } else {
-    // If no headers detected, create basic mappings based on column positions
-    if (firstRowFields.length >= 3) {
-      autoMappedColumns = {
-        date: headers[0],
-        amount: headers[1],
-        description: headers[2]
-      };
-    }
+    // If no headers detected, analyze first rows to auto-detect column types
+    const dataRows = lines.slice(0, Math.min(10, lines.length)).map(line => parseCsvLine(line));
+    autoMappedColumns = autoMapColumns(headers, dataRows);
+    console.log('Auto-mapped columns (no headers):', autoMappedColumns);
   }
   
   // Calculate total number of data rows
