@@ -118,33 +118,21 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
     setAutoMapColumns(data, fileHeaders);
   };
 
-  const setAutoMapColumns = (data: CSVRow[], fileHeaders: string[]) => {
+  const setAutoMapColumns = async (data: CSVRow[], fileHeaders: string[]) => {
     console.log('setAutoMapColumns called with:', { dataLength: data.length, fileHeaders });
     if (!data.length) return;
 
-    const firstRow = data[0];
-    const autoMappings: { [key: string]: string } = {};
-
-    fileHeaders.forEach(header => {
-      const lowerHeader = header.toLowerCase();
-      console.log('Processing header:', header, 'lowercase:', lowerHeader);
-
-      if (lowerHeader.includes("description") || lowerHeader.includes("narration")) {
-        autoMappings.description = header;
-        console.log('Mapped description to:', header);
-      } else if (lowerHeader.includes("amount")) {
-        autoMappings.amount = header;
-        console.log('Mapped amount to:', header);
-      } else if (lowerHeader.includes("date")) {
-        autoMappings.date = header;
-        console.log('Mapped date to:', header);
-      } else if (lowerHeader.includes("currency") || lowerHeader.includes("ccy")) {
-        autoMappings.currency = header;
-        console.log('Mapped currency to:', header);
-      }
-    });
-
-    console.log('Final autoMappings:', autoMappings);
+    // Use the enhanced auto-mapping from csvParser.ts
+    const { autoMapColumns } = await import('@/utils/csvParser');
+    
+    // Convert data to string arrays for analysis
+    const stringData = data.map(row => 
+      fileHeaders.map(header => String(row[header] || ''))
+    );
+    
+    const autoMappings = autoMapColumns(fileHeaders, stringData);
+    console.log('Enhanced auto-mapping result:', autoMappings);
+    
     setAutoMappedColumns(autoMappings);
     
     // Automatically apply the detected mappings

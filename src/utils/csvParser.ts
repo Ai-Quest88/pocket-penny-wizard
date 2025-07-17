@@ -217,7 +217,7 @@ const analyzeColumnContent = (data: string[][], columnIndex: number): { isDate: 
   };
 };
 
-const autoMapColumns = (headers: string[], data: string[][] = []): Record<string, string> => {
+export const autoMapColumns = (headers: string[], data: string[][] = []): Record<string, string> => {
   const mapping: Record<string, string> = {};
   
   headers.forEach((header, index) => {
