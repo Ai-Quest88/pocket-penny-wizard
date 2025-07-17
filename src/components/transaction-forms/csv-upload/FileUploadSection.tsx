@@ -1,4 +1,3 @@
-
 import React from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -113,10 +112,20 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
     let dateColumnFound = false;
     let amountColumnFound = false;
     
+    // Debug the input data
+    console.log('Data for column type detection:', JSON.stringify(data.slice(0, 3)));
+    
     // Analyze each column
     for (let colIndex = 0; colIndex < numColumns; colIndex++) {
-      const columnValues = data.slice(0, Math.min(10, data.length)).map(row => row[colIndex] || '');
+      // Get values for this column from multiple rows for better detection
+      const columnValues = data.slice(0, Math.min(10, data.length)).map(row => {
+        const value = row[colIndex];
+        console.log(`Column ${colIndex} value:`, value, typeof value);
+        return value;
+      });
+      
       let columnType = detectColumnType(columnValues);
+      console.log(`Column ${colIndex} detected as:`, columnType);
       
       // Validation rules to ensure we only pick one of each critical type
       if (columnType === 'Date' && dateColumnFound) {
@@ -134,7 +143,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
       columnTypes.push(columnType);
     }
     
-    console.log('Detected column types:', columnTypes);
+    console.log('Final detected column types:', columnTypes);
     return columnTypes;
   };
 
@@ -361,14 +370,14 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
         console.log('Excel has headers:', hasHeaders);
         
         let headers: string[];
-        let processedData: any[];
+        let finalData: any[];
         
         if (hasHeaders) {
           // Use first row as headers
           headers = firstRowStrings;
           
           // Convert remaining rows to objects
-          processedData = rawData.slice(1).map((row, rowIndex) => {
+          finalData = rawData.slice(1).map((row, rowIndex) => {
             const obj: any = {};
             headers.forEach((header, index) => {
               let cellValue = row[index];
@@ -384,31 +393,42 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
           });
         } else {
           // No headers detected, analyze data patterns to create smart headers
-          // Convert mixed types to strings for analysis, but handle dates first
-          const stringData = rawData.map(row => 
-            row.map(cell => {
-              // Convert Excel date serial numbers to DD/MM/YYYY format before analysis
-              if (typeof cell === 'number' && cell > 40000 && cell < 50000) {
-                return convertExcelDateToDDMMYYYY(cell);
+          // First, convert Excel serial dates to proper date strings
+          const processedRows: any[][] = [];
+          
+          for (let rowIndex = 0; rowIndex < rawData.length; rowIndex++) {
+            const row = rawData[rowIndex];
+            const processedRow: any[] = [];
+            
+            for (let colIndex = 0; colIndex < row.length; colIndex++) {
+              let cellValue = row[colIndex];
+              
+              // Handle Excel date serial numbers - convert to original format
+              if (typeof cellValue === 'number' && cellValue > 40000 && cellValue < 50000) {
+                const formattedDate = convertExcelDateToDDMMYYYY(cellValue);
+                console.log(`Converting row ${rowIndex} col ${colIndex} Excel date ${cellValue} -> ${formattedDate}`);
+                processedRow.push(formattedDate);
+              } else {
+                processedRow.push(cellValue);
               }
-              return String(cell || '');
-            })
+            }
+            
+            processedRows.push(processedRow);
+          }
+          
+          // Now detect column types from the processed data
+          const stringData = processedRows.map(row => 
+            row.map(cell => String(cell || ''))
           );
+          
           const columnTypes = detectColumnTypes(stringData);
           headers = createSmartHeaders(columnTypes);
           
           // Convert all rows to objects using smart headers
-          processedData = rawData.map((row, rowIndex) => {
+          finalData = processedRows.map(row => {
             const obj: any = {};
             headers.forEach((header, index) => {
-              let cellValue = row[index];
-              
-              // Handle Excel date serial numbers - convert to original format and preserve it
-              if (typeof cellValue === 'number' && cellValue > 40000 && cellValue < 50000) {
-                cellValue = convertExcelDateToDDMMYYYY(cellValue);
-              }
-              
-              obj[header] = cellValue || '';
+              obj[header] = row[index] || '';
             });
             return obj;
           });
@@ -416,11 +436,11 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
         
         console.log('Excel file parsed successfully:', { 
           headers, 
-          dataLength: processedData.length,
-          sampleData: processedData.slice(0, 3)
+          dataLength: finalData.length,
+          sampleData: finalData.slice(0, 3)
         });
         
-        onFileUpload(processedData, headers);
+        onFileUpload(finalData, headers);
         
       } catch (error) {
         console.error('Error parsing Excel file:', error);

@@ -24,18 +24,31 @@ interface PreviewTableProps {
 export const PreviewTable = ({ data, mappings, defaultSettings, selectedAccount }: PreviewTableProps) => {
   const previewData = data.slice(0, 5);
 
+  // Debug what's in the data
+  console.log('Preview data:', previewData.slice(0, 3));
+  console.log('Mappings:', mappings);
+
   const getValue = (row: any, mapping: string, defaultValue: string) => {
     return row[mapping] || defaultValue || 'Not set';
   };
 
-  // Special formatter for dates - keep the original format in the preview
+  // Special formatter for dates to preserve exact format from source
   const getDateValue = (row: any, dateMapping: string) => {
     if (!dateMapping || !row[dateMapping]) {
       return new Date().toLocaleDateString();
     }
     
-    // Return the original date value as is for preview (don't convert format)
-    return row[dateMapping];
+    // Get the raw date value directly from the row without formatting
+    const rawDateValue = row[dateMapping];
+    console.log('Raw date value:', rawDateValue, typeof rawDateValue);
+    
+    // If it's already a string, it's likely been pre-formatted correctly
+    if (typeof rawDateValue === 'string') {
+      return rawDateValue;
+    }
+    
+    // Fallback to simple display
+    return String(rawDateValue);
   };
 
   return (
