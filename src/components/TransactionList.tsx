@@ -219,6 +219,11 @@ export const TransactionList: React.FC<TransactionListProps> = ({
       <TransactionListHeader
         displayCurrency={displayCurrency}
         onCurrencyChange={setDisplayCurrency}
+        searchFilters={searchFilters}
+        onSearchFiltersChange={setSearchFilters}
+        totalTransactions={filtered.length}
+        totalAmount={totalAmount}
+        showBalance={showBalance}
       />
       
       {selectedTransactions.length > 0 && (

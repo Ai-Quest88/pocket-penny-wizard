@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { categories } from "@/utils/transactionCategories";
 
 interface SearchFilters {
@@ -17,15 +17,23 @@ interface SearchFilters {
 interface TransactionSearchProps {
   onFiltersChange: (filters: SearchFilters) => void;
   totalResults: number;
+  initialFilters?: SearchFilters;
 }
 
-export const TransactionSearch = ({ onFiltersChange, totalResults }: TransactionSearchProps) => {
-  const [filters, setFilters] = useState<SearchFilters>({
+export const TransactionSearch = ({ onFiltersChange, totalResults, initialFilters }: TransactionSearchProps) => {
+  const [filters, setFilters] = useState<SearchFilters>(initialFilters || {
     searchTerm: "",
     category: "",
     dateRange: "",
     amountRange: ""
   });
+
+  // Sync with initialFilters changes
+  useEffect(() => {
+    if (initialFilters) {
+      setFilters(initialFilters);
+    }
+  }, [initialFilters]);
 
   const updateFilters = (newFilters: Partial<SearchFilters>) => {
     const updatedFilters = { ...filters, ...newFilters };
