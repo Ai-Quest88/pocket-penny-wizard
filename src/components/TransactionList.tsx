@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Card } from './ui/card';
 import { Skeleton } from './ui/skeleton';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 export interface Transaction {
   id: string;
@@ -51,6 +52,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 }) => {
   const { session } = useAuth();
   const { toast } = useToast();
+  const { displayCurrency, setDisplayCurrency } = useCurrency();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTransactions, setSelectedTransactions] = useState<string[]>([]);
@@ -215,17 +217,17 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   return (
     <div className="space-y-6">
       <TransactionListHeader
-        searchFilters={searchFilters}
-        onSearchFiltersChange={setSearchFilters}
-        totalTransactions={filtered.length}
-        totalAmount={totalAmount}
-        showBalance={showBalance}
+        displayCurrency={displayCurrency}
+        onCurrencyChange={setDisplayCurrency}
       />
       
       {selectedTransactions.length > 0 && (
         <BulkEditActions
-          selectedTransactions={selectedTransactions}
-          onBulkUpdate={handleBulkUpdate}
+          selectedTransactions={filtered.filter(t => selectedTransactions.includes(t.id))}
+          onBulkUpdate={() => {
+            fetchTransactions();
+            setSelectedTransactions([]);
+          }}
           onClearSelection={() => setSelectedTransactions([])}
         />
       )}

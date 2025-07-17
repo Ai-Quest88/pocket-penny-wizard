@@ -33,7 +33,7 @@ export const TransactionTableRow: React.FC<TransactionTableRowProps> = ({
 }) => {
   const { session } = useAuth();
   const { toast } = useToast();
-  const { currency } = useCurrency();
+  const { displayCurrency } = useCurrency();
 
   const handleDelete = async () => {
     if (!session?.user?.id) return;
@@ -114,7 +114,7 @@ export const TransactionTableRow: React.FC<TransactionTableRowProps> = ({
       </TableCell>
       <TableCell className="text-right font-medium">
         <span className={transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}>
-          {formatCurrency(transaction.amount, currency)}
+          {formatCurrency(transaction.amount, displayCurrency)}
         </span>
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
@@ -129,15 +129,15 @@ export const TransactionTableRow: React.FC<TransactionTableRowProps> = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <EditTransactionDialog
-                transaction={transaction}
-                onUpdate={onUpdate}
-                trigger={
-                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                    Edit
-                  </DropdownMenuItem>
-                }
-              />
+              <DropdownMenuItem 
+                onSelect={(e) => {
+                  e.preventDefault();
+                  // This would open edit dialog - for now just log
+                  console.log('Edit transaction:', transaction);
+                }}
+              >
+                Edit
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={handleDelete} className="text-red-600">
                 Delete
               </DropdownMenuItem>
