@@ -440,6 +440,11 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
           sampleData: finalData.slice(0, 3)
         });
         
+        // Additional debug for the actual values being passed
+        console.log('FINAL DATA BEING PASSED TO PREVIEW:');
+        console.log('Headers:', headers);
+        console.log('Sample final data objects:', JSON.stringify(finalData.slice(0, 2), null, 2));
+        
         onFileUpload(finalData, headers);
         
       } catch (error) {
