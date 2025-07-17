@@ -362,11 +362,13 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
             headers.forEach((header, index) => {
               let cellValue = row[index];
               
-              // Handle Excel date serial numbers - convert to DD/MM/YYYY format
+              // Handle Excel date serial numbers - convert to original format and preserve it
               if (typeof cellValue === 'number' && cellValue > 40000 && cellValue < 50000) {
-                console.log(`Converting Excel date serial ${cellValue} to DD/MM/YYYY`);
-                cellValue = convertExcelDateToDDMMYYYY(cellValue);
-                console.log(`Converted to: ${cellValue}`);
+                const originalDateStr = convertExcelDateToDDMMYYYY(cellValue);
+                console.log(`Converting Excel date serial ${cellValue} to original format`);
+                console.log(`Converted to: ${originalDateStr}`);
+                // Keep the date in original DD/MM/YYYY format
+                cellValue = originalDateStr;
               }
               
               obj[header] = cellValue || '';
@@ -394,11 +396,13 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
             headers.forEach((header, index) => {
               let cellValue = row[index];
               
-              // Handle Excel date serial numbers - convert to DD/MM/YYYY format
+              // Handle Excel date serial numbers - convert to original format and preserve it
               if (typeof cellValue === 'number' && cellValue > 40000 && cellValue < 50000) {
-                console.log(`Converting Excel date serial ${cellValue} to DD/MM/YYYY`);
-                cellValue = convertExcelDateToDDMMYYYY(cellValue);
-                console.log(`Converted to: ${cellValue}`);
+                const originalDateStr = convertExcelDateToDDMMYYYY(cellValue);
+                console.log(`Converting Excel date serial ${cellValue} to original format`);
+                console.log(`Converted to: ${originalDateStr}`);
+                // Keep the date in original DD/MM/YYYY format
+                cellValue = originalDateStr;
               }
               
               obj[header] = cellValue || '';
