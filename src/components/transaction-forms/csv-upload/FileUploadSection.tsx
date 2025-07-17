@@ -93,17 +93,33 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
     }
   };
 
-  // Function to detect column types based on data patterns
+  // Function to detect column types based on data patterns with validation
   const detectColumnTypes = (data: string[][]): string[] => {
     if (data.length === 0) return [];
     
     const numColumns = data[0].length;
     const columnTypes: string[] = [];
+    let dateColumnFound = false;
+    let amountColumnFound = false;
     
     // Analyze each column
     for (let colIndex = 0; colIndex < numColumns; colIndex++) {
-      const columnValues = data.slice(0, Math.min(5, data.length)).map(row => row[colIndex] || '');
-      const columnType = detectColumnType(columnValues);
+      const columnValues = data.slice(0, Math.min(10, data.length)).map(row => row[colIndex] || '');
+      let columnType = detectColumnType(columnValues);
+      
+      // Validation rules to ensure we only pick one of each critical type
+      if (columnType === 'Date' && dateColumnFound) {
+        columnType = 'Balance'; // Likely a balance column if we already found a date
+      } else if (columnType === 'Date') {
+        dateColumnFound = true;
+      }
+      
+      if (columnType === 'Amount' && amountColumnFound) {
+        columnType = 'Balance'; // Likely a balance column if we already found an amount
+      } else if (columnType === 'Amount') {
+        amountColumnFound = true;
+      }
+      
       columnTypes.push(columnType);
     }
     
@@ -160,15 +176,26 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
 
   // Helper functions to detect data patterns
   const isDateLike = (value: string): boolean => {
-    // Common date patterns including DD/MM/YYYY
-    const datePatterns = [
+    // Only accept strict date patterns - no ambiguous formats
+    const strictDatePatterns = [
       /^\d{4}-\d{1,2}-\d{1,2}$/,        // YYYY-MM-DD
       /^\d{1,2}\/\d{1,2}\/\d{4}$/,      // DD/MM/YYYY or MM/DD/YYYY
       /^\d{1,2}-\d{1,2}-\d{4}$/,        // DD-MM-YYYY or MM-DD-YYYY
       /^\d{1,2}\.\d{1,2}\.\d{4}$/,      // DD.MM.YYYY or MM.DD.YYYY
     ];
     
-    return datePatterns.some(pattern => pattern.test(value)) || !isNaN(Date.parse(value));
+    // Must match a strict pattern AND be parseable as date
+    if (!strictDatePatterns.some(pattern => pattern.test(value))) {
+      return false;
+    }
+    
+    // Additional validation - must be a reasonable date
+    const parsedDate = new Date(value);
+    if (isNaN(parsedDate.getTime())) return false;
+    
+    // Should be between reasonable years (1900-2100)
+    const year = parsedDate.getFullYear();
+    return year >= 1900 && year <= 2100;
   };
 
   const isAmountLike = (value: string): boolean => {
