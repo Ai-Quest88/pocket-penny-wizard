@@ -35,7 +35,6 @@ import Notifications from "./pages/Notifications"
 import NotFound from "./pages/NotFound"
 import Login from "./pages/Login"
 import Entities from "./pages/Entities"
-import Index from "./pages/Index"
 import ImportTransactions from "./pages/ImportTransactions"
 
 const queryClient = new QueryClient()
@@ -126,7 +125,7 @@ const AppRoutes = () => {
   return (
     <Routes>
       {/* Root redirect */}
-      <Route 
+  <Route 
         path="/" 
         element={
           isAuthenticated ? (
@@ -198,30 +197,33 @@ const AppRoutes = () => {
   );
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <BrowserRouter>
-      <AuthProvider>
-        <CurrencyProvider>
-          <TooltipProvider>
-            <div className="relative min-h-screen bg-gradient-to-br from-background to-background-muted">
-              <div 
-                className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1519389950473-47ba0277781c')] bg-cover bg-center opacity-5 pointer-events-none"
-                style={{ mixBlendMode: 'overlay' }}
-              />
-              <Toaster />
-              <Sonner />
-              <SidebarProvider>
-                <div className="relative min-h-screen flex w-full">
-                  <AppRoutes />
-                </div>
-              </SidebarProvider>
-            </div>
-          </TooltipProvider>
-        </CurrencyProvider>
-      </AuthProvider>
-    </BrowserRouter>
-  </QueryClientProvider>
-)
+const App = () => {
+  console.log("App component rendering");
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AuthProvider>
+          <CurrencyProvider>
+            <TooltipProvider>
+              <div className="relative min-h-screen bg-gradient-to-br from-background to-background-muted">
+                <div 
+                  className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1519389950473-47ba0277781c')] bg-cover bg-center opacity-5 pointer-events-none"
+                  style={{ mixBlendMode: 'overlay' }}
+                />
+                <Toaster />
+                <Sonner />
+                <SidebarProvider>
+                  <div className="relative min-h-screen flex w-full">
+                    <AppRoutes />
+                  </div>
+                </SidebarProvider>
+              </div>
+            </TooltipProvider>
+          </CurrencyProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
+}
 
 export default App
