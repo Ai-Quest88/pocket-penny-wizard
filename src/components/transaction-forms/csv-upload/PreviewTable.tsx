@@ -24,42 +24,32 @@ interface PreviewTableProps {
 export const PreviewTable = ({ data, mappings, defaultSettings, selectedAccount }: PreviewTableProps) => {
   const previewData = data.slice(0, 5);
 
-  // Debug what's in the data
-  console.log('Preview data - full first row:', previewData[0]);
-  console.log('Preview data - all keys in first row:', previewData[0] ? Object.keys(previewData[0]) : 'no data');
-  console.log('Mappings:', mappings);
-  console.log('Date mapping value:', mappings.date);
-  console.log('Date field in first row:', previewData[0] ? previewData[0][mappings.date] : 'no date field');
+  // Debug information
+  console.log('PreviewTable RECEIVED DATA:', { 
+    dataLength: previewData.length,
+    firstRowKeys: previewData.length > 0 ? Object.keys(previewData[0]) : [],
+    mappings
+  });
+  
+  if (previewData.length > 0 && mappings.date) {
+    console.log('DATE VALUES IN PREVIEW:');
+    previewData.forEach((row, idx) => {
+      console.log(`Row ${idx} date:`, row[mappings.date]);
+    });
+  }
 
-  const getValue = (row: any, mapping: string, defaultValue: string) => {
-    const value = row[mapping] || defaultValue || 'Not set';
-    console.log(`Getting value for mapping "${mapping}": ${value}`);
+  // Helper function to safely get a value with fallback
+  const getValue = (row: any, field: string, defaultValue: string = 'Not set') => {
+    // If no mapping, return default
+    if (!field) return defaultValue;
+    
+    // Check if field exists in row
+    const value = row[field];
+    if (value === undefined || value === null || value === '') {
+      return defaultValue;
+    }
+    
     return value;
-  };
-
-  // Special formatter for dates to preserve exact format from source
-  const getDateValue = (row: any, dateMapping: string) => {
-    console.log('getDateValue called with:', { dateMapping, rowKeys: Object.keys(row) });
-    
-    if (!dateMapping || !row[dateMapping]) {
-      console.log('No date mapping or value, using current date');
-      return new Date().toLocaleDateString();
-    }
-    
-    // Get the raw date value directly from the row without formatting
-    const rawDateValue = row[dateMapping];
-    console.log('Raw date value from row:', rawDateValue, 'type:', typeof rawDateValue);
-    
-    // If it's already a string, it's likely been pre-formatted correctly
-    if (typeof rawDateValue === 'string') {
-      console.log('Date is string, returning as-is:', rawDateValue);
-      return rawDateValue;
-    }
-    
-    // Fallback to simple display
-    const result = String(rawDateValue);
-    console.log('Date converted to string:', result);
-    return result;
   };
 
   return (
@@ -89,7 +79,7 @@ export const PreviewTable = ({ data, mappings, defaultSettings, selectedAccount 
               <TableRow key={index}>
                 <TableCell>{getValue(row, mappings.description, defaultSettings.description)}</TableCell>
                 <TableCell>{getValue(row, mappings.amount, '0')}</TableCell>
-                <TableCell>{getDateValue(row, mappings.date)}</TableCell>
+                <TableCell className="font-mono">{getValue(row, mappings.date, '')}</TableCell>
                 <TableCell>{getValue(row, mappings.currency, defaultSettings.currency)}</TableCell>
                 <TableCell>
                   {selectedAccount ? (

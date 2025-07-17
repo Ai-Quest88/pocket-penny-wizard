@@ -71,35 +71,51 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
     try {
       console.log('Converting Excel date serial', excelDate, 'to DD/MM/YYYY');
       
-      // Excel starts counting from January 1, 1900
-      // Excel has a leap year bug where it counts 1900 as a leap year
-      // so we need to adjust for dates after February 28, 1900
-      
-      let adjustedDate = excelDate;
-      if (adjustedDate > 59) {
-        // Subtract 1 to account for Excel's leap year bug (1900 wasn't actually a leap year)
-        adjustedDate -= 1;
-      }
-      
-      // Convert to milliseconds
-      const millisecondsPerDay = 24 * 60 * 60 * 1000;
-      const excelEpoch = new Date(Date.UTC(1900, 0, 1)); // Jan 1, 1900 in UTC
-      
-      // Add days to the epoch date
-      const jsDate = new Date(excelEpoch.getTime() + (adjustedDate - 1) * millisecondsPerDay);
+      // XLSX library already handles the conversion
+      const date = XLSX.SSF.parse_date_code(excelDate);
       
       // Format as DD/MM/YYYY
-      const day = jsDate.getUTCDate().toString().padStart(2, '0');
-      const month = (jsDate.getUTCMonth() + 1).toString().padStart(2, '0');
-      const year = jsDate.getUTCFullYear();
+      const day = date.d.toString().padStart(2, '0');
+      const month = date.m.toString().padStart(2, '0');
+      const year = date.y;
       
       const result = `${day}/${month}/${year}`;
       console.log('Converted to:', result);
       
       return result;
     } catch (error) {
-      console.error('Error converting Excel date:', error);
-      return String(excelDate);
+      try {
+        // Fallback method if XLSX.SSF fails
+        console.log('Fallback Excel date conversion for', excelDate);
+        
+        // Excel starts counting from January 1, 1900
+        // Excel has a leap year bug where it counts 1900 as a leap year
+        let adjustedDate = excelDate;
+        if (adjustedDate > 59) {
+          // Subtract 1 to account for Excel's leap year bug (1900 wasn't actually a leap year)
+          adjustedDate -= 1;
+        }
+        
+        // Convert to milliseconds
+        const millisecondsPerDay = 24 * 60 * 60 * 1000;
+        const excelEpoch = new Date(Date.UTC(1900, 0, 1)); // Jan 1, 1900 in UTC
+        
+        // Add days to the epoch date
+        const jsDate = new Date(excelEpoch.getTime() + (adjustedDate - 1) * millisecondsPerDay);
+        
+        // Format as DD/MM/YYYY
+        const day = jsDate.getUTCDate().toString().padStart(2, '0');
+        const month = (jsDate.getUTCMonth() + 1).toString().padStart(2, '0');
+        const year = jsDate.getUTCFullYear();
+        
+        const result = `${day}/${month}/${year}`;
+        console.log('Fallback converted to:', result);
+        
+        return result;
+      } catch (fallbackError) {
+        console.error('Error in fallback date conversion:', fallbackError);
+        return String(excelDate);
+      }
     }
   };
 
@@ -384,10 +400,17 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
               
               // Handle Excel date serial numbers - convert to original format and preserve it
               if (typeof cellValue === 'number' && cellValue > 40000 && cellValue < 50000) {
-                cellValue = convertExcelDateToDDMMYYYY(cellValue);
+                const dateString = convertExcelDateToDDMMYYYY(cellValue);
+                console.log(`🔍 Header path: Converting Excel date ${cellValue} -> ${dateString}`);
+                cellValue = dateString;
               }
               
               obj[header] = cellValue || '';
+              
+              // Extra debugging for date columns
+              if (String(header).toLowerCase().includes('date')) {
+                console.log(`⚠️ Header path: Date column "${header}" value set to:`, obj[header]);
+              }
             });
             return obj;
           });
