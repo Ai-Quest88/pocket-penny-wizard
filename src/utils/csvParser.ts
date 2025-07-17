@@ -226,38 +226,50 @@ export const autoMapColumns = (headers: string[], data: string[][] = []): Record
     // Analyze column content if data is available
     const contentAnalysis = data.length > 0 ? analyzeColumnContent(data, index) : null;
     
-    // Date mapping - check header name first, then content
+    // Date mapping - check header name first, then content (but exclude description columns)
     if (!mapping.date && 
+        !normalizedHeader.includes('description') &&
         (/^date|transaction.*date|posting.*date/.test(normalizedHeader) || 
          contentAnalysis?.isDate)) {
       mapping.date = header;
     }
+    
     // Amount mapping - check header name first, then content
-    else if (!mapping.amount && 
+    if (!mapping.amount && 
              (/^amount|debit|credit|value/.test(normalizedHeader) || 
               contentAnalysis?.isAmount)) {
       mapping.amount = header;
     }
-    // Description mapping - prioritize exact match, then pattern, then text content
-    else if (!mapping.description) {
+    
+    // Description mapping - prioritize exact "description" match over numbered variants
+    if (!mapping.description) {
       if (normalizedHeader === 'description') {
         mapping.description = header;
-      } else if (/^description|narrative|details|memo|payee/.test(normalizedHeader)) {
+      } else if (normalizedHeader.startsWith('description') && normalizedHeader !== 'description') {
+        // Only use "Description 2" etc. if no exact "description" exists
+        const hasExactDescription = headers.some(h => h.toLowerCase().trim() === 'description');
+        if (!hasExactDescription) {
+          mapping.description = header;
+        }
+      } else if (/^narrative|details|memo|payee/.test(normalizedHeader)) {
         mapping.description = header;
       } else if (contentAnalysis?.isText && !contentAnalysis.isDate && !contentAnalysis.isAmount) {
         mapping.description = header;
       }
     }
+    
     // Category mapping - only if not already mapped
-    else if (!mapping.category && /^category|type/.test(normalizedHeader)) {
+    if (!mapping.category && /^category|type/.test(normalizedHeader)) {
       mapping.category = header;
     }
+    
     // Account mapping - only if not already mapped
-    else if (!mapping.account && /^account/.test(normalizedHeader)) {
+    if (!mapping.account && /^account/.test(normalizedHeader)) {
       mapping.account = header;
     }
+    
     // Currency mapping - only if not already mapped
-    else if (!mapping.currency && /^currency/.test(normalizedHeader)) {
+    if (!mapping.currency && /^currency/.test(normalizedHeader)) {
       mapping.currency = header;
     }
   });
