@@ -182,6 +182,8 @@ const analyzeColumnContent = (data: string[][], columnIndex: number): { isDate: 
   // Sample first 10 rows to determine column type
   const sampleSize = Math.min(10, data.length);
   
+  console.info(`Analyzing column ${columnIndex} content:`, data.slice(0, Math.min(3, data.length)).map(row => row[columnIndex]));
+  
   for (let i = 0; i < sampleSize; i++) {
     const value = data[i][columnIndex]?.toString().trim();
     if (!value) continue;
@@ -194,20 +196,26 @@ const analyzeColumnContent = (data: string[][], columnIndex: number): { isDate: 
       /^\d{1,2}\s+\w+\s+\d{4}$/,     // DD MMM YYYY
     ];
     
-    if (datePatterns.some(pattern => pattern.test(value)) || !isNaN(Date.parse(value))) {
+    const isDatePattern = datePatterns.some(pattern => pattern.test(value));
+    const isDateParseable = !isNaN(Date.parse(value));
+    
+    if (isDatePattern || isDateParseable) {
       dateCount++;
+      console.info(`  "${value}" -> DATE (pattern: ${isDatePattern}, parseable: ${isDateParseable})`);
     }
     
     // Check if it's an amount (number, possibly with currency symbols)
     const cleanedValue = value.replace(/[$,£€¥₹\s]/g, '');
     if (/^-?\d+\.?\d*$/.test(cleanedValue) && !isNaN(parseFloat(cleanedValue))) {
       amountCount++;
+      console.info(`  "${value}" -> AMOUNT`);
     }
     
     // Check if it's primarily text (contains letters, but exclude date-like patterns)
     const isDateLike = datePatterns.some(pattern => pattern.test(value)) || !isNaN(Date.parse(value));
     if (value.length > 3 && /[a-zA-Z]/.test(value) && !isDateLike) {
       textCount++;
+      console.info(`  "${value}" -> TEXT`);
     }
   }
   
@@ -221,35 +229,48 @@ const analyzeColumnContent = (data: string[][], columnIndex: number): { isDate: 
 export const autoMapColumns = (headers: string[], data: string[][] = []): Record<string, string> => {
   const mapping: Record<string, string> = {};
   
+  console.info('AutoMapColumns - headers:', headers);
+  console.info('AutoMapColumns - data sample:', data.slice(0, 3));
+  
   // First pass: exact header matches only
   headers.forEach((header, index) => {
     const normalizedHeader = header.toLowerCase().trim();
+    console.info(`First pass - checking header "${header}" (normalized: "${normalizedHeader}")`);
     
     // Prioritize exact matches for key fields
     if (!mapping.date && /^date$/i.test(normalizedHeader)) {
       mapping.date = header;
+      console.info(`  -> Mapped as DATE (exact match)`);
     }
     if (!mapping.amount && /^amount$/i.test(normalizedHeader)) {
       mapping.amount = header;
+      console.info(`  -> Mapped as AMOUNT (exact match)`);
     }
     if (!mapping.description && normalizedHeader === 'description') {
       mapping.description = header;
+      console.info(`  -> Mapped as DESCRIPTION (exact match)`);
     }
   });
+  
+  console.info('After first pass:', mapping);
   
   // Second pass: content-based analysis and pattern matching
   headers.forEach((header, index) => {
     const normalizedHeader = header.toLowerCase().trim();
+    console.info(`Second pass - checking header "${header}" (index ${index})`);
     
     // Analyze column content if data is available
     const contentAnalysis = data.length > 0 ? analyzeColumnContent(data, index) : null;
+    console.info(`  Content analysis:`, contentAnalysis);
     
     // Date mapping - prioritize content analysis over header patterns
     if (!mapping.date) {
       if (contentAnalysis?.isDate) {
         mapping.date = header;
+        console.info(`  -> Mapped as DATE (content analysis)`);
       } else if (/^date|transaction.*date|posting.*date/.test(normalizedHeader)) {
         mapping.date = header;
+        console.info(`  -> Mapped as DATE (header pattern)`);
       }
     }
     
@@ -257,8 +278,10 @@ export const autoMapColumns = (headers: string[], data: string[][] = []): Record
     if (!mapping.amount) {
       if (contentAnalysis?.isAmount) {
         mapping.amount = header;
+        console.info(`  -> Mapped as AMOUNT (content analysis)`);
       } else if (/^amount|debit|credit|value/.test(normalizedHeader)) {
         mapping.amount = header;
+        console.info(`  -> Mapped as AMOUNT (header pattern)`);
       }
     }
     
@@ -266,6 +289,7 @@ export const autoMapColumns = (headers: string[], data: string[][] = []): Record
     if (!mapping.description) {
       if (contentAnalysis?.isText && !contentAnalysis.isDate && !contentAnalysis.isAmount) {
         mapping.description = header;
+        console.info(`  -> Mapped as DESCRIPTION (content analysis - text)`);
       } else if (normalizedHeader.startsWith('description')) {
         // Only use "Description 2" etc. if no exact "description" exists and no text content found
         const hasExactDescription = headers.some(h => h.toLowerCase().trim() === 'description');
@@ -273,30 +297,19 @@ export const autoMapColumns = (headers: string[], data: string[][] = []): Record
           const analysis = data.length > 0 ? analyzeColumnContent(data, i) : null;
           return analysis?.isText && !analysis.isDate && !analysis.isAmount;
         });
+        console.info(`  -> Description variant check: hasExactDescription=${hasExactDescription}, hasTextContent=${hasTextContent}`);
         if (!hasExactDescription && !hasTextContent) {
           mapping.description = header;
+          console.info(`  -> Mapped as DESCRIPTION (header variant)`);
         }
       } else if (/^narrative|details|memo|payee/.test(normalizedHeader)) {
         mapping.description = header;
+        console.info(`  -> Mapped as DESCRIPTION (header pattern)`);
       }
-    }
-    
-    // Category mapping - only if not already mapped
-    if (!mapping.category && /^category|type/.test(normalizedHeader)) {
-      mapping.category = header;
-    }
-    
-    // Account mapping - only if not already mapped
-    if (!mapping.account && /^account/.test(normalizedHeader)) {
-      mapping.account = header;
-    }
-    
-    // Currency mapping - only if not already mapped
-    if (!mapping.currency && /^currency/.test(normalizedHeader)) {
-      mapping.currency = header;
     }
   });
   
+  console.info('Final mapping result:', mapping);
   return mapping;
 };
 
