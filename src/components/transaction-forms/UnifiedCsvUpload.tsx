@@ -47,9 +47,15 @@ const isValidDate = (dateString: string): boolean => {
 
 const formatDateForSupabase = (dateString: string): string => {
   try {
-    console.log(`🗓️ Formatting date: "${dateString}"`);
+    console.log(`🗓️ Formatting date for Supabase: "${dateString}" (type: ${typeof dateString})`);
     
-    // Handle DD/MM/YYYY format specifically - this is the main format we want to support
+    // If dateString is already in YYYY-MM-DD format, use it directly
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      console.log(`🗓️ Already in ISO format: ${dateString}`);
+      return dateString;
+    }
+    
+    // Handle DD/MM/YYYY format specifically
     const ddmmyyyyPattern = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
     const match = dateString.match(ddmmyyyyPattern);
     
@@ -59,27 +65,32 @@ const formatDateForSupabase = (dateString: string): string => {
       const monthNum = parseInt(month);
       const yearNum = parseInt(year);
       
+      console.log(`🗓️ Parsed DD/MM/YYYY: day=${dayNum}, month=${monthNum}, year=${yearNum}`);
+      
       // Validate date components
       if (dayNum >= 1 && dayNum <= 31 && monthNum >= 1 && monthNum <= 12 && yearNum >= 1900) {
         // Create date in YYYY-MM-DD format for proper parsing
         const isoDateString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
         console.log(`🗓️ Converted DD/MM/YYYY ${dateString} -> ${isoDateString}`);
         return isoDateString;
+      } else {
+        console.warn(`🗓️ Invalid date components: day=${dayNum}, month=${monthNum}, year=${yearNum}`);
       }
     }
     
-    // Fallback for other formats
-    if (!isValidDate(dateString)) {
-      console.warn(`Invalid date format: ${dateString}. Using current date.`);
-      return new Date().toISOString().split('T')[0];
+    // Try parsing as Date object for other formats
+    const parsedDate = new Date(dateString);
+    if (!isNaN(parsedDate.getTime())) {
+      const result = parsedDate.toISOString().split('T')[0];
+      console.log(`🗓️ Parsed as Date object ${dateString} -> ${result}`);
+      return result;
     }
-
-    const date = new Date(dateString);
-    const result = date.toISOString().split('T')[0];
-    console.log(`🗓️ Fallback conversion ${dateString} -> ${result}`);
-    return result;
+    
+    // Final fallback - use today's date
+    console.warn(`🗓️ Could not parse date: "${dateString}". Using current date.`);
+    return new Date().toISOString().split('T')[0];
   } catch (error) {
-    console.error("Error formatting date:", error);
+    console.error("🗓️ Error formatting date:", error);
     return new Date().toISOString().split('T')[0];
   }
 };
