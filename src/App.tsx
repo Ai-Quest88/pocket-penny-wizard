@@ -35,6 +35,8 @@ import Notifications from "./pages/Notifications"
 import NotFound from "./pages/NotFound"
 import Login from "./pages/Login"
 import Entities from "./pages/Entities"
+import Index from "./pages/Index"
+import ImportTransactions from "./pages/ImportTransactions"
 
 const queryClient = new QueryClient()
 
@@ -165,24 +167,26 @@ const AppRoutes = () => {
                   <UserMenu />
                 </div>
                 <Routes>
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/transactions" element={<Transactions />} />
-                  <Route path="/transactions/uncategorized" element={<UncategorizedTransactions />} />
-                  <Route path="/transactions/transfers" element={<TransferTransactions />} />
-                  <Route path="/analytics" element={<Analytics />} />
-                  <Route path="/accounts" element={<Accounts />} />
-                  <Route path="/entities" element={<Entities />} />
-                  <Route path="/assets" element={<Assets />} />
-                  <Route path="/liabilities" element={<Liabilities />} />
-                  <Route path="/budgets" element={<Budgets />} />
-                  <Route path="/reports" element={<Reports />} />
-                  <Route path="/reports/income-expense" element={<Reports />} />
-                  <Route path="/reports/cash-flow" element={<Reports />} />
-                  <Route path="/reports/trends" element={<Reports />} />
-                  <Route path="/reports/timeline" element={<Reports />} />
-                  <Route path="/reports/digest" element={<Reports />} />
-                  <Route path="/notifications" element={<Notifications />} />
-                  <Route path="/settings" element={<Settings />} />
+                  <Route path="dashboard" element={<Dashboard />} />
+                  <Route path="transactions" element={<Transactions />} />
+                  <Route path="transactions/uncategorized" element={<UncategorizedTransactions />} />
+                  <Route path="transactions/transfers" element={<TransferTransactions />} />
+                  <Route path="transactions/import" element={<ImportTransactions />} />
+                  <Route path="analytics" element={<Analytics />} />
+                  <Route path="accounts" element={<Accounts />} />
+                  <Route path="entities" element={<Entities />} />
+                  <Route path="assets" element={<Assets />} />
+                  <Route path="liabilities" element={<Liabilities />} />
+                  <Route path="budgets" element={<Budgets />} />
+                  <Route path="reports" element={<Reports />} />
+                  <Route path="reports/income-expense" element={<Reports />} />
+                  <Route path="reports/cash-flow" element={<Reports />} />
+                  <Route path="reports/trends" element={<Reports />} />
+                  <Route path="reports/timeline" element={<Reports />} />
+                  <Route path="reports/digest" element={<Reports />} />
+                  <Route path="notifications" element={<Notifications />} />
+                  <Route path="settings" element={<Settings />} />
+                  <Route index element={<Dashboard />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
