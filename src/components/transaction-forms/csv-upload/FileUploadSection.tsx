@@ -131,7 +131,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
     // Debug the input data
     console.log('Data for column type detection:', JSON.stringify(data.slice(0, 3)));
     
-    // Analyze each column
+    // Analyze each column and assign names based on CONTENT, not original headers
     for (let colIndex = 0; colIndex < numColumns; colIndex++) {
       // Get values for this column from multiple rows for better detection
       const columnValues = data.slice(0, Math.min(10, data.length)).map(row => {
@@ -140,26 +140,20 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
         return value;
       });
       
-      let columnType = detectColumnType(columnValues);
-      console.log(`Column ${colIndex} detected as:`, columnType);
+      let columnName = detectColumnType(columnValues);
+      console.log(`Column ${colIndex} will be named:`, columnName);
       
-      // Validation rules to ensure we only pick one of each critical type
-      if (columnType === 'Date' && dateColumnFound) {
-        columnType = 'Balance'; // Likely a balance column if we already found a date
-      } else if (columnType === 'Date') {
+      // Track what we've found to avoid duplicates
+      if (columnName === 'Date') {
         dateColumnFound = true;
-      }
-      
-      if (columnType === 'Amount' && amountColumnFound) {
-        columnType = 'Balance'; // Likely a balance column if we already found an amount
-      } else if (columnType === 'Amount') {
+      } else if (columnName === 'Amount') {
         amountColumnFound = true;
       }
       
-      columnTypes.push(columnType);
+      columnTypes.push(columnName);
     }
     
-    console.log('Final detected column types:', columnTypes);
+    console.log('Final detected column names:', columnTypes);
     return columnTypes;
   };
 
