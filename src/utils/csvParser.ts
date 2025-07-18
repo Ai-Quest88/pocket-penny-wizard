@@ -232,9 +232,6 @@ export const autoMapColumns = (headers: string[], data: string[][] = []): Record
   console.info('AutoMapColumns - headers:', headers);
   console.info('AutoMapColumns - data sample:', data.slice(0, 3));
   
-  // For your specific CSV case where dates are in the "Description" column
-  // We need to check content first to properly identify the date column
-  
   // Analyze each column's content to determine its type
   const columnAnalysis: { [key: string]: { isDate: boolean; isAmount: boolean; isText: boolean } } = {};
   
@@ -248,7 +245,7 @@ export const autoMapColumns = (headers: string[], data: string[][] = []): Record
   headers.forEach((header, index) => {
     const analysis = columnAnalysis[header];
     
-    // Map the column that actually contains dates
+    // Map the column that actually contains dates (regardless of header name)
     if (!mapping.date && analysis.isDate) {
       mapping.date = header;
       console.info(`  -> Mapped "${header}" as DATE (content contains dates)`);
@@ -261,37 +258,40 @@ export const autoMapColumns = (headers: string[], data: string[][] = []): Record
     }
   });
   
-  // Second pass: Map description to a non-date, non-amount column with text content
+  // Second pass: Map description intelligently
+  // If a "Description" column was mapped as date, look for "Description 2" or other text columns
   headers.forEach((header, index) => {
     const analysis = columnAnalysis[header];
     
     if (!mapping.description && 
         header !== mapping.date && 
-        header !== mapping.amount &&
-        (analysis.isText || header.toLowerCase().includes('description'))) {
-      mapping.description = header;
-      console.info(`  -> Mapped "${header}" as DESCRIPTION (text content or description header)`);
+        header !== mapping.amount) {
+      
+      // Prefer columns that:
+      // 1. Have "description" in the name but aren't the date column
+      // 2. Have text content
+      // 3. Are not date or amount columns
+      
+      const headerLower = header.toLowerCase();
+      const isDescriptionHeader = headerLower.includes('description');
+      const hasTextContent = analysis.isText;
+      
+      if (isDescriptionHeader || hasTextContent) {
+        mapping.description = header;
+        console.info(`  -> Mapped "${header}" as DESCRIPTION (${isDescriptionHeader ? 'description header' : 'text content'})`);
+      }
     }
   });
   
-  // Third pass: Fill in exact header matches if still unmapped
-  headers.forEach((header, index) => {
-    const normalizedHeader = header.toLowerCase().trim();
-    
-    // Only override if we haven't found better content-based matches
-    if (!mapping.date && /^date$/i.test(normalizedHeader)) {
-      mapping.date = header;
-      console.info(`  -> Mapped "${header}" as DATE (header name match)`);
+  // Third pass: Fill in any remaining unmapped fields with fallbacks
+  if (!mapping.description) {
+    // Find any remaining text column
+    const remainingHeaders = headers.filter(h => h !== mapping.date && h !== mapping.amount);
+    if (remainingHeaders.length > 0) {
+      mapping.description = remainingHeaders[0];
+      console.info(`  -> Mapped "${remainingHeaders[0]}" as DESCRIPTION (fallback)`);
     }
-    if (!mapping.amount && /^amount$/i.test(normalizedHeader)) {
-      mapping.amount = header;
-      console.info(`  -> Mapped "${header}" as AMOUNT (header name match)`);
-    }
-    if (!mapping.description && normalizedHeader === 'description' && !columnAnalysis[header].isDate) {
-      mapping.description = header;
-      console.info(`  -> Mapped "${header}" as DESCRIPTION (header name match, not date content)`);
-    }
-  });
+  }
   
   console.info('Final mapping result:', mapping);
   return mapping;
