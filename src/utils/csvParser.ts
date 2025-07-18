@@ -232,80 +232,64 @@ export const autoMapColumns = (headers: string[], data: string[][] = []): Record
   console.info('AutoMapColumns - headers:', headers);
   console.info('AutoMapColumns - data sample:', data.slice(0, 3));
   
-  // First pass: exact header matches only
+  // For your specific CSV case where dates are in the "Description" column
+  // We need to check content first to properly identify the date column
+  
+  // Analyze each column's content to determine its type
+  const columnAnalysis: { [key: string]: { isDate: boolean; isAmount: boolean; isText: boolean } } = {};
+  
   headers.forEach((header, index) => {
-    const normalizedHeader = header.toLowerCase().trim();
-    console.info(`First pass - checking header "${header}" (normalized: "${normalizedHeader}")`);
+    const contentAnalysis = data.length > 0 ? analyzeColumnContent(data, index) : { isDate: false, isAmount: false, isText: false };
+    columnAnalysis[header] = contentAnalysis;
+    console.info(`Column "${header}" analysis:`, contentAnalysis);
+  });
+  
+  // First pass: Map based on content analysis (prioritize date and amount)
+  headers.forEach((header, index) => {
+    const analysis = columnAnalysis[header];
     
-    // Prioritize exact matches for key fields
-    if (!mapping.date && /^date$/i.test(normalizedHeader)) {
+    // Map the column that actually contains dates
+    if (!mapping.date && analysis.isDate) {
       mapping.date = header;
-      console.info(`  -> Mapped as DATE (exact match)`);
+      console.info(`  -> Mapped "${header}" as DATE (content contains dates)`);
     }
-    if (!mapping.amount && /^amount$/i.test(normalizedHeader)) {
+    
+    // Map the column that actually contains amounts  
+    if (!mapping.amount && analysis.isAmount) {
       mapping.amount = header;
-      console.info(`  -> Mapped as AMOUNT (exact match)`);
-    }
-    if (!mapping.description && normalizedHeader === 'description') {
-      mapping.description = header;
-      console.info(`  -> Mapped as DESCRIPTION (exact match)`);
+      console.info(`  -> Mapped "${header}" as AMOUNT (content contains numbers)`);
     }
   });
   
-  console.info('After first pass:', mapping);
+  // Second pass: Map description to a non-date, non-amount column with text content
+  headers.forEach((header, index) => {
+    const analysis = columnAnalysis[header];
+    
+    if (!mapping.description && 
+        header !== mapping.date && 
+        header !== mapping.amount &&
+        (analysis.isText || header.toLowerCase().includes('description'))) {
+      mapping.description = header;
+      console.info(`  -> Mapped "${header}" as DESCRIPTION (text content or description header)`);
+    }
+  });
   
-  // Second pass: content-based analysis and pattern matching
+  // Third pass: Fill in exact header matches if still unmapped
   headers.forEach((header, index) => {
     const normalizedHeader = header.toLowerCase().trim();
-    console.info(`Second pass - checking header "${header}" (index ${index})`);
     
-    // Analyze column content if data is available
-    const contentAnalysis = data.length > 0 ? analyzeColumnContent(data, index) : null;
-    console.info(`  Content analysis:`, contentAnalysis);
-    
-    // Date mapping - prioritize content analysis over header patterns
-    if (!mapping.date) {
-      if (contentAnalysis?.isDate) {
-        mapping.date = header;
-        console.info(`  -> Mapped as DATE (content analysis)`);
-      } else if (/^date|transaction.*date|posting.*date/.test(normalizedHeader)) {
-        mapping.date = header;
-        console.info(`  -> Mapped as DATE (header pattern)`);
-      }
+    // Only override if we haven't found better content-based matches
+    if (!mapping.date && /^date$/i.test(normalizedHeader)) {
+      mapping.date = header;
+      console.info(`  -> Mapped "${header}" as DATE (header name match)`);
     }
-    
-    // Amount mapping - prioritize content analysis
-    if (!mapping.amount) {
-      if (contentAnalysis?.isAmount) {
-        mapping.amount = header;
-        console.info(`  -> Mapped as AMOUNT (content analysis)`);
-      } else if (/^amount|debit|credit|value/.test(normalizedHeader)) {
-        mapping.amount = header;
-        console.info(`  -> Mapped as AMOUNT (header pattern)`);
-      }
+    if (!mapping.amount && /^amount$/i.test(normalizedHeader)) {
+      mapping.amount = header;
+      console.info(`  -> Mapped "${header}" as AMOUNT (header name match)`);
     }
-    
-    // Description mapping - prioritize text content analysis for auto-generated headers
-    if (!mapping.description) {
-      if (contentAnalysis?.isText && !contentAnalysis.isDate && !contentAnalysis.isAmount) {
-        mapping.description = header;
-        console.info(`  -> Mapped as DESCRIPTION (content analysis - text)`);
-      } else if (normalizedHeader.startsWith('description')) {
-        // Only use "Description 2" etc. if no exact "description" exists and no text content found
-        const hasExactDescription = headers.some(h => h.toLowerCase().trim() === 'description');
-        const hasTextContent = headers.some((h, i) => {
-          const analysis = data.length > 0 ? analyzeColumnContent(data, i) : null;
-          return analysis?.isText && !analysis.isDate && !analysis.isAmount;
-        });
-        console.info(`  -> Description variant check: hasExactDescription=${hasExactDescription}, hasTextContent=${hasTextContent}`);
-        if (!hasExactDescription && !hasTextContent) {
-          mapping.description = header;
-          console.info(`  -> Mapped as DESCRIPTION (header variant)`);
-        }
-      } else if (/^narrative|details|memo|payee/.test(normalizedHeader)) {
-        mapping.description = header;
-        console.info(`  -> Mapped as DESCRIPTION (header pattern)`);
-      }
+    if (!mapping.description && normalizedHeader === 'description' && !columnAnalysis[header].isDate) {
+      mapping.description = header;
+      console.info(`  -> Mapped "${header}" as DESCRIPTION (header name match, not date content)`);
     }
   });
   
