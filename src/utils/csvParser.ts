@@ -348,7 +348,7 @@ export const parseCSV = (content: string): ParseResult => {
   let autoMappedColumns: Record<string, string> = {};
   
   // Always provide headers for the UI - either detected headers or generic column names
-  const headers = hasHeaders ? firstRowFields : firstRowFields.map((_, index) => `Column ${index + 1}`);
+  let headers = hasHeaders ? firstRowFields : firstRowFields.map((_, index) => `Column ${index + 1}`);
   
   let startIndex = 0;
   if (hasHeaders) {
@@ -357,6 +357,27 @@ export const parseCSV = (content: string): ParseResult => {
     const dataRows = lines.slice(1, Math.min(11, lines.length)).map(line => parseCsvLine(line));
     autoMappedColumns = autoMapColumns(firstRowFields, dataRows);
     console.log('Auto-mapped columns:', autoMappedColumns);
+    
+    // Rename headers based on content analysis
+    const updatedHeaders = [...headers];
+    headers.forEach((header, index) => {
+      const contentAnalysis = analyzeColumnContent(dataRows, index);
+      
+      // Rename headers based on what they actually contain
+      if (contentAnalysis.isDate) {
+        updatedHeaders[index] = 'Date';
+        console.log(`Renamed header "${header}" to "Date" based on content`);
+      } else if (contentAnalysis.isAmount) {
+        updatedHeaders[index] = 'Amount';
+        console.log(`Renamed header "${header}" to "Amount" based on content`);
+      } else if (contentAnalysis.isText && (header.toLowerCase().includes('description') || header.toLowerCase().includes('memo') || header.toLowerCase().includes('details'))) {
+        updatedHeaders[index] = 'Description';
+        console.log(`Renamed header "${header}" to "Description" based on content`);
+      }
+    });
+    
+    headers = updatedHeaders;
+    console.log('Updated headers based on content:', headers);
   } else {
     // If no headers detected, analyze first rows to auto-detect column types
     const dataRows = lines.slice(0, Math.min(10, lines.length)).map(line => parseCsvLine(line));
