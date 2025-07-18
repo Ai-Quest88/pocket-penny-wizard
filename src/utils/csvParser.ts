@@ -241,51 +241,53 @@ export const autoMapColumns = (headers: string[], data: string[][] = []): Record
     console.info(`Column "${header}" analysis:`, contentAnalysis);
   });
   
-  // First pass: Map based on content analysis (prioritize date and amount)
-  headers.forEach((header, index) => {
-    const analysis = columnAnalysis[header];
-    
-    // Map the column that actually contains dates (regardless of header name)
-    if (!mapping.date && analysis.isDate) {
-      mapping.date = header;
-      console.info(`  -> Mapped "${header}" as DATE (content contains dates)`);
-    }
-    
-    // Map the column that actually contains amounts  
-    if (!mapping.amount && analysis.isAmount) {
-      mapping.amount = header;
-      console.info(`  -> Mapped "${header}" as AMOUNT (content contains numbers)`);
-    }
-  });
+  // Create a mapping that assigns proper field names based on content analysis
+  // This will map the CSV headers to the correct transaction fields
   
-  // Second pass: Map description intelligently
-  // If a "Description" column was mapped as date, look for "Description 2" or other text columns
-  headers.forEach((header, index) => {
-    const analysis = columnAnalysis[header];
-    
-    if (!mapping.description && 
-        header !== mapping.date && 
-        header !== mapping.amount) {
-      
-      // Prefer columns that:
-      // 1. Have "description" in the name but aren't the date column
-      // 2. Have text content
-      // 3. Are not date or amount columns
-      
-      const headerLower = header.toLowerCase();
-      const isDescriptionHeader = headerLower.includes('description');
-      const hasTextContent = analysis.isText;
-      
-      if (isDescriptionHeader || hasTextContent) {
-        mapping.description = header;
-        console.info(`  -> Mapped "${header}" as DESCRIPTION (${isDescriptionHeader ? 'description header' : 'text content'})`);
-      }
-    }
-  });
+  // Find the column that actually contains dates
+  const dateColumn = headers.find(header => columnAnalysis[header].isDate);
+  if (dateColumn) {
+    mapping.date = dateColumn;
+    console.info(`  -> Mapped "${dateColumn}" as DATE (content contains dates)`);
+  }
   
-  // Third pass: Fill in any remaining unmapped fields with fallbacks
+  // Find the column that actually contains amounts
+  const amountColumn = headers.find(header => columnAnalysis[header].isAmount);
+  if (amountColumn) {
+    mapping.amount = amountColumn;
+    console.info(`  -> Mapped "${amountColumn}" as AMOUNT (content contains numbers)`);
+  }
+  
+  // Find the best column for description (prefer actual text content over header names)
+  const descriptionColumn = headers.find(header => 
+    header !== mapping.date && 
+    header !== mapping.amount &&
+    (columnAnalysis[header].isText || header.toLowerCase().includes('description'))
+  );
+  
+  if (descriptionColumn) {
+    mapping.description = descriptionColumn;
+    console.info(`  -> Mapped "${descriptionColumn}" as DESCRIPTION (text content or description header)`);
+  }
+  
+  // Fallback mapping if content analysis didn't find clear matches
+  if (!mapping.date) {
+    const dateHeader = headers.find(h => /^date$/i.test(h.toLowerCase().trim()));
+    if (dateHeader) {
+      mapping.date = dateHeader;
+      console.info(`  -> Mapped "${dateHeader}" as DATE (header name fallback)`);
+    }
+  }
+  
+  if (!mapping.amount) {
+    const amountHeader = headers.find(h => /^amount$/i.test(h.toLowerCase().trim()));
+    if (amountHeader) {
+      mapping.amount = amountHeader;
+      console.info(`  -> Mapped "${amountHeader}" as AMOUNT (header name fallback)`);
+    }
+  }
+  
   if (!mapping.description) {
-    // Find any remaining text column
     const remainingHeaders = headers.filter(h => h !== mapping.date && h !== mapping.amount);
     if (remainingHeaders.length > 0) {
       mapping.description = remainingHeaders[0];
