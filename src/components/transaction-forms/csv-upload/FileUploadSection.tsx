@@ -252,19 +252,41 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
 
   // Function to create smart column names based on detected types
   const createSmartHeaders = (columnTypes: string[]): string[] => {
-    const typeCount: { [key: string]: number } = {};
+    // Don't create numbered duplicates - assign proper unique names based on content
+    const finalHeaders: string[] = [];
+    let hasDate = false;
+    let hasAmount = false;
+    let hasDescription = false;
     
-    return columnTypes.map(type => {
-      typeCount[type] = (typeCount[type] || 0) + 1;
-      
-      // If it's the first occurrence, use the simple name
-      if (typeCount[type] === 1) {
-        return type;
+    columnTypes.forEach((type, index) => {
+      if (type === 'Date' && !hasDate) {
+        finalHeaders.push('Date');
+        hasDate = true;
+      } else if (type === 'Amount' && !hasAmount) {
+        finalHeaders.push('Amount');
+        hasAmount = true;
+      } else if (type === 'Description' && !hasDescription) {
+        finalHeaders.push('Description');
+        hasDescription = true;
+      } else if (type === 'Currency') {
+        finalHeaders.push('Currency');
+      } else if (type === 'Balance') {
+        finalHeaders.push('Balance');
       } else {
-        // If multiple columns of same type, add a number
-        return `${type} ${typeCount[type]}`;
+        // For any remaining columns, assign based on position or content
+        if (type === 'Date' && hasDate) {
+          finalHeaders.push('Balance'); // Likely a balance column if we already have a date
+        } else if (type === 'Amount' && hasAmount) {
+          finalHeaders.push('Balance'); // Likely a balance column if we already have an amount
+        } else if (type === 'Description' && hasDescription) {
+          finalHeaders.push('Notes'); // Use a different name for additional text columns
+        } else {
+          finalHeaders.push(`Column ${index + 1}`); // Generic fallback
+        }
       }
     });
+    
+    return finalHeaders;
   };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
