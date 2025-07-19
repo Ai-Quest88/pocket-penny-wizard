@@ -167,40 +167,62 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
     let currencyCount = 0;
     let excelDateCount = 0;
     
+    console.log(`🔍 Analyzing column with values:`, nonEmptyValues);
+    
     for (const value of nonEmptyValues) {
       const trimmed = value.toString().trim();
       const numValue = parseFloat(trimmed);
       
       // Check for Excel serial dates (typically 5-digit numbers between 40000-50000 for recent years)
       if (!isNaN(numValue) && numValue >= 40000 && numValue <= 50000 && Number.isInteger(numValue)) {
+        console.log(`📅 Found Excel serial date: ${value}`);
         excelDateCount++;
       }
       // Check if it looks like a regular date string
       else if (isDateLike(trimmed)) {
+        console.log(`📅 Found date-like string: ${trimmed}`);
         dateCount++;
       }
       // Check if it looks like an amount/number (including negative values)
       else if (isAmountLike(trimmed)) {
+        console.log(`💰 Found amount-like: ${trimmed}`);
         amountCount++;
       }
       // Check if it looks like a currency code
       else if (isCurrencyLike(trimmed)) {
+        console.log(`💱 Found currency-like: ${trimmed}`);
         currencyCount++;
+      } else {
+        console.log(`📝 Text value: ${trimmed}`);
       }
     }
     
     const total = nonEmptyValues.length;
+    console.log(`🧮 Counts - Excel dates: ${excelDateCount}, Date strings: ${dateCount}, Amounts: ${amountCount}, Currency: ${currencyCount}, Total: ${total}`);
     
     // Prioritize Excel serial dates for date detection (must be high confidence)
-    if (excelDateCount / total >= 0.8) return 'Date';
+    if (excelDateCount / total >= 0.8) {
+      console.log(`✅ Detected as Date (Excel serial)`);
+      return 'Date';
+    }
     // Regular date strings
-    if (dateCount / total >= 0.8) return 'Date';
+    if (dateCount / total >= 0.8) {
+      console.log(`✅ Detected as Date (string format)`);
+      return 'Date';
+    }
     // Amount detection (including negative numbers)
-    if (amountCount / total >= 0.7) return 'Amount';
+    if (amountCount / total >= 0.7) {
+      console.log(`✅ Detected as Amount`);
+      return 'Amount';
+    }
     // Currency detection
-    if (currencyCount / total >= 0.8) return 'Currency';
+    if (currencyCount / total >= 0.8) {
+      console.log(`✅ Detected as Currency`);
+      return 'Currency';
+    }
     
     // Default to description for text columns
+    console.log(`✅ Detected as Description (default)`);
     return 'Description';
   };
 
