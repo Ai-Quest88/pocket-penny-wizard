@@ -246,10 +246,11 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
 
   // Function to create smart column names based on detected types
   const createSmartHeaders = (columnTypes: string[]): string[] => {
-    // Use the detected column types directly as headers - no duplicates or Notes creation
-    return columnTypes.map((type, index) => {
-      // Use the detected content type as the header name
-      return type;
+    // Simple logic: content type determines header name
+    return columnTypes.map((type) => {
+      if (type === 'Date') return 'Date';
+      if (type === 'Amount') return 'Amount';
+      return 'Description'; // Everything else is Description
     });
   };
 
