@@ -36,7 +36,20 @@ export const ColumnMappingSection = ({
     })
     .map(header => header.trim()) // Ensure no whitespace issues
     .filter(header => header.length > 0) // Final check after trimming
-    .filter((header, index, array) => array.indexOf(header) === index); // Remove duplicates
+    .reduce((unique: string[], header: string, index: number) => {
+      // Create unique headers by appending index if duplicate
+      const baseHeader = header;
+      let uniqueHeader = baseHeader;
+      let counter = 1;
+      
+      while (unique.includes(uniqueHeader)) {
+        uniqueHeader = `${baseHeader} ${counter}`;
+        counter++;
+      }
+      
+      unique.push(uniqueHeader);
+      return unique;
+    }, []);
 
   console.log("ColumnMappingSection - validHeaders:", validHeaders);
 
