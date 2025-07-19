@@ -19,7 +19,7 @@ export const ColumnMappingSection = ({
   mappings, 
   onMappingChange 
 }: ColumnMappingSectionProps) => {
-  // Enhanced filtering to ensure absolutely no empty values
+  // Enhanced filtering to ensure absolutely no empty values and remove duplicates
   const validHeaders = headers
     .filter(header => {
       const isValid = header && 
@@ -35,7 +35,8 @@ export const ColumnMappingSection = ({
       return isValid;
     })
     .map(header => header.trim()) // Ensure no whitespace issues
-    .filter(header => header.length > 0); // Final check after trimming
+    .filter(header => header.length > 0) // Final check after trimming
+    .filter((header, index, array) => array.indexOf(header) === index); // Remove duplicates
 
   console.log("ColumnMappingSection - validHeaders:", validHeaders);
 
@@ -61,8 +62,8 @@ export const ColumnMappingSection = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">None</SelectItem>
-                {validHeaders.map(header => (
-                  <SelectItem key={header} value={header}>
+                {validHeaders.map((header, index) => (
+                  <SelectItem key={`${header}-${index}`} value={header}>
                     {header}
                   </SelectItem>
                 ))}

@@ -358,19 +358,20 @@ export const parseCSV = (content: string): ParseResult => {
     autoMappedColumns = autoMapColumns(firstRowFields, dataRows);
     console.log('Auto-mapped columns:', autoMappedColumns);
     
-    // Rename headers based on content analysis
+    // Rename headers based on content analysis - only rename if header doesn't already describe the content
     const updatedHeaders = [...headers];
     headers.forEach((header, index) => {
       const contentAnalysis = analyzeColumnContent(dataRows, index);
+      const headerLower = header.toLowerCase().trim();
       
-      // Rename headers based on what they actually contain
-      if (contentAnalysis.isDate) {
+      // Only rename if the header name doesn't already match what the content contains
+      if (contentAnalysis.isDate && !headerLower.includes('date')) {
         updatedHeaders[index] = 'Date';
         console.log(`Renamed header "${header}" to "Date" based on content`);
-      } else if (contentAnalysis.isAmount) {
+      } else if (contentAnalysis.isAmount && !headerLower.includes('amount') && !headerLower.includes('debit') && !headerLower.includes('credit')) {
         updatedHeaders[index] = 'Amount';
         console.log(`Renamed header "${header}" to "Amount" based on content`);
-      } else if (contentAnalysis.isText && (header.toLowerCase().includes('description') || header.toLowerCase().includes('memo') || header.toLowerCase().includes('details'))) {
+      } else if (contentAnalysis.isText && !headerLower.includes('description') && !headerLower.includes('memo') && !headerLower.includes('details') && !headerLower.includes('narrative')) {
         updatedHeaders[index] = 'Description';
         console.log(`Renamed header "${header}" to "Description" based on content`);
       }
