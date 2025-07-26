@@ -1,4 +1,4 @@
-# Pocket Penny Wizard - Business Plan
+# Finsight - Business Plan
 
 ## Table of Contents
 1. [Executive Summary](#executive-summary)
@@ -15,7 +15,7 @@
 ## Executive Summary
 
 ### Vision Statement
-**Pocket Penny Wizard** aims to become Australia's premier personal finance management platform, addressing the unique needs of Australian users through intelligent automation, multi-entity support, and comprehensive financial tracking capabilities.
+**Finsight** aims to become Australia's premier personal finance management platform, addressing the unique needs of Australian users through intelligent automation, multi-entity support, and comprehensive financial tracking capabilities.
 
 ### Mission
 To empower Australians to take control of their financial future through innovative technology that simplifies financial management, provides intelligent insights, and supports the unique complexities of Australian financial structures.
@@ -567,7 +567,7 @@ To empower Australians to take control of their financial future through innovat
 ### Funding Strategy Overview
 
 #### Investment Thesis
-**Pocket Penny Wizard** represents a significant opportunity in the underserved Australian personal finance market. With the shutdown of Mint and limited Australian-focused solutions, there's a clear market gap for a modern, AI-powered platform designed specifically for Australian users.
+**Finsight** represents a significant opportunity in the underserved Australian personal finance market. With the shutdown of Mint and limited Australian-focused solutions, there's a clear market gap for a modern, AI-powered platform designed specifically for Australian users.
 
 **Key Investment Highlights**:
 - **Large Addressable Market**: $6B+ Australian personal finance software market

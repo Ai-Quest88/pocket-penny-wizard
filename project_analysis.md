@@ -1,8 +1,8 @@
-# PennyWise - Personal Finance Management Application
+# Finsight - Personal Finance Management Application
 
 ## Overview
 
-PennyWise is a comprehensive personal finance management application built with React, TypeScript, and Supabase. It provides multi-entity financial tracking with advanced features like multi-currency support, AI-powered transaction categorization, and detailed financial analytics.
+Finsight is a comprehensive personal finance management application built with React, TypeScript, and Supabase. It provides multi-entity financial tracking with advanced features like multi-currency support, AI-powered transaction categorization, and detailed financial analytics.
 
 ## Core Technologies
 

@@ -1,4 +1,4 @@
-# Pocket Penny Wizard - Technical Specification
+# Finsight - Technical Specification
 
 ## Table of Contents
 1. [System Architecture](#system-architecture)
@@ -587,7 +587,7 @@ npm --version   # npm 9+
 
 # Project initialization
 git clone <repository-url>
-cd pocket-penny-wizard
+cd finsight
 npm install
 
 # Environment configuration

@@ -1,4 +1,4 @@
-# Pocket Penny Wizard
+# Finsight
 
 **Australia's Premier Personal Finance Management Platform**
 
@@ -15,7 +15,7 @@ An intelligent personal finance application built specifically for Australian us
 ```bash
 # Clone the repository
 git clone <YOUR_GIT_URL>
-cd pocket-penny-wizard
+cd finsight
 
 # Install dependencies
 npm install
@@ -85,7 +85,7 @@ See [`GEMINI_SETUP.md`](./GEMINI_SETUP.md) for detailed AI setup instructions.
 ## 🏗️ Project Structure
 
 ```
-pocket-penny-wizard/
+finsight/
 ├── docs/                    # Comprehensive documentation
 ├── src/
 │   ├── components/         # React components

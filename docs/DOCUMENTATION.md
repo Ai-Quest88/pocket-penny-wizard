@@ -1,6 +1,6 @@
-# Pocket Penny Wizard - Documentation
+# Finsight - Documentation
 
-This directory contains comprehensive documentation for the Pocket Penny Wizard project, organized by audience and purpose.
+This directory contains comprehensive documentation for the Finsight project, organized by audience and purpose.
 
 ## Document Overview
 

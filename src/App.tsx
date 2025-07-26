@@ -159,7 +159,7 @@ const AppRoutes = () => {
                     <SidebarTrigger />
                     <img 
                       src="/logo.svg" 
-                      alt="PennyWise" 
+                      alt="Finsight" 
                       className="h-8 w-auto dark:invert"
                     />
                   </div>

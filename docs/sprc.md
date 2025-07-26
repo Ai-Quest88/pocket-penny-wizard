@@ -1,4 +1,4 @@
-# Pocket Penny Wizard - Application Specification & Requirements (SPRC)
+# Finsight - Application Specification & Requirements (SPRC)
 
 ## Table of Contents
 1. [Project Overview](#project-overview)
@@ -15,7 +15,7 @@
 ## Project Overview
 
 ### Application Summary
-**Pocket Penny Wizard** is a comprehensive personal finance management application designed specifically for Australian users. It provides advanced multi-entity financial tracking with AI-powered transaction categorization, multi-currency support, and sophisticated reporting capabilities.
+**Finsight** is a comprehensive personal finance management application designed specifically for Australian users. It provides advanced multi-entity financial tracking with AI-powered transaction categorization, multi-currency support, and sophisticated reporting capabilities.
 
 ### Key Value Propositions
 - **Multi-Entity Management**: Track finances across personal, business, family, and trust entities
@@ -731,7 +731,7 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 ## Conclusion
 
-The Pocket Penny Wizard application represents a comprehensive personal finance management solution with a strong foundation in modern web technologies and a clear roadmap for growth. The current implementation provides robust core functionality while maintaining flexibility for future enhancements.
+The Finsight application represents a comprehensive personal finance management solution with a strong foundation in modern web technologies and a clear roadmap for growth. The current implementation provides robust core functionality while maintaining flexibility for future enhancements.
 
 The specification outlined above provides a complete picture of the application's current state and future direction, enabling informed development decisions and strategic planning. The modular architecture and well-defined interfaces support the planned feature additions while maintaining code quality and performance standards.
 

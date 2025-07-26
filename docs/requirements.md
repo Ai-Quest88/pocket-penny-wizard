@@ -1,4 +1,4 @@
-# Pocket Penny Wizard - Requirements Specification Document
+# Finsight - Requirements Specification Document
 
 ## Table of Contents
 1. [Project Overview](#project-overview)
@@ -15,7 +15,7 @@
 ## Project Overview
 
 ### Application Purpose
-**Pocket Penny Wizard** is a comprehensive personal finance management platform designed specifically for Australian users. The application provides intelligent transaction categorization, multi-entity financial management, and advanced analytics through a modern web and mobile interface.
+**Finsight** is a comprehensive personal finance management platform designed specifically for Australian users. The application provides intelligent transaction categorization, multi-entity financial management, and advanced analytics through a modern web and mobile interface.
 
 ### Core Technical Objectives
 - **Automated Processing**: AI-powered transaction categorization with 95%+ accuracy

@@ -1,4 +1,4 @@
-# Pocket Penny Wizard - Marketing Plan
+# Finsight - Marketing Plan
 
 ## Table of Contents
 1. [Marketing Overview](#marketing-overview)
@@ -16,7 +16,7 @@
 ## Marketing Overview
 
 ### Marketing Mission
-To position Pocket Penny Wizard as Australia's premier personal finance management platform through targeted digital marketing, strategic partnerships, and community building that drives sustainable user acquisition and engagement.
+To position Finsight as Australia's premier personal finance management platform through targeted digital marketing, strategic partnerships, and community building that drives sustainable user acquisition and engagement.
 
 ### Marketing Objectives
 - **Brand Awareness**: Achieve 25% aided brand awareness in target demographic by Q4 2026
@@ -258,7 +258,7 @@ To position Pocket Penny Wizard as Australia's premier personal finance manageme
 ### Positioning Strategy
 
 #### Brand Positioning Statement
-"Pocket Penny Wizard is the intelligent personal finance platform built specifically for Australians who want to take control of their financial future without the complexity and manual effort of traditional tools."
+"Finsight is the intelligent personal finance platform built specifically for Australians who want to take control of their financial future without the complexity and manual effort of traditional tools."
 
 #### Key Positioning Pillars
 
