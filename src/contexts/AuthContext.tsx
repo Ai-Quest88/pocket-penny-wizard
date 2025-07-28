@@ -20,12 +20,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
-  const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
+    console.log("AuthProvider: Starting auth check");
     // Check active sessions and set the initial state
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("AuthProvider: Session check complete", !!session);
       setSession(session);
       setIsAuthenticated(!!session);
       setIsLoading(false);
@@ -56,7 +57,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         title: "Login successful",
         description: "Welcome back!",
       });
-      navigate('/transactions');
+      // Navigation will be handled by the redirect logic in App.tsx
     } catch (error: any) {
       toast({
         title: "Login failed",
@@ -96,7 +97,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         title: "Logged out",
         description: "You have been successfully logged out.",
       });
-      navigate('/login');
+      // Navigation will be handled by the redirect logic in App.tsx
     } catch (error: any) {
       toast({
         title: "Error",
