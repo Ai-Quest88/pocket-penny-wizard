@@ -70,6 +70,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const loginWithGoogle = async () => {
     try {
+      console.log('Current origin:', window.location.origin);
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
