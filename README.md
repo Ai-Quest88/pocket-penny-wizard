@@ -75,9 +75,6 @@ npm run preview      # Preview production build
 Create a `.env.local` file with the following variables:
 
 ```env
-# Development Server Configuration (optional, defaults to 3000)
-VITE_PORT=3000
-
 # Supabase Configuration
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
@@ -86,8 +83,7 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 VITE_GEMINI_API_KEY=your_gemini_api_key
 ```
 
-**Important**: The development server runs on port 3000 by default. Make sure your Google Cloud OAuth configuration includes both:
-- `http://localhost:3000/auth/callback` (for development)
+**Important**: The development server runs on port 3000 by default. Make sure your Google Cloud OAuth configuration includes:
 - `https://pocket-penny-wizard.lovable.app/auth/callback` (for production)
 
 See [`GEMINI_SETUP.md`](./GEMINI_SETUP.md) for detailed AI setup instructions.
