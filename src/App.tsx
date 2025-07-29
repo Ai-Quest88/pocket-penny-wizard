@@ -34,6 +34,7 @@ import Reports from "./pages/Reports"
 import Notifications from "./pages/Notifications"
 import NotFound from "./pages/NotFound"
 import Login from "./pages/Login"
+import AuthCallback from "./pages/AuthCallback"
 import Entities from "./pages/Entities"
 import ImportTransactions from "./pages/ImportTransactions"
 
@@ -153,6 +154,12 @@ const AppRoutes = () => {
             <Login />
           </PublicRoute>
         } 
+      />
+      
+      {/* Auth callback route */}
+      <Route 
+        path="/auth/callback" 
+        element={<AuthCallback />} 
       />
       
       {/* Protected routes */}
