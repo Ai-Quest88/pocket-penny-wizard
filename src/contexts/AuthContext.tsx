@@ -74,7 +74,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: 'https://pocket-penny-wizard.lovable.app/auth/callback'
+          redirectTo: `${window.location.origin}/auth/callback`
         }
       });
 
