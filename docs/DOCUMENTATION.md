@@ -62,6 +62,7 @@ This directory contains comprehensive documentation for the Finsight project, or
 - Comprehensive feature descriptions
 - Database schema and API documentation
 - Security and performance requirements
+- OAuth authentication setup and configuration
 - Development and deployment guidelines
 - Master reference document for entire project
 
@@ -97,6 +98,33 @@ This directory contains comprehensive documentation for the Finsight project, or
 - **Approval Process**: Technical changes require developer approval, business changes require stakeholder approval
 
 ## Quick Reference
+
+### 🔐 OAuth Authentication Setup
+
+**Production OAuth Configuration:**
+- **Google Cloud Console**: Configure OAuth 2.0 Client ID with redirect URI
+  ```
+  https://pocket-penny-wizard.lovable.app/auth/callback
+  ```
+- **Supabase Dashboard**: Set Site URL to production domain
+  ```
+  https://pocket-penny-wizard.lovable.app
+  ```
+- **Environment Variables**: Ensure all required variables are set in production
+
+**Authentication Flow:**
+1. User clicks "Continue with Google" on login page
+2. Redirected to Google OAuth consent screen
+3. User authorizes application
+4. Google redirects to Supabase auth callback
+5. Supabase processes OAuth response and creates session
+6. User redirected to dashboard with authenticated session
+
+**Security Features:**
+- PKCE (Proof Key for Code Exchange) flow for enhanced security
+- Automatic token refresh
+- Session persistence across browser sessions
+- Row-level security policies in database
 
 | Document | Size | Last Updated | Primary Focus |
 |----------|------|--------------|---------------|

@@ -513,7 +513,41 @@ supabase functions deploy categorize-transaction
 VITE_GEMINI_API_KEY=your_gemini_api_key
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# OAuth Configuration
+# Google Cloud OAuth 2.0 Client ID must be configured with:
+# Authorized redirect URI: https://pocket-penny-wizard.lovable.app/auth/callback
 ```
+
+### OAuth Authentication Setup
+```typescript
+// Google OAuth 2.0 Configuration
+const oauthConfig = {
+  clientId: '551538503049-80ctg2j2o6v136nv1s9ma1q493k7vh8g.apps.googleusercontent.com',
+  redirectUri: 'https://pocket-penny-wizard.lovable.app/auth/callback',
+  scope: ['email', 'profile']
+};
+
+// Supabase Auth Configuration
+const supabaseAuthConfig = {
+  autoRefreshToken: true,
+  persistSession: true,
+  detectSessionInUrl: true,
+  flowType: 'pkce'
+};
+```
+
+**Google Cloud Console Setup:**
+1. Navigate to Google Cloud Console → APIs & Services → Credentials
+2. Configure OAuth 2.0 Client ID with authorized redirect URI:
+   ```
+   https://pocket-penny-wizard.lovable.app/auth/callback
+   ```
+
+**Supabase Project Setup:**
+1. Go to Supabase Dashboard → Authentication → URL Configuration
+2. Set Site URL to: `https://pocket-penny-wizard.lovable.app`
+3. Add redirect URL: `https://pocket-penny-wizard.lovable.app/auth/callback`
 
 ### Deployment Pipeline
 1. **Development**: Local Vite dev server with hot reload

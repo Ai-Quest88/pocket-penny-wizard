@@ -198,7 +198,8 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    flowType: 'pkce'
   }
 })
 ```
@@ -457,6 +458,30 @@ const validateEnvironment = (): EnvironmentVariables => {
   }
 
   return env as EnvironmentVariables;
+};
+```
+
+### OAuth Configuration
+```typescript
+// Google OAuth 2.0 Configuration
+interface OAuthConfig {
+  clientId: string;
+  redirectUri: string;
+  scope: string[];
+}
+
+const oauthConfig: OAuthConfig = {
+  clientId: '551538503049-80ctg2j2o6v136nv1s9ma1q493k7vh8g.apps.googleusercontent.com',
+  redirectUri: 'https://pocket-penny-wizard.lovable.app/auth/callback',
+  scope: ['email', 'profile']
+};
+
+// Supabase Auth Configuration
+const supabaseAuthConfig = {
+  autoRefreshToken: true,
+  persistSession: true,
+  detectSessionInUrl: true,
+  flowType: 'pkce' as const
 };
 ```
 
