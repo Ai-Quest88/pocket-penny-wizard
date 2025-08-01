@@ -71,6 +71,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const loginWithGoogle = async () => {
     try {
       console.log('Current origin:', window.location.origin);
+      console.log('Redirect URL:', `${window.location.origin}/auth/callback`);
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -78,8 +80,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase OAuth error:', error);
+        throw error;
+      }
+      
+      console.log('OAuth initiation successful, redirecting to Google...');
     } catch (error: any) {
+      console.error('Google login error:', error);
       toast({
         title: "Google login failed",
         description: error.message,
