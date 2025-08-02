@@ -1,14 +1,15 @@
 import { Card } from "@/components/ui/card";
-import { FamilyMember, BusinessEntity } from "@/types/entities";
+import { IndividualEntity, BusinessEntity } from "@/types/entities";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Trash2, Building2 } from "lucide-react";
 import { EditEntityDialog } from "./EditEntityDialog";
+import { Badge } from "@/components/ui/badge";
 
 interface EntityListProps {
-  entities: (FamilyMember | BusinessEntity)[];
+  entities: (IndividualEntity | BusinessEntity)[];
   onDeleteEntity: (entityId: string) => void;
-  onEditEntity: (entityId: string, updatedEntity: Omit<FamilyMember | BusinessEntity, "id" | "dateAdded">) => void;
+  onEditEntity: (entityId: string, updatedEntity: Omit<IndividualEntity | BusinessEntity, "id" | "dateAdded">) => void;
 }
 
 export const EntityList = ({ entities, onDeleteEntity, onEditEntity }: EntityListProps) => {
@@ -60,14 +61,25 @@ export const EntityList = ({ entities, onDeleteEntity, onEditEntity }: EntityLis
               <>
                 <div>
                   <p className="font-medium">Relationship</p>
-                  <p className="text-muted-foreground">{(entity as FamilyMember).relationship || "N/A"}</p>
+                  <p className="text-muted-foreground">{(entity as IndividualEntity).relationship || "N/A"}</p>
                 </div>
-                {(entity as FamilyMember).dateOfBirth && (
+                {(entity as IndividualEntity).dateOfBirth && (
                   <div>
                     <p className="font-medium">Date of Birth</p>
                     <p className="text-muted-foreground">
-                      {format(new Date((entity as FamilyMember).dateOfBirth!), "MMM d, yyyy")}
+                      {format(new Date((entity as IndividualEntity).dateOfBirth!), "MMM d, yyyy")}
                     </p>
+                  </div>
+                )}
+                {(entity as IndividualEntity).householdId && (
+                  <div>
+                    <p className="font-medium">Household</p>
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-muted-foreground" />
+                      <Badge variant="secondary" className="text-xs">
+                        In Household
+                      </Badge>
+                    </div>
                   </div>
                 )}
               </>

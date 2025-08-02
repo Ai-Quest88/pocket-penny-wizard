@@ -36,6 +36,7 @@ import NotFound from "./pages/NotFound"
 import Login from "./pages/Login"
 import AuthCallback from "./pages/AuthCallback"
 import Entities from "./pages/Entities"
+import Households from "./pages/Households"
 import ImportTransactions from "./pages/ImportTransactions"
 
 const queryClient = new QueryClient()
@@ -190,6 +191,7 @@ const AppRoutes = () => {
                   <Route path="analytics" element={<Analytics />} />
                   <Route path="accounts" element={<Accounts />} />
                   <Route path="entities" element={<Entities />} />
+                  <Route path="households" element={<Households />} />
                   <Route path="assets" element={<Assets />} />
                   <Route path="liabilities" element={<Liabilities />} />
                   <Route path="budgets" element={<Budgets />} />

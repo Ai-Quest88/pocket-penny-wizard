@@ -120,6 +120,44 @@ export type Database = {
           },
         ]
       }
+      households: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          primary_contact_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          primary_contact_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          primary_contact_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "households_primary_contact_id_fkey"
+            columns: ["primary_contact_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       entities: {
         Row: {
           country_of_residence: string
@@ -127,6 +165,7 @@ export type Database = {
           date_added: string
           date_of_birth: string | null
           description: string | null
+          household_id: string | null
           id: string
           incorporation_date: string | null
           name: string
@@ -143,6 +182,7 @@ export type Database = {
           date_added?: string
           date_of_birth?: string | null
           description?: string | null
+          household_id?: string | null
           id?: string
           incorporation_date?: string | null
           name: string
@@ -159,6 +199,7 @@ export type Database = {
           date_added?: string
           date_of_birth?: string | null
           description?: string | null
+          household_id?: string | null
           id?: string
           incorporation_date?: string | null
           name?: string
@@ -169,7 +210,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "entities_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       historical_values: {
         Row: {

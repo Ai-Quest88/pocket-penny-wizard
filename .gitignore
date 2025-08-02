@@ -22,3 +22,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Test and temporary files
+testsprite_tests/
+supabase/.temp/
+*.tmp
+
+# Build artifacts
+dist/
+dist-ssr/
+*.local

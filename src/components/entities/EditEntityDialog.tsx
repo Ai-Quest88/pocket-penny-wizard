@@ -18,12 +18,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Pencil } from "lucide-react";
-import { FamilyMember, BusinessEntity, EntityType } from "@/types/entities";
+import { IndividualEntity, BusinessEntity, EntityType } from "@/types/entities";
 import { useToast } from "@/hooks/use-toast";
+import { HouseholdSelector } from "../households/HouseholdSelector";
 
 interface EditEntityDialogProps {
-  entity: FamilyMember | BusinessEntity;
-  onEditEntity: (id: string, updatedEntity: Omit<FamilyMember | BusinessEntity, "id" | "dateAdded">) => void;
+  entity: IndividualEntity | BusinessEntity;
+  onEditEntity: (id: string, updatedEntity: Omit<IndividualEntity | BusinessEntity, "id" | "dateAdded">) => void;
 }
 
 export function EditEntityDialog({ entity, onEditEntity }: EditEntityDialogProps) {
@@ -36,8 +37,9 @@ export function EditEntityDialog({ entity, onEditEntity }: EditEntityDialogProps
     type: entity.type as EntityType,
     description: entity.description || "",
     countryOfResidence: entity.countryOfResidence,
-    relationship: (entity as FamilyMember).relationship || "",
-    dateOfBirth: (entity as FamilyMember).dateOfBirth || "",
+    relationship: (entity as IndividualEntity).relationship || "",
+    dateOfBirth: (entity as IndividualEntity).dateOfBirth || "",
+    householdId: (entity as IndividualEntity).householdId || "",
     registrationNumber: (entity as BusinessEntity).registrationNumber || "",
     incorporationDate: (entity as BusinessEntity).incorporationDate || "",
     taxIdentifier: entity.taxIdentifier || "",
@@ -62,13 +64,14 @@ export function EditEntityDialog({ entity, onEditEntity }: EditEntityDialogProps
     };
 
     if (formData.type === "individual") {
-      const familyMember: Omit<FamilyMember, "id" | "dateAdded"> = {
+      const individualEntity: Omit<IndividualEntity, "id" | "dateAdded"> = {
         ...baseEntity,
         type: "individual",
         relationship: formData.relationship,
         dateOfBirth: formData.dateOfBirth,
+        householdId: formData.householdId,
       };
-      onEditEntity(entity.id, familyMember);
+      onEditEntity(entity.id, individualEntity);
     } else {
       const businessEntity: Omit<BusinessEntity, "id" | "dateAdded"> = {
         ...baseEntity,
@@ -171,6 +174,15 @@ export function EditEntityDialog({ entity, onEditEntity }: EditEntityDialogProps
                   type="date"
                   value={formData.dateOfBirth}
                   onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Household (Optional)</Label>
+                <HouseholdSelector
+                  value={formData.householdId}
+                  onValueChange={(value) => setFormData({ ...formData, householdId: value })}
+                  placeholder="Select a household"
+                  showCreateOption={true}
                 />
               </div>
             </>

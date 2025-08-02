@@ -140,7 +140,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
         return value;
       });
       
-      let columnName = detectColumnType(columnValues);
+      const columnName = detectColumnType(columnValues);
       console.log(`Column ${colIndex} will be named:`, columnName);
       
       // Track what we've found to avoid duplicates
@@ -433,7 +433,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
             const processedRow: any[] = [];
             
             for (let colIndex = 0; colIndex < row.length; colIndex++) {
-              let cellValue = row[colIndex];
+              const cellValue = row[colIndex];
               
               // Handle Excel date serial numbers - convert to original format
               if (typeof cellValue === 'number' && cellValue > 40000 && cellValue < 50000) {

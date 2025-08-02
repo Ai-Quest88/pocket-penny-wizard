@@ -18,11 +18,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PlusCircle } from "lucide-react";
-import { FamilyMember, BusinessEntity, EntityType } from "@/types/entities";
+import { IndividualEntity, BusinessEntity, EntityType } from "@/types/entities";
 import { useToast } from "@/hooks/use-toast";
+import { HouseholdSelector } from "../households/HouseholdSelector";
 
 interface AddEntityDialogProps {
-  onAddEntity: (entity: Omit<FamilyMember | BusinessEntity, "id" | "dateAdded">) => void;
+  onAddEntity: (entity: Omit<IndividualEntity | BusinessEntity, "id" | "dateAdded">) => void;
 }
 
 export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
@@ -37,6 +38,7 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
     countryOfResidence: "",
     relationship: "",
     dateOfBirth: "",
+    householdId: "",
     registrationNumber: "",
     incorporationDate: "",
     taxIdentifier: "",
@@ -61,13 +63,14 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
     };
 
     if (formData.type === "individual") {
-      const familyMember: Omit<FamilyMember, "id" | "dateAdded"> = {
+      const individualEntity: Omit<IndividualEntity, "id" | "dateAdded"> = {
         ...baseEntity,
         type: "individual",
         relationship: formData.relationship,
         dateOfBirth: formData.dateOfBirth,
+        householdId: formData.householdId,
       };
-      onAddEntity(familyMember);
+      onAddEntity(individualEntity);
     } else {
       const businessEntity: Omit<BusinessEntity, "id" | "dateAdded"> = {
         ...baseEntity,
@@ -85,6 +88,7 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
       countryOfResidence: "",
       relationship: "",
       dateOfBirth: "",
+      householdId: "",
       registrationNumber: "",
       incorporationDate: "",
       taxIdentifier: "",
@@ -182,6 +186,15 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
                   type="date"
                   value={formData.dateOfBirth}
                   onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Household (Optional)</Label>
+                <HouseholdSelector
+                  value={formData.householdId}
+                  onValueChange={(value) => setFormData({ ...formData, householdId: value })}
+                  placeholder="Select a household"
+                  showCreateOption={true}
                 />
               </div>
             </>

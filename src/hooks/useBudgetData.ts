@@ -21,7 +21,7 @@ export const useBudgetData = (entityId?: string, timeframe: string = '3m') => {
       try {
         // Calculate date range based on timeframe
         const now = new Date();
-        let startDate = new Date();
+        const startDate = new Date();
         
         switch (timeframe) {
           case '1m':

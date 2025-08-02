@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Entity, FamilyMember, BusinessEntity } from "@/types/entities";
+import { Entity, IndividualEntity, BusinessEntity } from "@/types/entities";
 import { AddEntityDialog } from "./AddEntityDialog";
 import { EntityList } from "./EntityList";
 import { useToast } from "@/components/ui/use-toast";
@@ -37,15 +37,16 @@ export const EntityManager = () => {
         dateAdded: entity.date_added,
         relationship: entity.relationship || '',
         dateOfBirth: entity.date_of_birth || '',
+        householdId: entity.household_id || '',
         registrationNumber: entity.registration_number || '',
         incorporationDate: entity.incorporation_date || '',
-      })) as (FamilyMember | BusinessEntity)[];
+      })) as (IndividualEntity | BusinessEntity)[];
     },
   });
 
   // Add entity mutation
   const addEntityMutation = useMutation({
-    mutationFn: async (newEntity: Omit<FamilyMember | BusinessEntity, "id" | "dateAdded">) => {
+    mutationFn: async (newEntity: Omit<IndividualEntity | BusinessEntity, "id" | "dateAdded">) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
@@ -56,8 +57,8 @@ export const EntityManager = () => {
         description: newEntity.description || null,
         tax_identifier: newEntity.taxIdentifier || null,
         country_of_residence: newEntity.countryOfResidence,
-        relationship: newEntity.type === 'individual' ? (newEntity as FamilyMember).relationship || null : null,
-        date_of_birth: newEntity.type === 'individual' ? (newEntity as FamilyMember).dateOfBirth || null : null,
+        relationship: newEntity.type === 'individual' ? (newEntity as IndividualEntity).relationship || null : null,
+        date_of_birth: newEntity.type === 'individual' ? (newEntity as IndividualEntity).dateOfBirth || null : null,
         registration_number: newEntity.type !== 'individual' ? (newEntity as BusinessEntity).registrationNumber || null : null,
         incorporation_date: newEntity.type !== 'individual' ? (newEntity as BusinessEntity).incorporationDate || null : null,
       };
@@ -92,7 +93,7 @@ export const EntityManager = () => {
   const editEntityMutation = useMutation({
     mutationFn: async ({ entityId, updatedEntity }: { 
       entityId: string; 
-      updatedEntity: Omit<FamilyMember | BusinessEntity, "id" | "dateAdded"> 
+      updatedEntity: Omit<IndividualEntity | BusinessEntity, "id" | "dateAdded"> 
     }) => {
       const entityData = {
         name: updatedEntity.name,
@@ -100,8 +101,8 @@ export const EntityManager = () => {
         description: updatedEntity.description || null,
         tax_identifier: updatedEntity.taxIdentifier || null,
         country_of_residence: updatedEntity.countryOfResidence,
-        relationship: updatedEntity.type === 'individual' ? (updatedEntity as FamilyMember).relationship || null : null,
-        date_of_birth: updatedEntity.type === 'individual' ? (updatedEntity as FamilyMember).dateOfBirth || null : null,
+        relationship: updatedEntity.type === 'individual' ? (updatedEntity as IndividualEntity).relationship || null : null,
+        date_of_birth: updatedEntity.type === 'individual' ? (updatedEntity as IndividualEntity).dateOfBirth || null : null,
         registration_number: updatedEntity.type !== 'individual' ? (updatedEntity as BusinessEntity).registrationNumber || null : null,
         incorporation_date: updatedEntity.type !== 'individual' ? (updatedEntity as BusinessEntity).incorporationDate || null : null,
         updated_at: new Date().toISOString(),
@@ -161,11 +162,11 @@ export const EntityManager = () => {
     },
   });
 
-  const handleAddEntity = (newEntity: Omit<FamilyMember | BusinessEntity, "id" | "dateAdded">) => {
+  const handleAddEntity = (newEntity: Omit<IndividualEntity | BusinessEntity, "id" | "dateAdded">) => {
     addEntityMutation.mutate(newEntity);
   };
 
-  const handleEditEntity = (entityId: string, updatedEntity: Omit<FamilyMember | BusinessEntity, "id" | "dateAdded">) => {
+  const handleEditEntity = (entityId: string, updatedEntity: Omit<IndividualEntity | BusinessEntity, "id" | "dateAdded">) => {
     editEntityMutation.mutate({ entityId, updatedEntity });
   };
 

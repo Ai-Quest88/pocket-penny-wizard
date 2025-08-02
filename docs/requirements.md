@@ -75,7 +75,8 @@ interface NotificationSettings {
 ### 2. Multi-Entity Financial Management
 
 #### Technical Requirements
-**Entity Types**: Support for Individual, Family Member, Business, Trust, Super Fund
+**Entity Types**: Support for Individual, Company, Trust, Super Fund
+**Household Management**: Virtual grouping of individuals for family-level reporting
 **Data Isolation**: Complete data separation between entities with RLS policies
 **Entity Relationships**: Hierarchical entity structures and cross-references
 **Switching Mechanism**: Fast entity context switching (<1 second)
@@ -83,12 +84,15 @@ interface NotificationSettings {
 #### Functional Requirements
 - Create and manage unlimited entities per user
 - Entity-specific financial data tracking
+- Household creation and management for family grouping
+- Family-level reporting and financial insights
 - Cross-entity reporting and consolidation
 - Entity profile management with tax identifiers
 - Entity relationship mapping and visualization
 
 #### Database Schema
 ```sql
+-- Entities table with household support
 CREATE TABLE entities (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES auth.users(id),
@@ -96,17 +100,45 @@ CREATE TABLE entities (
     type entity_type NOT NULL,
     country_of_residence TEXT DEFAULT 'Australia',
     tax_identifier TEXT,
+    relationship TEXT, -- For individuals (spouse, child, parent, self)
+    date_of_birth TEXT, -- For individuals
+    household_id UUID REFERENCES households(id), -- Link to household
+    registration_number TEXT, -- For businesses
+    incorporation_date TEXT, -- For businesses
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Households table for family grouping
+CREATE TABLE households (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id),
+    name TEXT NOT NULL,
+    description TEXT,
+    primary_contact_id UUID REFERENCES entities(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 CREATE TYPE entity_type AS ENUM (
-    'Individual', 
-    'Family Member', 
-    'Business', 
-    'Trust', 
-    'Super Fund'
+    'individual', 
+    'company', 
+    'trust', 
+    'super_fund'
 );
 ```
+
+#### Household Management Features
+- **Virtual Grouping**: Households are virtual groupings without legal entity status
+- **Family Reporting**: Aggregate financial data from household members
+- **Member Management**: Add/remove individuals from households
+- **Primary Contact**: Designate primary contact for each household
+- **Flexible Structure**: Support for various family configurations
+
+#### Family Finance Reporting
+- **Household Net Worth**: Combined assets and liabilities for all household members
+- **Family Cash Flow**: Aggregate income and expenses across household
+- **Individual vs Family**: Compare individual vs family-level financial metrics
+- **Household Budgets**: Family-level budget planning and tracking
 
 ### 3. Transaction Management System
 

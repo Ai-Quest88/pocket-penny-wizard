@@ -10,10 +10,12 @@ export interface Entity {
   dateAdded: string;
 }
 
-export interface FamilyMember extends Entity {
+export interface IndividualEntity extends Entity {
   type: "individual";
-  relationship: string;
+  relationship?: string; // e.g., "spouse", "child", "parent", "self"
   dateOfBirth?: string;
+  householdId?: string; // NEW: Link to household group
+  isPrimaryContact?: boolean; // NEW: For household management
 }
 
 export interface BusinessEntity extends Entity {
@@ -21,3 +23,5 @@ export interface BusinessEntity extends Entity {
   registrationNumber?: string;
   incorporationDate?: string;
 }
+
+export type EntityUnion = IndividualEntity | BusinessEntity;

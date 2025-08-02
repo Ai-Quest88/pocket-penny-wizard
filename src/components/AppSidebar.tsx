@@ -1,5 +1,5 @@
 
-import { BarChart2, CreditCard, DollarSign, Home, Settings, Users, Wallet, List, Upload, FileText, TrendingUp, Calendar, Activity, PieChart, ArrowLeftRight, ChevronDown } from "lucide-react"
+import { BarChart2, CreditCard, DollarSign, Home, Settings, Users, Wallet, List, Upload, FileText, TrendingUp, Calendar, Activity, PieChart, ArrowLeftRight, ChevronDown, Building2 } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -15,11 +15,11 @@ import {
 } from "@/components/ui/sidebar"
 import { Link, useLocation } from "react-router-dom"
 import { useEffect, useState } from "react"
-import { FamilyMember, BusinessEntity } from "@/types/entities"
+import { IndividualEntity, BusinessEntity } from "@/types/entities"
 
 export function AppSidebar() {
   const location = useLocation()
-  const [entities, setEntities] = useState<(FamilyMember | BusinessEntity)[]>([])
+  const [entities, setEntities] = useState<(IndividualEntity | BusinessEntity)[]>([])
   const [isTransactionsOpen, setIsTransactionsOpen] = useState(
     location.pathname.startsWith("/transactions")
   )
@@ -70,6 +70,19 @@ export function AppSidebar() {
                   >
                     <Users className="h-4 w-4" />
                     <span>Entities</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link 
+                    to="/households"
+                    className="flex items-center gap-2"
+                    data-active={location.pathname === "/households"}
+                  >
+                    <Building2 className="h-4 w-4" />
+                    <span>Households</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
