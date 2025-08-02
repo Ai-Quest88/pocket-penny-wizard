@@ -21,6 +21,7 @@ import { Liability, LiabilityCategory, liabilityCategoryGroups } from "@/types/a
 import { useToast } from "@/hooks/use-toast"
 import { FamilyMember, BusinessEntity } from "@/types/entities"
 import { supabase } from "@/integrations/supabase/client"
+import { useAuth } from "@/contexts/AuthContext"
 import { useQuery } from "@tanstack/react-query"
 
 interface AddLiabilityDialogProps {
@@ -28,6 +29,7 @@ interface AddLiabilityDialogProps {
 }
 
 export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) {
+  const { session } = useAuth()
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
   const [selectedEntityId, setSelectedEntityId] = useState<string>("")
@@ -48,10 +50,14 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
 
   // Fetch entities from Supabase
   const { data: entities = [] } = useQuery({
-    queryKey: ['entities'],
+    queryKey: ['entities', session?.user?.id],
     queryFn: async () => {
+      if (!session?.user?.id) return [];
+
+
       const { data, error } = await supabase
         .from('entities')
+        .eq('user_id', session.user.id)
         .select('*')
         .order('created_at', { ascending: false });
 

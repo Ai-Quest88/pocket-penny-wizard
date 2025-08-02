@@ -4,6 +4,7 @@ import { Asset } from "@/types/assets-liabilities"
 import { EditAssetDialog } from "./EditAssetDialog"
 import { FamilyMember, BusinessEntity } from "@/types/entities"
 import { supabase } from "@/integrations/supabase/client"
+import { useAuth } from "@/contexts/AuthContext"
 import { useQuery } from "@tanstack/react-query"
 import { Trash2 } from "lucide-react"
 import { useCurrency } from "@/contexts/CurrencyContext"
@@ -26,14 +27,19 @@ interface AssetsListProps {
 }
 
 export function AssetsList({ assets, onEditAsset, onDeleteAsset }: AssetsListProps) {
+  const { session } = useAuth()
   const { formatCurrency } = useCurrency()
   
   // Fetch entities from Supabase
   const { data: entities = [] } = useQuery({
-    queryKey: ['entities'],
+    queryKey: ['entities', session?.user?.id],
     queryFn: async () => {
+      if (!session?.user?.id) return [];
+
+
       const { data, error } = await supabase
         .from('entities')
+        .eq('user_id', session.user.id)
         .select('*')
         .order('created_at', { ascending: false });
 

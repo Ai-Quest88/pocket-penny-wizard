@@ -47,7 +47,7 @@ export const AddToHouseholdDialog: React.FC<AddToHouseholdDialogProps> = ({
     mutationFn: addMemberToHousehold,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['households'] });
-      queryClient.invalidateQueries({ queryKey: ['entities'] });
+      queryClient.invalidateQueries({ queryKey: ['entities', session?.user?.id] });
       setIsOpen(false);
       setSelectedHouseholdId('');
       toast.success(`${individual.name} added to household successfully`);

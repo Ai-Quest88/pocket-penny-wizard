@@ -23,6 +23,7 @@ import { Asset, AssetCategory, assetCategoryGroups } from "@/types/assets-liabil
 import { useToast } from "@/components/ui/use-toast"
 import { FamilyMember, BusinessEntity } from "@/types/entities"
 import { supabase } from "@/integrations/supabase/client"
+import { useAuth } from "@/contexts/AuthContext"
 import { useQuery } from "@tanstack/react-query"
 
 interface AddAssetDialogProps {
@@ -30,6 +31,7 @@ interface AddAssetDialogProps {
 }
 
 export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
+  const { session } = useAuth()
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
   const [selectedEntityId, setSelectedEntityId] = useState<string>("")
@@ -51,10 +53,14 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
 
   // Fetch entities from Supabase
   const { data: entities = [] } = useQuery({
-    queryKey: ['entities'],
+    queryKey: ['entities', session?.user?.id],
     queryFn: async () => {
+      if (!session?.user?.id) return [];
+
+
       const { data, error } = await supabase
         .from('entities')
+        .eq('user_id', session.user.id)
         .select('*')
         .order('created_at', { ascending: false });
 
