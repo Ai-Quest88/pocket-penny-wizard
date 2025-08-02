@@ -14,8 +14,6 @@ export interface IndividualEntity extends Entity {
   type: "individual";
   relationship?: string; // e.g., "spouse", "child", "parent", "self"
   dateOfBirth?: string;
-  householdId?: string; // NEW: Link to household group
-  isPrimaryContact?: boolean; // NEW: For household management
 }
 
 export interface BusinessEntity extends Entity {

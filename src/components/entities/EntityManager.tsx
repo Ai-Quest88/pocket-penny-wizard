@@ -37,7 +37,6 @@ export const EntityManager = () => {
         dateAdded: entity.date_added,
         relationship: entity.relationship || '',
         dateOfBirth: entity.date_of_birth || '',
-        householdId: entity.household_id || '',
         registrationNumber: entity.registration_number || '',
         incorporationDate: entity.incorporation_date || '',
       })) as (IndividualEntity | BusinessEntity)[];
@@ -120,6 +119,8 @@ export const EntityManager = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['entities'] });
+      queryClient.invalidateQueries({ queryKey: ['households'] });
+      queryClient.invalidateQueries({ queryKey: ['available-entities'] });
       toast({
         title: "Entity Updated",
         description: `${data.name} has been updated successfully.`,

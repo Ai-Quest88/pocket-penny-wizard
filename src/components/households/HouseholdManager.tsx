@@ -1,130 +1,141 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  getHouseholdsWithMembers, 
-  createHousehold, 
-  updateHousehold, 
-  deleteHousehold 
-} from '../../integrations/supabase/households';
-import { Household, CreateHouseholdData, UpdateHouseholdData } from '../../types/households';
-import { Plus, Edit, Trash2, Users, User } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Badge } from '../ui/badge';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
-} from '../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '../ui/alert-dialog';
-import { toast } from 'sonner';
+import { Checkbox } from '../ui/checkbox';
+import { Pencil, Trash2, Plus, Users } from 'lucide-react';
+import { useToast } from '../ui/use-toast';
+import {
+  getHouseholds,
+  createHousehold,
+  updateHousehold,
+  deleteHousehold,
+  getAvailableEntities,
+  addEntityToHousehold,
+  removeEntityFromHousehold,
+} from '../../integrations/supabase/households';
+import { Household, CreateHouseholdData, UpdateHouseholdData } from '../../types/households';
+import { IndividualEntity } from '../../types/entities';
 
 export const HouseholdManager: React.FC = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingHousehold, setEditingHousehold] = useState<Household | null>(null);
   const [deletingHousehold, setDeletingHousehold] = useState<Household | null>(null);
-  const queryClient = useQueryClient();
 
-  // Fetch households
   const { data: households, isLoading, error } = useQuery({
     queryKey: ['households'],
-    queryFn: getHouseholdsWithMembers,
+    queryFn: getHouseholds,
   });
 
-  // Create household mutation
-  const createMutation = useMutation({
+  const createHouseholdMutation = useMutation({
     mutationFn: createHousehold,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['households'] });
       setIsCreateDialogOpen(false);
-      toast.success('Household created successfully');
+      toast({
+        title: 'Household created successfully',
+        description: 'Your household has been created.',
+      });
     },
     onError: (error) => {
       console.error('Error creating household:', error);
-      toast.error('Failed to create household');
+      toast({
+        title: 'Failed to create household',
+        description: 'There was an error creating your household.',
+        variant: 'destructive',
+      });
     },
   });
 
-  // Update household mutation
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateHouseholdData }) => 
+  const updateHouseholdMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateHouseholdData }) =>
       updateHousehold(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['households'] });
       setEditingHousehold(null);
-      toast.success('Household updated successfully');
+      toast({
+        title: 'Household updated successfully',
+        description: 'Your household has been updated.',
+      });
     },
     onError: (error) => {
       console.error('Error updating household:', error);
-      toast.error('Failed to update household');
+      toast({
+        title: 'Failed to update household',
+        description: 'There was an error updating your household.',
+        variant: 'destructive',
+      });
     },
   });
 
-  // Delete household mutation
-  const deleteMutation = useMutation({
+  const deleteHouseholdMutation = useMutation({
     mutationFn: deleteHousehold,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['households'] });
       setDeletingHousehold(null);
-      toast.success('Household deleted successfully');
+      toast({
+        title: 'Household deleted successfully',
+        description: 'Your household has been deleted.',
+      });
     },
     onError: (error) => {
       console.error('Error deleting household:', error);
-      toast.error('Failed to delete household');
+      toast({
+        title: 'Failed to delete household',
+        description: 'There was an error deleting your household.',
+        variant: 'destructive',
+      });
     },
   });
 
-  const handleCreate = (data: CreateHouseholdData) => {
-    createMutation.mutate(data);
+  const handleCreateHousehold = (data: CreateHouseholdData) => {
+    createHouseholdMutation.mutate(data);
   };
 
-  const handleUpdate = (data: UpdateHouseholdData) => {
+  const handleUpdateHousehold = (data: UpdateHouseholdData) => {
     if (editingHousehold) {
-      updateMutation.mutate({ id: editingHousehold.id, data });
+      updateHouseholdMutation.mutate({ id: editingHousehold.id, data });
     }
   };
 
-  const handleDelete = () => {
+  const handleDeleteHousehold = () => {
     if (deletingHousehold) {
-      deleteMutation.mutate(deletingHousehold.id);
+      deleteHouseholdMutation.mutate(deletingHousehold.id);
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-lg">Loading households...</div>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading households...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-lg text-red-600">Error loading households</div>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-red-600">Error loading households</p>
+          <p className="text-sm text-gray-600 mt-1">Please try refreshing the page</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Households</h1>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Households</h2>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -136,7 +147,7 @@ export const HouseholdManager: React.FC = () => {
             <DialogHeader>
               <DialogTitle>Create New Household</DialogTitle>
             </DialogHeader>
-            <CreateHouseholdForm onSubmit={handleCreate} />
+            <CreateHouseholdForm onSubmit={handleCreateHousehold} />
           </DialogContent>
         </Dialog>
       </div>
@@ -144,10 +155,9 @@ export const HouseholdManager: React.FC = () => {
       {households && households.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center">
-            <Users className="w-12 h-12 mx-auto mb-4 text-gray-400" />
             <h3 className="text-lg font-medium mb-2">No households yet</h3>
             <p className="text-gray-600 mb-4">
-              Create your first household to start managing family finances together.
+              Create your first household to get started with financial reporting.
             </p>
             <Button onClick={() => setIsCreateDialogOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
@@ -160,82 +170,68 @@ export const HouseholdManager: React.FC = () => {
           {households?.map((household) => (
             <Card key={household.id}>
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex items-start justify-between">
                   <CardTitle className="text-lg">{household.name}</CardTitle>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-1">
                     <Dialog open={editingHousehold?.id === household.id} onOpenChange={(open) => !open && setEditingHousehold(null)}>
                       <DialogTrigger asChild>
                         <Button variant="ghost" size="sm">
-                          <Edit className="w-4 h-4" />
+                          <Pencil className="w-4 h-4" />
                         </Button>
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
                           <DialogTitle>Edit Household</DialogTitle>
                         </DialogHeader>
-                        <EditHouseholdForm 
-                          household={household} 
-                          onSubmit={handleUpdate} 
-                        />
+                        <EditHouseholdForm household={household} onSubmit={handleUpdateHousehold} />
                       </DialogContent>
                     </Dialog>
-                    <AlertDialog open={deletingHousehold?.id === household.id} onOpenChange={(open) => !open && setDeletingHousehold(null)}>
-                      <AlertDialogTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => setDeletingHousehold(household)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Household</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete "{household.name}"? This will remove all members from the household but won't delete the individual entities.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDeletingHousehold(household)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
                 {household.description && (
-                  <p className="text-sm text-gray-600 mb-3">{household.description}</p>
+                  <p className="text-gray-600 mb-3">{household.description}</p>
                 )}
-                <div className="flex items-center space-x-2 mb-3">
-                  <Users className="w-4 h-4 text-gray-500" />
-                  <span className="text-sm text-gray-600">
-                    {household.members.length} member{household.members.length !== 1 ? 's' : ''}
-                  </span>
+                <div className="text-sm text-gray-500">
+                  Created: {new Date(household.dateCreated).toLocaleDateString()}
                 </div>
-                {household.members.length > 0 && (
-                  <div className="space-y-1">
-                    {household.members.map((member) => (
-                      <div key={member.id} className="flex items-center space-x-2">
-                        <User className="w-3 h-3 text-gray-400" />
-                        <span className="text-sm">
-                          {member.name}
-                          {member.isPrimaryContact && (
-                            <Badge variant="secondary" className="ml-2 text-xs">
-                              Primary
-                            </Badge>
-                          )}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </CardContent>
             </Card>
           ))}
         </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {deletingHousehold && (
+        <Dialog open={!!deletingHousehold} onOpenChange={(open) => !open && setDeletingHousehold(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Household</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p>Are you sure you want to delete "{deletingHousehold.name}"?</p>
+              <p className="text-sm text-gray-600">
+                This action cannot be undone. The household will be permanently removed.
+              </p>
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => setDeletingHousehold(null)}>
+                  Cancel
+                </Button>
+                <Button variant="destructive" onClick={handleDeleteHousehold}>
+                  Delete
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
@@ -251,6 +247,13 @@ const CreateHouseholdForm: React.FC<CreateHouseholdFormProps> = ({ onSubmit }) =
     name: '',
     description: '',
   });
+  const [selectedEntityIds, setSelectedEntityIds] = useState<string[]>([]);
+
+  // Fetch available entities for reporting
+  const { data: availableEntities = [] } = useQuery({
+    queryKey: ['available-entities'],
+    queryFn: getAvailableEntities,
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -258,14 +261,24 @@ const CreateHouseholdForm: React.FC<CreateHouseholdFormProps> = ({ onSubmit }) =
       onSubmit({
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
+        selectedEntityIds: selectedEntityIds.length > 0 ? selectedEntityIds : undefined,
       });
       setFormData({ name: '', description: '' });
+      setSelectedEntityIds([]);
     }
+  };
+
+  const handleEntityToggle = (entityId: string) => {
+    setSelectedEntityIds(prev =>
+      prev.includes(entityId)
+        ? prev.filter(id => id !== entityId)
+        : [...prev, entityId]
+    );
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
+      <div className="space-y-2">
         <Label htmlFor="name">Household Name</Label>
         <Input
           id="name"
@@ -275,7 +288,7 @@ const CreateHouseholdForm: React.FC<CreateHouseholdFormProps> = ({ onSubmit }) =
           required
         />
       </div>
-      <div>
+      <div className="space-y-2">
         <Label htmlFor="description">Description (Optional)</Label>
         <Textarea
           id="description"
@@ -285,6 +298,41 @@ const CreateHouseholdForm: React.FC<CreateHouseholdFormProps> = ({ onSubmit }) =
           rows={3}
         />
       </div>
+      
+      {/* Entity Selection for Reporting */}
+      {availableEntities.length > 0 && (
+        <div className="space-y-3">
+          <Label>Select Entities for Reporting (Optional)</Label>
+          <div className="max-h-40 overflow-y-auto border rounded-md p-3 space-y-2">
+            {availableEntities.map((entity) => (
+              <div key={entity.id} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`entity-${entity.id}`}
+                  checked={selectedEntityIds.includes(entity.id)}
+                  onCheckedChange={() => handleEntityToggle(entity.id)}
+                />
+                <Label
+                  htmlFor={`entity-${entity.id}`}
+                  className="text-sm font-normal cursor-pointer"
+                >
+                  {entity.name}
+                  {entity.relationship && (
+                    <span className="text-muted-foreground ml-1">
+                      ({entity.relationship})
+                    </span>
+                  )}
+                </Label>
+              </div>
+            ))}
+          </div>
+          {selectedEntityIds.length > 0 && (
+            <p className="text-sm text-muted-foreground">
+              {selectedEntityIds.length} entity{selectedEntityIds.length !== 1 ? 's' : ''} selected for reporting
+            </p>
+          )}
+        </div>
+      )}
+      
       <div className="flex justify-end space-x-2">
         <Button type="submit">Create Household</Button>
       </div>
@@ -303,6 +351,13 @@ const EditHouseholdForm: React.FC<EditHouseholdFormProps> = ({ household, onSubm
     name: household.name,
     description: household.description || '',
   });
+  const [selectedEntityIds, setSelectedEntityIds] = useState<string[]>([]);
+
+  // Fetch available entities for reporting
+  const { data: availableEntities = [] } = useQuery({
+    queryKey: ['available-entities'],
+    queryFn: getAvailableEntities,
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -310,13 +365,22 @@ const EditHouseholdForm: React.FC<EditHouseholdFormProps> = ({ household, onSubm
       onSubmit({
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
+        selectedEntityIds: selectedEntityIds.length > 0 ? selectedEntityIds : undefined,
       });
     }
   };
 
+  const handleEntityToggle = (entityId: string) => {
+    setSelectedEntityIds(prev =>
+      prev.includes(entityId)
+        ? prev.filter(id => id !== entityId)
+        : [...prev, entityId]
+    );
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
+      <div className="space-y-2">
         <Label htmlFor="edit-name">Household Name</Label>
         <Input
           id="edit-name"
@@ -326,7 +390,7 @@ const EditHouseholdForm: React.FC<EditHouseholdFormProps> = ({ household, onSubm
           required
         />
       </div>
-      <div>
+      <div className="space-y-2">
         <Label htmlFor="edit-description">Description (Optional)</Label>
         <Textarea
           id="edit-description"
@@ -336,6 +400,41 @@ const EditHouseholdForm: React.FC<EditHouseholdFormProps> = ({ household, onSubm
           rows={3}
         />
       </div>
+      
+      {/* Entity Selection for Reporting */}
+      {availableEntities.length > 0 && (
+        <div className="space-y-3">
+          <Label>Select Entities for Reporting (Optional)</Label>
+          <div className="max-h-40 overflow-y-auto border rounded-md p-3 space-y-2">
+            {availableEntities.map((entity) => (
+              <div key={entity.id} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`edit-entity-${entity.id}`}
+                  checked={selectedEntityIds.includes(entity.id)}
+                  onCheckedChange={() => handleEntityToggle(entity.id)}
+                />
+                <Label
+                  htmlFor={`edit-entity-${entity.id}`}
+                  className="text-sm font-normal cursor-pointer"
+                >
+                  {entity.name}
+                  {entity.relationship && (
+                    <span className="text-muted-foreground ml-1">
+                      ({entity.relationship})
+                    </span>
+                  )}
+                </Label>
+              </div>
+            ))}
+          </div>
+          {selectedEntityIds.length > 0 && (
+            <p className="text-sm text-muted-foreground">
+              {selectedEntityIds.length} entity{selectedEntityIds.length !== 1 ? 's' : ''} selected for reporting
+            </p>
+          )}
+        </div>
+      )}
+      
       <div className="flex justify-end space-x-2">
         <Button type="submit">Update Household</Button>
       </div>

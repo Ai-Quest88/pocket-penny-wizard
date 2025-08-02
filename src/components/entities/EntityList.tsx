@@ -2,9 +2,8 @@ import { Card } from "@/components/ui/card";
 import { IndividualEntity, BusinessEntity } from "@/types/entities";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { Trash2, Building2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { EditEntityDialog } from "./EditEntityDialog";
-import { Badge } from "@/components/ui/badge";
 
 interface EntityListProps {
   entities: (IndividualEntity | BusinessEntity)[];
@@ -69,17 +68,6 @@ export const EntityList = ({ entities, onDeleteEntity, onEditEntity }: EntityLis
                     <p className="text-muted-foreground">
                       {format(new Date((entity as IndividualEntity).dateOfBirth!), "MMM d, yyyy")}
                     </p>
-                  </div>
-                )}
-                {(entity as IndividualEntity).householdId && (
-                  <div>
-                    <p className="font-medium">Household</p>
-                    <div className="flex items-center gap-2">
-                      <Building2 className="w-4 h-4 text-muted-foreground" />
-                      <Badge variant="secondary" className="text-xs">
-                        In Household
-                      </Badge>
-                    </div>
                   </div>
                 )}
               </>

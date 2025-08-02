@@ -17,10 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Pencil } from "lucide-react";
+import { Pencil, Info } from "lucide-react";
 import { IndividualEntity, BusinessEntity, EntityType } from "@/types/entities";
 import { useToast } from "@/hooks/use-toast";
-import { HouseholdSelector } from "../households/HouseholdSelector";
 
 interface EditEntityDialogProps {
   entity: IndividualEntity | BusinessEntity;
@@ -39,7 +38,6 @@ export function EditEntityDialog({ entity, onEditEntity }: EditEntityDialogProps
     countryOfResidence: entity.countryOfResidence,
     relationship: (entity as IndividualEntity).relationship || "",
     dateOfBirth: (entity as IndividualEntity).dateOfBirth || "",
-    householdId: (entity as IndividualEntity).householdId || "",
     registrationNumber: (entity as BusinessEntity).registrationNumber || "",
     incorporationDate: (entity as BusinessEntity).incorporationDate || "",
     taxIdentifier: entity.taxIdentifier || "",
@@ -69,7 +67,6 @@ export function EditEntityDialog({ entity, onEditEntity }: EditEntityDialogProps
         type: "individual",
         relationship: formData.relationship,
         dateOfBirth: formData.dateOfBirth,
-        householdId: formData.householdId,
       };
       onEditEntity(entity.id, individualEntity);
     } else {
@@ -176,14 +173,12 @@ export function EditEntityDialog({ entity, onEditEntity }: EditEntityDialogProps
                   onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Household (Optional)</Label>
-                <HouseholdSelector
-                  value={formData.householdId}
-                  onValueChange={(value) => setFormData({ ...formData, householdId: value })}
-                  placeholder="Select a household"
-                  showCreateOption={true}
-                />
+              <div className="flex items-start space-x-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-blue-800">
+                  <p className="font-medium">Household Management</p>
+                  <p>You can manage which households this entity belongs to from the Households page.</p>
+                </div>
               </div>
             </>
           ) : (
