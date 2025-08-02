@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast"
 import { FamilyMember, BusinessEntity } from "@/types/entities"
 import { supabase } from "@/integrations/supabase/client"
 import { useQuery } from "@tanstack/react-query"
+import { useAuth } from "@/contexts/AuthContext"
 
 interface AddBudgetDialogProps {
   onAddBudget: (budget: Omit<Budget, "id" | "userId" | "createdAt" | "updatedAt">) => void
@@ -42,6 +43,7 @@ const categories = [
 
 export function AddBudgetDialog({ onAddBudget }: AddBudgetDialogProps) {
   const { toast } = useToast()
+  const { session } = useAuth()
   const [open, setOpen] = useState(false)
   const [selectedEntityId, setSelectedEntityId] = useState<string>("all")
   const [newBudget, setNewBudget] = useState<Omit<Budget, "id" | "userId" | "createdAt" | "updatedAt">>({
@@ -56,11 +58,14 @@ export function AddBudgetDialog({ onAddBudget }: AddBudgetDialogProps) {
 
   // Fetch entities from Supabase
   const { data: entities = [] } = useQuery({
-    queryKey: ['entities'],
+    queryKey: ['entities', session?.user?.id],
     queryFn: async () => {
+      if (!session?.user?.id) return [];
+
       const { data, error } = await supabase
         .from('entities')
         .select('*')
+        .eq('user_id', session.user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -82,6 +87,7 @@ export function AddBudgetDialog({ onAddBudget }: AddBudgetDialogProps) {
         incorporationDate: entity.incorporation_date || '',
       })) as (FamilyMember | BusinessEntity)[];
     },
+    enabled: !!session?.user?.id,
   });
 
   const handleAddBudget = () => {

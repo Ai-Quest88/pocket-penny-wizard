@@ -9,19 +9,24 @@ import { Budget } from "@/types/budget"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/integrations/supabase/client"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useAuth } from "@/contexts/AuthContext"
 
 export default function Budgets() {
   const [selectedEntityId, setSelectedEntityId] = useState<string>("all")
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { session } = useAuth()
   
   // Fetch entities from Supabase
   const { data: entities = [] } = useQuery({
-    queryKey: ['entities'],
+    queryKey: ['entities', session?.user?.id],
     queryFn: async () => {
+      if (!session?.user?.id) return [];
+
       const { data, error } = await supabase
         .from('entities')
         .select('*')
+        .eq('user_id', session.user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -31,6 +36,7 @@ export default function Budgets() {
 
       return data;
     },
+    enabled: !!session?.user?.id,
   });
 
   // Fetch budgets from Supabase

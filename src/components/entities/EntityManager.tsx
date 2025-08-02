@@ -8,18 +8,23 @@ import { EntityList } from "./EntityList";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const EntityManager = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { session } = useAuth();
 
   // Fetch entities from Supabase
   const { data: entities = [], isLoading } = useQuery({
-    queryKey: ['entities'],
+    queryKey: ['entities', session?.user?.id],
     queryFn: async () => {
+      if (!session?.user?.id) return [];
+
       const { data, error } = await supabase
         .from('entities')
         .select('*')
+        .eq('user_id', session.user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -41,6 +46,7 @@ export const EntityManager = () => {
         incorporationDate: entity.incorporation_date || '',
       })) as (IndividualEntity | BusinessEntity)[];
     },
+    enabled: !!session?.user?.id,
   });
 
   // Add entity mutation
@@ -72,7 +78,7 @@ export const EntityManager = () => {
       return data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['entities'] });
+      queryClient.invalidateQueries({ queryKey: ['entities', session?.user?.id] });
       toast({
         title: "Entity Added",
         description: `${data.name} has been added successfully.`,
@@ -118,7 +124,7 @@ export const EntityManager = () => {
       return data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['entities'] });
+      queryClient.invalidateQueries({ queryKey: ['entities', session?.user?.id] });
       queryClient.invalidateQueries({ queryKey: ['households'] });
       queryClient.invalidateQueries({ queryKey: ['available-entities'] });
       toast({
@@ -147,7 +153,7 @@ export const EntityManager = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['entities'] });
+      queryClient.invalidateQueries({ queryKey: ['entities', session?.user?.id] });
       toast({
         title: "Entity Deleted",
         description: "The entity has been removed successfully.",
