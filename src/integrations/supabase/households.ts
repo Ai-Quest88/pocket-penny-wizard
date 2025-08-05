@@ -257,4 +257,4 @@ export const getHouseholdEntityIds = async (householdId: string): Promise<string
   }
 
   return data.map(row => row.id);
-}; 
+};

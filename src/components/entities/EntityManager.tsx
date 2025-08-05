@@ -9,11 +9,32 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const EntityManager = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { session } = useAuth();
+  const [deleteDialog, setDeleteDialog] = useState<{ 
+    isOpen: boolean; 
+    entityId: string; 
+    entityName: string;
+    associatedAssets: any[];
+  }>({
+    isOpen: false,
+    entityId: '',
+    entityName: '',
+    associatedAssets: []
+  });
 
   // Fetch entities from Supabase
   const { data: entities = [], isLoading } = useQuery({
@@ -268,6 +289,7 @@ export const EntityManager = () => {
       });
     });
   };
+  };
 
   if (isLoading) {
     return (
@@ -300,6 +322,55 @@ export const EntityManager = () => {
         onEditEntity={handleEditEntity}
         checkEntityDeletability={checkEntityDeletability}
       />
+
+      <AlertDialog open={deleteDialog.isOpen} onOpenChange={(open) => 
+        setDeleteDialog(prev => ({ ...prev, isOpen: open }))
+      }>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              ⚠️ Confirm Deletion
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the entity "{deleteDialog.entityName}"?
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          {deleteDialog.associatedAssets.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 my-4">
+              <div className="flex items-center gap-2 text-red-800 font-medium mb-2">
+                ⚠️ Cannot Delete Entity:
+              </div>
+              <p className="text-red-700 mb-3">
+                This entity has {deleteDialog.associatedAssets.length} associated asset{deleteDialog.associatedAssets.length !== 1 ? 's' : ''}. Please delete or transfer the assets first.
+              </p>
+              <div className="space-y-1">
+                <p className="font-medium text-red-800">Associated Assets:</p>
+                {deleteDialog.associatedAssets.map((asset) => (
+                  <div key={asset.id} className="bg-white rounded px-3 py-2 text-sm">
+                    🔴 {asset.name} ({asset.type})
+                  </div>
+                ))}
+              </div>
+              <p className="text-red-600 text-sm mt-3">
+                Go to Assets page to delete or transfer these assets first.
+              </p>
+            </div>
+          )}
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              className={deleteDialog.associatedAssets.length > 0 ? "opacity-50 cursor-not-allowed" : ""}
+              disabled={deleteDialog.associatedAssets.length > 0}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

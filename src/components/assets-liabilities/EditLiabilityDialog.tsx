@@ -59,8 +59,8 @@ export function EditLiabilityDialog({ liability, onEditLiability }: EditLiabilit
 
       const { data, error } = await supabase
         .from('entities')
-        .eq('user_id', session.user.id)
         .select('*')
+        .eq('user_id', session.user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
