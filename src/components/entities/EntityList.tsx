@@ -4,14 +4,16 @@ import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { EditEntityDialog } from "./EditEntityDialog";
+import { DeleteEntityDialog } from "./DeleteEntityDialog";
 
 interface EntityListProps {
   entities: (IndividualEntity | BusinessEntity)[];
   onDeleteEntity: (entityId: string) => void;
   onEditEntity: (entityId: string, updatedEntity: Omit<IndividualEntity | BusinessEntity, "id" | "dateAdded">) => void;
+  checkEntityDeletability: (entityId: string) => Promise<{ canDelete: boolean; reason?: string; blockingAssets?: Array<{ id: string; name: string; type: string }> }>;
 }
 
-export const EntityList = ({ entities, onDeleteEntity, onEditEntity }: EntityListProps) => {
+export const EntityList = ({ entities, onDeleteEntity, onEditEntity, checkEntityDeletability }: EntityListProps) => {
   const getEntityIcon = (type: string) => {
     switch (type) {
       case "individual":
@@ -41,14 +43,11 @@ export const EntityList = ({ entities, onDeleteEntity, onEditEntity }: EntityLis
             </div>
             <div className="flex items-center gap-2">
               <EditEntityDialog entity={entity} onEditEntity={onEditEntity} />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onDeleteEntity(entity.id)}
-                className="text-red-500 hover:text-red-600 hover:bg-red-50"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <DeleteEntityDialog 
+                entity={entity} 
+                onDeleteEntity={onDeleteEntity} 
+                checkEntityDeletability={checkEntityDeletability}
+              />
             </div>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-4 text-sm">

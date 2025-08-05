@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,10 +17,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, AlertCircle, CheckCircle } from "lucide-react";
 import { IndividualEntity, BusinessEntity, EntityType } from "@/types/entities";
 import { useToast } from "@/hooks/use-toast";
 import { Info } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface AddEntityDialogProps {
   onAddEntity: (entity: Omit<IndividualEntity | BusinessEntity, "id" | "dateAdded">) => void;
@@ -28,8 +31,33 @@ interface AddEntityDialogProps {
 
 export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
   const { toast } = useToast();
+  const { session } = useAuth();
   const [open, setOpen] = useState(false);
   const [entityType, setEntityType] = useState<EntityType>("individual");
+  const [nameValidation, setNameValidation] = useState<{
+    isValid: boolean;
+    message: string;
+    isChecking: boolean;
+  }>({
+    isValid: true,
+    message: "",
+    isChecking: false,
+  });
+
+  // Fetch existing entity names directly
+  const { data: existingEntityNames = [] } = useQuery({
+    queryKey: ['entity-names', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return [];
+      const { data, error } = await supabase
+        .from('entities')
+        .select('name')
+        .eq('user_id', session.user.id);
+      if (error) throw error;
+      return data?.map(entity => entity.name) || [];
+    },
+    enabled: !!session?.user?.id,
+  });
 
   const [formData, setFormData] = useState({
     name: "",
@@ -43,11 +71,68 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
     taxIdentifier: "",
   });
 
+  // Validate entity name in real-time
+  useEffect(() => {
+    const validateName = async () => {
+      const trimmedName = formData.name.trim();
+      
+      if (!trimmedName) {
+        setNameValidation({
+          isValid: true,
+          message: "",
+          isChecking: false,
+        });
+        return;
+      }
+
+      if (trimmedName.length < 2) {
+        setNameValidation({
+          isValid: false,
+          message: "Name must be at least 2 characters long",
+          isChecking: false,
+        });
+        return;
+      }
+
+      // Check for duplicate names
+      const isDuplicate = existingEntityNames.some(
+        existingName => existingName.toLowerCase() === trimmedName.toLowerCase()
+      );
+
+      if (isDuplicate) {
+        setNameValidation({
+          isValid: false,
+          message: `An entity with the name "${trimmedName}" already exists`,
+          isChecking: false,
+        });
+      } else {
+        setNameValidation({
+          isValid: true,
+          message: "Name is available",
+          isChecking: false,
+        });
+      }
+    };
+
+    // Add a small delay to avoid too many validations while typing
+    const timeoutId = setTimeout(validateName, 300);
+    return () => clearTimeout(timeoutId);
+  }, [formData.name, existingEntityNames]);
+
   const handleSubmit = () => {
     if (!formData.name || !formData.countryOfResidence) {
       toast({
         title: "Error",
         description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!nameValidation.isValid) {
+      toast({
+        title: "Error",
+        description: nameValidation.message,
         variant: "destructive",
       });
       return;
@@ -89,6 +174,11 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
       registrationNumber: "",
       incorporationDate: "",
       taxIdentifier: "",
+    });
+    setNameValidation({
+      isValid: true,
+      message: "",
+      isChecking: false,
     });
     setOpen(false);
     toast({
@@ -133,11 +223,38 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
 
           <div className="space-y-2">
             <Label>Name</Label>
-            <Input
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder={entityType === "individual" ? "Full Name" : "Entity Name"}
-            />
+            <div className="relative">
+              <Input
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder={entityType === "individual" ? "Full Name" : "Entity Name"}
+                className={`pr-10 ${
+                  formData.name.trim() && !nameValidation.isValid
+                    ? "border-red-500 focus:border-red-500"
+                    : formData.name.trim() && nameValidation.isValid
+                    ? "border-green-500 focus:border-green-500"
+                    : ""
+                }`}
+              />
+              {formData.name.trim() && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  {nameValidation.isChecking ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+                  ) : !nameValidation.isValid ? (
+                    <AlertCircle className="h-4 w-4 text-red-500" />
+                  ) : (
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                  )}
+                </div>
+              )}
+            </div>
+            {formData.name.trim() && nameValidation.message && (
+              <p className={`text-sm ${
+                nameValidation.isValid ? "text-green-600" : "text-red-600"
+              }`}>
+                {nameValidation.message}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">

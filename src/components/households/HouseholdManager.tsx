@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -7,7 +7,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Checkbox } from '../ui/checkbox';
-import { Pencil, Trash2, Plus, Users } from 'lucide-react';
+import { Pencil, Trash2, Plus, Users, AlertCircle, CheckCircle } from 'lucide-react';
 import { useToast } from '../ui/use-toast';
 import {
   getHouseholds,
@@ -15,6 +15,7 @@ import {
   updateHousehold,
   deleteHousehold,
   getAvailableEntities,
+  getHouseholdEntities,
   addEntityToHousehold,
   removeEntityFromHousehold,
 } from '../../integrations/supabase/households';
@@ -33,10 +34,32 @@ export const HouseholdManager: React.FC = () => {
     queryFn: getHouseholds,
   });
 
+  // Fetch entities for each household
+  const { data: householdEntitiesMap = {} } = useQuery({
+    queryKey: ['household-entities-map', households?.map(h => h.id).join(',')],
+    queryFn: async () => {
+      if (!households) return {};
+      
+      const entitiesMap: Record<string, IndividualEntity[]> = {};
+      for (const household of households) {
+        try {
+          entitiesMap[household.id] = await getHouseholdEntities(household.id);
+        } catch (error) {
+          console.error(`Error fetching entities for household ${household.id}:`, error);
+          entitiesMap[household.id] = [];
+        }
+      }
+      return entitiesMap;
+    },
+    enabled: !!households && households.length > 0,
+  });
+
   const createHouseholdMutation = useMutation({
     mutationFn: createHousehold,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['households'] });
+      // Invalidate all household-entities-map queries (with any household IDs)
+      queryClient.invalidateQueries({ queryKey: ['household-entities-map'] });
       setIsCreateDialogOpen(false);
       toast({
         title: 'Household created successfully',
@@ -56,8 +79,13 @@ export const HouseholdManager: React.FC = () => {
   const updateHouseholdMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateHouseholdData }) =>
       updateHousehold(id, data),
-    onSuccess: () => {
+    onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['households'] });
+      // Invalidate all household-entities-map queries (with any household IDs)
+      queryClient.invalidateQueries({ queryKey: ['household-entities-map'] });
+      queryClient.invalidateQueries({ queryKey: ['household-entities'] });
+      // Invalidate the specific household entities query for this household
+      queryClient.invalidateQueries({ queryKey: ['household-entities', id] });
       setEditingHousehold(null);
       toast({
         title: 'Household updated successfully',
@@ -76,8 +104,12 @@ export const HouseholdManager: React.FC = () => {
 
   const deleteHouseholdMutation = useMutation({
     mutationFn: deleteHousehold,
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ['households'] });
+      // Invalidate all household-entities-map queries (with any household IDs)
+      queryClient.invalidateQueries({ queryKey: ['household-entities-map'] });
+      // Invalidate the specific household entities query for this household
+      queryClient.invalidateQueries({ queryKey: ['household-entities', id] });
       setDeletingHousehold(null);
       toast({
         title: 'Household deleted successfully',
@@ -175,7 +207,11 @@ export const HouseholdManager: React.FC = () => {
                   <div className="flex items-center space-x-1">
                     <Dialog open={editingHousehold?.id === household.id} onOpenChange={(open) => !open && setEditingHousehold(null)}>
                       <DialogTrigger asChild>
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => setEditingHousehold(household)}
+                        >
                           <Pencil className="w-4 h-4" />
                         </Button>
                       </DialogTrigger>
@@ -197,12 +233,28 @@ export const HouseholdManager: React.FC = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                {household.description && (
-                  <p className="text-gray-600 mb-3">{household.description}</p>
+                {/* Show entities in this household */}
+                {householdEntitiesMap[household.id] && householdEntitiesMap[household.id].length > 0 && (
+                  <div>
+                    <div className="space-y-1">
+                      {householdEntitiesMap[household.id].map((entity) => (
+                        <div key={entity.id} className="flex items-center text-sm text-gray-600">
+                          <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                          {entity.name}
+                          {entity.relationship && (
+                            <span className="text-gray-400 ml-1">({entity.relationship})</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
-                <div className="text-sm text-gray-500">
-                  Created: {new Date(household.dateCreated).toLocaleDateString()}
-                </div>
+                
+                {(!householdEntitiesMap[household.id] || householdEntitiesMap[household.id].length === 0) && (
+                  <div>
+                    <p className="text-sm text-gray-500 italic">No entities assigned</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
@@ -248,6 +300,15 @@ const CreateHouseholdForm: React.FC<CreateHouseholdFormProps> = ({ onSubmit }) =
     description: '',
   });
   const [selectedEntityIds, setSelectedEntityIds] = useState<string[]>([]);
+  const [nameValidation, setNameValidation] = useState<{
+    isValid: boolean;
+    message: string;
+    isChecking: boolean;
+  }>({
+    isValid: true,
+    message: "",
+    isChecking: false,
+  });
 
   // Fetch available entities for reporting
   const { data: availableEntities = [] } = useQuery({
@@ -255,9 +316,66 @@ const CreateHouseholdForm: React.FC<CreateHouseholdFormProps> = ({ onSubmit }) =
     queryFn: getAvailableEntities,
   });
 
+  // Fetch existing household names for validation
+  const { data: existingHouseholdNames = [] } = useQuery({
+    queryKey: ['household-names'],
+    queryFn: async () => {
+      const households = await getHouseholds();
+      return households.map(household => household.name);
+    },
+  });
+
+  // Validate household name in real-time
+  useEffect(() => {
+    const validateName = async () => {
+      const trimmedName = formData.name.trim();
+      
+      if (!trimmedName) {
+        setNameValidation({
+          isValid: true,
+          message: "",
+          isChecking: false,
+        });
+        return;
+      }
+
+      if (trimmedName.length < 2) {
+        setNameValidation({
+          isValid: false,
+          message: "Name must be at least 2 characters long",
+          isChecking: false,
+        });
+        return;
+      }
+
+      // Check for duplicate names
+      const isDuplicate = existingHouseholdNames.some(
+        existingName => existingName.toLowerCase() === trimmedName.toLowerCase()
+      );
+
+      if (isDuplicate) {
+        setNameValidation({
+          isValid: false,
+          message: `A household with the name "${trimmedName}" already exists`,
+          isChecking: false,
+        });
+      } else {
+        setNameValidation({
+          isValid: true,
+          message: "Name is available",
+          isChecking: false,
+        });
+      }
+    };
+
+    // Add a small delay to avoid too many validations while typing
+    const timeoutId = setTimeout(validateName, 300);
+    return () => clearTimeout(timeoutId);
+  }, [formData.name, existingHouseholdNames]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.name.trim()) {
+    if (formData.name.trim() && nameValidation.isValid) {
       onSubmit({
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
@@ -265,6 +383,11 @@ const CreateHouseholdForm: React.FC<CreateHouseholdFormProps> = ({ onSubmit }) =
       });
       setFormData({ name: '', description: '' });
       setSelectedEntityIds([]);
+      setNameValidation({
+        isValid: true,
+        message: "",
+        isChecking: false,
+      });
     }
   };
 
@@ -280,13 +403,40 @@ const CreateHouseholdForm: React.FC<CreateHouseholdFormProps> = ({ onSubmit }) =
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="name">Household Name</Label>
-        <Input
-          id="name"
-          value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          placeholder="e.g., Smith Family"
-          required
-        />
+        <div className="relative">
+          <Input
+            id="name"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            placeholder="e.g., Smith Family"
+            required
+            className={`pr-10 ${
+              formData.name.trim() && !nameValidation.isValid
+                ? "border-red-500 focus:border-red-500"
+                : formData.name.trim() && nameValidation.isValid
+                ? "border-green-500 focus:border-green-500"
+                : ""
+            }`}
+          />
+          {formData.name.trim() && (
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              {nameValidation.isChecking ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+              ) : !nameValidation.isValid ? (
+                <AlertCircle className="h-4 w-4 text-red-500" />
+              ) : (
+                <CheckCircle className="h-4 w-4 text-green-500" />
+              )}
+            </div>
+          )}
+        </div>
+        {formData.name.trim() && nameValidation.message && (
+          <p className={`text-sm ${
+            nameValidation.isValid ? "text-green-600" : "text-red-600"
+          }`}>
+            {nameValidation.message}
+          </p>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="description">Description (Optional)</Label>
@@ -352,16 +502,104 @@ const EditHouseholdForm: React.FC<EditHouseholdFormProps> = ({ household, onSubm
     description: household.description || '',
   });
   const [selectedEntityIds, setSelectedEntityIds] = useState<string[]>([]);
+  const [nameValidation, setNameValidation] = useState<{
+    isValid: boolean;
+    message: string;
+    isChecking: boolean;
+  }>({
+    isValid: true,
+    message: "",
+    isChecking: false,
+  });
 
   // Fetch available entities for reporting
-  const { data: availableEntities = [] } = useQuery({
+  const { data: availableEntities = [], error: entitiesError } = useQuery({
     queryKey: ['available-entities'],
     queryFn: getAvailableEntities,
+    retry: false,
   });
+
+  // Fetch existing household names for validation (excluding current household)
+  const { data: existingHouseholdNames = [] } = useQuery({
+    queryKey: ['household-names'],
+    queryFn: async () => {
+      const households = await getHouseholds();
+      return households
+        .filter(h => h.id !== household.id) // Exclude current household
+        .map(h => h.name);
+    },
+  });
+
+  // Fetch entities already in this household
+  const { data: householdEntities = [] } = useQuery({
+    queryKey: ['household-entities', household.id],
+    queryFn: () => getHouseholdEntities(household.id),
+    retry: false,
+  });
+
+  // Set selected entities when household entities are loaded
+  React.useEffect(() => {
+    if (householdEntities.length > 0) {
+      setSelectedEntityIds(householdEntities.map(entity => entity.id));
+    }
+  }, [householdEntities]);
+
+  // Log any errors for debugging
+  if (entitiesError) {
+    console.error('Error fetching available entities:', entitiesError);
+  }
+
+  // Validate household name in real-time
+  useEffect(() => {
+    const validateName = async () => {
+      const trimmedName = formData.name.trim();
+      
+      if (!trimmedName) {
+        setNameValidation({
+          isValid: true,
+          message: "",
+          isChecking: false,
+        });
+        return;
+      }
+
+      if (trimmedName.length < 2) {
+        setNameValidation({
+          isValid: false,
+          message: "Name must be at least 2 characters long",
+          isChecking: false,
+        });
+        return;
+      }
+
+      // Check for duplicate names (excluding current household)
+      const isDuplicate = existingHouseholdNames.some(
+        existingName => existingName.toLowerCase() === trimmedName.toLowerCase()
+      );
+
+      if (isDuplicate) {
+        setNameValidation({
+          isValid: false,
+          message: `A household with the name "${trimmedName}" already exists`,
+          isChecking: false,
+        });
+      } else {
+        setNameValidation({
+          isValid: true,
+          message: "Name is available",
+          isChecking: false,
+        });
+      }
+    };
+
+    // Add a small delay to avoid too many validations while typing
+    const timeoutId = setTimeout(validateName, 300);
+    return () => clearTimeout(timeoutId);
+  }, [formData.name, existingHouseholdNames]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.name.trim()) {
+    if (formData.name.trim() && nameValidation.isValid) {
       onSubmit({
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
@@ -382,13 +620,40 @@ const EditHouseholdForm: React.FC<EditHouseholdFormProps> = ({ household, onSubm
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="edit-name">Household Name</Label>
-        <Input
-          id="edit-name"
-          value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          placeholder="e.g., Smith Family"
-          required
-        />
+        <div className="relative">
+          <Input
+            id="edit-name"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            placeholder="e.g., Smith Family"
+            required
+            className={`pr-10 ${
+              formData.name.trim() && !nameValidation.isValid
+                ? "border-red-500 focus:border-red-500"
+                : formData.name.trim() && nameValidation.isValid
+                ? "border-green-500 focus:border-green-500"
+                : ""
+            }`}
+          />
+          {formData.name.trim() && (
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              {nameValidation.isChecking ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+              ) : !nameValidation.isValid ? (
+                <AlertCircle className="h-4 w-4 text-red-500" />
+              ) : (
+                <CheckCircle className="h-4 w-4 text-green-500" />
+              )}
+            </div>
+          )}
+        </div>
+        {formData.name.trim() && nameValidation.message && (
+          <p className={`text-sm ${
+            nameValidation.isValid ? "text-green-600" : "text-red-600"
+          }`}>
+            {nameValidation.message}
+          </p>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="edit-description">Description (Optional)</Label>

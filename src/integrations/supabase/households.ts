@@ -3,7 +3,7 @@ import { Household, CreateHouseholdData, UpdateHouseholdData } from '../../types
 import { IndividualEntity } from '../../types/entities';
 
 // Map database row to Household interface
-const mapHouseholdRow = (row: any): Household => ({
+const mapHouseholdRow = (row: { id: string; name: string; description: string | null; created_at: string; updated_at: string }): Household => ({
   id: row.id,
   name: row.name,
   description: row.description || undefined,
@@ -13,10 +13,15 @@ const mapHouseholdRow = (row: any): Household => ({
 
 // Create a new household
 export const createHousehold = async (householdData: CreateHouseholdData): Promise<Household> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('No authenticated user found');
+  }
+
   const insertData = {
     name: householdData.name,
     description: householdData.description || null,
-    user_id: (await supabase.auth.getUser()).data.user?.id || '',
+    user_id: user.id,
   };
 
   const { data, error } = await supabase
@@ -62,8 +67,18 @@ export const updateHousehold = async (id: string, householdData: UpdateHousehold
 
   // Update entity relationships for reporting if provided
   if (householdData.selectedEntityIds !== undefined) {
-    // For now, just log the selected entities since junction table isn't available
-    console.log(`Household ${id} would have entities:`, householdData.selectedEntityIds);
+    // First, remove all entities from this household
+    await supabase
+      .from('entities')
+      .update({ household_id: null })
+      .eq('household_id', id);
+
+    // Then add the selected entities to this household
+    if (householdData.selectedEntityIds.length > 0) {
+      for (const entityId of householdData.selectedEntityIds) {
+        await addEntityToHousehold(id, entityId);
+      }
+    }
   }
 
   return mapHouseholdRow(data);
@@ -84,9 +99,16 @@ export const deleteHousehold = async (id: string): Promise<void> => {
 
 // Get all households for the current user
 export const getHouseholds = async (): Promise<Household[]> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    console.error('No authenticated user found');
+    return [];
+  }
+
   const { data, error } = await supabase
     .from('households')
     .select('*')
+    .eq('user_id', user.id)
     .order('name');
 
   if (error) {
@@ -99,10 +121,17 @@ export const getHouseholds = async (): Promise<Household[]> => {
 
 // Get a single household
 export const getHousehold = async (id: string): Promise<Household> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    console.error('No authenticated user found');
+    throw new Error('No authenticated user found');
+  }
+
   const { data, error } = await supabase
     .from('households')
     .select('*')
     .eq('id', id)
+    .eq('user_id', user.id)
     .single();
 
   if (error) {
@@ -115,10 +144,17 @@ export const getHousehold = async (id: string): Promise<Household> => {
 
 // Get all entities that can be added to households (for reporting purposes)
 export const getAvailableEntities = async (): Promise<IndividualEntity[]> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    console.error('No authenticated user found');
+    return [];
+  }
+
   const { data, error } = await supabase
     .from('entities')
     .select('*')
     .eq('type', 'individual')
+    .eq('user_id', user.id)
     .order('name');
 
   if (error) {
@@ -141,26 +177,84 @@ export const getAvailableEntities = async (): Promise<IndividualEntity[]> => {
 
 // Get entities for a specific household (for reporting)
 export const getHouseholdEntities = async (householdId: string): Promise<IndividualEntity[]> => {
-  // For now, return all individual entities since we're not storing the relationship
-  // This can be enhanced later with a proper junction table if needed
-  return getAvailableEntities();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    console.error('No authenticated user found');
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from('entities')
+    .select('*')
+    .eq('type', 'individual')
+    .eq('user_id', user.id)
+    .eq('household_id', householdId)
+    .order('name');
+
+  if (error) {
+    console.error('Error fetching household entities:', error);
+    throw error;
+  }
+
+  return data.map((row) => ({
+    id: row.id,
+    name: row.name,
+    type: row.type as 'individual',
+    description: row.description || undefined,
+    taxIdentifier: row.tax_identifier || undefined,
+    countryOfResidence: row.country_of_residence,
+    dateAdded: row.date_added,
+    relationship: row.relationship || undefined,
+    dateOfBirth: row.date_of_birth || undefined,
+  }));
 };
 
-// Add entity to household for reporting (placeholder for future implementation)
+// Add entity to household for reporting
 export const addEntityToHousehold = async (householdId: string, entityId: string): Promise<void> => {
-  // TODO: Implement when junction table is available
-  console.log(`Adding entity ${entityId} to household ${householdId} for reporting`);
+  const { error } = await supabase
+    .from('entities')
+    .update({ household_id: householdId })
+    .eq('id', entityId);
+
+  if (error) {
+    console.error('Error adding entity to household:', error);
+    throw error;
+  }
 };
 
-// Remove entity from household (placeholder for future implementation)
+// Remove entity from household
 export const removeEntityFromHousehold = async (householdId: string, entityId: string): Promise<void> => {
-  // TODO: Implement when junction table is available
-  console.log(`Removing entity ${entityId} from household ${householdId}`);
+  const { error } = await supabase
+    .from('entities')
+    .update({ household_id: null })
+    .eq('id', entityId)
+    .eq('household_id', householdId);
+
+  if (error) {
+    console.error('Error removing entity from household:', error);
+    throw error;
+  }
 };
 
-// Get entities that are already in a household (placeholder for future implementation)
+// Get entities that are already in a household
 export const getHouseholdEntityIds = async (householdId: string): Promise<string[]> => {
-  // TODO: Implement when junction table is available
-  // For now, return empty array
-  return [];
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    console.error('No authenticated user found');
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from('entities')
+    .select('id')
+    .eq('type', 'individual')
+    .eq('user_id', user.id)
+    .eq('household_id', householdId);
+
+  if (error) {
+    console.error('Error fetching household entity IDs:', error);
+    throw error;
+  }
+
+  return data.map(row => row.id);
 }; 
