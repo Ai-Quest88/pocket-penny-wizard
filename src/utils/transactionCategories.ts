@@ -19,16 +19,28 @@ export { categories };
 export const categorizeByBuiltInRules = (description: string, amount?: number): string | null => {
   const lowerDesc = description.toLowerCase();
   
-  // Critical financial categories first - distinguish transfer direction
+  // Critical financial categories first - comprehensive transfer detection
   if (lowerDesc.includes('transfer to') || lowerDesc.includes('transfer from') ||
-      lowerDesc.includes('bpay') || lowerDesc.includes('direct credit')) {
+      lowerDesc.includes('bpay') || lowerDesc.includes('direct credit') ||
+      lowerDesc.includes('commbank app') || lowerDesc.includes('payid') ||
+      lowerDesc.includes('fast transfer') || lowerDesc.includes('bank transfer') ||
+      lowerDesc.includes('online transfer') || lowerDesc.includes('mobile transfer') ||
+      lowerDesc.includes('internal transfer') || lowerDesc.includes('account transfer') ||
+      lowerDesc.includes('fund transfer') || lowerDesc.includes('instant transfer') ||
+      lowerDesc.includes('osko') || lowerDesc.includes('npp') ||
+      lowerDesc.includes('atm withdrawal') || lowerDesc.includes('wdl atm') ||
+      lowerDesc.includes('non cba atm') || lowerDesc.includes('cash withdrawal') ||
+      (lowerDesc.includes('transfer') && !lowerDesc.includes('travel')) ||
+      (lowerDesc.includes('payment') && lowerDesc.includes('ref:'))) {
+    
     if (amount !== undefined) {
       const category = amount > 0 ? 'Transfer In' : 'Transfer Out';
-      console.log(`Essential rule matched: "${description}" (${amount}) -> ${category}`);
+      console.log(`Transfer rule matched: "${description}" (${amount}) -> ${category}`);
       return category;
     } else {
-      console.log(`Essential rule matched: "${description}" -> Transfer In (fallback)`);
-      return 'Transfer In';
+      // Default to Transfer Out for unknown amounts (most transfers are outgoing)
+      console.log(`Transfer rule matched: "${description}" -> Transfer Out (fallback)`);
+      return 'Transfer Out';
     }
   }
   

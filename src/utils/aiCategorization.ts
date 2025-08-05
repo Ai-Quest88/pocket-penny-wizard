@@ -195,7 +195,10 @@ const comprehensiveAustralianRules = (description: string): string | null => {
       lowerDesc.includes('commbank app') || lowerDesc.includes('savings') ||
       lowerDesc.includes('atm') || lowerDesc.includes('withdrawal') ||
       lowerDesc.includes('payid') || lowerDesc.includes('fast transfer') ||
-      lowerDesc.includes('wdl atm') || lowerDesc.includes('non cba atm')) {
+      lowerDesc.includes('wdl atm') || lowerDesc.includes('non cba atm') ||
+      lowerDesc.includes('bank transfer') || lowerDesc.includes('online transfer') ||
+      lowerDesc.includes('osko') || lowerDesc.includes('npp') ||
+      (lowerDesc.includes('transfer') && !lowerDesc.includes('travel'))) {
     return 'Transfer'; // Note: This will be handled by built-in rules for direction
   }
   
@@ -376,7 +379,6 @@ export const categorizeTransactionsBatch = async (
         timeSpent: batchTime
       });
       
-      // Fallback to enhanced built-in rules for this batch (includes transfer direction)
       let fallbackMiscCount = 0;
       for (let j = 0; j < batchDescriptions.length; j++) {
         const description = batchDescriptions[j];
@@ -384,7 +386,18 @@ export const categorizeTransactionsBatch = async (
         
         // Import the built-in rules function
         const { categorizeByBuiltInRules } = await import('@/utils/transactionCategories');
-        const category = categorizeByBuiltInRules(description, amount) || comprehensiveAustralianRules(description) || 'Uncategorized';
+        let category = categorizeByBuiltInRules(description, amount);
+        
+        // If built-in rules don't match, try comprehensive Australian rules
+        if (!category) {
+          category = comprehensiveAustralianRules(description);
+        }
+        
+        // Final fallback
+        if (!category) {
+          category = 'Uncategorized';
+        }
+        
         results[batchStartIndex + j] = category;
         
         if (category === 'Uncategorized') {
