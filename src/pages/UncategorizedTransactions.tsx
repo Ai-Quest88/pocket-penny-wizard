@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { categories } from "@/types/transaction-forms"
+import { CategoryConfirmationDialog } from "@/components/CategoryConfirmationDialog"
 
 const UncategorizedTransactions = () => {
   const { isAuthenticated, session } = useAuth();
@@ -26,6 +27,9 @@ const UncategorizedTransactions = () => {
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [newCategory, setNewCategory] = useState("");
   const [isCreatingRule, setIsCreatingRule] = useState(false);
+  const [categorySuggestions, setCategorySuggestions] = useState<any[]>([]);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [isApplyingChanges, setIsApplyingChanges] = useState(false);
 
   console.log("UncategorizedTransactions component - isAuthenticated:", isAuthenticated, "session:", !!session);
 
@@ -80,34 +84,17 @@ const UncategorizedTransactions = () => {
         }
       );
 
-      // Update transactions that got new categories (not 'Uncategorized')
-      let updatedCount = 0;
-      const updatePromises = uncategorizedTransactions.map(async (transaction, index) => {
-        const newCategory = categories[index];
-        if (newCategory && newCategory !== 'Uncategorized') {
-          const { error } = await supabase
-            .from('transactions')
-            .update({ category: newCategory })
-            .eq('id', transaction.id);
+      // Create suggestions for confirmation dialog
+      const suggestions = uncategorizedTransactions.map((transaction, index) => ({
+        id: transaction.id,
+        description: transaction.description,
+        amount: transaction.amount,
+        originalCategory: transaction.category,
+        suggestedCategory: categories[index] || 'Uncategorized'
+      }));
 
-          if (!error) {
-            updatedCount++;
-            console.log(`✅ Updated transaction "${transaction.description}" -> ${newCategory}`);
-          } else {
-            console.error(`❌ Failed to update transaction "${transaction.description}":`, error);
-          }
-        }
-      });
-
-      await Promise.all(updatePromises);
-
-      toast({
-        title: "AI Categorization Complete",
-        description: `Successfully categorized ${updatedCount} out of ${uncategorizedTransactions.length} transactions.`,
-      });
-
-      // Refresh the page to show updated transactions
-      window.location.reload();
+      setCategorySuggestions(suggestions);
+      setShowConfirmDialog(true);
 
     } catch (error) {
       console.error('Error during AI retry:', error);
@@ -119,6 +106,53 @@ const UncategorizedTransactions = () => {
     } finally {
       setIsRetrying(false);
       setRetryProgress({ processed: 0, total: 0 });
+    }
+  };
+
+  const handleConfirmCategories = async (confirmedSuggestions: any[]) => {
+    setIsApplyingChanges(true);
+
+    try {
+      let updatedCount = 0;
+      const updatePromises = confirmedSuggestions.map(async (suggestion) => {
+        const finalCategory = suggestion.userCategory || suggestion.suggestedCategory;
+        if (finalCategory && finalCategory !== 'Uncategorized') {
+          const { error } = await supabase
+            .from('transactions')
+            .update({ category: finalCategory })
+            .eq('id', suggestion.id);
+
+          if (!error) {
+            updatedCount++;
+            console.log(`✅ Updated transaction "${suggestion.description}" -> ${finalCategory}`);
+          } else {
+            console.error(`❌ Failed to update transaction "${suggestion.description}":`, error);
+          }
+        }
+      });
+
+      await Promise.all(updatePromises);
+
+      toast({
+        title: "AI Categorization Complete",
+        description: `Successfully categorized ${updatedCount} out of ${confirmedSuggestions.length} transactions.`,
+      });
+
+      setShowConfirmDialog(false);
+      setCategorySuggestions([]);
+      
+      // Refresh the page to show updated transactions
+      window.location.reload();
+
+    } catch (error) {
+      console.error('Error applying categories:', error);
+      toast({
+        title: "Failed to Apply Changes",
+        description: "There was an error applying the category changes. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsApplyingChanges(false);
     }
   };
 
@@ -288,6 +322,14 @@ const UncategorizedTransactions = () => {
             />
           </div>
         </Card>
+
+        <CategoryConfirmationDialog
+          open={showConfirmDialog}
+          onOpenChange={setShowConfirmDialog}
+          suggestions={categorySuggestions}
+          onConfirm={handleConfirmCategories}
+          isApplying={isApplyingChanges}
+        />
       </div>
     </div>
   )
