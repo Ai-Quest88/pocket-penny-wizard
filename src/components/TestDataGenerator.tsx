@@ -1,103 +1,49 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { TestTube, Loader2 } from "lucide-react"
-import { supabase } from "@/integrations/supabase/client"
-import { useAuth } from "@/contexts/AuthContext"
 import { toast } from "sonner"
 
-const TestDataGenerator = () => {
+interface TestDataGeneratorProps {
+  onDataGenerated: (data: any[], headers: string[]) => void
+}
+
+const TestDataGenerator = ({ onDataGenerated }: TestDataGeneratorProps) => {
   const [isGenerating, setIsGenerating] = useState(false)
-  const { session } = useAuth()
 
-  const generateTestTransactions = async () => {
-    if (!session?.user?.id) {
-      toast.error("Please log in to generate test data")
-      return
-    }
-
+  const generateTestCsvData = async () => {
     setIsGenerating(true)
     try {
-      // Generate sample transactions with various categories and some uncategorized
-      const testTransactions = [
-        {
-          user_id: session.user.id,
-          description: "Grocery Store Purchase",
-          amount: -85.50,
-          date: "2024-01-15",
-          category: "Groceries",
-          currency: "USD"
-        },
-        {
-          user_id: session.user.id,
-          description: "Coffee Shop",
-          amount: -4.25,
-          date: "2024-01-16",
-          category: "Uncategorized",
-          currency: "USD"
-        },
-        {
-          user_id: session.user.id,
-          description: "Salary Deposit",
-          amount: 3500.00,
-          date: "2024-01-17",
-          category: "Salary",
-          currency: "USD"
-        },
-        {
-          user_id: session.user.id,
-          description: "Gas Station",
-          amount: -45.80,
-          date: "2024-01-18",
-          category: "Uncategorized",
-          currency: "USD"
-        },
-        {
-          user_id: session.user.id,
-          description: "Restaurant Dinner",
-          amount: -67.90,
-          date: "2024-01-19",
-          category: "Restaurants",
-          currency: "USD"
-        },
-        {
-          user_id: session.user.id,
-          description: "Online Purchase Amazon",
-          amount: -23.99,
-          date: "2024-01-20",
-          category: "Uncategorized",
-          currency: "USD"
-        },
-        {
-          user_id: session.user.id,
-          description: "Freelance Payment",
-          amount: 850.00,
-          date: "2024-01-21",
-          category: "Freelance",
-          currency: "USD"
-        },
-        {
-          user_id: session.user.id,
-          description: "Utility Bill Electric",
-          amount: -120.45,
-          date: "2024-01-22",
-          category: "Utilities",
-          currency: "USD"
-        }
+      // Generate sample CSV data for testing upload functionality
+      const headers = ["Date", "Description", "Amount", "Currency"]
+      const rawData = [
+        ["2024-01-15", "Grocery Store Purchase", "-85.50", "USD"],
+        ["2024-01-16", "Coffee Shop Downtown", "-4.25", "USD"],
+        ["2024-01-17", "Salary Deposit", "3500.00", "USD"],
+        ["2024-01-18", "Gas Station Fill Up", "-45.80", "USD"],
+        ["2024-01-19", "Restaurant Dinner", "-67.90", "USD"],
+        ["2024-01-20", "Amazon Online Purchase", "-23.99", "USD"],
+        ["2024-01-21", "Freelance Payment", "850.00", "USD"],
+        ["2024-01-22", "Electric Utility Bill", "-120.45", "USD"],
+        ["2024-01-23", "Starbucks Coffee", "-5.75", "USD"],
+        ["2024-01-24", "Uber Ride", "-18.50", "USD"],
+        ["2024-01-25", "Grocery Store", "-92.30", "USD"],
+        ["2024-01-26", "Netflix Subscription", "-15.99", "USD"]
       ]
 
-      const { error } = await supabase
-        .from("transactions")
-        .insert(testTransactions)
+      // Convert to object format expected by the upload handler
+      const csvData = rawData.map(row => ({
+        [headers[0]]: row[0], // Date
+        [headers[1]]: row[1], // Description
+        [headers[2]]: row[2], // Amount
+        [headers[3]]: row[3], // Currency
+      }))
 
-      if (error) {
-        console.error("Error inserting test transactions:", error)
-        toast.error("Failed to generate test transactions")
-      } else {
-        toast.success(`Generated ${testTransactions.length} test transactions`)
-      }
+      // Call the parent component's handler
+      onDataGenerated(csvData, headers)
+      toast.success(`Generated ${csvData.length} test transactions for upload processing`)
     } catch (error) {
       console.error("Error generating test data:", error)
-      toast.error("Failed to generate test transactions")
+      toast.error("Failed to generate test data")
     } finally {
       setIsGenerating(false)
     }
@@ -105,7 +51,7 @@ const TestDataGenerator = () => {
 
   return (
     <Button
-      onClick={generateTestTransactions}
+      onClick={generateTestCsvData}
       disabled={isGenerating}
       variant="outline"
       className="flex items-center gap-2"

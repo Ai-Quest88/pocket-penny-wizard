@@ -7,7 +7,6 @@ import { UnifiedCsvUpload } from "@/components/transaction-forms/UnifiedCsvUploa
 import { TransactionList } from "@/components/TransactionList"
 import { useAuth } from "@/contexts/AuthContext"
 import { useNavigate, Link } from "react-router-dom"
-import TestDataGenerator from "@/components/TestDataGenerator"
 
 const Transactions = () => {
   const [isAddingTransaction, setIsAddingTransaction] = useState(false)
@@ -70,11 +69,7 @@ const Transactions = () => {
                 <DialogHeader>
                   <DialogTitle>Upload Transactions</DialogTitle>
                 </DialogHeader>
-                <div className="mt-6 space-y-4">
-                  <div className="flex justify-between items-center">
-                    <p className="text-sm text-muted-foreground">Upload CSV file or generate test data</p>
-                    <TestDataGenerator />
-                  </div>
+                <div className="mt-6">
                   <UnifiedCsvUpload onComplete={handleTransactionUploadSuccess} />
                 </div>
               </DialogContent>

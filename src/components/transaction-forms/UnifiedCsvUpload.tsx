@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAccounts } from "@/hooks/useAccounts";
 import { addUserCategoryRule } from "@/utils/transactionCategories";
+import TestDataGenerator from "@/components/TestDataGenerator";
 
 interface CSVRow {
   [key: string]: string | number | boolean;
@@ -479,6 +480,11 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium">Upload Transaction Data</h3>
+        <TestDataGenerator onDataGenerated={handleFileUpload} />
+      </div>
+      
       <FileUploadSection 
         onFileUpload={handleFileUpload}
         isProcessing={isProcessing}
