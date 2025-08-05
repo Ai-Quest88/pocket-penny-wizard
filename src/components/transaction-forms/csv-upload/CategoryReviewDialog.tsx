@@ -146,11 +146,9 @@ export const CategoryReviewDialog = ({
                 <TableHeader className="sticky top-0 bg-background">
                   <TableRow>
                     <TableHead>Description</TableHead>
-                    <TableHead className="w-24">Amount</TableHead>
-                    <TableHead className="w-24">Date</TableHead>
-                    <TableHead className="w-20">Currency</TableHead>
-                    <TableHead className="w-48">Category</TableHead>
-                    <TableHead className="w-32">Status</TableHead>
+                    <TableHead className="w-32">Amount</TableHead>
+                    <TableHead className="w-32">Date</TableHead>
+                    <TableHead className="w-56">Category</TableHead>
                     <TableHead className="w-24">Auto-Learn</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -181,9 +179,6 @@ export const CategoryReviewDialog = ({
                         <TableCell className="text-sm">
                           {new Date(transaction.date).toLocaleDateString()}
                         </TableCell>
-                        <TableCell className="text-sm">
-                          {transaction.currency}
-                        </TableCell>
                         <TableCell>
                           <Select
                             value={transaction.userCategory || transaction.category}
@@ -200,11 +195,6 @@ export const CategoryReviewDialog = ({
                               ))}
                             </SelectContent>
                           </Select>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={isUncategorized ? "destructive" : "secondary"} className="text-xs">
-                            {isUncategorized ? "Needs Review" : "AI Categorized"}
-                          </Badge>
                         </TableCell>
                         <TableCell>
                           {(transaction.userCategory || transaction.category) !== 'Uncategorized' && (
