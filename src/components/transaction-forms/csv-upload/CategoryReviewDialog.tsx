@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Brain, CheckCircle, AlertCircle, Clock } from "lucide-react";
 import { categories } from "@/types/transaction-forms";
 import { addUserCategoryRule } from "@/utils/transactionCategories";
@@ -103,7 +104,7 @@ export const CategoryReviewDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
+      <DialogContent className="max-w-7xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-blue-600" />
@@ -138,49 +139,60 @@ export const CategoryReviewDialog = ({
             </div>
           </Card>
 
-          {/* Transaction List */}
-          <ScrollArea className="flex-1 rounded-md border">
-            <div className="p-4 space-y-4">
-              {reviewedTransactions.map((transaction, index) => {
-                const isUncategorized = (transaction.userCategory || transaction.category) === 'Uncategorized';
-                const categoryChanged = transaction.userCategory !== transaction.category;
-                
-                return (
-                  <Card key={index} className={`p-4 ${isUncategorized ? 'border-amber-300 bg-amber-50' : 'border-green-300 bg-green-50'}`}>
-                    <div className="space-y-3">
-                      {/* Transaction Info */}
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-medium text-sm">{transaction.description}</h4>
-                          <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
-                            <span>${Math.abs(transaction.amount).toFixed(2)}</span>
-                            <span>{new Date(transaction.date).toLocaleDateString()}</span>
-                            <span>{transaction.currency}</span>
+          {/* Transaction Table */}
+          <div className="flex-1 border rounded-md">
+            <ScrollArea className="h-[50vh]">
+              <Table>
+                <TableHeader className="sticky top-0 bg-background">
+                  <TableRow>
+                    <TableHead>Description</TableHead>
+                    <TableHead className="w-24">Amount</TableHead>
+                    <TableHead className="w-24">Date</TableHead>
+                    <TableHead className="w-20">Currency</TableHead>
+                    <TableHead className="w-48">Category</TableHead>
+                    <TableHead className="w-32">Status</TableHead>
+                    <TableHead className="w-24">Auto-Learn</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {reviewedTransactions.map((transaction, index) => {
+                    const isUncategorized = (transaction.userCategory || transaction.category) === 'Uncategorized';
+                    const categoryChanged = transaction.userCategory !== transaction.category;
+                    
+                    return (
+                      <TableRow 
+                        key={index} 
+                        className={isUncategorized ? 'bg-amber-50' : 'bg-green-50'}
+                      >
+                        <TableCell>
+                          <div className="space-y-1">
+                            <div className="font-medium text-sm">{transaction.description}</div>
+                            {categoryChanged && (
+                              <div className="flex items-center gap-1 text-xs text-blue-600">
+                                <Clock className="h-3 w-3" />
+                                <span>Changed from "{transaction.category}"</span>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <Badge variant={isUncategorized ? "destructive" : "secondary"}>
-                            {isUncategorized ? "Needs Review" : "AI Categorized"}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      {/* Category Selection */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor={`category-${index}`} className="text-sm font-medium">
-                            Category
-                          </Label>
+                        </TableCell>
+                        <TableCell className="text-right font-mono">
+                          ${Math.abs(transaction.amount).toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {new Date(transaction.date).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {transaction.currency}
+                        </TableCell>
+                        <TableCell>
                           <Select
                             value={transaction.userCategory || transaction.category}
                             onValueChange={(value) => handleCategoryChange(index, value)}
                           >
-                            <SelectTrigger className="w-full">
+                            <SelectTrigger className="w-full h-8">
                               <SelectValue placeholder="Select category" />
                             </SelectTrigger>
-                            <SelectContent className="max-h-48 overflow-y-auto">
+                            <SelectContent className="max-h-48 overflow-y-auto z-50">
                               {categories.map((category) => (
                                 <SelectItem key={category} value={category}>
                                   {category}
@@ -188,47 +200,31 @@ export const CategoryReviewDialog = ({
                               ))}
                             </SelectContent>
                           </Select>
-                          
-                          {categoryChanged && (
-                            <div className="flex items-center gap-1 text-xs text-blue-600">
-                              <Clock className="h-3 w-3" />
-                              <span>Changed from "{transaction.category}"</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Rule Creation Option */}
-                        {(transaction.userCategory || transaction.category) !== 'Uncategorized' && (
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Smart Learning</Label>
-                            <div className="flex items-start space-x-3 p-3 bg-white border rounded-lg">
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={isUncategorized ? "destructive" : "secondary"} className="text-xs">
+                            {isUncategorized ? "Needs Review" : "AI Categorized"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {(transaction.userCategory || transaction.category) !== 'Uncategorized' && (
+                            <div className="flex items-center justify-center">
                               <Checkbox
                                 id={`rule-${index}`}
                                 checked={transaction.createRule || false}
                                 onCheckedChange={(checked) => handleRuleToggle(index, checked as boolean)}
+                                title="Create rule for similar transactions"
                               />
-                              <div className="flex-1">
-                                <label 
-                                  htmlFor={`rule-${index}`} 
-                                  className="text-xs font-medium cursor-pointer flex items-center gap-1"
-                                >
-                                  <Brain className="h-3 w-3" />
-                                  Create rule for similar transactions
-                                </label>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Future transactions like "{transaction.description.substring(0, 30)}..." will auto-categorize as "{transaction.userCategory || transaction.category}".
-                                </p>
-                              </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          </ScrollArea>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          </div>
 
           {/* Actions */}
           <div className="flex items-center justify-between pt-4 border-t">
