@@ -9,7 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Brain, CheckCircle, AlertCircle, Clock } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Brain, CheckCircle, AlertCircle, Clock, HelpCircle } from "lucide-react";
 import { categories } from "@/types/transaction-forms";
 import { addUserCategoryRule } from "@/utils/transactionCategories";
 
@@ -103,14 +104,15 @@ export const CategoryReviewDialog = ({
   const rulesCount = reviewedTransactions.filter(t => t.createRule).length;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Brain className="h-5 w-5 text-blue-600" />
-            Review AI Categorization
-          </DialogTitle>
-        </DialogHeader>
+    <TooltipProvider>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-7xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Brain className="h-5 w-5 text-blue-600" />
+              Review AI Categorization
+            </DialogTitle>
+          </DialogHeader>
 
         <div className="space-y-4 flex-1 overflow-hidden">
           {/* Summary */}
@@ -145,11 +147,61 @@ export const CategoryReviewDialog = ({
               <Table>
                 <TableHeader className="sticky top-0 bg-background">
                   <TableRow>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="w-32">Amount</TableHead>
-                    <TableHead className="w-32">Date</TableHead>
-                    <TableHead className="w-56">Category</TableHead>
-                    <TableHead className="w-24">Auto-Learn</TableHead>
+                    <TableHead>
+                      <Tooltip>
+                        <TooltipTrigger className="flex items-center gap-1 cursor-help">
+                          Description
+                          <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>The transaction description from your bank or financial institution</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TableHead>
+                    <TableHead className="w-32">
+                      <Tooltip>
+                        <TooltipTrigger className="flex items-center gap-1 cursor-help">
+                          Amount
+                          <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>The transaction amount in your account's currency</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TableHead>
+                    <TableHead className="w-32">
+                      <Tooltip>
+                        <TooltipTrigger className="flex items-center gap-1 cursor-help">
+                          Date
+                          <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>When the transaction occurred</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TableHead>
+                    <TableHead className="w-56">
+                      <Tooltip>
+                        <TooltipTrigger className="flex items-center gap-1 cursor-help">
+                          Category
+                          <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>AI-suggested category for this transaction. You can change it here.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TableHead>
+                    <TableHead className="w-24">
+                      <Tooltip>
+                        <TooltipTrigger className="flex items-center gap-1 cursor-help">
+                          Auto-Learn
+                          <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Create a smart rule to automatically categorize similar future transactions</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -246,7 +298,8 @@ export const CategoryReviewDialog = ({
             </div>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </TooltipProvider>
   );
 };
