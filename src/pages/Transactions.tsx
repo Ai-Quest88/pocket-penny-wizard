@@ -44,7 +44,6 @@ const Transactions = () => {
             <p className="text-muted-foreground">Manage your transactions</p>
           </div>
           <div className="flex items-center gap-2">
-            <TestDataGenerator />
             <Link to="/transactions/transfers">
               <Button 
                 variant="outline"
@@ -71,7 +70,11 @@ const Transactions = () => {
                 <DialogHeader>
                   <DialogTitle>Upload Transactions</DialogTitle>
                 </DialogHeader>
-                <div className="mt-6">
+                <div className="mt-6 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <p className="text-sm text-muted-foreground">Upload CSV file or generate test data</p>
+                    <TestDataGenerator />
+                  </div>
                   <UnifiedCsvUpload onComplete={handleTransactionUploadSuccess} />
                 </div>
               </DialogContent>
