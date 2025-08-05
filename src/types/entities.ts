@@ -23,3 +23,6 @@ export interface BusinessEntity extends Entity {
 }
 
 export type EntityUnion = IndividualEntity | BusinessEntity;
+
+// Legacy aliases for backward compatibility
+export type FamilyMember = IndividualEntity;

@@ -4,6 +4,7 @@ import { getHouseholds } from '../../integrations/supabase/households';
 import { addMemberToHousehold } from '../../integrations/supabase/households';
 import { IndividualEntity } from '../../types/entities';
 import { Household } from '../../types/households';
+import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/button';
 import { 
   Dialog, 
@@ -37,6 +38,7 @@ export const AddToHouseholdDialog: React.FC<AddToHouseholdDialogProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [selectedHouseholdId, setSelectedHouseholdId] = useState<string>('');
   const queryClient = useQueryClient();
+  const { session } = useAuth();
 
   const { data: households, isLoading } = useQuery({
     queryKey: ['households'],
@@ -44,7 +46,8 @@ export const AddToHouseholdDialog: React.FC<AddToHouseholdDialogProps> = ({
   });
 
   const addMemberMutation = useMutation({
-    mutationFn: addMemberToHousehold,
+    mutationFn: ({ householdId, entityId }: { householdId: string; entityId: string }) => 
+      addMemberToHousehold(householdId, entityId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['households'] });
       queryClient.invalidateQueries({ queryKey: ['entities', session?.user?.id] });
@@ -62,7 +65,10 @@ export const AddToHouseholdDialog: React.FC<AddToHouseholdDialogProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedHouseholdId) {
-      addMemberMutation.mutate(selectedHouseholdId);
+      addMemberMutation.mutate({ 
+        householdId: selectedHouseholdId, 
+        entityId: individual.id 
+      });
     }
   };
 
@@ -78,14 +84,14 @@ export const AddToHouseholdDialog: React.FC<AddToHouseholdDialogProps> = ({
         {trigger || (
           <Button variant="outline" size="sm">
             <Users className="w-4 h-4 mr-2" />
-            {individual.householdId ? 'Change Household' : 'Add to Household'}
+            Add to Household
           </Button>
         )}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {individual.householdId ? 'Change Household' : 'Add to Household'}
+            Add to Household
           </DialogTitle>
         </DialogHeader>
         
@@ -100,13 +106,6 @@ export const AddToHouseholdDialog: React.FC<AddToHouseholdDialogProps> = ({
             </div>
           </div>
 
-          {individual.householdId && (
-            <div className="p-3 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-800">
-                Currently in a household. Select a new household to change or remove.
-              </p>
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>

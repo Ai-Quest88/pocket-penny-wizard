@@ -163,4 +163,16 @@ export const getHouseholdEntityIds = async (householdId: string): Promise<string
   // TODO: Implement when junction table is available
   // For now, return empty array
   return [];
-}; 
+};
+
+// Add member to household (alias for addEntityToHousehold)
+export const addMemberToHousehold = addEntityToHousehold;
+
+// Get households with members (placeholder for future implementation)
+export const getHouseholdsWithMembers = async (): Promise<any[]> => {
+  const households = await getHouseholds();
+  return households.map(household => ({
+    ...household,
+    members: [] // Empty for now until junction table is implemented
+  }));
+};
