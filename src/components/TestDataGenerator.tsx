@@ -21,83 +21,67 @@ const TestDataGenerator = () => {
       const testTransactions = [
         {
           user_id: session.user.id,
-          account_id: null,
           description: "Grocery Store Purchase",
           amount: -85.50,
           date: "2024-01-15",
           category: "Groceries",
-          currency: "USD",
-          transaction_type: "expense"
+          currency: "USD"
         },
         {
           user_id: session.user.id,
-          account_id: null,
           description: "Coffee Shop",
           amount: -4.25,
           date: "2024-01-16",
-          category: null, // Uncategorized
-          currency: "USD",
-          transaction_type: "expense"
+          category: "Uncategorized",
+          currency: "USD"
         },
         {
           user_id: session.user.id,
-          account_id: null,
           description: "Salary Deposit",
           amount: 3500.00,
           date: "2024-01-17",
           category: "Salary",
-          currency: "USD",
-          transaction_type: "income"
+          currency: "USD"
         },
         {
           user_id: session.user.id,
-          account_id: null,
           description: "Gas Station",
           amount: -45.80,
           date: "2024-01-18",
-          category: null, // Uncategorized
-          currency: "USD",
-          transaction_type: "expense"
+          category: "Uncategorized",
+          currency: "USD"
         },
         {
           user_id: session.user.id,
-          account_id: null,
           description: "Restaurant Dinner",
           amount: -67.90,
           date: "2024-01-19",
-          category: "Dining",
-          currency: "USD",
-          transaction_type: "expense"
+          category: "Restaurants",
+          currency: "USD"
         },
         {
           user_id: session.user.id,
-          account_id: null,
           description: "Online Purchase Amazon",
           amount: -23.99,
           date: "2024-01-20",
-          category: null, // Uncategorized
-          currency: "USD",
-          transaction_type: "expense"
+          category: "Uncategorized",
+          currency: "USD"
         },
         {
           user_id: session.user.id,
-          account_id: null,
           description: "Freelance Payment",
           amount: 850.00,
           date: "2024-01-21",
           category: "Freelance",
-          currency: "USD",
-          transaction_type: "income"
+          currency: "USD"
         },
         {
           user_id: session.user.id,
-          account_id: null,
           description: "Utility Bill Electric",
           amount: -120.45,
           date: "2024-01-22",
           category: "Utilities",
-          currency: "USD",
-          transaction_type: "expense"
+          currency: "USD"
         }
       ]
 
