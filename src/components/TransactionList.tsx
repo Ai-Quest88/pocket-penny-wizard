@@ -40,7 +40,7 @@ interface TransactionListProps {
   showBalance?: boolean;
   readOnly?: boolean;
   initialCategoryFilter?: string | string[];
-  filterCategory?: string;
+  filterCategory?: string | string[];
   onTransactionSelect?: (transaction: Transaction) => void;
 }
 
@@ -207,7 +207,11 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
   // Handle specific category filter (for pages like UncategorizedTransactions)
   if (filterCategory) {
-    filtered = filtered.filter(transaction => transaction.category === filterCategory);
+    if (Array.isArray(filterCategory)) {
+      filtered = filtered.filter(transaction => filterCategory.includes(transaction.category));
+    } else {
+      filtered = filtered.filter(transaction => transaction.category === filterCategory);
+    }
   }
 
   const totalAmount = filtered.reduce((sum, transaction) => sum + transaction.amount, 0);

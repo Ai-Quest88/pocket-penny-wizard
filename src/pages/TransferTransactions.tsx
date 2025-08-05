@@ -296,7 +296,7 @@ const TransferTransactionList = () => {
           Note: The transactions below are filtered to show only those categorized as "Transfer In" or "Transfer Out".
           You can edit individual transactions to update their categories if needed.
         </p>
-        <TransactionList initialCategoryFilter={['Transfer In', 'Transfer Out']} />
+        <TransactionList filterCategory={['Transfer In', 'Transfer Out']} />
       </div>
     </Card>
   );
