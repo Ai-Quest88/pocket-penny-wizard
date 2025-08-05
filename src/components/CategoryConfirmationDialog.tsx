@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CheckCircle, X, Edit2, Loader2 } from "lucide-react"
+import { CheckCircle, X, Edit2, Loader2, Brain, AlertCircle, Sparkles } from "lucide-react"
 import { categories } from "@/types/transaction-forms"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
@@ -49,23 +49,47 @@ export const CategoryConfirmationDialog = ({
   }
 
   const categorizedCount = suggestions.filter(s => s.suggestedCategory !== 'Uncategorized').length
+  const uncategorizedCount = suggestions.filter(s => s.suggestedCategory === 'Uncategorized').length
   const successRate = suggestions.length > 0 ? Math.round((categorizedCount / suggestions.length) * 100) : 0
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[80vh] p-0">
         <DialogHeader className="p-6 pb-0">
-          <DialogTitle className="flex items-center justify-between">
-            <span>AI Categorization Results</span>
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="text-sm">
-                {categorizedCount}/{suggestions.length} categorized ({successRate}%)
+          <DialogTitle className="flex items-center gap-2">
+            <Brain className="h-5 w-5 text-primary" />
+            AI Categorization Results
+          </DialogTitle>
+          
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <p className="text-sm font-medium">AI Analysis Complete</p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {categorizedCount} successful, {uncategorizedCount} need review
+                </p>
+              </div>
+              <Badge variant={successRate > 50 ? "default" : "secondary"}>
+                {successRate}% Success
               </Badge>
             </div>
-          </DialogTitle>
-          <p className="text-sm text-muted-foreground mt-2">
-            Review and modify the AI suggestions below. You can change any category before applying.
-          </p>
+
+            {uncategorizedCount > 0 && (
+              <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                <div className="flex items-center gap-2 mb-1">
+                  <AlertCircle className="h-4 w-4 text-amber-600" />
+                  <p className="text-sm font-medium text-amber-700 dark:text-amber-300">Rules Will Be Created</p>
+                </div>
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  Manual categorizations will create automatic rules for future transactions
+                </p>
+              </div>
+            )}
+          </div>
         </DialogHeader>
 
         <ScrollArea className="flex-1 px-6">
@@ -94,34 +118,56 @@ export const CategoryConfirmationDialog = ({
                     </div>
 
                     {/* AI Suggestion Section */}
-                    <div className="bg-muted/50 rounded-lg p-3 border">
+                    <div className={`rounded-lg p-3 border ${isUncategorized ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800' : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'}`}>
                       <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium text-foreground">AI Suggested Category:</p>
-                          <Badge 
-                            variant={isUncategorized ? "destructive" : "default"}
-                            className="text-sm font-medium"
-                          >
-                            {suggestion.suggestedCategory}
-                          </Badge>
-                          {isUncategorized && (
-                            <p className="text-xs text-muted-foreground">AI could not categorize this transaction</p>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Brain className="h-4 w-4 text-primary" />
+                            <p className="text-sm font-medium text-foreground">AI Analysis Result:</p>
+                          </div>
+                          
+                          {isUncategorized ? (
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <AlertCircle className="h-4 w-4 text-amber-600" />
+                                <Badge variant="secondary" className="text-sm">
+                                  Could not categorize
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-amber-700 dark:text-amber-300">
+                                Transaction pattern not recognized - manual categorization will create a rule
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <CheckCircle className="h-4 w-4 text-green-600" />
+                                <Badge variant="default" className="text-sm">
+                                  {suggestion.suggestedCategory}
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-green-700 dark:text-green-300">
+                                Successfully categorized by AI
+                              </p>
+                            </div>
                           )}
                         </div>
                         
-                        {/* Category Override */}
+                        {/* Category Selection */}
                         <div className="flex items-center gap-2">
                           <div className="text-right">
-                            <p className="text-xs text-muted-foreground mb-1">Apply Category:</p>
+                            <p className="text-xs text-muted-foreground mb-1">
+                              {isUncategorized ? 'Select Category:' : 'Override Category:'}
+                            </p>
                             <Select
-                              value={finalCategory}
+                              value={finalCategory === 'Uncategorized' ? '' : finalCategory}
                               onValueChange={(value) => handleCategoryChange(suggestion.id, value)}
                             >
                               <SelectTrigger className="w-40">
-                                <SelectValue />
+                                <SelectValue placeholder={isUncategorized ? "Choose category..." : "Change category..."} />
                               </SelectTrigger>
                               <SelectContent>
-                                {categories.map((category) => (
+                                {categories.filter(cat => cat !== 'Uncategorized').map((category) => (
                                   <SelectItem key={category} value={category}>
                                     {category}
                                   </SelectItem>
@@ -162,7 +208,7 @@ export const CategoryConfirmationDialog = ({
           
           <div className="flex items-center gap-3">
             <div className="text-sm text-muted-foreground">
-              {categorizedCount} will be categorized, {suggestions.length - categorizedCount} will remain uncategorized
+              {uncategorizedCount > 0 && `${uncategorizedCount} transaction${uncategorizedCount > 1 ? 's' : ''} will create new rules`}
             </div>
             <Button
               onClick={handleConfirm}
@@ -174,7 +220,10 @@ export const CategoryConfirmationDialog = ({
                   Applying Changes...
                 </>
               ) : (
-                'Apply Changes'
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Apply Categories & Create Rules
+                </>
               )}
             </Button>
           </div>
