@@ -7,6 +7,7 @@ import { UnifiedCsvUpload } from "@/components/transaction-forms/UnifiedCsvUploa
 import { TransactionList } from "@/components/TransactionList"
 import { useAuth } from "@/contexts/AuthContext"
 import { useNavigate, Link } from "react-router-dom"
+import TestDataGenerator from "@/components/TestDataGenerator"
 
 const Transactions = () => {
   const [isAddingTransaction, setIsAddingTransaction] = useState(false)
@@ -43,6 +44,7 @@ const Transactions = () => {
             <p className="text-muted-foreground">Manage your transactions</p>
           </div>
           <div className="flex items-center gap-2">
+            <TestDataGenerator />
             <Link to="/transactions/transfers">
               <Button 
                 variant="outline"
