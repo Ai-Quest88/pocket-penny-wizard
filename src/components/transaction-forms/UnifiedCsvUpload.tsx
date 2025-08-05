@@ -6,6 +6,7 @@ import { PreviewTable } from "./csv-upload/PreviewTable";
 import { AutoMappingAlert } from "./csv-upload/AutoMappingAlert";
 import { AccountSelectionSection } from "./csv-upload/AccountSelectionSection";
 import { DuplicateReviewDialog } from "./csv-upload/DuplicateReviewDialog";
+import { CategoryReviewDialog } from "./csv-upload/CategoryReviewDialog";
 import { ProgressiveUpload } from "./ProgressiveUpload";
 import { insertTransactionsWithDuplicateCheck } from "./csv-upload/helpers/transactionInsertion";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAccounts } from "@/hooks/useAccounts";
+import { addUserCategoryRule } from "@/utils/transactionCategories";
 
 interface CSVRow {
   [key: string]: string | number | boolean;
@@ -114,6 +116,7 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
   const [autoMappedColumns, setAutoMappedColumns] = useState<{ [key: string]: string }>({});
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [showDuplicateReview, setShowDuplicateReview] = useState(false);
+  const [showCategoryReview, setShowCategoryReview] = useState(false);
   const [duplicateGroups, setDuplicateGroups] = useState<any[]>([]);
   const [pendingTransactions, setPendingTransactions] = useState<any[]>([]);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
@@ -192,8 +195,36 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
     continueUpload(approvedIndices);
   };
 
+  const handleCategoryReview = async (
+    reviewedTransactions: any[], 
+    rulesToCreate: Array<{description: string, category: string}>
+  ) => {
+    setShowCategoryReview(false);
+    
+    // Create rules for similar transactions
+    if (rulesToCreate.length > 0) {
+      console.log(`Creating ${rulesToCreate.length} categorization rules...`);
+      rulesToCreate.forEach(rule => {
+        addUserCategoryRule(rule.description, rule.category);
+      });
+      
+      toast({
+        title: "Smart Rules Created! 🧠",
+        description: `Created ${rulesToCreate.length} rule${rulesToCreate.length !== 1 ? 's' : ''} to automatically categorize similar transactions in the future.`,
+        duration: 5000,
+      });
+    }
+    
+    // Update pending transactions with reviewed categories
+    setPendingTransactions(reviewedTransactions);
+    
+    // Continue with duplicate check and upload
+    proceedWithDuplicateCheck(reviewedTransactions);
+  };
+
   const handleDuplicateCancel = () => {
     setShowDuplicateReview(false);
+    setShowCategoryReview(false);
     setIsProcessing(false);
     setPendingTransactions([]);
     setDuplicateGroups([]);
@@ -202,9 +233,38 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
 
   const handleCancel = () => {
     setIsProcessing(false);
+    setShowCategoryReview(false);
     setUploadProgress(null);
     setPendingTransactions([]);
     setDuplicateGroups([]);
+  };
+
+  const proceedWithDuplicateCheck = async (transactionsWithCategories: any[]) => {
+    try {
+      // Check for duplicates
+      const result = await insertTransactionsWithDuplicateCheck(transactionsWithCategories);
+      
+      // If duplicates need user review, show the dialog
+      if (result.needsUserReview && result.potentialDuplicates) {
+        console.log('🔍 Showing duplicate review dialog');
+        setDuplicateGroups(result.potentialDuplicates);
+        setShowDuplicateReview(true);
+        return; // Don't finish processing yet
+      }
+
+      // If no duplicates or user already reviewed, continue normally
+      await continueUpload();
+      
+    } catch (error) {
+      console.error('Error processing transactions:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process transactions. Please try again.",
+        variant: "destructive",
+      });
+      setIsProcessing(false);
+      setUploadProgress(null);
+    }
   };
 
   const continueUpload = async (userApprovedDuplicates?: number[]) => {
@@ -383,26 +443,13 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
         phase: 'categorizing',
         currentStep: descriptions.length,
         totalSteps: descriptions.length,
-        message: 'Categorization complete!',
+        message: 'Categorization complete! Please review...',
         processedTransactions: transactionsWithCategories
       });
 
-      // Store transactions for potential duplicate review
+      // Show category review dialog
       setPendingTransactions(transactionsWithCategories);
-
-      // First check for duplicates
-      const result = await insertTransactionsWithDuplicateCheck(transactionsWithCategories);
-      
-      // If duplicates need user review, show the dialog
-      if (result.needsUserReview && result.potentialDuplicates) {
-        console.log('🔍 Showing duplicate review dialog');
-        setDuplicateGroups(result.potentialDuplicates);
-        setShowDuplicateReview(true);
-        return; // Don't finish processing yet
-      }
-
-      // If no duplicates or user already reviewed, continue normally
-      await continueUpload();
+      setShowCategoryReview(true);
       
     } catch (error) {
       console.error('Error processing transactions:', error);
@@ -505,6 +552,14 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
         duplicateGroups={duplicateGroups}
         onResolve={handleDuplicateReview}
         onCancel={handleDuplicateCancel}
+      />
+
+      <CategoryReviewDialog
+        open={showCategoryReview}
+        onOpenChange={setShowCategoryReview}
+        transactions={pendingTransactions}
+        onConfirm={handleCategoryReview}
+        isApplying={false}
       />
     </div>
   );
