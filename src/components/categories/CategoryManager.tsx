@@ -13,7 +13,7 @@ import { Plus } from "lucide-react";
 export interface CategoryGroup {
   id: string;
   name: string;
-  type: 'Income' | 'Expense' | 'Assets' | 'Liability';
+  type: 'Income' | 'Expense' | 'Assets' | 'Liability' | 'Transfers' | 'Investments' | 'Adjustments';
   description?: string;
   categories: string[];
   color: string;
@@ -28,7 +28,7 @@ const defaultCategoryGroups: CategoryGroup[] = [
     categories: [
       "Income", "Salary", "Business", "Freelance", "Interest", "Dividends",
       "Other Income", "Rental Income", "Government Benefits", "Pension",
-      "Child Support", "Alimony", "Gifts Received", "Refunds", "Transfer In"
+      "Child Support", "Alimony", "Gifts Received", "Refunds"
     ],
     color: "bg-green-100 border-green-300 text-green-800"
   },
@@ -43,25 +43,49 @@ const defaultCategoryGroups: CategoryGroup[] = [
       "Travel", "Gifts & Donations", "Personal Care", "Professional Services",
       "Home & Garden", "Electronics", "Clothing", "Books", "Subscriptions",
       "Banking", "Taxes", "Legal", "Fast Food", "Public Transport", "Tolls", 
-      "Food Delivery", "Transfer Out"
+      "Food Delivery"
     ],
     color: "bg-red-100 border-red-300 text-red-800"
+  },
+  {
+    id: "transfers",
+    name: "Transfers",
+    type: "Transfers",
+    description: "Internal money movements",
+    categories: ["Transfer In", "Transfer Out", "Internal Transfer"],
+    color: "bg-purple-100 border-purple-300 text-purple-800"
+  },
+  {
+    id: "investments",
+    name: "Investments",
+    type: "Investments",
+    description: "Investment activities",
+    categories: ["Investment", "Cryptocurrency"],
+    color: "bg-blue-100 border-blue-300 text-blue-800"
   },
   {
     id: "assets",
     name: "Assets",
     type: "Assets",
     description: "Things you own",
-    categories: ["Investment", "Cryptocurrency"],
-    color: "bg-blue-100 border-blue-300 text-blue-800"
+    categories: [],
+    color: "bg-cyan-100 border-cyan-300 text-cyan-800"
   },
   {
     id: "liability",
     name: "Liability",
     type: "Liability",
     description: "Money you owe",
-    categories: ["Internal Transfer"],
+    categories: [],
     color: "bg-orange-100 border-orange-300 text-orange-800"
+  },
+  {
+    id: "adjustments",
+    name: "Adjustments",
+    type: "Adjustments",
+    description: "Corrections & reconciliations",
+    categories: ["Uncategorized"],
+    color: "bg-gray-100 border-gray-300 text-gray-800"
   }
 ];
 
@@ -196,8 +220,8 @@ export const CategoryManager = () => {
             Add Category
           </Button>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[1, 2, 3, 4].map((i) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {[1, 2, 3, 4, 5, 6, 7].map((i) => (
             <Card key={i} className="animate-pulse">
               <CardHeader>
                 <div className="h-6 bg-muted rounded" />
@@ -225,7 +249,7 @@ export const CategoryManager = () => {
       </div>
 
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {categoryGroups.map((group) => (
             <CategoryGroupCard
               key={group.id}
@@ -244,19 +268,43 @@ export const CategoryManager = () => {
         categoryGroups={categoryGroups}
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Uncategorized Transactions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">
-            Categories marked as "Uncategorized" need to be assigned to appropriate groups.
-          </p>
-          <Button variant="outline" size="sm">
-            View Uncategorized Transactions
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Financial Impact Overview</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-green-600">Net Worth Impact:</span>
+                <span>Income - Expenses</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-purple-600">Cash Flow:</span>
+                <span>All categories including Transfers</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-blue-600">Investment Activity:</span>
+                <span>Separate from regular income/expenses</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Category Guidelines</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <p><strong>Transfers:</strong> Money movements between your accounts</p>
+              <p><strong>Investments:</strong> Buying/selling stocks, crypto, etc.</p>
+              <p><strong>Adjustments:</strong> Corrections and reconciliations</p>
+              <p><strong>Assets/Liability:</strong> For balance sheet items</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
