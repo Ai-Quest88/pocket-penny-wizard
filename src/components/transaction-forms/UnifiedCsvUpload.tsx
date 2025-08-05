@@ -3,6 +3,7 @@ import { FileUploadSection } from "./csv-upload/FileUploadSection";
 import { ColumnMappingSection } from "./csv-upload/ColumnMappingSection";
 import { DefaultSettingsSection } from "./csv-upload/DefaultSettingsSection";
 import { PreviewTable } from "./csv-upload/PreviewTable";
+import { EditablePreviewTable } from "./csv-upload/EditablePreviewTable";
 import { AutoMappingAlert } from "./csv-upload/AutoMappingAlert";
 import { AccountSelectionSection } from "./csv-upload/AccountSelectionSection";
 import { DuplicateReviewDialog } from "./csv-upload/DuplicateReviewDialog";
@@ -131,6 +132,11 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
     setParsedData(data);
     setHeaders(fileHeaders);
     setAutoMapColumns(data, fileHeaders);
+  };
+
+  const handleDataChange = (updatedData: CSVRow[]) => {
+    console.log('Data updated in preview:', updatedData.slice(0, 2));
+    setParsedData(updatedData);
   };
 
   const setAutoMapColumns = async (data: CSVRow[], fileHeaders: string[]) => {
@@ -524,7 +530,7 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
             </div>
           </div>
           
-          <PreviewTable
+          <EditablePreviewTable
             data={parsedData}
             mappings={{
               description: mappings.description,
@@ -534,6 +540,7 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
             }}
             defaultSettings={defaultSettings}
             selectedAccount={selectedAccountId ? accounts.find(acc => acc.id === selectedAccountId) : null}
+            onDataChange={handleDataChange}
           />
           
           <div className="flex flex-col items-end space-y-2">
