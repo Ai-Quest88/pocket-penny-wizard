@@ -13,8 +13,8 @@ const availableCategories = [
   'Groceries', 'Restaurants', 'Gas & Fuel', 'Shopping', 'Entertainment', 'Healthcare', 
   'Insurance', 'Utilities', 'Transportation', 'Education', 'Travel', 'Gifts & Donations', 
   'Personal Care', 'Professional Services', 'Home & Garden', 'Electronics', 'Clothing', 
-  'Books', 'Subscriptions', 'Banking', 'Investment', 'Taxes', 'Legal', 'Miscellaneous', 
-  'Transfer', 'Income', 'Salary', 'Business', 'Freelance', 'Interest', 'Dividends', 
+  'Books', 'Subscriptions', 'Banking', 'Investment', 'Taxes', 'Legal', 'Uncategorized', 
+  'Transfer In', 'Transfer Out', 'Income', 'Salary', 'Business', 'Freelance', 'Interest', 'Dividends', 
   'Other Income', 'Rental Income', 'Government Benefits', 'Pension', 'Child Support', 
   'Alimony', 'Gifts Received', 'Refunds', 'Cryptocurrency', 'Fast Food', 'Public Transport', 
   'Tolls', 'Food Delivery'
@@ -157,12 +157,12 @@ const processBatch = async (batch: string[], userId: string): Promise<string[]> 
         if (item.category && availableCategories.includes(item.category)) {
           return item.category;
         }
-        return 'Miscellaneous';
+        return 'Uncategorized';
       });
       
       // Ensure we have the right number of categories
       while (categories.length < batch.length) {
-        categories.push('Miscellaneous');
+        categories.push('Uncategorized');
       }
       
       console.log(`Batch processing completed: ${categories.length} categories returned`);
@@ -175,7 +175,7 @@ const processBatch = async (batch: string[], userId: string): Promise<string[]> 
     console.error('Raw content:', content);
     
     // Fallback for batch processing
-    const fallbackCategories = batch.map(() => 'Miscellaneous');
+    const fallbackCategories = batch.map(() => 'Uncategorized');
     return fallbackCategories;
   }
 };
@@ -224,7 +224,7 @@ serve(async (req) => {
         } catch (chunkError) {
           console.error(`Error processing chunk ${i + 1}:`, chunkError);
           // Add fallback categories for failed chunk
-          const fallbackCategories = chunk.map(() => 'Miscellaneous');
+          const fallbackCategories = chunk.map(() => 'Uncategorized');
           allCategories.push(...fallbackCategories);
         }
       }
@@ -301,7 +301,7 @@ serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ 
-      category: 'Miscellaneous',
+      category: 'Uncategorized',
       source: 'fallback' 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -310,7 +310,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in categorize-transaction function:', error);
     return new Response(JSON.stringify({ 
-      category: 'Miscellaneous',
+      category: 'Uncategorized',
       source: 'error',
       error: error.message 
     }), {
