@@ -60,7 +60,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   const [selectedTransactions, setSelectedTransactions] = useState<string[]>([]);
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
     searchTerm: "",
-    category: Array.isArray(initialCategoryFilter) ? "" : (initialCategoryFilter || filterCategory || ""),
+    category: typeof initialCategoryFilter === 'string' ? initialCategoryFilter : (typeof filterCategory === 'string' ? filterCategory : ""),
     dateRange: "",
     amountRange: ""
   });
