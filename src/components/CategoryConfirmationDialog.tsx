@@ -77,58 +77,72 @@ export const CategoryConfirmationDialog = ({
 
               return (
                 <Card key={suggestion.id} className="p-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium truncate">{suggestion.description}</p>
-                        <Badge variant="outline" className="text-xs">
-                          ${Math.abs(suggestion.amount).toFixed(2)}
-                        </Badge>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="text-sm text-muted-foreground">From:</span>
-                        <Badge variant="secondary" className="text-xs">
-                          {suggestion.originalCategory}
-                        </Badge>
-                        <span className="text-sm text-muted-foreground">→</span>
-                        <Badge 
-                          variant={isUncategorized ? "destructive" : "default"}
-                          className="text-xs"
-                        >
-                          {suggestion.suggestedCategory}
-                        </Badge>
-                        {isModified && (
-                          <>
-                            <Edit2 className="h-3 w-3 text-blue-500" />
-                            <Badge variant="outline" className="text-xs border-blue-500 text-blue-600">
-                              Modified
-                            </Badge>
-                          </>
-                        )}
+                  <div className="space-y-3">
+                    {/* Transaction Details */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-foreground truncate">{suggestion.description}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="outline" className="text-xs">
+                            ${Math.abs(suggestion.amount).toFixed(2)}
+                          </Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            ID: {suggestion.id.slice(-8)}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <Select
-                        value={finalCategory}
-                        onValueChange={(value) => handleCategoryChange(suggestion.id, value)}
-                      >
-                        <SelectTrigger className="w-40">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {categories.map((category) => (
-                            <SelectItem key={category} value={category}>
-                              {category}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      
-                      {!isUncategorized && !isModified && (
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                      )}
+                    {/* AI Suggestion Section */}
+                    <div className="bg-muted/50 rounded-lg p-3 border">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-foreground">AI Suggested Category:</p>
+                          <Badge 
+                            variant={isUncategorized ? "destructive" : "default"}
+                            className="text-sm font-medium"
+                          >
+                            {suggestion.suggestedCategory}
+                          </Badge>
+                          {isUncategorized && (
+                            <p className="text-xs text-muted-foreground">AI could not categorize this transaction</p>
+                          )}
+                        </div>
+                        
+                        {/* Category Override */}
+                        <div className="flex items-center gap-2">
+                          <div className="text-right">
+                            <p className="text-xs text-muted-foreground mb-1">Apply Category:</p>
+                            <Select
+                              value={finalCategory}
+                              onValueChange={(value) => handleCategoryChange(suggestion.id, value)}
+                            >
+                              <SelectTrigger className="w-40">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {categories.map((category) => (
+                                  <SelectItem key={category} value={category}>
+                                    {category}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          {!isUncategorized && !isModified && (
+                            <CheckCircle className="h-5 w-5 text-green-500" />
+                          )}
+                          {isModified && (
+                            <div className="flex items-center gap-1">
+                              <Edit2 className="h-4 w-4 text-blue-500" />
+                              <Badge variant="outline" className="text-xs border-blue-500 text-blue-600">
+                                Modified
+                              </Badge>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </Card>
