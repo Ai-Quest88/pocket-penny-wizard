@@ -26,10 +26,13 @@ import {
   AlertDialogTitle, 
   AlertDialogTrigger 
 } from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Brain } from "lucide-react";
 
 const editTransactionSchema = z.object({
   category: z.string().min(1, "Please select a category"),
   comment: z.string().optional(),
+  createRule: z.boolean().optional(),
 });
 
 type EditTransactionData = z.infer<typeof editTransactionSchema>;
@@ -56,12 +59,15 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
   const [isDeleting, setIsDeleting] = useState(false);
   const [availableBuckets, setAvailableBuckets] = useState<CategoryBucket[]>(categoryBuckets);
   const queryClient = useQueryClient();
+  
+  const isUncategorized = transaction?.category === 'Uncategorized';
 
   const form = useForm<EditTransactionData>({
     resolver: zodResolver(editTransactionSchema),
     defaultValues: {
       category: "",
       comment: "",
+      createRule: true, // Default to creating rule for uncategorized transactions
     },
   });
 
@@ -72,6 +78,7 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
       form.reset({
         category: transaction.category || "",
         comment: transaction.comment || "",
+        createRule: transaction.category === 'Uncategorized', // Default to true for uncategorized
       });
     }
   }, [transaction, form]);
@@ -140,8 +147,8 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
     setIsSubmitting(true);
 
     try {
-      // Check if category was changed and add user rule
-      if (data.category !== transaction.category && transaction.description) {
+      // Check if category was changed and user wants to create rule
+      if (data.category !== transaction.category && transaction.description && data.createRule) {
         console.log(`Category changed from "${transaction.category}" to "${data.category}" for "${transaction.description}"`);
         
         // Add the user-defined rule for future similar transactions
@@ -254,6 +261,28 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
               />
 
               <CommentField control={form.control} name="comment" />
+
+              {isUncategorized && (
+                <div className="flex items-start space-x-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <Checkbox
+                    id="createRule"
+                    checked={form.watch("createRule")}
+                    onCheckedChange={(checked) => form.setValue("createRule", checked as boolean)}
+                  />
+                  <div className="flex-1">
+                    <label 
+                      htmlFor="createRule" 
+                      className="text-sm font-medium text-blue-900 cursor-pointer flex items-center gap-2"
+                    >
+                      <Brain className="h-4 w-4" />
+                      Create categorization rule
+                    </label>
+                    <p className="text-xs text-blue-700 mt-1">
+                      Future transactions with similar descriptions will be automatically categorized as "{form.watch("category") || "this category"}".
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="flex gap-2 pt-4">
                 <Button
