@@ -316,6 +316,12 @@ export const categorizeTransactionsBatch = async (
   console.log(`🚀 Starting smart batch categorization for ${descriptions.length} transactions at ${new Date().toISOString()}`);
   console.log('Sample descriptions:', descriptions.slice(0, 3));
   
+  // Initialize progress immediately
+  if (onProgress) {
+    console.log("📊 Initializing progress tracking...");
+    onProgress(0, descriptions.length, []);
+  }
+  
   // Optimal batch size for best AI accuracy (tested: 10=excellent, 15=optimal, 20=very good, 30=good, 60=poor)
   const BATCH_SIZE = 15;
   
@@ -504,14 +510,20 @@ async function processBatchWithRetry(
       console.log(`📡 Making request to AI service at ${new Date().toISOString()}...`);
       console.log(`📦 Request payload size: ${JSON.stringify(requestBody).length} characters`);
       
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
       const response = await fetch('https://nqqbvlvuzyctmysablzw.supabase.co/functions/v1/categorize-transaction', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xcWJ2bHZ1enljdG15c2FibHp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgzODY0NTIsImV4cCI6MjA1Mzk2MjQ1Mn0.2Z6_5YBxzfsJga8n2vOiTTE3nxPjPpiUcRZe7dpA1V4`
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
 
       const responseTime = Date.now() - startTime;
       console.log(`📊 AI Response received in ${responseTime}ms - Status: ${response.status} ${response.statusText}`);

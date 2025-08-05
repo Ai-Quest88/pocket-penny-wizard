@@ -47,6 +47,8 @@ const UncategorizedTransactions = () => {
     setRetryProgress({ processed: 0, total: 0 });
 
     try {
+      console.log("🔍 Fetching uncategorized transactions...");
+      
       // Fetch all uncategorized transactions
       const { data: uncategorizedTransactions, error } = await supabase
         .from('transactions')
@@ -55,9 +57,13 @@ const UncategorizedTransactions = () => {
         .eq('category', 'Uncategorized')
         .order('date', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("❌ Error fetching transactions:", error);
+        throw error;
+      }
 
       if (!uncategorizedTransactions || uncategorizedTransactions.length === 0) {
+        console.log("ℹ️ No uncategorized transactions found");
         toast({
           title: "No Uncategorized Transactions",
           description: "All transactions are already categorized!",
@@ -66,23 +72,27 @@ const UncategorizedTransactions = () => {
         return;
       }
 
-      console.log(`🚀 Starting AI retry for ${uncategorizedTransactions.length} uncategorized transactions`);
-
+      console.log(`📊 Found ${uncategorizedTransactions.length} uncategorized transactions`);
       setRetryProgress({ processed: 0, total: uncategorizedTransactions.length });
 
       // Extract descriptions and amounts for batch processing
       const descriptions = uncategorizedTransactions.map(t => t.description);
       const amounts = uncategorizedTransactions.map(t => t.amount);
 
-      // Use AI batch categorization
+      console.log("🤖 Starting AI categorization...");
+      
+      // Use AI batch categorization with progress callback
       const categories = await categorizeTransactionsBatch(
         descriptions,
         session.user.id,
         amounts,
         (processed, total) => {
+          console.log(`📈 Progress update: ${processed}/${total}`);
           setRetryProgress({ processed, total });
         }
       );
+
+      console.log(`✅ AI categorization completed. Got ${categories.length} categories`);
 
       // Create suggestions for confirmation dialog
       const suggestions = uncategorizedTransactions.map((transaction, index) => ({
@@ -93,14 +103,15 @@ const UncategorizedTransactions = () => {
         suggestedCategory: categories[index] || 'Uncategorized'
       }));
 
+      console.log(`📋 Created ${suggestions.length} suggestions for review`);
       setCategorySuggestions(suggestions);
       setShowConfirmDialog(true);
 
     } catch (error) {
-      console.error('Error during AI retry:', error);
+      console.error('❌ Error during AI retry:', error);
       toast({
         title: "Categorization Failed",
-        description: "There was an error during AI categorization. Please try again.",
+        description: `There was an error during AI categorization: ${error.message}. Please try again.`,
         variant: "destructive",
       });
     } finally {
