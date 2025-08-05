@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CategoryGroupCard } from "./CategoryGroupCard";
@@ -7,9 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
-import * as DndKit from '@dnd-kit/core';
-import * as DndSortable from '@dnd-kit/sortable';
+import { Plus, ArrowUpDown } from "lucide-react";
 
 export interface CategoryGroup {
   id: string;
@@ -96,13 +94,6 @@ export const CategoryManager = () => {
   const queryClient = useQueryClient();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
 
-  const sensors = DndKit.useSensors(
-    DndKit.useSensor(DndKit.PointerSensor),
-    DndKit.useSensor(DndKit.KeyboardSensor, {
-      coordinateGetter: DndSortable.sortableKeyboardCoordinates,
-    })
-  );
-
   // Fetch category groups from localStorage/database
   const { data: categoryGroups = defaultCategoryGroups, isLoading } = useQuery({
     queryKey: ['category-groups', session?.user?.id],
@@ -140,75 +131,6 @@ export const CategoryManager = () => {
     },
   });
 
-  const handleDragEnd = (event: DndKit.DragEndEvent) => {
-    const { active, over } = event;
-
-    if (!over) return;
-
-    // Parse the draggable and droppable IDs
-    const activeId = active.id as string;
-    const overId = over.id as string;
-
-    // Extract category and group information
-    const [activeCategory, activeGroupId] = activeId.includes('::') 
-      ? activeId.split('::') 
-      : [activeId, ''];
-    
-    const [overCategory, overGroupId] = overId.includes('::') 
-      ? overId.split('::') 
-      : ['', overId];
-
-    // If dropped on a group (not on another category)
-    if (!overId.includes('::')) {
-      // Moving to a different group
-      const sourceGroupIndex = categoryGroups.findIndex(g => 
-        g.categories.includes(activeCategory)
-      );
-      const destGroupIndex = categoryGroups.findIndex(g => g.id === overId);
-      
-      if (sourceGroupIndex === -1 || destGroupIndex === -1) return;
-      if (sourceGroupIndex === destGroupIndex) return; // Same group, no change
-
-      const newGroups = [...categoryGroups];
-      const sourceGroup = newGroups[sourceGroupIndex];
-      const destGroup = newGroups[destGroupIndex];
-      
-      // Remove from source group
-      newGroups[sourceGroupIndex] = {
-        ...sourceGroup,
-        categories: sourceGroup.categories.filter(c => c !== activeCategory)
-      };
-      
-      // Add to destination group
-      newGroups[destGroupIndex] = {
-        ...destGroup,
-        categories: [...destGroup.categories, activeCategory]
-      };
-      
-      saveCategoryGroups.mutate(newGroups);
-    } else {
-      // Reordering within the same group
-      if (activeGroupId === overGroupId && activeCategory !== overCategory) {
-        const groupIndex = categoryGroups.findIndex(g => g.id === activeGroupId);
-        if (groupIndex === -1) return;
-
-        const group = categoryGroups[groupIndex];
-        const oldIndex = group.categories.indexOf(activeCategory);
-        const newIndex = group.categories.indexOf(overCategory);
-        
-        if (oldIndex === -1 || newIndex === -1) return;
-
-        const newGroups = [...categoryGroups];
-        newGroups[groupIndex] = {
-          ...group,
-          categories: DndSortable.arrayMove(group.categories, oldIndex, newIndex)
-        };
-        
-        saveCategoryGroups.mutate(newGroups);
-      }
-    }
-  };
-
   const handleAddCategory = (category: string, groupId: string) => {
     const groupIndex = categoryGroups.findIndex(g => g.id === groupId);
     if (groupIndex === -1) return;
@@ -245,6 +167,35 @@ export const CategoryManager = () => {
     saveCategoryGroups.mutate(newGroups);
   };
 
+  const handleMoveCategory = (category: string, fromGroupId: string, toGroupId: string) => {
+    if (fromGroupId === toGroupId) return;
+
+    const fromGroupIndex = categoryGroups.findIndex(g => g.id === fromGroupId);
+    const toGroupIndex = categoryGroups.findIndex(g => g.id === toGroupId);
+    
+    if (fromGroupIndex === -1 || toGroupIndex === -1) return;
+
+    const newGroups = [...categoryGroups];
+    const fromGroup = newGroups[fromGroupIndex];
+    const toGroup = newGroups[toGroupIndex];
+    
+    // Remove from source group
+    newGroups[fromGroupIndex] = {
+      ...fromGroup,
+      categories: fromGroup.categories.filter(c => c !== category)
+    };
+    
+    // Add to destination group (if not already there)
+    if (!toGroup.categories.includes(category)) {
+      newGroups[toGroupIndex] = {
+        ...toGroup,
+        categories: [...toGroup.categories, category]
+      };
+    }
+    
+    saveCategoryGroups.mutate(newGroups);
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -273,8 +224,9 @@ export const CategoryManager = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <div className="text-sm text-muted-foreground">
-          Drag and drop categories between groups to reorganize them
+        <div className="text-sm text-muted-foreground flex items-center gap-2">
+          <ArrowUpDown className="h-4 w-4" />
+          Use the move buttons on categories to reorganize them between groups
         </div>
         <Button onClick={() => setAddDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
@@ -282,21 +234,17 @@ export const CategoryManager = () => {
         </Button>
       </div>
 
-      <DndKit.DndContext
-        sensors={sensors}
-        collisionDetection={DndKit.closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {categoryGroups.map((group) => (
-            <CategoryGroupCard
-              key={group.id}
-              group={group}
-              onRemoveCategory={handleRemoveCategory}
-            />
-          ))}
-        </div>
-      </DndKit.DndContext>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {categoryGroups.map((group) => (
+          <CategoryGroupCard
+            key={group.id}
+            group={group}
+            allGroups={categoryGroups}
+            onRemoveCategory={handleRemoveCategory}
+            onMoveCategory={handleMoveCategory}
+          />
+        ))}
+      </div>
 
       <AddCategoryDialog
         open={addDialogOpen}

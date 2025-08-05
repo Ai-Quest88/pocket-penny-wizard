@@ -1,77 +1,91 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CategoryGroup } from "./CategoryManager";
-import { X, GripVertical } from "lucide-react";
-import * as DndKit from '@dnd-kit/core';
-import * as DndSortable from '@dnd-kit/sortable';
-import * as DndUtilities from '@dnd-kit/utilities';
+import { X, ArrowUpDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface CategoryGroupCardProps {
   group: CategoryGroup;
+  allGroups: CategoryGroup[];
   onRemoveCategory: (category: string, groupId: string) => void;
+  onMoveCategory: (category: string, fromGroupId: string, toGroupId: string) => void;
 }
 
 interface CategoryItemProps {
   category: string;
   groupId: string;
+  allGroups: CategoryGroup[];
   onRemove: (category: string, groupId: string) => void;
+  onMove: (category: string, fromGroupId: string, toGroupId: string) => void;
 }
 
-const CategoryItem = ({ category, groupId, onRemove }: CategoryItemProps) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = DndSortable.useSortable({ id: `${category}::${groupId}` });
-
-  const style = {
-    transform: DndUtilities.CSS.Transform.toString(transform),
-    transition,
-  };
-
+const CategoryItem = ({ category, groupId, allGroups, onRemove, onMove }: CategoryItemProps) => {
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`bg-white rounded-md p-2 shadow-sm transition-all duration-200 group ${
-        isDragging ? 'shadow-lg opacity-50' : 'hover:shadow-md'
-      }`}
-    >
+    <div className="bg-white rounded-md p-2 shadow-sm transition-all duration-200 group hover:shadow-md">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 flex-1">
-          <div
-            {...attributes}
-            {...listeners}
-            className="cursor-grab active:cursor-grabbing opacity-50 group-hover:opacity-100 transition-opacity"
-          >
-            <GripVertical className="h-4 w-4 text-muted-foreground" />
-          </div>
           <span className="text-sm font-medium text-gray-700 truncate">
             {category}
           </span>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-100 hover:text-red-600"
-          onClick={() => onRemove(category, groupId)}
-        >
-          <X className="h-3 w-3" />
-        </Button>
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 hover:bg-blue-100 hover:text-blue-600"
+              >
+                <ArrowUpDown className="h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              align="end" 
+              className="bg-white shadow-lg border z-50"
+            >
+              {allGroups
+                .filter(group => group.id !== groupId)
+                .map((group) => (
+                  <DropdownMenuItem
+                    key={group.id}
+                    onClick={() => onMove(category, groupId, group.id)}
+                    className="cursor-pointer hover:bg-gray-100"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${group.color.split(' ')[0]}`} />
+                      Move to {group.name}
+                    </div>
+                  </DropdownMenuItem>
+                ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600"
+            onClick={() => onRemove(category, groupId)}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
       </div>
     </div>
   );
 };
 
-export const CategoryGroupCard = ({ group, onRemoveCategory }: CategoryGroupCardProps) => {
-  const { setNodeRef, isOver } = DndKit.useDroppable({
-    id: group.id,
-  });
-
+export const CategoryGroupCard = ({ 
+  group, 
+  allGroups, 
+  onRemoveCategory, 
+  onMoveCategory 
+}: CategoryGroupCardProps) => {
   return (
     <Card className={`${group.color} transition-all duration-200 hover:shadow-md`}>
       <CardHeader className="pb-3">
@@ -86,23 +100,20 @@ export const CategoryGroupCard = ({ group, onRemoveCategory }: CategoryGroupCard
         )}
       </CardHeader>
       <CardContent>
-        <div
-          ref={setNodeRef}
-          className={`space-y-2 min-h-[200px] p-2 rounded-md transition-colors ${
-            isOver ? 'bg-white/20' : 'bg-white/10'
-          }`}
-        >
+        <div className="space-y-2 min-h-[200px] p-2 rounded-md bg-white/10">
           {group.categories.map((category) => (
             <CategoryItem
               key={category}
               category={category}
               groupId={group.id}
+              allGroups={allGroups}
               onRemove={onRemoveCategory}
+              onMove={onMoveCategory}
             />
           ))}
           {group.categories.length === 0 && (
             <div className="flex items-center justify-center h-24 text-sm text-gray-500 italic">
-              Drop categories here
+              No categories yet. Add some using the button above.
             </div>
           )}
         </div>
