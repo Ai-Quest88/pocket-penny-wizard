@@ -6,8 +6,10 @@ import { PreviewTable } from "./csv-upload/PreviewTable";
 import { AutoMappingAlert } from "./csv-upload/AutoMappingAlert";
 import { AccountSelectionSection } from "./csv-upload/AccountSelectionSection";
 import { DuplicateReviewDialog } from "./csv-upload/DuplicateReviewDialog";
+import { ProgressiveUpload } from "./ProgressiveUpload";
 import { insertTransactionsWithDuplicateCheck } from "./csv-upload/helpers/transactionInsertion";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -21,6 +23,14 @@ interface DefaultSettings {
   description: string;
   currency: string;
   category: string;
+}
+
+interface UploadProgress {
+  phase: 'uploading' | 'categorizing' | 'saving' | 'updating-balances' | 'complete';
+  currentStep: number;
+  totalSteps: number;
+  message: string;
+  processedTransactions: any[];
 }
 
 interface UnifiedCsvUploadProps {
@@ -106,6 +116,7 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
   const [showDuplicateReview, setShowDuplicateReview] = useState(false);
   const [duplicateGroups, setDuplicateGroups] = useState<any[]>([]);
   const [pendingTransactions, setPendingTransactions] = useState<any[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const { accounts } = useAccounts();
   const { toast } = useToast();
   const { session } = useAuth();
@@ -186,11 +197,27 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
     setIsProcessing(false);
     setPendingTransactions([]);
     setDuplicateGroups([]);
+    setUploadProgress(null);
+  };
+
+  const handleCancel = () => {
+    setIsProcessing(false);
+    setUploadProgress(null);
+    setPendingTransactions([]);
+    setDuplicateGroups([]);
   };
 
   const continueUpload = async (userApprovedDuplicates?: number[]) => {
     try {
       console.log('🔄 Continuing upload with user decisions...', userApprovedDuplicates);
+      
+      setUploadProgress({
+        phase: 'saving',
+        currentStep: 1,
+        totalSteps: 1,
+        message: 'Saving transactions to database...',
+        processedTransactions: pendingTransactions
+      });
 
       const result = await insertTransactionsWithDuplicateCheck(pendingTransactions, userApprovedDuplicates);
       
@@ -221,13 +248,33 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
 
       console.log('Upload completed:', result.inserted, 'inserted,', result.duplicates, 'duplicates skipped');
       
+      setUploadProgress({
+        phase: 'updating-balances',
+        currentStep: 1,
+        totalSteps: 1,
+        message: 'Updating account balances...',
+        processedTransactions: pendingTransactions
+      });
+      
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['account-balances'] });
       queryClient.invalidateQueries({ queryKey: ['assets'] });
       queryClient.invalidateQueries({ queryKey: ['liabilities'] });
       queryClient.invalidateQueries({ queryKey: ['netWorth'] });
       
-      onComplete?.();
+      setUploadProgress({
+        phase: 'complete',
+        currentStep: 1,
+        totalSteps: 1,
+        message: 'Upload completed successfully!',
+        processedTransactions: pendingTransactions
+      });
+
+      // Auto-reset after 3 seconds
+      setTimeout(() => {
+        setUploadProgress(null);
+        onComplete?.();
+      }, 3000);
     } catch (error) {
       console.error('Error processing transactions:', error);
       toast({
@@ -236,9 +283,12 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
         variant: "destructive",
       });
     } finally {
-      setIsProcessing(false);
-      setPendingTransactions([]);
-      setDuplicateGroups([]);
+      if (uploadProgress?.phase !== 'complete') {
+        setIsProcessing(false);
+        setUploadProgress(null);
+        setPendingTransactions([]);
+        setDuplicateGroups([]);
+      }
     }
   };
 
@@ -257,6 +307,13 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
 
     try {
       setIsProcessing(true);
+      setUploadProgress({
+        phase: 'uploading',
+        currentStep: 1,
+        totalSteps: 1,
+        message: 'Preparing transactions for upload...',
+        processedTransactions: []
+      });
       console.log(`🚀 Processing ${parsedData.length} transactions from CSV`);
 
       // First, prepare the basic transaction data
@@ -300,6 +357,14 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
       console.log('Starting AI categorization for', descriptions.length, 'transactions');
       console.log('Sample descriptions:', descriptions.slice(0, 3));
       
+      setUploadProgress({
+        phase: 'categorizing',
+        currentStep: 0,
+        totalSteps: descriptions.length,
+        message: 'AI is categorizing your transactions...',
+        processedTransactions: []
+      });
+      
       // Import the categorization function
       const { categorizeTransactionsBatch } = await import('@/utils/aiCategorization');
       const categories = await categorizeTransactionsBatch(descriptions, session.user.id, amounts);
@@ -313,6 +378,14 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
       }));
 
       console.log('Transactions with categories:', transactionsWithCategories.slice(0, 2));
+      
+      setUploadProgress({
+        phase: 'categorizing',
+        currentStep: descriptions.length,
+        totalSteps: descriptions.length,
+        message: 'Categorization complete!',
+        processedTransactions: transactionsWithCategories
+      });
 
       // Store transactions for potential duplicate review
       setPendingTransactions(transactionsWithCategories);
@@ -339,8 +412,23 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
         variant: "destructive",
       });
       setIsProcessing(false);
+      setUploadProgress(null);
     }
   };
+
+  // Show progressive upload UI when processing
+  if (uploadProgress) {
+    return (
+      <Card className="w-full max-w-4xl mx-auto">
+        <CardContent className="p-6">
+          <ProgressiveUpload 
+            progress={uploadProgress}
+            onCancel={handleCancel}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">

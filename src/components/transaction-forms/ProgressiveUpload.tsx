@@ -66,46 +66,46 @@ export const ProgressiveUpload: React.FC<ProgressiveUploadProps> = ({
   const progressPercentage = getProgressPercentage();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               {getPhaseIcon()}
-              <CardTitle>
+              <CardTitle className="text-lg sm:text-xl">
                 {progress.phase === 'complete' ? 'Upload Complete!' : 'Processing Transactions'}
               </CardTitle>
             </div>
             {progress.phase !== 'complete' && onCancel && (
-              <Button variant="outline" size="sm" onClick={onCancel}>
+              <Button variant="outline" size="sm" onClick={onCancel} className="self-start sm:self-auto">
                 <X className="h-4 w-4 mr-1" />
-                Cancel
+                <span className="hidden sm:inline">Cancel</span>
               </Button>
             )}
           </div>
-          <CardDescription>
+          <CardDescription className="text-sm sm:text-base">
             {progress.message}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 sm:space-y-4">
           <div className="space-y-2">
-            <div className="flex justify-between text-sm">
+            <div className="flex justify-between text-sm sm:text-base">
               <span>Progress</span>
-              <span>{Math.round(progressPercentage)}%</span>
+              <span className="font-medium">{Math.round(progressPercentage)}%</span>
             </div>
-            <Progress value={progressPercentage} className="w-full" />
+            <Progress value={progressPercentage} className="w-full h-2 sm:h-3" />
           </div>
           
           {progress.totalSteps > 0 && progress.phase !== 'complete' && (
-            <div className="text-sm text-muted-foreground">
+            <div className="text-xs sm:text-sm text-muted-foreground">
               Step {progress.currentStep} of {progress.totalSteps}
             </div>
           )}
 
           {progress.phase === 'complete' && (
-            <Alert>
-              <CheckCircle className="h-4 w-4" />
-              <AlertDescription>
+            <Alert className="bg-green-50 border-green-200">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-sm sm:text-base">
                 Successfully processed {progress.processedTransactions.length} transactions! 
                 The form will reset automatically in a moment.
               </AlertDescription>
@@ -117,15 +117,15 @@ export const ProgressiveUpload: React.FC<ProgressiveUploadProps> = ({
       {progress.processedTransactions.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>
+            <CardTitle className="text-base sm:text-lg">
               Processed Transactions ({progress.processedTransactions.length})
               {progress.phase === 'categorizing' && (
-                <span className="ml-2 text-sm font-normal text-muted-foreground">
+                <span className="block sm:inline sm:ml-2 text-xs sm:text-sm font-normal text-muted-foreground">
                   • Processing in real-time
                 </span>
               )}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-sm">
               {progress.phase === 'complete' 
                 ? "All transactions have been successfully saved to your account"
                 : "Transactions are being categorized and will be saved to your account"
@@ -133,19 +133,19 @@ export const ProgressiveUpload: React.FC<ProgressiveUploadProps> = ({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="max-h-96 overflow-y-auto">
+            <div className="max-h-60 sm:max-h-96 overflow-y-auto">
               <div className="space-y-2">
                 {progress.processedTransactions.slice(-10).map((transaction, index) => (
                   <div 
                     key={transaction.id || index} 
-                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-muted/50 rounded-lg border gap-2"
                   >
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
                         <div className="font-medium text-sm truncate">
                           {transaction.description}
                         </div>
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-primary/10 text-primary">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-primary/10 text-primary w-fit">
                           {transaction.category}
                         </span>
                       </div>
@@ -153,15 +153,15 @@ export const ProgressiveUpload: React.FC<ProgressiveUploadProps> = ({
                         {new Date(transaction.date).toLocaleDateString()} • {transaction.currency}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className={`font-medium ${transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <div className="text-left sm:text-right">
+                      <div className={`font-medium text-sm ${transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         ${Math.abs(transaction.amount).toFixed(2)}
                       </div>
                     </div>
                   </div>
                 ))}
                 {progress.processedTransactions.length > 10 && (
-                  <div className="text-center text-sm text-muted-foreground py-2">
+                  <div className="text-center text-xs sm:text-sm text-muted-foreground py-2">
                     Showing last 10 transactions • {progress.processedTransactions.length - 10} more processed
                   </div>
                 )}

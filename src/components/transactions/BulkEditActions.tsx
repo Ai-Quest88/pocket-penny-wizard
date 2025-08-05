@@ -13,12 +13,13 @@ import {
   AlertDialogTitle, 
   AlertDialogTrigger 
 } from "@/components/ui/alert-dialog";
-import { Trash2, Edit, X } from "lucide-react";
+import { Trash2, Edit, X, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { categories } from "@/types/transaction-forms";
 import { useQueryClient } from "@tanstack/react-query";
+import { Progress } from "@/components/ui/progress";
 
 interface Transaction {
   id: string;
@@ -43,18 +44,25 @@ export const BulkEditActions = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [newCategory, setNewCategory] = useState("");
+  const [deleteProgress, setDeleteProgress] = useState(0);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const handleBulkDelete = async () => {
     setIsDeleting(true);
+    setDeleteProgress(0);
     try {
       const transactionIds = selectedTransactions.map(t => t.id);
+      
+      // Simulate progress for better UX
+      setDeleteProgress(30);
       
       const { error } = await supabase
         .from('transactions')
         .delete()
         .in('id', transactionIds);
+
+      setDeleteProgress(70);
 
       if (error) {
         console.error('Error deleting transactions:', error);
@@ -66,12 +74,16 @@ export const BulkEditActions = ({
         return;
       }
 
+      setDeleteProgress(90);
+
       // Invalidate all relevant queries when transactions are deleted
       await queryClient.invalidateQueries({ queryKey: ['transactions'] });
       await queryClient.invalidateQueries({ queryKey: ['account-balances'] });
       await queryClient.invalidateQueries({ queryKey: ['assets'] });
       await queryClient.invalidateQueries({ queryKey: ['liabilities'] });
       await queryClient.invalidateQueries({ queryKey: ['netWorth'] });
+
+      setDeleteProgress(100);
 
       toast({
         title: "Success",
@@ -89,6 +101,7 @@ export const BulkEditActions = ({
       });
     } finally {
       setIsDeleting(false);
+      setDeleteProgress(0);
     }
   };
 
@@ -197,7 +210,8 @@ export const BulkEditActions = ({
               disabled={isUpdating || !newCategory}
               className="h-8"
             >
-              <Edit className="h-3 w-3 mr-1" />
+              {isUpdating && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+              {!isUpdating && <Edit className="h-3 w-3 mr-1" />}
               {isUpdating ? "Updating..." : "Update Category"}
             </Button>
           </div>
@@ -223,13 +237,25 @@ export const BulkEditActions = ({
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleBulkDelete}
-                  className="bg-red-600 hover:bg-red-700 text-white"
-                  disabled={isDeleting}
-                >
-                  {isDeleting ? "Deleting..." : "Delete All"}
-                </AlertDialogAction>
+                <div className="space-y-3">
+                  {isDeleting && (
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Deleting transactions...</span>
+                        <span>{deleteProgress}%</span>
+                      </div>
+                      <Progress value={deleteProgress} className="w-full" />
+                    </div>
+                  )}
+                  <AlertDialogAction
+                    onClick={handleBulkDelete}
+                    className="bg-red-600 hover:bg-red-700 text-white w-full"
+                    disabled={isDeleting}
+                  >
+                    {isDeleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    {isDeleting ? "Deleting..." : "Delete All"}
+                  </AlertDialogAction>
+                </div>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
