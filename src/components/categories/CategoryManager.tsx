@@ -4,7 +4,21 @@ import { Button } from "@/components/ui/button";
 import { CategoryGroupCard } from "./CategoryGroupCard";
 import { AddCategoryDialog } from "./AddCategoryDialog";
 import { useToast } from "@/hooks/use-toast";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -95,6 +109,13 @@ export const CategoryManager = () => {
   const queryClient = useQueryClient();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   // Fetch category groups from localStorage/database
   const { data: categoryGroups = defaultCategoryGroups, isLoading } = useQuery({
     queryKey: ['category-groups', session?.user?.id],
@@ -132,46 +153,72 @@ export const CategoryManager = () => {
     },
   });
 
-  const handleDragEnd = (result: any) => {
-    if (!result.destination) return;
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
 
-    const { source, destination, draggableId } = result;
+    if (!over) return;
+
+    // Parse the draggable and droppable IDs
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    // Extract category and group information
+    const [activeCategory, activeGroupId] = activeId.includes('::') 
+      ? activeId.split('::') 
+      : [activeId, ''];
     
-    if (source.droppableId === destination.droppableId) {
-      // Reordering within the same group
-      const groupIndex = categoryGroups.findIndex(g => g.id === source.droppableId);
-      if (groupIndex === -1) return;
+    const [overCategory, overGroupId] = overId.includes('::') 
+      ? overId.split('::') 
+      : ['', overId];
 
-      const newGroups = [...categoryGroups];
-      const group = newGroups[groupIndex];
-      const newCategories = [...group.categories];
-      
-      const [removed] = newCategories.splice(source.index, 1);
-      newCategories.splice(destination.index, 0, removed);
-      
-      newGroups[groupIndex] = { ...group, categories: newCategories };
-      saveCategoryGroups.mutate(newGroups);
-    } else {
-      // Moving between groups
-      const sourceGroupIndex = categoryGroups.findIndex(g => g.id === source.droppableId);
-      const destGroupIndex = categoryGroups.findIndex(g => g.id === destination.droppableId);
+    // If dropped on a group (not on another category)
+    if (!overId.includes('::')) {
+      // Moving to a different group
+      const sourceGroupIndex = categoryGroups.findIndex(g => 
+        g.categories.includes(activeCategory)
+      );
+      const destGroupIndex = categoryGroups.findIndex(g => g.id === overId);
       
       if (sourceGroupIndex === -1 || destGroupIndex === -1) return;
+      if (sourceGroupIndex === destGroupIndex) return; // Same group, no change
 
       const newGroups = [...categoryGroups];
       const sourceGroup = newGroups[sourceGroupIndex];
       const destGroup = newGroups[destGroupIndex];
       
-      const newSourceCategories = [...sourceGroup.categories];
-      const newDestCategories = [...destGroup.categories];
+      // Remove from source group
+      newGroups[sourceGroupIndex] = {
+        ...sourceGroup,
+        categories: sourceGroup.categories.filter(c => c !== activeCategory)
+      };
       
-      const [removed] = newSourceCategories.splice(source.index, 1);
-      newDestCategories.splice(destination.index, 0, removed);
-      
-      newGroups[sourceGroupIndex] = { ...sourceGroup, categories: newSourceCategories };
-      newGroups[destGroupIndex] = { ...destGroup, categories: newDestCategories };
+      // Add to destination group
+      newGroups[destGroupIndex] = {
+        ...destGroup,
+        categories: [...destGroup.categories, activeCategory]
+      };
       
       saveCategoryGroups.mutate(newGroups);
+    } else {
+      // Reordering within the same group
+      if (activeGroupId === overGroupId && activeCategory !== overCategory) {
+        const groupIndex = categoryGroups.findIndex(g => g.id === activeGroupId);
+        if (groupIndex === -1) return;
+
+        const group = categoryGroups[groupIndex];
+        const oldIndex = group.categories.indexOf(activeCategory);
+        const newIndex = group.categories.indexOf(overCategory);
+        
+        if (oldIndex === -1 || newIndex === -1) return;
+
+        const newGroups = [...categoryGroups];
+        newGroups[groupIndex] = {
+          ...group,
+          categories: arrayMove(group.categories, oldIndex, newIndex)
+        };
+        
+        saveCategoryGroups.mutate(newGroups);
+      }
     }
   };
 
@@ -248,7 +295,11 @@ export const CategoryManager = () => {
         </Button>
       </div>
 
-      <DragDropContext onDragEnd={handleDragEnd}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {categoryGroups.map((group) => (
             <CategoryGroupCard
@@ -258,7 +309,7 @@ export const CategoryManager = () => {
             />
           ))}
         </div>
-      </DragDropContext>
+      </DndContext>
 
       <AddCategoryDialog
         open={addDialogOpen}
