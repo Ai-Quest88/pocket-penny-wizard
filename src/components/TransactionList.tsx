@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Card } from './ui/card';
 import { Skeleton } from './ui/skeleton';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export interface Transaction {
   id: string;
@@ -53,8 +54,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   const { session } = useAuth();
   const { toast } = useToast();
   const { displayCurrency, setDisplayCurrency } = useCurrency();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [selectedTransactions, setSelectedTransactions] = useState<string[]>([]);
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
     searchTerm: "",
@@ -63,11 +63,10 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     amountRange: ""
   });
 
-  const fetchTransactions = async () => {
-    if (!session?.user?.id) return;
+  const fetchTransactions = async (): Promise<Transaction[]> => {
+    if (!session?.user?.id) return [];
 
     try {
-      setLoading(true);
       console.log('Fetching transactions for user:', session.user.id);
       
       let query = supabase
@@ -98,7 +97,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
       if (error) throw error;
 
       console.log(`Fetched ${data?.length || 0} transactions`);
-      setTransactions(data || []);
+      return data || [];
     } catch (error) {
       console.error('Error fetching transactions:', error);
       toast({
@@ -106,33 +105,30 @@ export const TransactionList: React.FC<TransactionListProps> = ({
         description: "Failed to fetch transactions",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
+      return [];
     }
   };
 
-  useEffect(() => {
-    fetchTransactions();
-  }, [session?.user?.id, accountId, entityId]);
+  const { data: transactions = [], isLoading: loading, refetch } = useQuery({
+    queryKey: ['transactions', session?.user?.id, accountId, entityId],
+    queryFn: fetchTransactions,
+    enabled: !!session?.user?.id,
+  });
 
   const handleTransactionUpdate = (updatedTransaction: Transaction) => {
-    setTransactions(prev => 
-      prev.map(t => t.id === updatedTransaction.id ? updatedTransaction : t)
-    );
+    // Invalidate and refetch the transactions query
+    queryClient.invalidateQueries({ queryKey: ['transactions'] });
   };
 
   const handleTransactionDelete = (deletedTransactionId: string) => {
-    setTransactions(prev => prev.filter(t => t.id !== deletedTransactionId));
+    // Invalidate and refetch the transactions query
+    queryClient.invalidateQueries({ queryKey: ['transactions'] });
     setSelectedTransactions(prev => prev.filter(id => id !== deletedTransactionId));
   };
 
   const handleBulkUpdate = (updates: Partial<Transaction>) => {
-    const updatedTransactions = transactions.map(transaction => 
-      selectedTransactions.includes(transaction.id) 
-        ? { ...transaction, ...updates }
-        : transaction
-    );
-    setTransactions(updatedTransactions);
+    // Invalidate and refetch the transactions query
+    queryClient.invalidateQueries({ queryKey: ['transactions'] });
     setSelectedTransactions([]);
   };
 
@@ -230,7 +226,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
         <BulkEditActions
           selectedTransactions={filtered.filter(t => selectedTransactions.includes(t.id))}
           onBulkUpdate={() => {
-            fetchTransactions();
+            queryClient.invalidateQueries({ queryKey: ['transactions'] });
             setSelectedTransactions([]);
           }}
           onClearSelection={() => setSelectedTransactions([])}
