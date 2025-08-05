@@ -18,6 +18,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAccounts } from "@/hooks/useAccounts";
 import { addUserCategoryRule } from "@/utils/transactionCategories";
 import TestDataGenerator from "@/components/TestDataGenerator";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CSVRow {
   [key: string]: string | number | boolean;
@@ -204,29 +205,104 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
 
   const handleCategoryReview = async (
     reviewedTransactions: any[], 
-    rulesToCreate: Array<{description: string, category: string}>
+    shouldCreateRules: boolean = false
   ) => {
+    console.log('Category review completed, saving to database...', { count: reviewedTransactions.length, shouldCreateRules });
+    
     setShowCategoryReview(false);
+    setIsProcessing(true);
     
-    // Create rules for similar transactions
-    if (rulesToCreate.length > 0) {
-      console.log(`Creating ${rulesToCreate.length} categorization rules...`);
-      rulesToCreate.forEach(rule => {
-        addUserCategoryRule(rule.description, rule.category);
+    setUploadProgress({
+      phase: 'saving',
+      currentStep: 2,
+      totalSteps: 2,
+      message: 'Saving transactions to database...',
+      processedTransactions: reviewedTransactions
+    });
+
+    try {
+      // Save transactions directly to database
+      const transactionsToInsert = reviewedTransactions.map(transaction => ({
+        user_id: transaction.user_id,
+        description: transaction.description,
+        amount: transaction.amount,
+        date: transaction.date,
+        currency: transaction.currency,
+        category: transaction.userCategory || transaction.category,
+        asset_account_id: transaction.asset_account_id,
+        liability_account_id: transaction.liability_account_id,
+        comment: transaction.comment || null,
+      }));
+
+      console.log('Inserting transactions:', transactionsToInsert.slice(0, 2));
+
+      const { data: insertedTransactions, error: insertError } = await supabase
+        .from('transactions')
+        .insert(transactionsToInsert)
+        .select();
+
+      if (insertError) {
+        throw insertError;
+      }
+
+      console.log('Transactions inserted successfully:', insertedTransactions?.length);
+
+      // Create smart rules if requested
+      if (shouldCreateRules) {
+        console.log('Creating smart categorization rules...');
+        for (const transaction of reviewedTransactions) {
+          if (transaction.userCategory && transaction.userCategory !== transaction.category) {
+            addUserCategoryRule(transaction.description, transaction.userCategory);
+          }
+        }
+      }
+
+      setUploadProgress({
+        phase: 'complete',
+        currentStep: 2,
+        totalSteps: 2,
+        message: `Successfully uploaded ${transactionsToInsert.length} transactions!`,
+        processedTransactions: insertedTransactions || []
       });
-      
+
+      // Show success and cleanup
       toast({
-        title: "Smart Rules Created! 🧠",
-        description: `Created ${rulesToCreate.length} rule${rulesToCreate.length !== 1 ? 's' : ''} to automatically categorize similar transactions in the future.`,
-        duration: 5000,
+        title: "Success! 🎉",
+        description: `${transactionsToInsert.length} transactions uploaded successfully${shouldCreateRules ? ' with smart rules created' : ''}.`,
       });
+
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+
+      // Complete the upload process
+      setTimeout(() => {
+        setUploadProgress(null);
+        setIsProcessing(false);
+        
+        // Clear all data
+        setParsedData([]);
+        setHeaders([]);
+        setMappings(initialMappings);
+        setDefaultSettings(initialSettings);
+        setSelectedAccountId(null);
+        setPendingTransactions([]);
+        
+        if (onComplete) {
+          onComplete();
+        }
+      }, 2000);
+
+    } catch (error) {
+      console.error('Error saving transactions:', error);
+      toast({
+        title: "Database Error",
+        description: `Failed to save transactions: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive",
+      });
+      setUploadProgress(null);
+      setIsProcessing(false);
     }
-    
-    // Update pending transactions with reviewed categories
-    setPendingTransactions(reviewedTransactions);
-    
-    // Continue with duplicate check and upload
-    proceedWithDuplicateCheck(reviewedTransactions);
   };
 
   const handleDuplicateCancel = () => {
@@ -360,114 +436,107 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
   };
 
   const processTransactions = async () => {
-    if (!session?.user || !parsedData.length) return;
-    
-    // Validate account selection
-    if (!selectedAccountId) {
+    if (!session?.user?.id) {
       toast({
-        title: "Account Required",
-        description: "Please select an account before uploading transactions.",
+        title: "Authentication Error",
+        description: "You must be logged in to upload transactions.",
         variant: "destructive",
       });
       return;
     }
 
+    setIsProcessing(true);
+    setUploadProgress({
+      phase: 'categorizing',
+      currentStep: 1,
+      totalSteps: 2,
+      message: 'AI is categorizing your transactions...',
+      processedTransactions: []
+    });
+
     try {
-      setIsProcessing(true);
-      setUploadProgress({
-        phase: 'uploading',
-        currentStep: 1,
-        totalSteps: 1,
-        message: 'Preparing transactions for upload...',
-        processedTransactions: []
-      });
-      console.log(`🚀 Processing ${parsedData.length} transactions from CSV`);
+      const formattedTransactions = parsedData.map((row) => {
+        const description = getValue(row, mappings.description, defaultSettings.description);
+        const amountStr = String(getValue(row, mappings.amount, '0'));
+        const amount = parseFloat(amountStr.replace(/[^-\d.]/g, ''));
+        const dateStr = getValue(row, mappings.date, '');
+        const currency = getValue(row, mappings.currency, defaultSettings.currency);
 
-      // First, prepare the basic transaction data
-      console.log('🔧 Account selection debug:');
-      console.log('  selectedAccountId:', selectedAccountId);
-      console.log('  available accounts:', accounts.length);
-      
-      const selectedAccount = selectedAccountId ? accounts.find(acc => acc.id === selectedAccountId) : null;
-      console.log('  selectedAccount:', selectedAccount);
-      
-      const basicTransactions = parsedData.map((row) => {
-        const transaction = {
+        return {
           user_id: session.user.id,
-          description: String(row[mappings.description] || defaultSettings.description || 'Unknown transaction'),
-          amount: Number(row[mappings.amount] || 0),
-          date: formatDateForSupabase(String(row[mappings.date] || new Date().toISOString().split('T')[0])),
-          currency: String(row[mappings.currency] || defaultSettings.currency || 'AUD'),
-          asset_account_id: selectedAccount?.accountType === 'asset' ? selectedAccountId : null,
-          liability_account_id: selectedAccount?.accountType === 'liability' ? selectedAccountId : null,
+          description: description.trim(),
+          amount: amount,
+          date: formatDateForSupabase(dateStr),
+          currency: currency,
+          category: 'Uncategorized', // Will be set by AI
+          asset_account_id: selectedAccountId?.includes('asset') ? selectedAccountId : null,
+          liability_account_id: selectedAccountId?.includes('liability') ? selectedAccountId : null,
         };
-        
-        return transaction;
-      });
-      
-      console.log('  Sample transaction with account linking:', basicTransactions[0]);
-
-      console.log('📋 Basic transactions prepared:', basicTransactions.length);
-      console.log('📝 Sample basic transaction:', basicTransactions[0]);
-      
-      // Check for any invalid transactions
-      const invalidTransactions = basicTransactions.filter(t => 
-        !t.description || t.amount === 0 || !t.date || !t.user_id
-      );
-      if (invalidTransactions.length > 0) {
-        console.warn(`⚠️ Found ${invalidTransactions.length} invalid transactions:`, invalidTransactions);
-      }
-
-      // Use AI categorization for all transactions
-      const descriptions = basicTransactions.map(t => t.description);
-      const amounts = basicTransactions.map(t => t.amount);
-      console.log('Starting AI categorization for', descriptions.length, 'transactions');
-      console.log('Sample descriptions:', descriptions.slice(0, 3));
-      
-      setUploadProgress({
-        phase: 'categorizing',
-        currentStep: 0,
-        totalSteps: descriptions.length,
-        message: 'AI is categorizing your transactions...',
-        processedTransactions: []
-      });
-      
-      // Import the categorization function
-      const { categorizeTransactionsBatch } = await import('@/utils/aiCategorization');
-      const categories = await categorizeTransactionsBatch(descriptions, session.user.id, amounts);
-      console.log('AI categorization completed, got', categories.length, 'categories');
-      console.log('Sample categories:', categories.slice(0, 3));
-
-      // Add categories to transactions
-      const transactionsWithCategories = basicTransactions.map((transaction, index) => ({
-        ...transaction,
-        category: categories[index] || defaultSettings.category || 'Other',
-      }));
-
-      console.log('Transactions with categories:', transactionsWithCategories.slice(0, 2));
-      
-      setUploadProgress({
-        phase: 'categorizing',
-        currentStep: descriptions.length,
-        totalSteps: descriptions.length,
-        message: 'Categorization complete! Please review...',
-        processedTransactions: transactionsWithCategories
       });
 
-      // Show category review dialog
-      setPendingTransactions(transactionsWithCategories);
+      console.log('Formatted transactions for AI categorization:', formattedTransactions.slice(0, 2));
+
+      // AI Categorization
+      const categorizePromises = formattedTransactions.map(async (transaction) => {
+        try {
+          const response = await fetch('/supabase/functions/v1/categorize-transaction', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xcWJ2bHZ1enljdG15c2FibHp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgzODY0NTIsImV4cCI6MjA1Mzk2MjQ1Mn0.2Z6_5YBxzfsJga8n2vOiTTE3nxPjPpiUcRZe7dpA1V4'}`,
+            },
+            body: JSON.stringify({
+              description: transaction.description,
+              amount: transaction.amount,
+            }),
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            return {
+              ...transaction,
+              category: result.category || 'Uncategorized',
+              aiConfidence: result.confidence || 0,
+            };
+          } else {
+            console.warn('AI categorization failed for:', transaction.description);
+            return { ...transaction, category: 'Uncategorized' };
+          }
+        } catch (error) {
+          console.error('Error in AI categorization:', error);
+          return { ...transaction, category: 'Uncategorized' };
+        }
+      });
+
+      const categorizedTransactions = await Promise.all(categorizePromises);
+      console.log('AI categorization completed:', categorizedTransactions.slice(0, 2));
+
+      // Show category review dialog for user to edit categories before saving
+      setPendingTransactions(categorizedTransactions);
       setShowCategoryReview(true);
-      
+      setUploadProgress(null);
+      setIsProcessing(false);
+
     } catch (error) {
-      console.error('Error processing transactions:', error);
+      console.error('Error in transaction processing:', error);
       toast({
-        title: "Error",
-        description: "Failed to process transactions. Please try again.",
+        title: "Processing Error",
+        description: `Failed to process transactions: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
-      setIsProcessing(false);
       setUploadProgress(null);
+      setIsProcessing(false);
     }
+  };
+
+  // Helper function to get values from CSV data
+  const getValue = (row: any, field: string, defaultValue: string = '') => {
+    if (!field) return defaultValue;
+    const value = row[field];
+    if (value === undefined || value === null || value === '') {
+      return defaultValue;
+    }
+    return value;
   };
 
   // Show progressive upload UI when processing
@@ -554,7 +623,7 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
               disabled={isProcessing || !isValidConfiguration()}
               size="lg"
             >
-              {isProcessing ? 'Processing...' : `Upload ${parsedData.length} Transactions`}
+              {isProcessing ? 'Processing...' : `Review & Upload ${parsedData.length} Transactions`}
             </Button>
           </div>
         </>

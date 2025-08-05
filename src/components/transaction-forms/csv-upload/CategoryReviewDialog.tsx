@@ -33,7 +33,7 @@ interface CategoryReviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   transactions: Transaction[];
-  onConfirm: (reviewedTransactions: Transaction[], rulesToCreate: Array<{description: string, category: string}>) => void;
+  onConfirm: (reviewedTransactions: Transaction[], shouldCreateRules?: boolean) => void;
   isApplying?: boolean;
 }
 
@@ -76,21 +76,22 @@ export const CategoryReviewDialog = ({
   };
 
   const handleConfirm = () => {
-    // Prepare final transactions with user-selected categories
-    const finalTransactions = reviewedTransactions.map(({ originalIndex, userCategory, createRule, ...rest }) => ({
-      ...rest,
-      category: userCategory || rest.category
+    // Convert reviewed transactions to final format
+    const finalTransactions = reviewedTransactions.map(transaction => ({
+      ...transaction,
+      userCategory: transaction.userCategory || transaction.category,
     }));
 
-    // Prepare rules to create
-    const rulesToCreate = reviewedTransactions
-      .filter(t => t.createRule && t.userCategory && t.userCategory !== 'Uncategorized')
-      .map(t => ({
-        description: t.description,
-        category: t.userCategory!
-      }));
+    // Check if any rules should be created
+    const shouldCreateRules = reviewedTransactions.some(t => t.createRule);
 
-    onConfirm(finalTransactions, rulesToCreate);
+    console.log('CategoryReviewDialog confirming:', {
+      transactionCount: finalTransactions.length,
+      shouldCreateRules,
+      changedCategories: reviewedTransactions.filter(t => t.userCategory && t.userCategory !== t.category).length
+    });
+
+    onConfirm(finalTransactions, shouldCreateRules);
   };
 
   const categorizedCount = reviewedTransactions.filter(t => 
