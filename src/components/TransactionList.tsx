@@ -23,6 +23,8 @@ export interface Transaction {
   created_at?: string;
   updated_at?: string;
   user_id: string;
+  asset_account_name?: string;
+  liability_account_name?: string;
 }
 
 interface SearchFilters {
@@ -71,7 +73,11 @@ export const TransactionList: React.FC<TransactionListProps> = ({
       
       let query = supabase
         .from('transactions')
-        .select('*')
+        .select(`
+          *,
+          assets!asset_account_id(name),
+          liabilities!liability_account_id(name)
+        `)
         .eq('user_id', session.user.id);
 
       if (accountId) {
@@ -96,8 +102,15 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
       if (error) throw error;
 
-      console.log(`Fetched ${data?.length || 0} transactions`);
-      return data || [];
+      // Transform the data to include account names
+      const transformedData = data?.map((transaction: any) => ({
+        ...transaction,
+        asset_account_name: transaction.assets?.name,
+        liability_account_name: transaction.liabilities?.name,
+      })) || [];
+
+      console.log(`Fetched ${transformedData.length} transactions`);
+      return transformedData;
     } catch (error) {
       console.error('Error fetching transactions:', error);
       toast({

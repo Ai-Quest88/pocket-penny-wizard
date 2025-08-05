@@ -63,11 +63,9 @@ export const TransactionTableRow: React.FC<TransactionTableRowProps> = ({
   };
 
   const getAccountName = (transaction: Transaction) => {
-    // This would need to be enhanced to actually fetch account names
-    // For now, just show the account type
-    if (transaction.asset_account_id) return 'Asset Account';
-    if (transaction.liability_account_id) return 'Liability Account';
-    return 'Unknown';
+    if (transaction.asset_account_name) return transaction.asset_account_name;
+    if (transaction.liability_account_name) return transaction.liability_account_name;
+    return 'Unknown Account';
   };
 
   const getCategoryColor = (category: string) => {
