@@ -87,7 +87,7 @@ export const CategorySelect = <T extends FieldValues>({
                 </SelectTrigger>
               </FormControl>
               <SelectContent 
-                className="max-h-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-[60]"
+                className="max-h-80 bg-background border shadow-lg z-[100]"
                 position="popper"
                 sideOffset={4}
               >
