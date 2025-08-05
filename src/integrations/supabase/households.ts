@@ -258,3 +258,20 @@ export const getHouseholdEntityIds = async (householdId: string): Promise<string
 
   return data.map(row => row.id);
 };
+
+// Add member to household (alias for addEntityToHousehold for backward compatibility)
+export const addMemberToHousehold = addEntityToHousehold;
+
+// Get households with members for the household list
+export const getHouseholdsWithMembers = async (): Promise<Array<Household & { entities: IndividualEntity[] }>> => {
+  const households = await getHouseholds();
+  
+  const householdsWithMembers = await Promise.all(
+    households.map(async (household) => {
+      const entities = await getHouseholdEntities(household.id);
+      return { ...household, entities };
+    })
+  );
+  
+  return householdsWithMembers;
+};

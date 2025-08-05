@@ -289,6 +289,15 @@ export const EntityManager = () => {
       });
     });
   };
+
+  const confirmDelete = async () => {
+    try {
+      await handleDeleteEntity(deleteDialog.entityId);
+      setDeleteDialog({ isOpen: false, entityId: '', entityName: '', associatedAssets: [] });
+    } catch (error) {
+      // Error is already handled by the mutation
+      setDeleteDialog({ isOpen: false, entityId: '', entityName: '', associatedAssets: [] });
+    }
   };
 
   if (isLoading) {

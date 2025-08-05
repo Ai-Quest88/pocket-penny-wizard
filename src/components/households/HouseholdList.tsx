@@ -66,9 +66,9 @@ export const HouseholdList: React.FC<HouseholdListProps> = ({
               {showMemberCount && (
                 <div className="flex items-center space-x-2">
                   <Users className="w-4 h-4 text-gray-500" />
-                  <Badge variant="secondary">
-                    {household.members.length} member{household.members.length !== 1 ? 's' : ''}
-                  </Badge>
+                   <Badge variant="secondary">
+                     {household.entities.length} member{household.entities.length !== 1 ? 's' : ''}
+                   </Badge>
                 </div>
               )}
             </div>
@@ -76,20 +76,20 @@ export const HouseholdList: React.FC<HouseholdListProps> = ({
               <p className="text-sm text-gray-600">{household.description}</p>
             )}
           </CardHeader>
-          {showMembers && household.members.length > 0 && (
-            <CardContent className="pt-0">
-              <div className="space-y-1">
-                {household.members.map((member) => (
+           {showMembers && household.entities.length > 0 && (
+             <CardContent className="pt-0">
+               <div className="space-y-1">
+                 {household.entities.map((member) => (
                   <div key={member.id} className="flex items-center space-x-2">
                     <User className="w-3 h-3 text-gray-400" />
-                    <span className="text-sm">
-                      {member.name}
-                      {member.isPrimaryContact && (
-                        <Badge variant="outline" className="ml-2 text-xs">
-                          Primary
-                        </Badge>
-                      )}
-                    </span>
+                     <span className="text-sm">
+                       {member.name}
+                       {member.relationship && (
+                         <Badge variant="outline" className="ml-2 text-xs">
+                           {member.relationship}
+                         </Badge>
+                       )}
+                     </span>
                   </div>
                 ))}
               </div>
