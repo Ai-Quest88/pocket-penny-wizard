@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, ArrowUpDown } from "lucide-react";
+import { Plus, GripVertical } from "lucide-react";
 
 export interface CategoryGroup {
   id: string;
@@ -225,8 +225,8 @@ export const CategoryManager = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div className="text-sm text-muted-foreground flex items-center gap-2">
-          <ArrowUpDown className="h-4 w-4" />
-          Use the move buttons on categories to reorganize them between groups
+          <GripVertical className="h-4 w-4" />
+          Drag and drop categories between groups to reorganize them
         </div>
         <Button onClick={() => setAddDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
@@ -239,7 +239,6 @@ export const CategoryManager = () => {
           <CategoryGroupCard
             key={group.id}
             group={group}
-            allGroups={categoryGroups}
             onRemoveCategory={handleRemoveCategory}
             onMoveCategory={handleMoveCategory}
           />
