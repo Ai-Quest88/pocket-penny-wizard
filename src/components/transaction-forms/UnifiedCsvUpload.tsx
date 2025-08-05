@@ -476,39 +476,39 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
 
       console.log('Formatted transactions for AI categorization:', formattedTransactions.slice(0, 2));
 
-      // AI Categorization
-      const categorizePromises = formattedTransactions.map(async (transaction) => {
-        try {
-          const response = await fetch('/supabase/functions/v1/categorize-transaction', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xcWJ2bHZ1enljdG15c2FibHp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgzODY0NTIsImV4cCI6MjA1Mzk2MjQ1Mn0.2Z6_5YBxzfsJga8n2vOiTTE3nxPjPpiUcRZe7dpA1V4'}`,
-            },
-            body: JSON.stringify({
-              description: transaction.description,
-              amount: transaction.amount,
-            }),
-          });
-
-          if (response.ok) {
-            const result = await response.json();
-            return {
-              ...transaction,
-              category: result.category || 'Uncategorized',
-              aiConfidence: result.confidence || 0,
-            };
-          } else {
-            console.warn('AI categorization failed for:', transaction.description);
-            return { ...transaction, category: 'Uncategorized' };
-          }
-        } catch (error) {
-          console.error('Error in AI categorization:', error);
-          return { ...transaction, category: 'Uncategorized' };
-        }
+      // AI Categorization using batch processing
+      const descriptions = formattedTransactions.map(t => t.description);
+      
+      console.log('Starting batch AI categorization for', descriptions.length, 'transactions');
+      
+      const response = await fetch(`https://nqqbvlvuzyctmysablzw.supabase.co/functions/v1/categorize-transaction`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xcWJ2bHZ1enljdG15c2FibHp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgzODY0NTIsImV4cCI6MjA1Mzk2MjQ1Mn0.2Z6_5YBxzfsJga8n2vOiTTE3nxPjPpiUcRZe7dpA1V4`,
+        },
+        body: JSON.stringify({
+          batchMode: true,
+          descriptions: descriptions,
+          userId: session.user.id,
+        }),
       });
 
-      const categorizedTransactions = await Promise.all(categorizePromises);
+      if (!response.ok) {
+        console.warn('AI batch categorization failed, using fallback');
+        throw new Error(`AI categorization failed: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('AI batch categorization completed:', result);
+
+      // Combine transactions with AI categories
+      const categorizedTransactions = formattedTransactions.map((transaction, index) => ({
+        ...transaction,
+        category: result.categories?.[index] || 'Uncategorized',
+        aiConfidence: result.confidence || 0,
+      }));
+
       console.log('AI categorization completed:', categorizedTransactions.slice(0, 2));
 
       // Show category review dialog for user to edit categories before saving
