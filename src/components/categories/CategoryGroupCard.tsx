@@ -1,11 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useDroppable } from '@dnd-kit/core';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { CategoryGroup } from "./CategoryManager";
 import { X, GripVertical } from "lucide-react";
+import * as DndKit from '@dnd-kit/core';
+import * as DndSortable from '@dnd-kit/sortable';
+import * as DndUtilities from '@dnd-kit/utilities';
 
 interface CategoryGroupCardProps {
   group: CategoryGroup;
@@ -26,10 +26,10 @@ const CategoryItem = ({ category, groupId, onRemove }: CategoryItemProps) => {
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: `${category}::${groupId}` });
+  } = DndSortable.useSortable({ id: `${category}::${groupId}` });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: DndUtilities.CSS.Transform.toString(transform),
     transition,
   };
 
@@ -68,7 +68,7 @@ const CategoryItem = ({ category, groupId, onRemove }: CategoryItemProps) => {
 };
 
 export const CategoryGroupCard = ({ group, onRemoveCategory }: CategoryGroupCardProps) => {
-  const { setNodeRef, isOver } = useDroppable({
+  const { setNodeRef, isOver } = DndKit.useDroppable({
     id: group.id,
   });
 

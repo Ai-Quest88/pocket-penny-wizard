@@ -4,25 +4,12 @@ import { Button } from "@/components/ui/button";
 import { CategoryGroupCard } from "./CategoryGroupCard";
 import { AddCategoryDialog } from "./AddCategoryDialog";
 import { useToast } from "@/hooks/use-toast";
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
+import * as DndKit from '@dnd-kit/core';
+import * as DndSortable from '@dnd-kit/sortable';
 
 export interface CategoryGroup {
   id: string;
@@ -109,10 +96,10 @@ export const CategoryManager = () => {
   const queryClient = useQueryClient();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
+  const sensors = DndKit.useSensors(
+    DndKit.useSensor(DndKit.PointerSensor),
+    DndKit.useSensor(DndKit.KeyboardSensor, {
+      coordinateGetter: DndSortable.sortableKeyboardCoordinates,
     })
   );
 
@@ -153,7 +140,7 @@ export const CategoryManager = () => {
     },
   });
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = (event: DndKit.DragEndEvent) => {
     const { active, over } = event;
 
     if (!over) return;
@@ -214,7 +201,7 @@ export const CategoryManager = () => {
         const newGroups = [...categoryGroups];
         newGroups[groupIndex] = {
           ...group,
-          categories: arrayMove(group.categories, oldIndex, newIndex)
+          categories: DndSortable.arrayMove(group.categories, oldIndex, newIndex)
         };
         
         saveCategoryGroups.mutate(newGroups);
@@ -295,9 +282,9 @@ export const CategoryManager = () => {
         </Button>
       </div>
 
-      <DndContext
+      <DndKit.DndContext
         sensors={sensors}
-        collisionDetection={closestCenter}
+        collisionDetection={DndKit.closestCenter}
         onDragEnd={handleDragEnd}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -309,7 +296,7 @@ export const CategoryManager = () => {
             />
           ))}
         </div>
-      </DndContext>
+      </DndKit.DndContext>
 
       <AddCategoryDialog
         open={addDialogOpen}
