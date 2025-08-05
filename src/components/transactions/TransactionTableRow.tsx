@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { TableCell, TableRow } from '../ui/table';
 import { Transaction } from '../TransactionList';
 import { formatCurrency } from '@/utils/currencyUtils';
@@ -34,6 +34,7 @@ export const TransactionTableRow: React.FC<TransactionTableRowProps> = ({
   const { session } = useAuth();
   const { toast } = useToast();
   const { displayCurrency } = useCurrency();
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const handleDelete = async () => {
     if (!session?.user?.id) return;
@@ -132,8 +133,8 @@ export const TransactionTableRow: React.FC<TransactionTableRowProps> = ({
               <DropdownMenuItem 
                 onSelect={(e) => {
                   e.preventDefault();
-                  // This would open edit dialog - for now just log
                   console.log('Edit transaction:', transaction);
+                  setEditDialogOpen(true);
                 }}
               >
                 Edit
@@ -145,6 +146,11 @@ export const TransactionTableRow: React.FC<TransactionTableRowProps> = ({
           </DropdownMenu>
         </TableCell>
       )}
+      <EditTransactionDialog
+        transaction={transaction}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+      />
     </TableRow>
   );
 };
