@@ -104,6 +104,9 @@ const UncategorizedTransactions = () => {
       }));
 
       console.log(`📋 Created ${suggestions.length} suggestions for review`);
+      
+      // Show dialog even if AI couldn't categorize transactions
+      // This allows users to manually categorize what AI couldn't handle
       setCategorySuggestions(suggestions);
       setShowConfirmDialog(true);
 
