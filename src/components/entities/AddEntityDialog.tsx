@@ -24,7 +24,7 @@ import { Info } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { getAvailableCountries, getCurrencyForCountry } from "@/utils/financialYearUtils";
+
 
 interface AddEntityDialogProps {
   onAddEntity: (entity: Omit<IndividualEntity | BusinessEntity, "id" | "dateAdded">) => void;
@@ -65,8 +65,6 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
     type: "individual" as EntityType,
     description: "",
     countryOfResidence: "",
-    primaryCountry: "",
-    primaryCurrency: "",
     relationship: "",
     dateOfBirth: "",
     registrationNumber: "",
@@ -269,41 +267,7 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>Primary Country</Label>
-            <Select
-              value={formData.primaryCountry}
-              onValueChange={(value) => {
-                const currency = getCurrencyForCountry(value);
-                setFormData({ 
-                  ...formData, 
-                  primaryCountry: value,
-                  primaryCurrency: currency
-                });
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select primary country" />
-              </SelectTrigger>
-              <SelectContent>
-                {getAvailableCountries().map((country) => (
-                  <SelectItem key={country.countryCode} value={country.countryCode}>
-                    {country.countryName} ({country.currencyCode})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
 
-          <div className="space-y-2">
-            <Label>Primary Currency</Label>
-            <Input
-              value={formData.primaryCurrency}
-              onChange={(e) => setFormData({ ...formData, primaryCurrency: e.target.value })}
-              placeholder="Currency will be auto-selected based on country"
-              disabled
-            />
-          </div>
 
           <div className="space-y-2">
             <Label>Tax Identification Number</Label>

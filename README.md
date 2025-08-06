@@ -122,7 +122,7 @@ The application supports multi-country financial management with computed financ
 ### **Financial Year Calculation:**
 ```typescript
 // Get current financial year for an entity
-const currentFY = getCurrentFinancialYear(entity.primaryCountry);
+const currentFY = getCurrentFinancialYear(entity.countryOfResidence);
 
 // Get financial year for a specific date
 const fyForDate = getFinancialYearForDate(countryCode, date);

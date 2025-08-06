@@ -630,20 +630,17 @@ const [formData, setFormData] = useState({
   type: "individual" as EntityType,
   description: "",
   countryOfResidence: "",
-  primaryCountry: "",
-  primaryCurrency: "",
+  
   // ... other fields
 });
 
 // Auto-set currency when country changes
 <Select
-  value={formData.primaryCountry}
+  value={formData.countryOfResidence}
   onValueChange={(value) => {
-    const currency = getCurrencyForCountry(value);
     setFormData({ 
       ...formData, 
-      primaryCountry: value,
-      primaryCurrency: currency
+      countryOfResidence: value
     });
   }}
 >

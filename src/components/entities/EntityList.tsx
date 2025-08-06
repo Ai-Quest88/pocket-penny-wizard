@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { EditEntityDialog } from "./EditEntityDialog";
 import { DeleteEntityDialog } from "./DeleteEntityDialog";
-import { FinancialYearDisplay } from "./FinancialYearDisplay";
+import { getCurrencyForCountry } from "@/utils/financialYearUtils";
 
 interface EntityListProps {
   entities: (IndividualEntity | BusinessEntity)[];
@@ -57,12 +57,8 @@ export const EntityList = ({ entities, onDeleteEntity, onEditEntity, checkEntity
               <p className="text-muted-foreground">{entity.countryOfResidence}</p>
             </div>
             <div>
-              <p className="font-medium">Primary Country</p>
-              <p className="text-muted-foreground">{entity.primaryCountry}</p>
-            </div>
-            <div>
-              <p className="font-medium">Primary Currency</p>
-              <p className="text-muted-foreground">{entity.primaryCurrency}</p>
+              <p className="font-medium">Currency</p>
+              <p className="text-muted-foreground">{getCurrencyForCountry(entity.countryOfResidence)}</p>
             </div>
             {entity.type === "individual" ? (
               <>
@@ -103,11 +99,6 @@ export const EntityList = ({ entities, onDeleteEntity, onEditEntity, checkEntity
                 {format(new Date(entity.dateAdded), "MMM d, yyyy")}
               </p>
             </div>
-          </div>
-          
-          {/* Financial Year Information */}
-          <div className="mt-4">
-            <FinancialYearDisplay entity={entity} />
           </div>
         </Card>
       ))}

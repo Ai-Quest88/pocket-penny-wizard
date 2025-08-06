@@ -99,7 +99,7 @@ const defaultCategoryGroups: CategoryGroup[] = [
         color: "bg-green-100 border-green-300",
         icon: "🎁",
         groupId: "income",
-        categories: [
+    categories: [
           { id: "gifts", name: "Gifts", description: "Monetary gifts" },
           { id: "refunds", name: "Refunds", description: "Purchase refunds" },
           { id: "tax-returns", name: "Tax Returns", description: "Tax refunds" },
@@ -113,7 +113,7 @@ const defaultCategoryGroups: CategoryGroup[] = [
   {
     id: "expenses",
     name: "Expenses",
-    type: "Expense",
+    type: "Expense", 
     description: "Money going out",
     color: "bg-red-50 border-red-200",
     icon: "💸",
@@ -235,7 +235,7 @@ const defaultCategoryGroups: CategoryGroup[] = [
         color: "bg-red-100 border-red-300",
         icon: "🎓",
         groupId: "expenses",
-        categories: [
+    categories: [
           { id: "tuition", name: "Tuition", description: "School and college fees" },
           { id: "books", name: "Books", description: "Educational materials" },
           { id: "courses", name: "Courses", description: "Online and offline courses" },
@@ -537,7 +537,7 @@ export const CategoryManager = () => {
     };
 
     const newGroups = categoryGroups.map(group => ({
-      ...group,
+        ...group,
       buckets: group.buckets.map(bucket => 
         bucket.id === bucketId 
           ? { ...bucket, categories: [...bucket.categories, newCategory] }
@@ -545,7 +545,7 @@ export const CategoryManager = () => {
       )
     }));
 
-    saveCategoryGroups.mutate(newGroups);
+      saveCategoryGroups.mutate(newGroups);
   };
 
   const handleRemoveCategory = (categoryId: string, bucketId: string) => {
@@ -588,7 +588,7 @@ export const CategoryManager = () => {
         });
       });
     }
-
+    
     saveCategoryGroups.mutate(newGroups);
   };
 
@@ -698,15 +698,15 @@ export const CategoryManager = () => {
               <AddBucketForm onAddBucket={handleAddBucket} categoryGroups={categoryGroups} />
             </DialogContent>
           </Dialog>
-          <Button onClick={() => setAddDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Category
-          </Button>
+        <Button onClick={() => setAddDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Category
+        </Button>
         </div>
       </div>
 
       {/* Category Groups */}
-      {categoryGroups.map((group) => (
+        {categoryGroups.map((group) => (
         <Collapsible 
           key={group.id}
           open={!collapsedGroups.has(group.id)} 
@@ -737,16 +737,16 @@ export const CategoryManager = () => {
                   {/* Connection dot */}
                   <div className="absolute left-3.5 top-6 w-1 h-1 bg-muted-foreground/50 rounded-full" />
                   
-                  <CategoryGroupCard
+          <CategoryGroupCard
                     bucket={bucket}
-                    onRemoveCategory={handleRemoveCategory}
-                    onMoveCategory={handleMoveCategory}
+            onRemoveCategory={handleRemoveCategory}
+            onMoveCategory={handleMoveCategory}
                     isCollapsed={collapsedBuckets.has(bucket.id)}
                     onToggleCollapse={() => toggleBucketCollapse(bucket.id)}
-                  />
+          />
                 </div>
-              ))}
-            </div>
+        ))}
+      </div>
           </CollapsibleContent>
         </Collapsible>
       ))}

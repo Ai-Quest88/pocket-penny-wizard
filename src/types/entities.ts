@@ -7,8 +7,6 @@ export interface Entity {
   description?: string;
   taxIdentifier?: string;
   countryOfResidence: string;
-  primaryCountry: string;
-  primaryCurrency: string;
   dateAdded: string;
   householdId?: string;
 }
