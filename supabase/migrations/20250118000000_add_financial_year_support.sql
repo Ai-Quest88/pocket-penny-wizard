@@ -3,8 +3,8 @@
 
 -- Add primary country and currency to entities table
 ALTER TABLE entities 
-ADD COLUMN IF NOT EXISTS primary_country TEXT NOT NULL DEFAULT 'US',
-ADD COLUMN IF NOT EXISTS primary_currency TEXT NOT NULL DEFAULT 'USD';
+ADD COLUMN IF NOT EXISTS primary_country TEXT NOT NULL DEFAULT 'AU',
+ADD COLUMN IF NOT EXISTS primary_currency TEXT NOT NULL DEFAULT 'AUD';
 
 -- Update existing entities to have default values
 UPDATE entities 
@@ -67,44 +67,9 @@ CREATE TABLE IF NOT EXISTS country_rules (
 
 -- Insert default country rules
 INSERT INTO country_rules (country_code, country_name, currency_code, financial_year_start_month, financial_year_start_day) VALUES
-  ('US', 'United States', 'USD', 1, 1),
   ('AU', 'Australia', 'AUD', 7, 1),
   ('IN', 'India', 'INR', 4, 1),
-  ('UK', 'United Kingdom', 'GBP', 4, 6),
-  ('CA', 'Canada', 'CAD', 1, 1),
-  ('EU', 'European Union', 'EUR', 1, 1),
-  ('SG', 'Singapore', 'SGD', 1, 1),
-  ('NZ', 'New Zealand', 'NZD', 7, 1),
-  ('JP', 'Japan', 'JPY', 4, 1),
-  ('DE', 'Germany', 'EUR', 1, 1),
-  ('FR', 'France', 'EUR', 1, 1),
-  ('IT', 'Italy', 'EUR', 1, 1),
-  ('ES', 'Spain', 'EUR', 1, 1),
-  ('NL', 'Netherlands', 'EUR', 1, 1),
-  ('CH', 'Switzerland', 'CHF', 1, 1),
-  ('SE', 'Sweden', 'SEK', 1, 1),
-  ('NO', 'Norway', 'NOK', 1, 1),
-  ('DK', 'Denmark', 'DKK', 1, 1),
-  ('FI', 'Finland', 'EUR', 1, 1),
-  ('PL', 'Poland', 'PLN', 1, 1),
-  ('CZ', 'Czech Republic', 'CZK', 1, 1),
-  ('HU', 'Hungary', 'HUF', 1, 1),
-  ('RO', 'Romania', 'RON', 1, 1),
-  ('BG', 'Bulgaria', 'BGN', 1, 1),
-  ('HR', 'Croatia', 'EUR', 1, 1),
-  ('SI', 'Slovenia', 'EUR', 1, 1),
-  ('SK', 'Slovakia', 'EUR', 1, 1),
-  ('LT', 'Lithuania', 'EUR', 1, 1),
-  ('LV', 'Latvia', 'EUR', 1, 1),
-  ('EE', 'Estonia', 'EUR', 1, 1),
-  ('MT', 'Malta', 'EUR', 1, 1),
-  ('CY', 'Cyprus', 'EUR', 1, 1),
-  ('IE', 'Ireland', 'EUR', 1, 1),
-  ('PT', 'Portugal', 'EUR', 1, 1),
-  ('GR', 'Greece', 'EUR', 1, 1),
-  ('AT', 'Austria', 'EUR', 1, 1),
-  ('BE', 'Belgium', 'EUR', 1, 1),
-  ('LU', 'Luxembourg', 'EUR', 1, 1)
+  ('US', 'United States', 'USD', 1, 1)
 ON CONFLICT (country_code) DO NOTHING;
 
 -- Create function to get current financial year for a country
@@ -131,8 +96,8 @@ BEGIN
   WHERE country_code = $1;
   
   IF NOT FOUND THEN
-    -- Default to US rules if country not found
-    fy_start_month := 1;
+    -- Default to Australia rules if country not found
+    fy_start_month := 7;
     fy_start_day := 1;
   END IF;
   
@@ -185,8 +150,8 @@ BEGIN
   WHERE country_code = $1;
   
   IF NOT FOUND THEN
-    -- Default to US rules if country not found
-    fy_start_month := 1;
+    -- Default to Australia rules if country not found
+    fy_start_month := 7;
     fy_start_day := 1;
   END IF;
   

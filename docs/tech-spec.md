@@ -619,8 +619,6 @@ export const COUNTRY_RULES: Record<string, CountryRule> = {
   'AU': { countryCode: 'AU', countryName: 'Australia', currencyCode: 'AUD', financialYearStartMonth: 7, financialYearStartDay: 1 },
   'IN': { countryCode: 'IN', countryName: 'India', currencyCode: 'INR', financialYearStartMonth: 4, financialYearStartDay: 1 },
   'US': { countryCode: 'US', countryName: 'United States', currencyCode: 'USD', financialYearStartMonth: 1, financialYearStartDay: 1 },
-  'UK': { countryCode: 'UK', countryName: 'United Kingdom', currencyCode: 'GBP', financialYearStartMonth: 4, financialYearStartDay: 6 },
-  // ... 40+ countries
 };
 ```
 

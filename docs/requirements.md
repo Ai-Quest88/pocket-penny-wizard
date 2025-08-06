@@ -291,7 +291,7 @@ export const convertAmount = (
 
 #### Entity-Level Financial Years
 **Primary Country**: Each entity has a primary country that determines its financial year
-**Country Rules**: Support for 40+ countries with country-specific financial year start dates
+**Country Rules**: Support for Australia, India, and US with country-specific financial year start dates
 **Computed Financial Years**: No stored data - calculated dynamically based on country rules
 **Currency Assignment**: Automatic currency assignment based on country selection
 
@@ -320,15 +320,10 @@ const isInFY = isDateInFinancialYear(date, financialYear);
 ```
 
 #### Supported Countries
-**Major Countries:**
-- Australia (AU): July 1 - June 30
+**Supported Countries:**
+- Australia (AU): July 1 - June 30 (Default)
 - India (IN): April 1 - March 31
 - United States (US): January 1 - December 31
-- United Kingdom (UK): April 6 - April 5
-- Canada (CA): January 1 - December 31
-- European Union: January 1 - December 31
-
-**Additional Countries:** 35+ more countries with their specific financial year rules
 
 #### Reporting Structure
 **Entity Level**: Uses primary country's financial year for entity-wide reporting
