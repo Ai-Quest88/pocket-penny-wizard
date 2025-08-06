@@ -2,27 +2,29 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CategoryGroup } from "./CategoryManager";
-import { X, GripVertical } from "lucide-react";
+import { CategoryBucket, Category } from "./CategoryManager";
+import { X, GripVertical, ChevronDown, ChevronRight, Eye, EyeOff } from "lucide-react";
 
 interface CategoryGroupCardProps {
-  group: CategoryGroup;
-  onRemoveCategory: (category: string, groupId: string) => void;
-  onMoveCategory: (category: string, fromGroupId: string, toGroupId: string) => void;
+  bucket: CategoryBucket;
+  onRemoveCategory: (categoryId: string, bucketId: string) => void;
+  onMoveCategory: (categoryId: string, fromBucketId: string, toBucketId: string) => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 interface CategoryItemProps {
-  category: string;
-  groupId: string;
-  onRemove: (category: string, groupId: string) => void;
-  onDragStart: (category: string, groupId: string) => void;
+  category: Category;
+  bucketId: string;
+  onRemove: (categoryId: string, bucketId: string) => void;
+  onDragStart: (categoryId: string, bucketId: string) => void;
 }
 
-const CategoryItem = ({ category, groupId, onRemove, onDragStart }: CategoryItemProps) => {
+const CategoryItem = ({ category, bucketId, onRemove, onDragStart }: CategoryItemProps) => {
   const handleDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.setData('text/plain', JSON.stringify({ category, groupId }));
+    e.dataTransfer.setData('text/plain', JSON.stringify({ categoryId: category.id, bucketId }));
     e.dataTransfer.effectAllowed = 'move';
-    onDragStart(category, groupId);
+    onDragStart(category.id, bucketId);
   };
 
   return (
@@ -37,7 +39,7 @@ const CategoryItem = ({ category, groupId, onRemove, onDragStart }: CategoryItem
             <GripVertical className="h-4 w-4 text-muted-foreground" />
           </div>
           <span className="text-sm font-medium text-gray-700 truncate select-none">
-            {category}
+            {category.name}
           </span>
         </div>
         <Button
@@ -46,7 +48,7 @@ const CategoryItem = ({ category, groupId, onRemove, onDragStart }: CategoryItem
           className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-100 hover:text-red-600"
           onClick={(e) => {
             e.stopPropagation();
-            onRemove(category, groupId);
+            onRemove(category.id, bucketId);
           }}
         >
           <X className="h-3 w-3" />
@@ -57,15 +59,17 @@ const CategoryItem = ({ category, groupId, onRemove, onDragStart }: CategoryItem
 };
 
 export const CategoryGroupCard = ({ 
-  group, 
+  bucket, 
   onRemoveCategory, 
-  onMoveCategory 
+  onMoveCategory,
+  isCollapsed = false,
+  onToggleCollapse
 }: CategoryGroupCardProps) => {
-  const [draggedCategory, setDraggedCategory] = useState<{category: string, groupId: string} | null>(null);
+  const [draggedCategory, setDraggedCategory] = useState<{categoryId: string, bucketId: string} | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
-  const handleDragStart = (category: string, groupId: string) => {
-    setDraggedCategory({ category, groupId });
+  const handleDragStart = (categoryId: string, bucketId: string) => {
+    setDraggedCategory({ categoryId, bucketId });
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -75,7 +79,6 @@ export const CategoryGroupCard = ({
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
-    // Only set dragOver to false if we're actually leaving the drop zone
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX;
     const y = e.clientY;
@@ -91,14 +94,13 @@ export const CategoryGroupCard = ({
     
     try {
       const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-      const { category, groupId: fromGroupId } = data;
+      const { categoryId, bucketId: fromBucketId } = data;
       
-      // Don't move if dropping on the same group
-      if (fromGroupId === group.id) {
+      if (fromBucketId === bucket.id) {
         return;
       }
       
-      onMoveCategory(category, fromGroupId, group.id);
+      onMoveCategory(categoryId, fromBucketId, bucket.id);
     } catch (error) {
       console.error('Error parsing drag data:', error);
     }
@@ -112,43 +114,64 @@ export const CategoryGroupCard = ({
   };
 
   return (
-    <Card className={`${group.color} transition-all duration-200 hover:shadow-md`}>
+    <Card className={`${bucket.color} transition-all duration-200 hover:shadow-md ml-8`}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center justify-between">
-          {group.name}
-          <Badge variant="outline" className="bg-white/50">
-            {group.categories.length}
-          </Badge>
-        </CardTitle>
-        {group.description && (
-          <p className="text-sm opacity-80">{group.description}</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 flex-1">
+            {onToggleCollapse && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0"
+                onClick={onToggleCollapse}
+              >
+                {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            )}
+            <div className="flex items-center gap-2">
+              <span className="text-lg">{bucket.icon}</span>
+              <CardTitle className="text-base">{bucket.name}</CardTitle>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="bg-white/50 text-xs">
+              {bucket.categories.length}
+            </Badge>
+          </div>
+        </div>
+        {bucket.description && (
+          <p className="text-xs opacity-80">{bucket.description}</p>
         )}
       </CardHeader>
-      <CardContent>
-        <div
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          className={`space-y-2 min-h-[200px] p-2 rounded-md transition-colors ${
-            isDragOver ? 'bg-white/30 border-2 border-dashed border-white' : 'bg-white/10'
-          }`}
-        >
-          {group.categories.map((category) => (
-            <CategoryItem
-              key={category}
-              category={category}
-              groupId={group.id}
-              onRemove={onRemoveCategory}
-              onDragStart={handleDragStart}
-            />
-          ))}
-          {group.categories.length === 0 && (
-            <div className="flex items-center justify-center h-24 text-sm text-gray-500 italic">
-              {isDragOver ? 'Drop category here' : 'Drag categories here or add new ones'}
-            </div>
-          )}
-        </div>
-      </CardContent>
+      
+      {!isCollapsed && (
+        <CardContent>
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onDragEnd={handleDragEnd}
+            className={`space-y-2 min-h-[150px] p-2 rounded-md transition-colors ${
+              isDragOver ? 'bg-white/30 border-2 border-dashed border-white' : 'bg-white/10'
+            }`}
+          >
+            {bucket.categories.map((category) => (
+              <CategoryItem
+                key={category.id}
+                category={category}
+                bucketId={bucket.id}
+                onRemove={onRemoveCategory}
+                onDragStart={handleDragStart}
+              />
+            ))}
+            {bucket.categories.length === 0 && (
+              <div className="flex items-center justify-center h-20 text-xs text-gray-500 italic">
+                {isDragOver ? 'Drop category here' : 'Drag categories here or add new ones'}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      )}
     </Card>
   );
 };

@@ -7,15 +7,37 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, GripVertical } from "lucide-react";
+import { Plus, GripVertical, ChevronDown, ChevronRight, Settings, Folder, FolderOpen } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+
+export interface Category {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface CategoryBucket {
+  id: string;
+  name: string;
+  description?: string;
+  color: string;
+  icon?: string;
+  categories: Category[];
+  groupId: string; // Which high-level group this bucket belongs to
+}
 
 export interface CategoryGroup {
   id: string;
   name: string;
-  type: 'Income' | 'Expense' | 'Assets' | 'Liability' | 'Transfers' | 'Investments' | 'Adjustments';
+  type: 'Income' | 'Expense' | 'Assets' | 'Liability' | 'Transfers' | 'Adjustments';
   description?: string;
-  categories: string[];
   color: string;
+  icon?: string;
+  buckets: CategoryBucket[];
 }
 
 const defaultCategoryGroups: CategoryGroup[] = [
@@ -24,67 +46,443 @@ const defaultCategoryGroups: CategoryGroup[] = [
     name: "Income",
     type: "Income",
     description: "Money coming in",
-    categories: [
-      "Income", "Salary", "Business", "Freelance", "Interest", "Dividends",
-      "Other Income", "Rental Income", "Government Benefits", "Pension",
-      "Child Support", "Alimony", "Gifts Received", "Refunds"
-    ],
-    color: "bg-green-100 border-green-300 text-green-800"
+    color: "bg-green-50 border-green-200",
+    icon: "💰",
+    buckets: [
+      {
+        id: "primary-income",
+        name: "Primary Income",
+        description: "Main sources of income",
+        color: "bg-green-100 border-green-300",
+        icon: "💼",
+        groupId: "income",
+        categories: [
+          { id: "salary", name: "Salary", description: "Regular employment income" },
+          { id: "wages", name: "Wages", description: "Hourly or part-time work" },
+          { id: "bonuses", name: "Bonuses", description: "Performance bonuses" },
+          { id: "commission", name: "Commission", description: "Sales commissions" },
+          { id: "overtime", name: "Overtime", description: "Overtime pay" }
+        ]
+      },
+      {
+        id: "business-income",
+        name: "Business Income",
+        description: "Self-employment and business revenue",
+        color: "bg-green-100 border-green-300",
+        icon: "🏢",
+        groupId: "income",
+        categories: [
+          { id: "freelance", name: "Freelance", description: "Freelance work" },
+          { id: "consulting", name: "Consulting", description: "Consulting services" },
+          { id: "side-hustles", name: "Side Hustles", description: "Part-time business activities" },
+          { id: "business-revenue", name: "Business Revenue", description: "Business sales" }
+        ]
+      },
+      {
+        id: "investment-income",
+        name: "Investment Income",
+        description: "Returns from investments",
+        color: "bg-green-100 border-green-300",
+        icon: "📈",
+        groupId: "income",
+        categories: [
+          { id: "dividends", name: "Dividends", description: "Stock dividends" },
+          { id: "interest", name: "Interest", description: "Interest income" },
+          { id: "capital-gains", name: "Capital Gains", description: "Investment profits" },
+          { id: "rental-income", name: "Rental Income", description: "Property rental income" }
+        ]
+      },
+      {
+        id: "other-income",
+        name: "Other Income",
+        description: "Miscellaneous income sources",
+        color: "bg-green-100 border-green-300",
+        icon: "🎁",
+        groupId: "income",
+        categories: [
+          { id: "gifts", name: "Gifts", description: "Monetary gifts" },
+          { id: "refunds", name: "Refunds", description: "Purchase refunds" },
+          { id: "tax-returns", name: "Tax Returns", description: "Tax refunds" },
+          { id: "alimony", name: "Alimony", description: "Alimony payments" },
+          { id: "child-support", name: "Child Support", description: "Child support payments" },
+          { id: "government-benefits", name: "Government Benefits", description: "Social security, etc." }
+        ]
+      }
+    ]
   },
   {
     id: "expenses",
     name: "Expenses",
-    type: "Expense", 
+    type: "Expense",
     description: "Money going out",
-    categories: [
-      "Groceries", "Restaurants", "Gas & Fuel", "Shopping", "Entertainment",
-      "Healthcare", "Insurance", "Utilities", "Transportation", "Education",
-      "Travel", "Gifts & Donations", "Personal Care", "Professional Services",
-      "Home & Garden", "Electronics", "Clothing", "Books", "Subscriptions",
-      "Banking", "Taxes", "Legal", "Fast Food", "Public Transport", "Tolls", 
-      "Food Delivery"
-    ],
-    color: "bg-red-100 border-red-300 text-red-800"
-  },
-  {
-    id: "transfers",
-    name: "Transfers",
-    type: "Transfers",
-    description: "Internal money movements",
-    categories: ["Transfer In", "Transfer Out", "Internal Transfer"],
-    color: "bg-purple-100 border-purple-300 text-purple-800"
-  },
-  {
-    id: "investments",
-    name: "Investments",
-    type: "Investments",
-    description: "Investment activities",
-    categories: ["Investment", "Cryptocurrency"],
-    color: "bg-blue-100 border-blue-300 text-blue-800"
+    color: "bg-red-50 border-red-200",
+    icon: "💸",
+    buckets: [
+      {
+        id: "housing",
+        name: "Housing",
+        description: "Home-related expenses",
+        color: "bg-red-100 border-red-300",
+        icon: "🏠",
+        groupId: "expenses",
+        categories: [
+          { id: "rent", name: "Rent", description: "Monthly rent payments" },
+          { id: "mortgage", name: "Mortgage", description: "Home loan payments" },
+          { id: "utilities", name: "Utilities", description: "Electricity, water, gas" },
+          { id: "home-insurance", name: "Home Insurance", description: "Property insurance" },
+          { id: "maintenance", name: "Maintenance", description: "Home repairs and upkeep" },
+          { id: "furniture", name: "Furniture", description: "Home furnishings" }
+        ]
+      },
+      {
+        id: "transportation",
+        name: "Transportation",
+        description: "Getting around",
+        color: "bg-red-100 border-red-300",
+        icon: "🚗",
+        groupId: "expenses",
+        categories: [
+          { id: "car-payment", name: "Car Payment", description: "Vehicle loan payments" },
+          { id: "gas", name: "Gas", description: "Fuel costs" },
+          { id: "car-insurance", name: "Car Insurance", description: "Vehicle insurance" },
+          { id: "maintenance", name: "Maintenance", description: "Car repairs and service" },
+          { id: "public-transit", name: "Public Transit", description: "Buses, trains, subways" },
+          { id: "uber-lyft", name: "Uber/Lyft", description: "Ride-sharing services" }
+        ]
+      },
+      {
+        id: "food-dining",
+        name: "Food & Dining",
+        description: "All food-related expenses",
+        color: "bg-red-100 border-red-300",
+        icon: "🍽️",
+        groupId: "expenses",
+        categories: [
+          { id: "groceries", name: "Groceries", description: "Food from grocery stores" },
+          { id: "restaurants", name: "Restaurants", description: "Dining out at restaurants" },
+          { id: "fast-food", name: "Fast Food", description: "Quick service restaurants" },
+          { id: "coffee-shops", name: "Coffee Shops", description: "Coffee and cafes" },
+          { id: "food-delivery", name: "Food Delivery", description: "Delivery services" },
+          { id: "alcohol", name: "Alcohol", description: "Beverages and bars" }
+        ]
+      },
+      {
+        id: "healthcare",
+        name: "Healthcare",
+        description: "Health and wellness expenses",
+        color: "bg-red-100 border-red-300",
+        icon: "🏥",
+        groupId: "expenses",
+        categories: [
+          { id: "medical-insurance", name: "Medical Insurance", description: "Health insurance premiums" },
+          { id: "doctor-visits", name: "Doctor Visits", description: "Medical appointments" },
+          { id: "dental", name: "Dental", description: "Dental care" },
+          { id: "prescriptions", name: "Prescriptions", description: "Medications" },
+          { id: "gym", name: "Gym", description: "Fitness memberships" },
+          { id: "wellness", name: "Wellness", description: "Alternative health care" }
+        ]
+      },
+      {
+        id: "entertainment",
+        name: "Entertainment",
+        description: "Fun and leisure activities",
+        color: "bg-red-100 border-red-300",
+        icon: "🎬",
+        groupId: "expenses",
+        categories: [
+          { id: "movies", name: "Movies", description: "Movie theaters and rentals" },
+          { id: "concerts", name: "Concerts", description: "Live music and events" },
+          { id: "gaming", name: "Gaming", description: "Video games and gaming" },
+          { id: "streaming-services", name: "Streaming Services", description: "Netflix, Hulu, etc." },
+          { id: "books", name: "Books", description: "Books and reading materials" },
+          { id: "hobbies", name: "Hobbies", description: "Recreational activities" }
+        ]
+      },
+      {
+        id: "shopping",
+        name: "Shopping",
+        description: "Retail purchases",
+        color: "bg-red-100 border-red-300",
+        icon: "🛍️",
+        groupId: "expenses",
+        categories: [
+          { id: "clothing", name: "Clothing", description: "Apparel and accessories" },
+          { id: "electronics", name: "Electronics", description: "Tech and gadgets" },
+          { id: "home-goods", name: "Home Goods", description: "Household items" },
+          { id: "personal-care", name: "Personal Care", description: "Beauty and hygiene" },
+          { id: "beauty", name: "Beauty", description: "Cosmetics and beauty products" }
+        ]
+      },
+      {
+        id: "travel",
+        name: "Travel",
+        description: "Vacations and business travel",
+        color: "bg-red-100 border-red-300",
+        icon: "✈️",
+        groupId: "expenses",
+        categories: [
+          { id: "vacations", name: "Vacations", description: "Personal travel" },
+          { id: "business-travel", name: "Business Travel", description: "Work-related travel" },
+          { id: "hotels", name: "Hotels", description: "Accommodation" },
+          { id: "flights", name: "Flights", description: "Air travel" },
+          { id: "car-rentals", name: "Car Rentals", description: "Rental vehicles" }
+        ]
+      },
+      {
+        id: "education",
+        name: "Education",
+        description: "Learning and development",
+        color: "bg-red-100 border-red-300",
+        icon: "🎓",
+        groupId: "expenses",
+        categories: [
+          { id: "tuition", name: "Tuition", description: "School and college fees" },
+          { id: "books", name: "Books", description: "Educational materials" },
+          { id: "courses", name: "Courses", description: "Online and offline courses" },
+          { id: "student-loans", name: "Student Loans", description: "Education loan payments" },
+          { id: "school-supplies", name: "School Supplies", description: "Educational supplies" }
+        ]
+      },
+      {
+        id: "insurance",
+        name: "Insurance",
+        description: "Insurance premiums",
+        color: "bg-red-100 border-red-300",
+        icon: "🛡️",
+        groupId: "expenses",
+        categories: [
+          { id: "life-insurance", name: "Life Insurance", description: "Life insurance premiums" },
+          { id: "health-insurance", name: "Health Insurance", description: "Health insurance" },
+          { id: "car-insurance", name: "Car Insurance", description: "Vehicle insurance" },
+          { id: "home-insurance", name: "Home Insurance", description: "Property insurance" }
+        ]
+      },
+      {
+        id: "taxes",
+        name: "Taxes",
+        description: "Tax payments",
+        color: "bg-red-100 border-red-300",
+        icon: "📊",
+        groupId: "expenses",
+        categories: [
+          { id: "income-tax", name: "Income Tax", description: "Income tax payments" },
+          { id: "property-tax", name: "Property Tax", description: "Property taxes" },
+          { id: "sales-tax", name: "Sales Tax", description: "Sales and use taxes" },
+          { id: "other-taxes", name: "Other Taxes", description: "Other tax obligations" }
+        ]
+      }
+    ]
   },
   {
     id: "assets",
     name: "Assets",
     type: "Assets",
     description: "Things you own",
-    categories: [],
-    color: "bg-cyan-100 border-cyan-300 text-cyan-800"
+    color: "bg-blue-50 border-blue-200",
+    icon: "💎",
+    buckets: [
+      {
+        id: "cash-bank",
+        name: "Cash & Bank",
+        description: "Liquid assets",
+        color: "bg-blue-100 border-blue-300",
+        icon: "💵",
+        groupId: "assets",
+        categories: [
+          { id: "checking", name: "Checking", description: "Checking accounts" },
+          { id: "savings", name: "Savings", description: "Savings accounts" },
+          { id: "money-market", name: "Money Market", description: "Money market accounts" },
+          { id: "emergency-fund", name: "Emergency Fund", description: "Emergency savings" }
+        ]
+      },
+      {
+        id: "investments",
+        name: "Investments",
+        description: "Investment accounts",
+        color: "bg-blue-100 border-blue-300",
+        icon: "📈",
+        groupId: "assets",
+        categories: [
+          { id: "stocks", name: "Stocks", description: "Individual stocks" },
+          { id: "bonds", name: "Bonds", description: "Bond investments" },
+          { id: "etfs", name: "ETFs", description: "Exchange traded funds" },
+          { id: "mutual-funds", name: "Mutual Funds", description: "Mutual fund investments" },
+          { id: "retirement-accounts", name: "Retirement Accounts", description: "401k, IRA, etc." }
+        ]
+      },
+      {
+        id: "real-estate",
+        name: "Real Estate",
+        description: "Property investments",
+        color: "bg-blue-100 border-blue-300",
+        icon: "🏘️",
+        groupId: "assets",
+        categories: [
+          { id: "primary-home", name: "Primary Home", description: "Main residence" },
+          { id: "investment-properties", name: "Investment Properties", description: "Rental properties" },
+          { id: "land", name: "Land", description: "Vacant land" }
+        ]
+      },
+      {
+        id: "vehicles",
+        name: "Vehicles",
+        description: "Transportation assets",
+        color: "bg-blue-100 border-blue-300",
+        icon: "🚗",
+        groupId: "assets",
+        categories: [
+          { id: "cars", name: "Cars", description: "Automobiles" },
+          { id: "motorcycles", name: "Motorcycles", description: "Motorcycles and bikes" },
+          { id: "boats", name: "Boats", description: "Watercraft" },
+          { id: "rvs", name: "RVs", description: "Recreational vehicles" }
+        ]
+      },
+      {
+        id: "personal-assets",
+        name: "Personal Assets",
+        description: "Personal property",
+        color: "bg-blue-100 border-blue-300",
+        icon: "💍",
+        groupId: "assets",
+        categories: [
+          { id: "jewelry", name: "Jewelry", description: "Precious jewelry" },
+          { id: "art", name: "Art", description: "Artwork and collectibles" },
+          { id: "collectibles", name: "Collectibles", description: "Collectible items" },
+          { id: "electronics", name: "Electronics", description: "Personal electronics" }
+        ]
+      }
+    ]
   },
   {
     id: "liability",
-    name: "Liability",
+    name: "Liabilities",
     type: "Liability",
     description: "Money you owe",
-    categories: [],
-    color: "bg-orange-100 border-orange-300 text-orange-800"
+    color: "bg-orange-50 border-orange-200",
+    icon: "💳",
+    buckets: [
+      {
+        id: "credit-cards",
+        name: "Credit Cards",
+        description: "Credit card debt",
+        color: "bg-orange-100 border-orange-300",
+        icon: "💳",
+        groupId: "liability",
+        categories: [
+          { id: "personal-cards", name: "Personal Cards", description: "Personal credit cards" },
+          { id: "business-cards", name: "Business Cards", description: "Business credit cards" },
+          { id: "store-cards", name: "Store Cards", description: "Store-specific cards" }
+        ]
+      },
+      {
+        id: "loans",
+        name: "Loans",
+        description: "Personal and business loans",
+        color: "bg-orange-100 border-orange-300",
+        icon: "📋",
+        groupId: "liability",
+        categories: [
+          { id: "personal-loans", name: "Personal Loans", description: "Personal loan debt" },
+          { id: "student-loans", name: "Student Loans", description: "Education loan debt" },
+          { id: "business-loans", name: "Business Loans", description: "Business loan debt" }
+        ]
+      },
+      {
+        id: "mortgage",
+        name: "Mortgage",
+        description: "Property loans",
+        color: "bg-orange-100 border-orange-300",
+        icon: "🏠",
+        groupId: "liability",
+        categories: [
+          { id: "primary-mortgage", name: "Primary Mortgage", description: "Main home mortgage" },
+          { id: "investment-mortgages", name: "Investment Mortgages", description: "Investment property loans" }
+        ]
+      },
+      {
+        id: "other-debt",
+        name: "Other Debt",
+        description: "Other debt obligations",
+        color: "bg-orange-100 border-orange-300",
+        icon: "📄",
+        groupId: "liability",
+        categories: [
+          { id: "medical-bills", name: "Medical Bills", description: "Medical debt" },
+          { id: "tax-debt", name: "Tax Debt", description: "Tax obligations" },
+          { id: "legal-fees", name: "Legal Fees", description: "Legal debt" }
+        ]
+      }
+    ]
+  },
+  {
+    id: "transfers",
+    name: "Transfers",
+    type: "Transfers",
+    description: "Internal money movements",
+    color: "bg-purple-50 border-purple-200",
+    icon: "🔄",
+    buckets: [
+      {
+        id: "account-transfers",
+        name: "Account Transfers",
+        description: "Between your accounts",
+        color: "bg-purple-100 border-purple-300",
+        icon: "🏦",
+        groupId: "transfers",
+        categories: [
+          { id: "between-accounts", name: "Between Accounts", description: "Account to account transfers" },
+          { id: "atm-withdrawals", name: "ATM Withdrawals", description: "Cash withdrawals" },
+          { id: "deposits", name: "Deposits", description: "Cash deposits" }
+        ]
+      },
+      {
+        id: "investment-transfers",
+        name: "Investment Transfers",
+        description: "Investment account movements",
+        color: "bg-purple-100 border-purple-300",
+        icon: "📊",
+        groupId: "transfers",
+        categories: [
+          { id: "contributions", name: "Contributions", description: "Investment contributions" },
+          { id: "withdrawals", name: "Withdrawals", description: "Investment withdrawals" },
+          { id: "rollovers", name: "Rollovers", description: "Account rollovers" }
+        ]
+      }
+    ]
   },
   {
     id: "adjustments",
     name: "Adjustments",
     type: "Adjustments",
-    description: "Corrections & reconciliations",
-    categories: ["Uncategorized"],
-    color: "bg-gray-100 border-gray-300 text-gray-800"
+    description: "Corrections and reconciliations",
+    color: "bg-gray-50 border-gray-200",
+    icon: "⚙️",
+    buckets: [
+      {
+        id: "reconciliations",
+        name: "Reconciliations",
+        description: "Account reconciliations",
+        color: "bg-gray-100 border-gray-300",
+        icon: "🔍",
+        groupId: "adjustments",
+        categories: [
+          { id: "bank-reconciliations", name: "Bank Reconciliations", description: "Bank account adjustments" },
+          { id: "corrections", name: "Corrections", description: "Transaction corrections" },
+          { id: "adjustments", name: "Adjustments", description: "General adjustments" }
+        ]
+      },
+      {
+        id: "uncategorized",
+        name: "Uncategorized",
+        description: "Uncategorized transactions",
+        color: "bg-gray-100 border-gray-300",
+        icon: "❓",
+        groupId: "adjustments",
+        categories: [
+          { id: "uncategorized", name: "Uncategorized", description: "Uncategorized transactions" }
+        ]
+      }
+    ]
   }
 ];
 
@@ -93,12 +491,14 @@ export const CategoryManager = () => {
   const { session } = useAuth();
   const queryClient = useQueryClient();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [addBucketDialogOpen, setAddBucketDialogOpen] = useState(false);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [collapsedBuckets, setCollapsedBuckets] = useState<Set<string>>(new Set());
 
   // Fetch category groups from localStorage/database
-  const { data: categoryGroups = defaultCategoryGroups, isLoading } = useQuery({
+  const { data: categoryGroups = defaultCategoryGroups, isLoading: groupsLoading } = useQuery({
     queryKey: ['category-groups', session?.user?.id],
     queryFn: async () => {
-      // For now, use localStorage. Later this could be moved to database
       const stored = localStorage.getItem('categoryGroups');
       if (stored) {
         return JSON.parse(stored);
@@ -111,7 +511,6 @@ export const CategoryManager = () => {
   // Save category groups mutation
   const saveCategoryGroups = useMutation({
     mutationFn: async (groups: CategoryGroup[]) => {
-      // For now, save to localStorage. Later this could be moved to database
       localStorage.setItem('categoryGroups', JSON.stringify(groups));
       return groups;
     },
@@ -119,94 +518,144 @@ export const CategoryManager = () => {
       queryClient.invalidateQueries({ queryKey: ['category-groups'] });
       toast({
         title: "Categories Updated",
-        description: "Category groups have been updated successfully.",
+        description: "Category structure has been updated successfully.",
       });
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to update category groups.",
+        description: "Failed to update category structure.",
         variant: "destructive",
       });
     },
   });
 
-  const handleAddCategory = (category: string, groupId: string) => {
-    const groupIndex = categoryGroups.findIndex(g => g.id === groupId);
-    if (groupIndex === -1) return;
+  const handleAddCategory = (category: Omit<Category, 'id'>, bucketId: string) => {
+    const newCategory: Category = {
+      ...category,
+      id: `category-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    };
 
-    const newGroups = [...categoryGroups];
-    const group = newGroups[groupIndex];
-    
-    if (!group.categories.includes(category)) {
-      newGroups[groupIndex] = {
-        ...group,
-        categories: [...group.categories, category]
-      };
-      saveCategoryGroups.mutate(newGroups);
-    } else {
-      toast({
-        title: "Category Already Exists",
-        description: "This category is already in the selected group.",
-        variant: "destructive",
+    const newGroups = categoryGroups.map(group => ({
+      ...group,
+      buckets: group.buckets.map(bucket => 
+        bucket.id === bucketId 
+          ? { ...bucket, categories: [...bucket.categories, newCategory] }
+          : bucket
+      )
+    }));
+
+    saveCategoryGroups.mutate(newGroups);
+  };
+
+  const handleRemoveCategory = (categoryId: string, bucketId: string) => {
+    const newGroups = categoryGroups.map(group => ({
+      ...group,
+      buckets: group.buckets.map(bucket => 
+        bucket.id === bucketId 
+          ? { ...bucket, categories: bucket.categories.filter(c => c.id !== categoryId) }
+          : bucket
+      )
+    }));
+
+    saveCategoryGroups.mutate(newGroups);
+  };
+
+  const handleMoveCategory = (categoryId: string, fromBucketId: string, toBucketId: string) => {
+    if (fromBucketId === toBucketId) return;
+
+    let categoryToMove: Category | undefined;
+    const newGroups = categoryGroups.map(group => ({
+      ...group,
+      buckets: group.buckets.map(bucket => {
+        if (bucket.id === fromBucketId) {
+          categoryToMove = bucket.categories.find(c => c.id === categoryId);
+          return {
+            ...bucket,
+            categories: bucket.categories.filter(c => c.id !== categoryId)
+          };
+        }
+        return bucket;
+      })
+    }));
+
+    if (categoryToMove) {
+      newGroups.forEach(group => {
+        group.buckets.forEach(bucket => {
+          if (bucket.id === toBucketId) {
+            bucket.categories.push(categoryToMove!);
+          }
+        });
       });
     }
-  };
 
-  const handleRemoveCategory = (category: string, groupId: string) => {
-    const groupIndex = categoryGroups.findIndex(g => g.id === groupId);
-    if (groupIndex === -1) return;
-
-    const newGroups = [...categoryGroups];
-    const group = newGroups[groupIndex];
-    
-    newGroups[groupIndex] = {
-      ...group,
-      categories: group.categories.filter(c => c !== category)
-    };
     saveCategoryGroups.mutate(newGroups);
   };
 
-  const handleMoveCategory = (category: string, fromGroupId: string, toGroupId: string) => {
-    if (fromGroupId === toGroupId) return;
-
-    const fromGroupIndex = categoryGroups.findIndex(g => g.id === fromGroupId);
-    const toGroupIndex = categoryGroups.findIndex(g => g.id === toGroupId);
-    
-    if (fromGroupIndex === -1 || toGroupIndex === -1) return;
-
-    const newGroups = [...categoryGroups];
-    const fromGroup = newGroups[fromGroupIndex];
-    const toGroup = newGroups[toGroupIndex];
-    
-    // Remove from source group
-    newGroups[fromGroupIndex] = {
-      ...fromGroup,
-      categories: fromGroup.categories.filter(c => c !== category)
+  const handleAddBucket = (bucket: Omit<CategoryBucket, 'id'>, groupId: string) => {
+    const newBucket: CategoryBucket = {
+      ...bucket,
+      id: `bucket-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      categories: []
     };
-    
-    // Add to destination group (if not already there)
-    if (!toGroup.categories.includes(category)) {
-      newGroups[toGroupIndex] = {
-        ...toGroup,
-        categories: [...toGroup.categories, category]
-      };
+
+    const newGroups = categoryGroups.map(group => 
+      group.id === groupId 
+        ? { ...group, buckets: [...group.buckets, newBucket] }
+        : group
+    );
+
+    saveCategoryGroups.mutate(newGroups);
+    setAddBucketDialogOpen(false);
+  };
+
+  const toggleGroupCollapse = (groupId: string) => {
+    const newCollapsed = new Set(collapsedGroups);
+    if (newCollapsed.has(groupId)) {
+      newCollapsed.delete(groupId);
+    } else {
+      newCollapsed.add(groupId);
     }
-    
-    saveCategoryGroups.mutate(newGroups);
+    setCollapsedGroups(newCollapsed);
   };
 
-  if (isLoading) {
+  const toggleBucketCollapse = (bucketId: string) => {
+    const newCollapsed = new Set(collapsedBuckets);
+    if (newCollapsed.has(bucketId)) {
+      newCollapsed.delete(bucketId);
+    } else {
+      newCollapsed.add(bucketId);
+    }
+    setCollapsedBuckets(newCollapsed);
+  };
+
+  const expandAllGroups = () => {
+    setCollapsedGroups(new Set());
+    setCollapsedBuckets(new Set());
+  };
+
+  const collapseAllGroups = () => {
+    const allGroupIds = categoryGroups.map(g => g.id);
+    const allBucketIds = categoryGroups.flatMap(g => g.buckets.map(b => b.id));
+    setCollapsedGroups(new Set(allGroupIds));
+    setCollapsedBuckets(new Set(allBucketIds));
+  };
+
+  if (groupsLoading) {
     return (
       <div className="space-y-6">
-        <div className="flex justify-end">
+        <div className="flex justify-between items-center">
+          <div className="text-sm text-muted-foreground flex items-center gap-2">
+            <GripVertical className="h-4 w-4" />
+            Organize categories into groups and buckets
+          </div>
           <Button disabled>
             <Plus className="h-4 w-4 mr-2" />
             Add Category
           </Button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+          {[1, 2, 3, 4, 5, 6].map((i) => (
             <Card key={i} className="animate-pulse">
               <CardHeader>
                 <div className="h-6 bg-muted rounded" />
@@ -226,30 +675,86 @@ export const CategoryManager = () => {
       <div className="flex justify-between items-center">
         <div className="text-sm text-muted-foreground flex items-center gap-2">
           <GripVertical className="h-4 w-4" />
-          Drag and drop categories between groups to reorganize them
+          Organize categories into groups and buckets
         </div>
-        <Button onClick={() => setAddDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Category
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={expandAllGroups}>
+            Expand All
+          </Button>
+          <Button variant="outline" size="sm" onClick={collapseAllGroups}>
+            Collapse All
+          </Button>
+          <Dialog open={addBucketDialogOpen} onOpenChange={setAddBucketDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Folder className="h-4 w-4 mr-2" />
+                Add Bucket
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create New Category Bucket</DialogTitle>
+              </DialogHeader>
+              <AddBucketForm onAddBucket={handleAddBucket} categoryGroups={categoryGroups} />
+            </DialogContent>
+          </Dialog>
+          <Button onClick={() => setAddDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Category
+          </Button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {categoryGroups.map((group) => (
-          <CategoryGroupCard
-            key={group.id}
-            group={group}
-            onRemoveCategory={handleRemoveCategory}
-            onMoveCategory={handleMoveCategory}
-          />
-        ))}
-      </div>
+      {/* Category Groups */}
+      {categoryGroups.map((group) => (
+        <Collapsible 
+          key={group.id}
+          open={!collapsedGroups.has(group.id)} 
+          onOpenChange={() => toggleGroupCollapse(group.id)}
+        >
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" className={`w-full justify-between p-4 h-auto ${group.color}`}>
+              <div className="flex items-center gap-3">
+                {collapsedGroups.has(group.id) ? <ChevronRight className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                <span className="text-2xl">{group.icon}</span>
+                <div className="text-left">
+                  <h3 className="text-lg font-semibold">{group.name}</h3>
+                  <p className="text-sm text-muted-foreground">{group.description}</p>
+                </div>
+              </div>
+              <Badge variant="secondary">
+                {group.buckets.length} buckets • {group.buckets.reduce((sum, b) => sum + b.categories.length, 0)} categories
+              </Badge>
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="ml-8 mt-4 space-y-4">
+              {group.buckets.map((bucket, index) => (
+                <div key={bucket.id} className="relative">
+                  {/* Connection line */}
+                  <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-muted-foreground/30" />
+                  
+                  {/* Connection dot */}
+                  <div className="absolute left-3.5 top-6 w-1 h-1 bg-muted-foreground/50 rounded-full" />
+                  
+                  <CategoryGroupCard
+                    bucket={bucket}
+                    onRemoveCategory={handleRemoveCategory}
+                    onMoveCategory={handleMoveCategory}
+                    isCollapsed={collapsedBuckets.has(bucket.id)}
+                    onToggleCollapse={() => toggleBucketCollapse(bucket.id)}
+                  />
+                </div>
+              ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      ))}
 
       <AddCategoryDialog
         open={addDialogOpen}
         onOpenChange={setAddDialogOpen}
         onAddCategory={handleAddCategory}
-        existingCategories={categoryGroups.flatMap(g => g.categories)}
         categoryGroups={categoryGroups}
       />
 
@@ -282,14 +787,114 @@ export const CategoryManager = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-2 text-sm text-muted-foreground">
-              <p><strong>Transfers:</strong> Money movements between your accounts</p>
-              <p><strong>Investments:</strong> Buying/selling stocks, crypto, etc.</p>
-              <p><strong>Adjustments:</strong> Corrections and reconciliations</p>
-              <p><strong>Assets/Liability:</strong> For balance sheet items</p>
+              <p><strong>Groups:</strong> High-level financial categories (Income, Expenses, Assets, etc.)</p>
+              <p><strong>Buckets:</strong> Logical groupings within each financial area</p>
+              <p><strong>Categories:</strong> Specific transaction types</p>
+              <p><strong>Drag & Drop:</strong> Move categories between buckets</p>
             </div>
           </CardContent>
         </Card>
       </div>
     </div>
+  );
+};
+
+// Add Bucket Form Component
+const AddBucketForm = ({ 
+  onAddBucket, 
+  categoryGroups 
+}: { 
+  onAddBucket: (bucket: Omit<CategoryBucket, 'id'>, groupId: string) => void;
+  categoryGroups: CategoryGroup[];
+}) => {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [icon, setIcon] = useState('📁');
+  const [selectedGroupId, setSelectedGroupId] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !selectedGroupId) return;
+    
+    onAddBucket({
+      name: name.trim(),
+      description: description.trim() || undefined,
+      color: "bg-blue-100 border-blue-300",
+      icon: icon,
+      categories: [],
+      groupId: selectedGroupId
+    });
+    
+    setName('');
+    setDescription('');
+    setIcon('📁');
+    setSelectedGroupId('');
+  };
+
+  const iconOptions = ['💰', '🏠', '📈', '💳', '⚙️', '📁', '🎯', '🚀', '💎', '🌱', '🍽️', '🚗', '🏥', '🎬', '🛍️', '✈️', '🎓', '🛡️', '📊'];
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="bucket-group">Group</Label>
+        <select
+          id="bucket-group"
+          value={selectedGroupId}
+          onChange={(e) => setSelectedGroupId(e.target.value)}
+          className="w-full p-2 border rounded-md"
+          required
+        >
+          <option value="">Select a group</option>
+          {categoryGroups.map((group) => (
+            <option key={group.id} value={group.id}>
+              {group.icon} {group.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="bucket-name">Bucket Name</Label>
+        <Input
+          id="bucket-name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="e.g., Entertainment"
+          required
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="bucket-description">Description (Optional)</Label>
+        <Input
+          id="bucket-description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="e.g., Fun and leisure activities"
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <Label>Icon</Label>
+        <div className="flex gap-2 flex-wrap">
+          {iconOptions.map((iconOption) => (
+            <Button
+              key={iconOption}
+              type="button"
+              variant={icon === iconOption ? "default" : "outline"}
+              size="sm"
+              onClick={() => setIcon(iconOption)}
+              className="text-lg"
+            >
+              {iconOption}
+            </Button>
+          ))}
+        </div>
+      </div>
+      
+      <div className="flex justify-end gap-2">
+        <Button type="submit">Create Bucket</Button>
+      </div>
+    </form>
   );
 };

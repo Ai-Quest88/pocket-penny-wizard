@@ -4,14 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CategoryGroup } from "./CategoryManager";
+import { CategoryGroup, Category } from "./CategoryManager";
 import { useToast } from "@/hooks/use-toast";
 
 interface AddCategoryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddCategory: (category: string, groupId: string) => void;
-  existingCategories: string[];
+  onAddCategory: (category: Omit<Category, 'id'>, bucketId: string) => void;
   categoryGroups: CategoryGroup[];
 }
 
@@ -19,13 +18,24 @@ export const AddCategoryDialog = ({
   open,
   onOpenChange,
   onAddCategory,
-  existingCategories,
   categoryGroups,
 }: AddCategoryDialogProps) => {
   const { toast } = useToast();
   const [categoryName, setCategoryName] = useState("");
+  const [categoryDescription, setCategoryDescription] = useState("");
   const [selectedGroupId, setSelectedGroupId] = useState("");
+  const [selectedBucketId, setSelectedBucketId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Get all existing category names for validation
+  const existingCategories = categoryGroups.flatMap(group => 
+    group.buckets.flatMap(bucket => bucket.categories.map(cat => cat.name))
+  );
+
+  // Get available buckets for the selected group
+  const availableBuckets = selectedGroupId 
+    ? categoryGroups.find(group => group.id === selectedGroupId)?.buckets || []
+    : [];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,6 +58,15 @@ export const AddCategoryDialog = ({
       return;
     }
 
+    if (!selectedBucketId) {
+      toast({
+        title: "Error", 
+        description: "Please select a bucket.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (existingCategories.includes(categoryName.trim())) {
       toast({
         title: "Error",
@@ -60,9 +79,15 @@ export const AddCategoryDialog = ({
     setIsSubmitting(true);
     
     try {
-      onAddCategory(categoryName.trim(), selectedGroupId);
+      onAddCategory({
+        name: categoryName.trim(),
+        description: categoryDescription.trim() || undefined
+      }, selectedBucketId);
+      
       setCategoryName("");
+      setCategoryDescription("");
       setSelectedGroupId("");
+      setSelectedBucketId("");
       onOpenChange(false);
       
       toast({
@@ -78,6 +103,11 @@ export const AddCategoryDialog = ({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleGroupChange = (groupId: string) => {
+    setSelectedGroupId(groupId);
+    setSelectedBucketId(""); // Reset bucket selection when group changes
   };
 
   return (
@@ -100,8 +130,19 @@ export const AddCategoryDialog = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="group-select">Assign to Group</Label>
-            <Select value={selectedGroupId} onValueChange={setSelectedGroupId} disabled={isSubmitting}>
+            <Label htmlFor="category-description">Description (Optional)</Label>
+            <Input
+              id="category-description"
+              placeholder="Enter category description..."
+              value={categoryDescription}
+              onChange={(e) => setCategoryDescription(e.target.value)}
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="group-select">Group</Label>
+            <Select value={selectedGroupId} onValueChange={handleGroupChange} disabled={isSubmitting}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a group..." />
               </SelectTrigger>
@@ -109,8 +150,31 @@ export const AddCategoryDialog = ({
                 {categoryGroups.map((group) => (
                   <SelectItem key={group.id} value={group.id}>
                     <div className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${group.color.split(' ')[0]}`} />
+                      <span className="text-lg">{group.icon}</span>
                       {group.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="bucket-select">Bucket</Label>
+            <Select 
+              value={selectedBucketId} 
+              onValueChange={setSelectedBucketId} 
+              disabled={isSubmitting || !selectedGroupId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={selectedGroupId ? "Select a bucket..." : "Select a group first..."} />
+              </SelectTrigger>
+              <SelectContent>
+                {availableBuckets.map((bucket) => (
+                  <SelectItem key={bucket.id} value={bucket.id}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{bucket.icon}</span>
+                      {bucket.name}
                     </div>
                   </SelectItem>
                 ))}
