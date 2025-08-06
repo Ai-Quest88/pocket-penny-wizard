@@ -68,6 +68,30 @@ This directory contains comprehensive documentation for the Finsight project, or
 
 ## 🆕 Recent Updates
 
+### **Multi-Country Financial Year System** (January 2025)
+The application now supports multi-country financial management with computed financial years:
+
+**Key Features:**
+- **Entity-Level Financial Years**: Each entity has a primary country that determines its financial year
+- **Account-Level Countries**: Individual accounts can be in different countries with different currencies
+- **Computed Financial Years**: No stored financial year data - calculated dynamically based on country rules
+- **Country-Specific Rules**: Support for 40+ countries with their specific financial year start dates
+
+**Supported Countries:**
+- Australia (AU): July 1 - June 30
+- India (IN): April 1 - March 31
+- United States (US): January 1 - December 31
+- United Kingdom (UK): April 6 - April 5
+- Canada (CA): January 1 - December 31
+- European Union: January 1 - December 31
+- And 35+ more countries...
+
+**Technical Implementation:**
+- Database schema: Updated entities, assets, and liabilities tables
+- Utility functions: `financialYearUtils.ts` for calculations
+- React components: `FinancialYearDisplay.tsx`, enhanced `EntityManager.tsx`
+- TypeScript types: Updated `Entity`, `Asset`, `Liability` interfaces
+
 ### **Category Management System** (January 2025)
 The application now features a sophisticated hierarchical category management system:
 

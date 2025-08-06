@@ -59,6 +59,8 @@ export interface Asset {
   value: number;
   type: AssetType;
   category: AssetCategory;
+  country: string; // Account-specific country
+  currency: string; // Account-specific currency
   history: HistoricalValue[];
   accountNumber?: string; // For cash assets
   address?: string; // For property assets
@@ -73,6 +75,8 @@ export interface Liability {
   amount: number;
   type: LiabilityType;
   category: LiabilityCategory;
+  country: string; // Account-specific country
+  currency: string; // Account-specific currency
   history: HistoricalValue[];
   accountNumber?: string; // For credit cards and loans
   interestRate?: number; // Interest rate percentage

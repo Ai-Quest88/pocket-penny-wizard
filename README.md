@@ -96,8 +96,49 @@ finsight/
 ├── src/
 │   ├── components/         # React components
 │   │   ├── categories/    # Category management components
+│   │   ├── entities/      # Entity management components
 │   │   ├── transactions/  # Transaction components
 │   │   └── ui/           # Shared UI components
+│   ├── utils/             # Utility functions
+│   │   └── financialYearUtils.ts  # Financial year calculations
+│   └── types/             # TypeScript type definitions
+```
+
+## 🌍 Multi-Country Financial Year System
+
+The application supports multi-country financial management with computed financial years:
+
+### **Key Features:**
+- **Entity-Level Financial Years**: Each entity has a primary country that determines its financial year
+- **Account-Level Countries**: Individual accounts can be in different countries with different currencies
+- **Computed Financial Years**: No stored financial year data - calculated dynamically based on country rules
+- **Country-Specific Rules**: Support for 40+ countries with their specific financial year start dates
+
+### **Supported Countries:**
+- **Australia (AU)**: July 1 - June 30
+- **India (IN)**: April 1 - March 31  
+- **United States (US)**: January 1 - December 31
+- **United Kingdom (UK)**: April 6 - April 5
+- **Canada (CA)**: January 1 - December 31
+- **European Union**: January 1 - December 31
+- And 35+ more countries...
+
+### **Financial Year Calculation:**
+```typescript
+// Get current financial year for an entity
+const currentFY = getCurrentFinancialYear(entity.primaryCountry);
+
+// Get financial year for a specific date
+const fyForDate = getFinancialYearForDate(countryCode, date);
+
+// Check if date falls within financial year
+const isInFY = isDateInFinancialYear(date, financialYear);
+```
+
+### **Reporting Structure:**
+- **Entity Level**: Uses primary country's financial year for entity-wide reporting
+- **Account Level**: Account-specific country/currency for detailed analysis
+- **Household Level**: Aggregated view across all entities and countries
 │   ├── pages/             # Route components
 │   ├── hooks/             # Custom React hooks
 │   ├── utils/             # Utility functions

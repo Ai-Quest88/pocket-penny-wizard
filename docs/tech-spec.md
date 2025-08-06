@@ -80,6 +80,8 @@ CREATE TABLE entities (
     name TEXT NOT NULL,
     type TEXT NOT NULL CHECK (type IN ('Individual', 'Family Member', 'Business', 'Trust', 'Super Fund')),
     country_of_residence TEXT NOT NULL DEFAULT 'Australia',
+    primary_country TEXT NOT NULL DEFAULT 'AU',
+    primary_currency TEXT NOT NULL DEFAULT 'AUD',
     tax_identifier TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -94,9 +96,12 @@ CREATE TABLE assets (
     name TEXT NOT NULL,
     category TEXT NOT NULL CHECK (category IN ('Cash', 'Investment', 'Property', 'Vehicle', 'Other')),
     value DECIMAL(15,2) NOT NULL DEFAULT 0,
+    country TEXT NOT NULL DEFAULT 'AU',
+    currency TEXT NOT NULL DEFAULT 'AUD',
     opening_balance DECIMAL(15,2) NOT NULL DEFAULT 0,
     opening_balance_date DATE NOT NULL DEFAULT CURRENT_DATE
 );
+```
 
 CREATE TABLE liabilities (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -497,6 +502,167 @@ const { data: categoryGroups = defaultCategoryGroups } = useQuery({
         
         {/* Connection dot */}
         <div className="absolute left-3.5 top-6 w-1 h-1 bg-muted-foreground/50 rounded-full" />
+```
+
+### Multi-Country Financial Year System
+
+#### Component Architecture
+The financial year system implements computed financial years with country-specific rules:
+
+```typescript
+// FinancialYearDisplay.tsx - Financial year information display
+export interface FinancialYear {
+  startDate: Date;
+  endDate: Date;
+  name: string;
+  taxYear: number;
+}
+
+export interface CountryRule {
+  countryCode: string;
+  countryName: string;
+  currencyCode: string;
+  financialYearStartMonth: number;
+  financialYearStartDay: number;
+}
+```
+
+#### Component Structure
+```
+src/components/entities/
+├── EntityManager.tsx          # Main entity management interface
+├── EntityList.tsx             # Entity list display
+├── AddEntityDialog.tsx        # Add new entity dialog
+├── EditEntityDialog.tsx       # Edit entity dialog
+├── DeleteEntityDialog.tsx     # Delete entity confirmation
+├── FinancialYearDisplay.tsx   # Financial year information display
+└── index.ts                  # Export file
+```
+
+#### Financial Year Utilities
+```
+src/utils/
+└── financialYearUtils.ts      # Financial year calculations and country rules
+```
+
+#### Database Schema Updates
+```sql
+-- Add primary country and currency to entities
+ALTER TABLE entities 
+ADD COLUMN primary_country TEXT NOT NULL DEFAULT 'US',
+ADD COLUMN primary_currency TEXT NOT NULL DEFAULT 'USD';
+
+-- Add country and currency to assets
+ALTER TABLE assets 
+ADD COLUMN country TEXT NOT NULL DEFAULT 'AU',
+ADD COLUMN currency TEXT NOT NULL DEFAULT 'AUD';
+
+-- Add country and currency to liabilities
+ALTER TABLE liabilities 
+ADD COLUMN country TEXT NOT NULL DEFAULT 'AU',
+ADD COLUMN currency TEXT NOT NULL DEFAULT 'AUD';
+
+-- Create country rules table
+CREATE TABLE country_rules (
+  country_code TEXT PRIMARY KEY,
+  country_name TEXT NOT NULL,
+  currency_code TEXT NOT NULL,
+  financial_year_start_month INTEGER NOT NULL,
+  financial_year_start_day INTEGER NOT NULL DEFAULT 1,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+```
+
+#### Key Features Implementation
+
+**Computed Financial Years**
+```typescript
+// financialYearUtils.ts
+export function getCurrentFinancialYear(countryCode: string): FinancialYear {
+  const rules = COUNTRY_RULES[countryCode] || COUNTRY_RULES['US'];
+  const currentDate = new Date();
+  
+  return getFinancialYearForDate(countryCode, currentDate);
+}
+
+export function getFinancialYearForDate(countryCode: string, date: Date): FinancialYear {
+  const rules = COUNTRY_RULES[countryCode] || COUNTRY_RULES['US'];
+  
+  // Calculate financial year start date
+  const fyStartDate = new Date(date.getFullYear(), rules.financialYearStartMonth - 1, rules.financialYearStartDay);
+  
+  // Adjust if date is before FY start
+  if (date < fyStartDate) {
+    fyStartDate.setFullYear(fyStartDate.getFullYear() - 1);
+  }
+  
+  // Calculate end date and tax year
+  const fyEndDate = new Date(fyStartDate);
+  fyEndDate.setFullYear(fyEndDate.getFullYear() + 1);
+  fyEndDate.setDate(fyEndDate.getDate() - 1);
+  
+  const taxYear = fyEndDate.getFullYear();
+  
+  return {
+    startDate: fyStartDate,
+    endDate: fyEndDate,
+    name: countryCode === 'IN' ? `FY${taxYear - 1}-${(taxYear % 100).toString().padStart(2, '0')}` : `FY${taxYear}`,
+    taxYear,
+  };
+}
+```
+
+**Country Rules Configuration**
+```typescript
+// financialYearUtils.ts
+export const COUNTRY_RULES: Record<string, CountryRule> = {
+  'AU': { countryCode: 'AU', countryName: 'Australia', currencyCode: 'AUD', financialYearStartMonth: 7, financialYearStartDay: 1 },
+  'IN': { countryCode: 'IN', countryName: 'India', currencyCode: 'INR', financialYearStartMonth: 4, financialYearStartDay: 1 },
+  'US': { countryCode: 'US', countryName: 'United States', currencyCode: 'USD', financialYearStartMonth: 1, financialYearStartDay: 1 },
+  'UK': { countryCode: 'UK', countryName: 'United Kingdom', currencyCode: 'GBP', financialYearStartMonth: 4, financialYearStartDay: 6 },
+  // ... 40+ countries
+};
+```
+
+**Entity Management Integration**
+```typescript
+// AddEntityDialog.tsx
+const [formData, setFormData] = useState({
+  name: "",
+  type: "individual" as EntityType,
+  description: "",
+  countryOfResidence: "",
+  primaryCountry: "",
+  primaryCurrency: "",
+  // ... other fields
+});
+
+// Auto-set currency when country changes
+<Select
+  value={formData.primaryCountry}
+  onValueChange={(value) => {
+    const currency = getCurrencyForCountry(value);
+    setFormData({ 
+      ...formData, 
+      primaryCountry: value,
+      primaryCurrency: currency
+    });
+  }}
+>
+```
+
+#### Performance Optimizations
+
+**Computed vs Stored Financial Years**
+- No database storage required for financial years
+- Fast in-memory calculations
+- Automatic updates when country rules change
+- No data migration needed for new countries
+
+**Country Rule Caching**
+- Static country rules configuration
+- Fast lookups with O(1) complexity
+- No external API calls for financial year calculations
         
         <CategoryGroupCard bucket={bucket} />
       </div>

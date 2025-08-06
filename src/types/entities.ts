@@ -7,7 +7,10 @@ export interface Entity {
   description?: string;
   taxIdentifier?: string;
   countryOfResidence: string;
+  primaryCountry: string;
+  primaryCurrency: string;
   dateAdded: string;
+  householdId?: string;
 }
 
 export interface IndividualEntity extends Entity {
@@ -23,6 +26,23 @@ export interface BusinessEntity extends Entity {
 }
 
 export type EntityUnion = IndividualEntity | BusinessEntity;
+
+// Financial Year interface (computed, not stored)
+export interface FinancialYear {
+  startDate: Date;
+  endDate: Date;
+  name: string;
+  taxYear: number;
+}
+
+// Country rules interface
+export interface CountryRule {
+  countryCode: string;
+  countryName: string;
+  currencyCode: string;
+  financialYearStartMonth: number;
+  financialYearStartDay: number;
+}
 
 // Legacy aliases for backward compatibility
 export type FamilyMember = IndividualEntity;

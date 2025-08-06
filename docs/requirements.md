@@ -287,7 +287,55 @@ export const convertAmount = (
 };
 ```
 
-### 6. Budgeting System
+### 6. Multi-Country Financial Year System
+
+#### Entity-Level Financial Years
+**Primary Country**: Each entity has a primary country that determines its financial year
+**Country Rules**: Support for 40+ countries with country-specific financial year start dates
+**Computed Financial Years**: No stored data - calculated dynamically based on country rules
+**Currency Assignment**: Automatic currency assignment based on country selection
+
+#### Account-Level Countries
+**Multi-Country Accounts**: Individual accounts can be in different countries with different currencies
+**Account-Specific Fields**: Country and currency fields for each account
+**Multi-Currency Support**: Support for multi-currency transactions and reporting
+
+#### Financial Year Calculations
+```typescript
+interface FinancialYear {
+  startDate: Date;
+  endDate: Date;
+  name: string;
+  taxYear: number;
+}
+
+// Get current financial year for a country
+const currentFY = getCurrentFinancialYear(countryCode);
+
+// Get financial year for a specific date
+const fyForDate = getFinancialYearForDate(countryCode, date);
+
+// Check if date falls within financial year
+const isInFY = isDateInFinancialYear(date, financialYear);
+```
+
+#### Supported Countries
+**Major Countries:**
+- Australia (AU): July 1 - June 30
+- India (IN): April 1 - March 31
+- United States (US): January 1 - December 31
+- United Kingdom (UK): April 6 - April 5
+- Canada (CA): January 1 - December 31
+- European Union: January 1 - December 31
+
+**Additional Countries:** 35+ more countries with their specific financial year rules
+
+#### Reporting Structure
+**Entity Level**: Uses primary country's financial year for entity-wide reporting
+**Account Level**: Account-specific country/currency for detailed analysis
+**Household Level**: Aggregated view across all entities and countries
+
+### 7. Budgeting System
 
 #### Budget Structure
 **Budget Types**: Category-based budgets with multiple time periods
