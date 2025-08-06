@@ -66,6 +66,30 @@ This directory contains comprehensive documentation for the Finsight project, or
 - Development and deployment guidelines
 - Master reference document for entire project
 
+## 🆕 Recent Updates
+
+### **Category Management System** (January 2025)
+The application now features a sophisticated hierarchical category management system:
+
+**Structure:**
+- **Groups**: High-level financial categories (Income, Expenses, Assets, Liabilities, Transfers, Adjustments)
+- **Buckets**: Logical groupings within each group (e.g., Entertainment, Food & Dining within Expenses)
+- **Categories**: Specific transaction types within each bucket
+
+**Key Features:**
+- Collapsible interface for better organization
+- Drag & drop functionality for category management
+- Industry-standard pre-populated categories
+- Custom bucket and category creation
+- Visual hierarchy with parent-child layout
+- Connection lines showing relationships
+
+**Technical Implementation:**
+- React components: `CategoryManager.tsx`, `CategoryGroupCard.tsx`, `AddCategoryDialog.tsx`
+- Local storage for category persistence
+- Real-time updates with React Query
+- Responsive design with Tailwind CSS
+
 ## Document Usage Guide
 
 ### For Different Teams:
@@ -136,7 +160,7 @@ This directory contains comprehensive documentation for the Finsight project, or
 
 ---
 
-**Documentation Suite Version**: 1.0  
+**Documentation Suite Version**: 1.1  
 **Last Updated**: January 2025  
 **Maintained By**: Product and Engineering Teams  
 **Next Review**: February 2025 

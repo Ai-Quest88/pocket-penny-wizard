@@ -341,6 +341,93 @@ interface Budget {
 - Data refresh: Real-time updates with caching
 - Mobile optimization: Full functionality on mobile devices
 
+### 8. Category Management System
+
+#### Hierarchical Structure
+The application implements a sophisticated three-level category hierarchy:
+
+**Level 1: Groups**
+- High-level financial categories (Income, Expenses, Assets, Liabilities, Transfers, Adjustments)
+- Each group has a distinct color scheme and icon
+- Groups are collapsible for better organization
+
+**Level 2: Buckets**
+- Logical groupings within each group (e.g., Entertainment, Food & Dining within Expenses)
+- Custom icons and descriptions for each bucket
+- Drag & drop functionality for category management
+
+**Level 3: Categories**
+- Specific transaction types within each bucket
+- Industry-standard naming conventions
+- Real-time updates and persistence
+
+#### Core Features
+
+**Category Organization**
+- Collapsible interface for groups and buckets
+- Visual hierarchy with connection lines
+- Drag & drop categories between buckets
+- Real-time category count display
+
+**Category Management**
+- Add new categories to specific buckets
+- Create custom buckets with icons and descriptions
+- Remove categories with confirmation
+- Bulk category operations
+
+**Industry Standards**
+- Pre-populated with common financial categories
+- Australian tax-compliant category structure
+- Support for business and personal categories
+- Extensible for custom requirements
+
+#### Technical Requirements
+
+**Performance**
+- Category loading: <1 second
+- Drag & drop response: <100ms
+- Category persistence: Real-time local storage
+- UI updates: Immediate visual feedback
+
+**User Experience**
+- Intuitive parent-child visual relationship
+- Clear visual feedback for drag operations
+- Responsive design for all screen sizes
+- Keyboard accessibility support
+
+**Data Management**
+- Local storage for category persistence
+- Real-time synchronization across components
+- Backup and restore functionality
+- Export/import category structures
+
+#### Example Category Structure
+
+```
+💰 Income Group
+├── 💼 Primary Income Bucket
+│   ├── Salary
+│   ├── Wages
+│   └── Bonuses
+└── 🏢 Business Income Bucket
+    ├── Freelance
+    └── Consulting
+
+💸 Expenses Group
+├── 🏠 Housing Bucket
+│   ├── Rent
+│   ├── Mortgage
+│   └── Utilities
+├── 🍽️ Food & Dining Bucket
+│   ├── Groceries
+│   ├── Restaurants
+│   └── Coffee Shops
+└── 🎬 Entertainment Bucket
+    ├── Movies
+    ├── Concerts
+    └── Streaming Services
+```
+
 ---
 
 ## User Requirements & Use Cases

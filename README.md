@@ -95,6 +95,9 @@ finsight/
 ├── docs/                    # Comprehensive documentation
 ├── src/
 │   ├── components/         # React components
+│   │   ├── categories/    # Category management components
+│   │   ├── transactions/  # Transaction components
+│   │   └── ui/           # Shared UI components
 │   ├── pages/             # Route components
 │   ├── hooks/             # Custom React hooks
 │   ├── utils/             # Utility functions
@@ -113,6 +116,49 @@ finsight/
 - **💱 Multi-Currency Support** - Real-time exchange rates for 30+ currencies
 - **📱 Mobile-Responsive** - Optimized for all devices
 - **🔒 Bank-Level Security** - Row-level security and data encryption
+- **📂 Hierarchical Categories** - Groups → Buckets → Categories organization system
+
+## 📂 Category Management System
+
+The application features a sophisticated hierarchical category management system:
+
+### **Structure:**
+- **Groups**: High-level financial categories (Income, Expenses, Assets, Liabilities, Transfers, Adjustments)
+- **Buckets**: Logical groupings within each group (e.g., Entertainment, Food & Dining within Expenses)
+- **Categories**: Specific transaction types within each bucket
+
+### **Features:**
+- **Collapsible Interface**: Expand/collapse groups and buckets for better organization
+- **Drag & Drop**: Move categories between buckets with visual feedback
+- **Industry Standards**: Pre-populated with common financial categories
+- **Custom Management**: Add new buckets and categories with custom icons
+- **Visual Hierarchy**: Parent-child layout with connection lines
+
+### **Example Structure:**
+```
+💰 Income
+├── 💼 Primary Income
+│   ├── Salary
+│   ├── Wages
+│   └── Bonuses
+└── 🏢 Business Income
+    ├── Freelance
+    └── Consulting
+
+💸 Expenses
+├── 🏠 Housing
+│   ├── Rent
+│   ├── Mortgage
+│   └── Utilities
+├── 🍽️ Food & Dining
+│   ├── Groceries
+│   ├── Restaurants
+│   └── Coffee Shops
+└── 🎬 Entertainment
+    ├── Movies
+    ├── Concerts
+    └── Streaming Services
+```
 
 ## 🚀 Deployment
 

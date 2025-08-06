@@ -401,6 +401,136 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 };
 ```
 
+### Category Management System
+
+#### Component Architecture
+The category management system implements a hierarchical structure with three main components:
+
+```typescript
+// CategoryManager.tsx - Main orchestrator component
+export interface CategoryGroup {
+  id: string;
+  name: string;
+  type: 'Income' | 'Expense' | 'Assets' | 'Liability' | 'Transfers' | 'Adjustments';
+  description?: string;
+  color: string;
+  icon?: string;
+  buckets: CategoryBucket[];
+}
+
+export interface CategoryBucket {
+  id: string;
+  name: string;
+  description?: string;
+  color: string;
+  icon?: string;
+  categories: Category[];
+  groupId: string;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  description?: string;
+}
+```
+
+#### Component Structure
+```
+src/components/categories/
+├── CategoryManager.tsx          # Main category management interface
+├── CategoryGroupCard.tsx        # Individual bucket display component
+└── AddCategoryDialog.tsx        # Category creation dialog
+```
+
+#### Key Features Implementation
+
+**Collapsible Interface**
+```typescript
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+
+// Groups and buckets can be collapsed independently
+const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+const [collapsedBuckets, setCollapsedBuckets] = useState<Set<string>>(new Set());
+```
+
+**Drag & Drop Functionality**
+```typescript
+// CategoryGroupCard.tsx
+const handleDrop = (e: React.DragEvent) => {
+  e.preventDefault();
+  const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+  const { categoryId, bucketId: fromBucketId } = data;
+  
+  if (fromBucketId !== bucket.id) {
+    onMoveCategory(categoryId, fromBucketId, bucket.id);
+  }
+};
+```
+
+**Local Storage Persistence**
+```typescript
+// CategoryManager.tsx
+const { data: categoryGroups = defaultCategoryGroups } = useQuery({
+  queryKey: ['category-groups', session?.user?.id],
+  queryFn: async () => {
+    const stored = localStorage.getItem('categoryGroups');
+    if (stored) {
+      return JSON.parse(stored);
+    }
+    return defaultCategoryGroups;
+  },
+});
+```
+
+#### Visual Hierarchy Implementation
+
+**Parent-Child Layout**
+```typescript
+// CategoryManager.tsx
+<CollapsibleContent>
+  <div className="ml-8 mt-4 space-y-4">
+    {group.buckets.map((bucket) => (
+      <div key={bucket.id} className="relative">
+        {/* Connection line */}
+        <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-muted-foreground/30" />
+        
+        {/* Connection dot */}
+        <div className="absolute left-3.5 top-6 w-1 h-1 bg-muted-foreground/50 rounded-full" />
+        
+        <CategoryGroupCard bucket={bucket} />
+      </div>
+    ))}
+  </div>
+</CollapsibleContent>
+```
+
+#### Performance Optimizations
+
+**React Query Integration**
+```typescript
+const saveCategoryGroups = useMutation({
+  mutationFn: async (groups: CategoryGroup[]) => {
+    localStorage.setItem('categoryGroups', JSON.stringify(groups));
+    return groups;
+  },
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['category-groups'] });
+  },
+});
+```
+
+**Real-time Updates**
+- Immediate visual feedback for drag operations
+- Optimistic updates for better UX
+- Debounced save operations to prevent excessive writes
+
+#### Accessibility Features
+- Keyboard navigation support
+- Screen reader compatibility
+- Focus management for drag operations
+- ARIA labels for interactive elements
+
 ---
 
 ## Security Implementation
