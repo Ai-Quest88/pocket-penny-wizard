@@ -536,27 +536,27 @@ export const CategoryManager = () => {
       id: `category-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     };
 
-    const newGroups = categoryGroups.map(group => ({
+    const newGroups = categoryGroups?.map(group => ({
         ...group,
-      buckets: group.buckets.map(bucket => 
+      buckets: group.buckets?.map(bucket => 
         bucket.id === bucketId 
-          ? { ...bucket, categories: [...bucket.categories, newCategory] }
+          ? { ...bucket, categories: [...(bucket.categories || []), newCategory] }
           : bucket
-      )
-    }));
+      ) || []
+    })) || [];
 
       saveCategoryGroups.mutate(newGroups);
   };
 
   const handleRemoveCategory = (categoryId: string, bucketId: string) => {
-    const newGroups = categoryGroups.map(group => ({
+    const newGroups = categoryGroups?.map(group => ({
       ...group,
-      buckets: group.buckets.map(bucket => 
+      buckets: group.buckets?.map(bucket => 
         bucket.id === bucketId 
-          ? { ...bucket, categories: bucket.categories.filter(c => c.id !== categoryId) }
+          ? { ...bucket, categories: (bucket.categories || []).filter(c => c.id !== categoryId) }
           : bucket
-      )
-    }));
+      ) || []
+    })) || [];
 
     saveCategoryGroups.mutate(newGroups);
   };
@@ -599,11 +599,11 @@ export const CategoryManager = () => {
       categories: []
     };
 
-    const newGroups = categoryGroups.map(group => 
+    const newGroups = categoryGroups?.map(group => 
       group.id === groupId 
-        ? { ...group, buckets: [...group.buckets, newBucket] }
+        ? { ...group, buckets: [...(group.buckets || []), newBucket] }
         : group
-    );
+    ) || [];
 
     saveCategoryGroups.mutate(newGroups);
     setAddBucketDialogOpen(false);
@@ -635,8 +635,8 @@ export const CategoryManager = () => {
   };
 
   const collapseAllGroups = () => {
-    const allGroupIds = categoryGroups.map(g => g.id);
-    const allBucketIds = categoryGroups.flatMap(g => g.buckets.map(b => b.id));
+    const allGroupIds = categoryGroups?.map(g => g.id) || [];
+    const allBucketIds = categoryGroups?.flatMap(g => (g.buckets || []).map(b => b.id)) || [];
     setCollapsedGroups(new Set(allGroupIds));
     setCollapsedBuckets(new Set(allBucketIds));
   };
@@ -845,11 +845,11 @@ const AddBucketForm = ({
           required
         >
           <option value="">Select a group</option>
-          {categoryGroups.map((group) => (
+          {categoryGroups?.map((group) => (
             <option key={group.id} value={group.id}>
               {group.icon} {group.name}
             </option>
-          ))}
+          )) || []}
         </select>
       </div>
 
