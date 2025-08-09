@@ -602,6 +602,18 @@ export const CategoryManager = () => {
     setCollapsedBuckets(new Set(allBucketIds));
   };
 
+  const resetCategories = () => {
+    try {
+      localStorage.removeItem('categoryGroups');
+      queryClient.invalidateQueries({ queryKey: ['category-groups'] });
+      setCollapsedGroups(new Set());
+      setCollapsedBuckets(new Set());
+      toast({ title: 'Categories Reset', description: 'Restored default categories.' });
+    } catch (e) {
+      toast({ title: 'Reset Failed', description: 'Could not reset categories.', variant: 'destructive' });
+    }
+  };
+
   if (groupsLoading) {
     return (
       <div className="space-y-6">
@@ -645,6 +657,9 @@ export const CategoryManager = () => {
           <Button variant="outline" size="sm" onClick={collapseAllGroups}>
             Collapse All
           </Button>
+          <Button variant="outline" size="sm" onClick={resetCategories}>
+            Reset Categories
+          </Button>
           <Dialog open={addBucketDialogOpen} onOpenChange={setAddBucketDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm">
@@ -659,10 +674,10 @@ export const CategoryManager = () => {
               <AddBucketForm onAddBucket={handleAddBucket} categoryGroups={categoryGroups} />
             </DialogContent>
           </Dialog>
-        <Button onClick={() => setAddDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Category
-        </Button>
+          <Button onClick={() => setAddDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Category
+          </Button>
         </div>
       </div>
 
