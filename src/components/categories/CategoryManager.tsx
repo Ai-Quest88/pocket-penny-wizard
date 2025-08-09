@@ -450,40 +450,6 @@ const defaultCategoryGroups: CategoryGroup[] = [
       }
     ]
   },
-  {
-    id: "adjustments",
-    name: "Adjustments",
-    type: "Adjustments",
-    description: "Corrections and reconciliations",
-    color: "bg-gray-50 border-gray-200",
-    icon: "⚙️",
-    buckets: [
-      {
-        id: "reconciliations",
-        name: "Reconciliations",
-        description: "Account reconciliations",
-        color: "bg-gray-100 border-gray-300",
-        icon: "🔍",
-        groupId: "adjustments",
-        categories: [
-          { id: "bank-reconciliations", name: "Bank Reconciliations", description: "Bank account adjustments" },
-          { id: "corrections", name: "Corrections", description: "Transaction corrections" },
-          { id: "adjustments", name: "Adjustments", description: "General adjustments" }
-        ]
-      },
-      {
-        id: "uncategorized",
-        name: "Uncategorized",
-        description: "Uncategorized transactions",
-        color: "bg-gray-100 border-gray-300",
-        icon: "❓",
-        groupId: "adjustments",
-        categories: [
-          { id: "uncategorized", name: "Uncategorized", description: "Uncategorized transactions" }
-        ]
-      }
-    ]
-  }
 ];
 
 export const CategoryManager = () => {
@@ -501,9 +467,14 @@ export const CategoryManager = () => {
     queryFn: async () => {
       const stored = localStorage.getItem('categoryGroups');
       if (stored) {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        // Ensure the Adjustments group is removed if it exists in persisted data
+        return Array.isArray(parsed)
+          ? parsed.filter((g: any) => g?.id !== 'adjustments' && g?.type !== 'Adjustments')
+          : defaultCategoryGroups;
       }
-      return defaultCategoryGroups;
+      // Also ensure defaults do not include Adjustments
+      return defaultCategoryGroups.filter((g) => g.id !== 'adjustments' && g.type !== 'Adjustments');
     },
     enabled: !!session?.user?.id,
   });
