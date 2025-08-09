@@ -48,7 +48,9 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
     accountNumber: "",
     address: "",
     openingBalance: 0,
-    openingBalanceDate: new Date().toISOString().split('T')[0]
+    openingBalanceDate: new Date().toISOString().split('T')[0],
+    currency: "USD",
+    country: "US"
   })
 
   // Fetch entities from Supabase
@@ -114,7 +116,9 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
         accountNumber: "",
         address: "",
         openingBalance: 0,
-        openingBalanceDate: new Date().toISOString().split('T')[0]
+        openingBalanceDate: new Date().toISOString().split('T')[0],
+        currency: "USD",
+        country: "US"
       })
       setOpeningBalanceDate(new Date().toISOString().split('T')[0])
       setSelectedEntityId("")

@@ -823,7 +823,7 @@ const AddBucketForm = ({
       icon: icon,
       categories: [],
       groupId: selectedGroupId
-    });
+    }, selectedGroupId);
     
     setName('');
     setDescription('');

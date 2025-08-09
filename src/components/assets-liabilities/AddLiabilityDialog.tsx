@@ -45,7 +45,9 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
     history: [],
     openingBalance: 0,
     openingBalanceDate: new Date().toISOString().split('T')[0],
-    creditLimit: 0
+    creditLimit: 0,
+    currency: "USD",
+    country: "US"
   })
 
   // Fetch entities from Supabase
@@ -171,7 +173,9 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
       history: [],
       openingBalance: 0,
       openingBalanceDate: new Date().toISOString().split('T')[0],
-      creditLimit: 0
+      creditLimit: 0,
+      currency: "USD",
+      country: "US"
     })
     setSelectedEntityId("")
     setOpeningBalanceDate(new Date().toISOString().split('T')[0])
@@ -194,7 +198,9 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
         history: [],
         openingBalance: 0,
         openingBalanceDate: new Date().toISOString().split('T')[0],
-        creditLimit: 0
+        creditLimit: 0,
+        currency: "USD",
+        country: "US"
       })
       setSelectedEntityId("")
       setOpeningBalanceDate(new Date().toISOString().split('T')[0])

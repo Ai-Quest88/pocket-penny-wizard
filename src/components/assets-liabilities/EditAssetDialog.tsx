@@ -45,7 +45,9 @@ export function EditAssetDialog({ asset, onEditAsset }: EditAssetDialogProps) {
     accountNumber: asset.accountNumber || "",
     address: asset.address || "",
     openingBalance: asset.openingBalance || 0,
-    openingBalanceDate: asset.openingBalanceDate || new Date().toISOString().split('T')[0]
+    openingBalanceDate: asset.openingBalanceDate || new Date().toISOString().split('T')[0],
+    currency: asset.currency,
+    country: asset.country
   })
 
   // Fetch entities from Supabase

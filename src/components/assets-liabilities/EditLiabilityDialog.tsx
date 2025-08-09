@@ -47,7 +47,9 @@ export function EditLiabilityDialog({ liability, onEditLiability }: EditLiabilit
     monthlyPayment: liability.monthlyPayment,
     openingBalance: liability.openingBalance || 0,
     openingBalanceDate: liability.openingBalanceDate || new Date().toISOString().split('T')[0],
-    creditLimit: liability.creditLimit || 0
+    creditLimit: liability.creditLimit || 0,
+    currency: liability.currency,
+    country: liability.country
   })
 
   // Fetch entities from Supabase
