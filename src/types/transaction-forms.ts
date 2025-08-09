@@ -47,10 +47,16 @@ export const categoryBuckets: CategoryBucket[] = [
   {
     name: "Financial",
     categories: [
-      "Banking", "Investment", "Taxes", "Legal", "Transfer", "Internal Transfer", "Income",
-      "Salary", "Business", "Freelance", "Interest", "Dividends",
+      "Banking", "Investment", "Taxes", "Legal",
+      "Income", "Salary", "Business", "Freelance", "Interest", "Dividends",
       "Other Income", "Rental Income", "Government Benefits", "Pension",
       "Child Support", "Alimony", "Gifts Received", "Refunds", "Cryptocurrency"
+    ]
+  },
+  {
+    name: "Transfers",
+    categories: [
+      "Internal Transfer"
     ]
   },
   {

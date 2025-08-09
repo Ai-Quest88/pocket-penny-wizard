@@ -18,6 +18,30 @@ export const AddCategoryDialog = ({ open, onOpenChange, onAddCategory }: AddCate
   const [categoryName, setCategoryName] = useState("");
   const [selectedBucket, setSelectedBucket] = useState("");
 
+  // Buckets from Category Manager (localStorage) with fallback
+  const availableBuckets = (() => {
+    try {
+      const stored = localStorage.getItem('categoryGroups');
+      if (stored) {
+        const groups = JSON.parse(stored);
+        if (Array.isArray(groups) && groups.length) {
+          return groups
+            .flatMap((g: any) => Array.isArray(g?.buckets) ? g.buckets : [])
+            .map((b: any) => ({
+              name: String(b?.name || '').trim(),
+              categories: Array.isArray(b?.categories)
+                ? b.categories.map((c: any) => String(c?.name || '').trim()).filter((n: string) => n.length > 0)
+                : []
+            }))
+            .filter((b: any) => b.name.length > 0 && b.categories.length > 0);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load categoryGroups from localStorage:', e);
+    }
+    return categoryBuckets;
+  })();
+
   const handleSubmit = () => {
     if (!categoryName.trim() || !selectedBucket) return;
 
@@ -55,9 +79,9 @@ export const AddCategoryDialog = ({ open, onOpenChange, onAddCategory }: AddCate
                 position="popper"
                 sideOffset={4}
               >
-                {categoryBuckets
-                  .filter(bucket => bucket.name && bucket.name.trim() !== "") // Filter out empty bucket names
-                  .map((bucket) => (
+                {availableBuckets
+                  .filter((bucket: any) => bucket.name && bucket.name.trim() !== "")
+                  .map((bucket: any) => (
                     <SelectItem 
                       key={bucket.name} 
                       value={bucket.name}

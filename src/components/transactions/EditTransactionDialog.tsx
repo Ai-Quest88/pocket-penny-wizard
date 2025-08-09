@@ -58,6 +58,30 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [availableBuckets, setAvailableBuckets] = useState<CategoryBucket[]>(categoryBuckets);
+
+  // Load buckets from Category Manager (localStorage) if available
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('categoryGroups');
+      if (stored) {
+        const groups = JSON.parse(stored);
+        if (Array.isArray(groups) && groups.length) {
+          const mapped: CategoryBucket[] = groups
+            .flatMap((g: any) => Array.isArray(g?.buckets) ? g.buckets : [])
+            .map((b: any) => ({
+              name: String(b?.name || '').trim(),
+              categories: Array.isArray(b?.categories)
+                ? b.categories.map((c: any) => String(c?.name || '').trim()).filter((n: string) => n.length > 0)
+                : []
+            }))
+            .filter((b: CategoryBucket) => b.name.length > 0 && b.categories.length > 0);
+          if (mapped.length) setAvailableBuckets(mapped);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load categoryGroups from localStorage:', e);
+    }
+  }, []);
   const queryClient = useQueryClient();
   
   const isUncategorized = transaction?.category === 'Uncategorized';

@@ -423,29 +423,14 @@ const defaultCategoryGroups: CategoryGroup[] = [
     icon: "🔄",
     buckets: [
       {
-        id: "account-transfers",
-        name: "Account Transfers",
-        description: "Between your accounts",
+        id: "transfers-internal",
+        name: "Transfers",
+        description: "Internal account-to-account",
         color: "bg-purple-100 border-purple-300",
-        icon: "🏦",
+        icon: "🔄",
         groupId: "transfers",
         categories: [
-          { id: "between-accounts", name: "Between Accounts", description: "Account to account transfers" },
-          { id: "atm-withdrawals", name: "ATM Withdrawals", description: "Cash withdrawals" },
-          { id: "deposits", name: "Deposits", description: "Cash deposits" }
-        ]
-      },
-      {
-        id: "investment-transfers",
-        name: "Investment Transfers",
-        description: "Investment account movements",
-        color: "bg-purple-100 border-purple-300",
-        icon: "📊",
-        groupId: "transfers",
-        categories: [
-          { id: "contributions", name: "Contributions", description: "Investment contributions" },
-          { id: "withdrawals", name: "Withdrawals", description: "Investment withdrawals" },
-          { id: "rollovers", name: "Rollovers", description: "Account rollovers" }
+          { id: "internal-transfer", name: "Internal Transfer", description: "Ignore in cashflow and income/expense reports" }
         ]
       }
     ]
@@ -467,13 +452,17 @@ export const CategoryManager = () => {
     queryFn: async () => {
       const stored = localStorage.getItem('categoryGroups');
       if (stored) {
-        const parsed = JSON.parse(stored);
-        // Ensure the Adjustments group is removed if it exists in persisted data
-        return Array.isArray(parsed)
-          ? parsed.filter((g: any) => g?.id !== 'adjustments' && g?.type !== 'Adjustments')
-          : defaultCategoryGroups;
+        try {
+          const parsed = JSON.parse(stored);
+          // Ensure the Adjustments group is removed if it exists in persisted data
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed.filter((g: any) => g?.id !== 'adjustments' && g?.type !== 'Adjustments');
+          }
+        } catch (e) {
+          console.warn('Failed to parse categoryGroups from localStorage:', e);
+        }
       }
-      // Also ensure defaults do not include Adjustments
+      // Fallback to defaults if nothing stored or stored is empty; also ensure Adjustments are excluded
       return defaultCategoryGroups.filter((g) => g.id !== 'adjustments' && g.type !== 'Adjustments');
     },
     enabled: !!session?.user?.id,
