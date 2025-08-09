@@ -27,14 +27,15 @@ export const AddCategoryDialog = ({
   const [selectedBucketId, setSelectedBucketId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const groups = (categoryGroups ?? []) as CategoryGroup[];
   // Get all existing category names for validation
-  const existingCategories = categoryGroups.flatMap(group => 
-    group.buckets.flatMap(bucket => bucket.categories.map(cat => cat.name))
+  const existingCategories = groups.flatMap(group => 
+    (group.buckets ?? []).flatMap(bucket => (bucket.categories ?? []).map(cat => cat.name))
   );
 
   // Get available buckets for the selected group
   const availableBuckets = selectedGroupId 
-    ? categoryGroups.find(group => group.id === selectedGroupId)?.buckets || []
+    ? (groups.find(group => group.id === selectedGroupId)?.buckets ?? [])
     : [];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -147,7 +148,7 @@ export const AddCategoryDialog = ({
                 <SelectValue placeholder="Select a group..." />
               </SelectTrigger>
               <SelectContent>
-                {categoryGroups.map((group) => (
+                {groups.map((group) => (
                   <SelectItem key={group.id} value={group.id}>
                     <div className="flex items-center gap-2">
                       <span className="text-lg">{group.icon}</span>
