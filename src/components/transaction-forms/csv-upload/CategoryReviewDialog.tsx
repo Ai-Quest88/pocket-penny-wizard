@@ -11,7 +11,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Brain, CheckCircle, AlertCircle, Clock, HelpCircle } from "lucide-react";
-import { categories } from "@/types/transaction-forms";
 import { addUserCategoryRule } from "@/utils/transactionCategories";
 
 interface Transaction {
@@ -240,7 +239,7 @@ export const CategoryReviewDialog = ({
                               <SelectValue placeholder="Select category" />
                             </SelectTrigger>
                             <SelectContent className="max-h-48 overflow-y-auto z-50">
-                              {categories.map((category) => (
+                              {['Groceries', 'Restaurants', 'Gas & Fuel', 'Shopping', 'Entertainment', 'Healthcare', 'Insurance', 'Utilities', 'Transportation', 'Education', 'Travel', 'Gifts & Donations', 'Personal Care', 'Professional Services', 'Home & Garden', 'Electronics', 'Clothing', 'Books', 'Subscriptions', 'Banking', 'Investment', 'Taxes', 'Legal', 'Uncategorized', 'Transfer In', 'Transfer Out', 'Internal Transfer', 'Income', 'Salary', 'Business', 'Freelance', 'Interest', 'Dividends', 'Other Income', 'Rental Income', 'Government Benefits', 'Pension', 'Child Support', 'Alimony', 'Gifts Received', 'Refunds', 'Cryptocurrency', 'Fast Food', 'Public Transport', 'Tolls', 'Food Delivery'].map((category) => (
                                 <SelectItem key={category} value={category}>
                                   {category}
                                 </SelectItem>

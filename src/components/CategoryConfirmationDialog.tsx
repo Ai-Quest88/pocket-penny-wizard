@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CheckCircle, X, Edit2, Loader2, Brain, AlertCircle, Sparkles } from "lucide-react"
-import { categories } from "@/types/transaction-forms"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface CategorySuggestion {
@@ -167,7 +166,7 @@ export const CategoryConfirmationDialog = ({
                                 <SelectValue placeholder={isUncategorized ? "Choose category..." : "Change category..."} />
                               </SelectTrigger>
                               <SelectContent>
-                                {categories.filter(cat => cat !== 'Uncategorized').map((category) => (
+                                {['Groceries', 'Restaurants', 'Gas & Fuel', 'Shopping', 'Entertainment', 'Healthcare', 'Insurance', 'Utilities', 'Transportation', 'Education', 'Travel', 'Gifts & Donations', 'Personal Care', 'Professional Services', 'Home & Garden', 'Electronics', 'Clothing', 'Books', 'Subscriptions', 'Banking', 'Investment', 'Taxes', 'Legal', 'Transfer In', 'Transfer Out', 'Internal Transfer', 'Income', 'Salary', 'Business', 'Freelance', 'Interest', 'Dividends', 'Other Income', 'Rental Income', 'Government Benefits', 'Pension', 'Child Support', 'Alimony', 'Gifts Received', 'Refunds', 'Cryptocurrency', 'Fast Food', 'Public Transport', 'Tolls', 'Food Delivery'].filter(cat => cat !== 'Uncategorized').map((category) => (
                                   <SelectItem key={category} value={category}>
                                     {category}
                                   </SelectItem>

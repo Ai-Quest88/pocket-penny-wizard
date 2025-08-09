@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -7,8 +6,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { categoryBuckets, CategoryBucket } from "@/types/transaction-forms";
 import { TransactionInfo } from "./TransactionInfo";
 import { CategorySelect } from "./CategorySelect";
@@ -55,34 +55,67 @@ interface EditTransactionDialogProps {
 
 export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditTransactionDialogProps) => {
   const { toast } = useToast();
+  const { session } = useAuth();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [availableBuckets, setAvailableBuckets] = useState<CategoryBucket[]>(categoryBuckets);
+  const [availableBuckets, setAvailableBuckets] = useState<CategoryBucket[]>([]);
 
-  // Load buckets from Category Manager (localStorage) if available
+  // Fetch user's categories from Supabase
+  const { data: userCategoryBuckets = [], isLoading: categoriesLoading } = useQuery({
+    queryKey: ['user-category-buckets', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return [];
+
+      const { data: groups } = await supabase
+        .from('category_groups')
+        .select('id,key,name,sort_order')
+        .order('sort_order', { ascending: true });
+
+      const { data: buckets } = await supabase
+        .from('category_buckets')
+        .select('id,name,group_id,sort_order')
+        .eq('user_id', session.user.id)
+        .order('sort_order', { ascending: true });
+
+      const { data: cats } = await supabase
+        .from('categories')
+        .select('id,name,bucket_id,is_transfer,sort_order')
+        .eq('user_id', session.user.id)
+        .order('sort_order', { ascending: true });
+
+      // Group categories by bucket
+      const bucketMap = new Map<string, string[]>();
+      (buckets || []).forEach((bucket: any) => {
+        bucketMap.set(bucket.id, []);
+      });
+
+      (cats || []).forEach((cat: any) => {
+        const existing = bucketMap.get(cat.bucket_id) || [];
+        existing.push(cat.name);
+        bucketMap.set(cat.bucket_id, existing);
+      });
+
+      // Convert to CategoryBucket format
+      const result: CategoryBucket[] = (buckets || []).map((bucket: any) => ({
+        name: bucket.name,
+        categories: bucketMap.get(bucket.id) || []
+      }));
+
+      return result;
+    },
+    enabled: !!session?.user,
+  });
+
+  // Update available buckets when user categories load
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('categoryGroups');
-      if (stored) {
-        const groups = JSON.parse(stored);
-        if (Array.isArray(groups) && groups.length) {
-          const mapped: CategoryBucket[] = groups
-            .flatMap((g: any) => Array.isArray(g?.buckets) ? g.buckets : [])
-            .map((b: any) => ({
-              name: String(b?.name || '').trim(),
-              categories: Array.isArray(b?.categories)
-                ? b.categories.map((c: any) => String(c?.name || '').trim()).filter((n: string) => n.length > 0)
-                : []
-            }))
-            .filter((b: CategoryBucket) => b.name.length > 0 && b.categories.length > 0);
-          if (mapped.length) setAvailableBuckets(mapped);
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to load categoryGroups from localStorage:', e);
+    if (userCategoryBuckets.length > 0) {
+      setAvailableBuckets(userCategoryBuckets);
+    } else {
+      // Fallback to default categories
+      setAvailableBuckets(categoryBuckets);
     }
-  }, []);
-  const queryClient = useQueryClient();
+  }, [userCategoryBuckets]);
   
   const isUncategorized = transaction?.category === 'Uncategorized';
 

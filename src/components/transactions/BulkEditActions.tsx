@@ -17,7 +17,6 @@ import { Trash2, Edit, X, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { categories } from "@/types/transaction-forms";
 import { useQueryClient } from "@tanstack/react-query";
 import { Progress } from "@/components/ui/progress";
 
@@ -157,13 +156,7 @@ export const BulkEditActions = ({
   if (selectedTransactions.length === 0) return null;
 
   // Comprehensive filtering to prevent empty categories
-  const validCategories = categories.filter(cat => cat && typeof cat === 'string' && cat.trim() !== "");
-  
-  // Debug logging
-  console.log("BulkEditActions validCategories:", validCategories);
-  if (validCategories.length !== categories.length) {
-    console.warn("Filtered out empty categories:", categories.filter(cat => !cat || cat.trim() === ""));
-  }
+  const validCategories = ['Groceries', 'Restaurants', 'Gas & Fuel', 'Shopping', 'Entertainment', 'Healthcare', 'Insurance', 'Utilities', 'Transportation', 'Education', 'Travel', 'Gifts & Donations', 'Personal Care', 'Professional Services', 'Home & Garden', 'Electronics', 'Clothing', 'Books', 'Subscriptions', 'Banking', 'Investment', 'Taxes', 'Legal', 'Uncategorized', 'Transfer In', 'Transfer Out', 'Internal Transfer', 'Income', 'Salary', 'Business', 'Freelance', 'Interest', 'Dividends', 'Other Income', 'Rental Income', 'Government Benefits', 'Pension', 'Child Support', 'Alimony', 'Gifts Received', 'Refunds', 'Cryptocurrency', 'Fast Food', 'Public Transport', 'Tolls', 'Food Delivery'].filter(cat => cat && typeof cat === 'string' && cat.trim() !== "");
 
   return (
     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">

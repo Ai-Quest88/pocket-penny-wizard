@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, Plus } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
-import { categories, currencies } from "@/types/transaction-forms"
+import { currencies } from "@/types/transaction-forms"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/contexts/AuthContext"
@@ -116,6 +116,40 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
     enabled: !!session?.user,
   });
 
+  // Fetch user's categories from Supabase
+  const { data: userCategories = [], isLoading: categoriesLoading } = useQuery({
+    queryKey: ['user-categories', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return [];
+
+      const { data: groups } = await supabase
+        .from('category_groups')
+        .select('id,key,name,sort_order')
+        .order('sort_order', { ascending: true });
+
+      const { data: buckets } = await supabase
+        .from('category_buckets')
+        .select('id,name,group_id,sort_order')
+        .eq('user_id', session.user.id)
+        .order('sort_order', { ascending: true });
+
+      const { data: cats } = await supabase
+        .from('categories')
+        .select('id,name,bucket_id,is_transfer,sort_order')
+        .eq('user_id', session.user.id)
+        .order('sort_order', { ascending: true });
+
+      // Flatten all categories into a simple array
+      const allCategories: string[] = [];
+      (cats || []).forEach((cat: any) => {
+        allCategories.push(cat.name);
+      });
+
+      return allCategories;
+    },
+    enabled: !!session?.user,
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -189,21 +223,18 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
     }
   }
 
-  // Enhanced filtering with comprehensive validation for categories
-  const validCategories = categories
-    .filter(cat => {
-      const isValid = cat && 
-        typeof cat === 'string' && 
-        cat.trim().length > 0;
-      
-      if (!isValid) {
-        console.warn("Filtering out invalid category:", cat);
-      }
-      
-      return isValid;
-    })
-    .map(cat => cat.trim())
-    .filter(cat => cat.length > 0);
+  // Use user's categories if available, fallback to default categories
+  const validCategories = userCategories.length > 0 
+    ? userCategories
+    : ['Groceries', 'Restaurants', 'Gas & Fuel', 'Shopping', 'Entertainment',
+       'Healthcare', 'Insurance', 'Utilities', 'Transportation', 'Education',
+       'Travel', 'Gifts & Donations', 'Personal Care', 'Professional Services',
+       'Home & Garden', 'Electronics', 'Clothing', 'Books', 'Subscriptions',
+       'Banking', 'Investment', 'Taxes', 'Legal', 'Uncategorized', 'Transfer In', 'Transfer Out', 'Internal Transfer',
+       'Income', 'Salary', 'Business', 'Freelance', 'Interest', 'Dividends',
+       'Other Income', 'Rental Income', 'Government Benefits', 'Pension',
+       'Child Support', 'Alimony', 'Gifts Received', 'Refunds',
+       'Cryptocurrency', 'Fast Food', 'Public Transport', 'Tolls', 'Food Delivery'];
 
   // Enhanced filtering with comprehensive validation for currencies
   const validCurrencies = currencies
@@ -296,8 +327,8 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
-              <Select value={category} onValueChange={setCategory} required>
+              <Label htmlFor="category">Category {categoriesLoading && '(Loading...)'}</Label>
+              <Select value={category} onValueChange={setCategory} disabled={categoriesLoading} required>
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
