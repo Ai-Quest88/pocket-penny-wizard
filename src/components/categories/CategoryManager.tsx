@@ -354,7 +354,7 @@ const defaultCategoryGroups: CategoryGroup[] = [
     ]
   },
   {
-    id: "liability",
+    id: "liabilities",
     name: "Liabilities",
     type: "Liability",
     description: "Money you owe",
@@ -367,7 +367,7 @@ const defaultCategoryGroups: CategoryGroup[] = [
         description: "Credit card debt",
         color: "bg-orange-100 border-orange-300",
         icon: "💳",
-        groupId: "liability",
+        groupId: "liabilities",
         categories: [
           { id: "personal-cards", name: "Personal Cards", description: "Personal credit cards" },
           { id: "business-cards", name: "Business Cards", description: "Business credit cards" },
@@ -380,7 +380,7 @@ const defaultCategoryGroups: CategoryGroup[] = [
         description: "Personal and business loans",
         color: "bg-orange-100 border-orange-300",
         icon: "📋",
-        groupId: "liability",
+        groupId: "liabilities",
         categories: [
           { id: "personal-loans", name: "Personal Loans", description: "Personal loan debt" },
           { id: "student-loans", name: "Student Loans", description: "Education loan debt" },
@@ -393,7 +393,7 @@ const defaultCategoryGroups: CategoryGroup[] = [
         description: "Property loans",
         color: "bg-orange-100 border-orange-300",
         icon: "🏠",
-        groupId: "liability",
+        groupId: "liabilities",
         categories: [
           { id: "primary-mortgage", name: "Primary Mortgage", description: "Main home mortgage" },
           { id: "investment-mortgages", name: "Investment Mortgages", description: "Investment property loans" }
@@ -405,7 +405,7 @@ const defaultCategoryGroups: CategoryGroup[] = [
         description: "Other debt obligations",
         color: "bg-orange-100 border-orange-300",
         icon: "📄",
-        groupId: "liability",
+        groupId: "liabilities",
         categories: [
           { id: "medical-bills", name: "Medical Bills", description: "Medical debt" },
           { id: "tax-debt", name: "Tax Debt", description: "Tax obligations" },
@@ -451,7 +451,7 @@ export const CategoryManager = () => {
     income: defaultCategoryGroups.find(g => g.id === 'income'),
     expenses: defaultCategoryGroups.find(g => g.id === 'expenses'),
     assets: defaultCategoryGroups.find(g => g.id === 'assets'),
-    liability: defaultCategoryGroups.find(g => g.id === 'liability'),
+    liabilities: defaultCategoryGroups.find(g => g.id === 'liabilities'),
     transfers: defaultCategoryGroups.find(g => g.id === 'transfers'),
   };
 
@@ -480,17 +480,36 @@ export const CategoryManager = () => {
       .select('id,key,name,sort_order')
       .order('sort_order', { ascending: true });
 
-    const { data: buckets } = await supabase
+    const { data: bucketsRaw } = await supabase
       .from('category_buckets')
       .select('id,name,group_id,sort_order')
       .eq('user_id', session.user.id)
       .order('sort_order', { ascending: true });
 
-    const { data: cats } = await supabase
+    const { data: catsRaw } = await supabase
       .from('categories')
       .select('id,name,bucket_id,is_transfer,sort_order')
       .eq('user_id', session.user.id)
       .order('sort_order', { ascending: true });
+
+    let buckets = bucketsRaw || [];
+    let cats = catsRaw || [];
+
+    if (buckets.length === 0 && cats.length === 0) {
+      await supabase.rpc('seed_default_categories');
+      const { data: b2 } = await supabase
+        .from('category_buckets')
+        .select('id,name,group_id,sort_order')
+        .eq('user_id', session.user.id)
+        .order('sort_order', { ascending: true });
+      const { data: c2 } = await supabase
+        .from('categories')
+        .select('id,name,bucket_id,is_transfer,sort_order')
+        .eq('user_id', session.user.id)
+        .order('sort_order', { ascending: true });
+      buckets = b2 || [];
+      cats = c2 || [];
+    }
 
     const groupIdByKey = new Map<string, string>();
     (groups || []).forEach(g => { if ((g as any).key) groupIdByKey.set((g as any).key, (g as any).id); });
@@ -540,7 +559,7 @@ export const CategoryManager = () => {
       buildGroup('income', groupMeta.income),
       buildGroup('expenses', groupMeta.expenses),
       buildGroup('assets', groupMeta.assets),
-      buildGroup('liability', groupMeta.liability),
+      buildGroup('liabilities', groupMeta.liabilities),
       buildGroup('transfers', groupMeta.transfers),
     ];
   };
