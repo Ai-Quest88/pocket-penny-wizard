@@ -565,26 +565,27 @@ export const CategoryManager = () => {
     if (fromBucketId === toBucketId) return;
 
     let categoryToMove: Category | undefined;
-    const newGroups = categoryGroups.map(group => ({
+    const newGroups = categoryGroups?.map(group => ({
       ...group,
-      buckets: group.buckets.map(bucket => {
+      buckets: group.buckets?.map(bucket => {
         if (bucket.id === fromBucketId) {
-          categoryToMove = bucket.categories.find(c => c.id === categoryId);
+          categoryToMove = (bucket.categories || []).find(c => c.id === categoryId);
           return {
             ...bucket,
-            categories: bucket.categories.filter(c => c.id !== categoryId)
+            categories: (bucket.categories || []).filter(c => c.id !== categoryId)
           };
         }
         return bucket;
-      })
-    }));
+      }) || []
+    })) || [];
 
     if (categoryToMove) {
       newGroups.forEach(group => {
-        group.buckets.forEach(bucket => {
+        group.buckets = (group.buckets || []).map(bucket => {
           if (bucket.id === toBucketId) {
-            bucket.categories.push(categoryToMove!);
+            return { ...bucket, categories: [ ...(bucket.categories || []), categoryToMove! ] };
           }
+          return bucket;
         });
       });
     }
@@ -706,7 +707,7 @@ export const CategoryManager = () => {
       </div>
 
       {/* Category Groups */}
-        {categoryGroups.map((group) => (
+        {categoryGroups?.map((group) => (
         <Collapsible 
           key={group.id}
           open={!collapsedGroups.has(group.id)} 
@@ -723,13 +724,13 @@ export const CategoryManager = () => {
                 </div>
               </div>
               <Badge variant="secondary">
-                {group.buckets.length} buckets • {group.buckets.reduce((sum, b) => sum + b.categories.length, 0)} categories
+                {(group.buckets?.length ?? 0)} buckets • {(group.buckets?.reduce((sum, b) => sum + (b.categories?.length ?? 0), 0) ?? 0)} categories
               </Badge>
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent>
             <div className="ml-8 mt-4 space-y-4">
-              {group.buckets.map((bucket, index) => (
+              {(group.buckets ?? []).map((bucket, index) => (
                 <div key={bucket.id} className="relative">
                   {/* Connection line */}
                   <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-muted-foreground/30" />
@@ -755,7 +756,7 @@ export const CategoryManager = () => {
         open={addDialogOpen}
         onOpenChange={setAddDialogOpen}
         onAddCategory={handleAddCategory}
-        categoryGroups={categoryGroups}
+        categoryGroups={categoryGroups ?? defaultCategoryGroups}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
