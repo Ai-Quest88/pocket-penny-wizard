@@ -446,10 +446,17 @@ export const CategoryManager = () => {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [collapsedBuckets, setCollapsedBuckets] = useState<Set<string>>(new Set());
 
-  // Fetch category groups from localStorage/database
-  const { data: categoryGroups = defaultCategoryGroups, isLoading: groupsLoading } = useQuery({
-    queryKey: ['category-groups', session?.user?.id],
-    queryFn: async () => {
+  // Supabase helpers for per-user categories
+  const groupMeta = {
+    income: defaultCategoryGroups.find(g => g.id === 'income'),
+    expenses: defaultCategoryGroups.find(g => g.id === 'expenses'),
+    assets: defaultCategoryGroups.find(g => g.id === 'assets'),
+    liability: defaultCategoryGroups.find(g => g.id === 'liability'),
+    transfers: defaultCategoryGroups.find(g => g.id === 'transfers'),
+  };
+
+  const loadFromSupabase = async (): Promise<CategoryGroup[]> => {
+    if (!session?.user?.id) {
       const stored = localStorage.getItem('categoryGroups');
       if (stored) {
         try {
@@ -464,14 +471,142 @@ export const CategoryManager = () => {
       }
       // Fallback to defaults if nothing stored or stored is empty; also ensure Adjustments are excluded
       return defaultCategoryGroups.filter((g) => g.id !== 'adjustments' && g.type !== 'Adjustments');
-    },
-    enabled: !!session?.user?.id,
+    }
+    // Ensure defaults for user
+    await supabase.rpc('seed_default_categories');
+
+    const { data: groups } = await supabase
+      .from('category_groups')
+      .select('id,key,name,sort_order')
+      .order('sort_order', { ascending: true });
+
+    const { data: buckets } = await supabase
+      .from('category_buckets')
+      .select('id,name,group_id,sort_order')
+      .eq('user_id', session.user.id)
+      .order('sort_order', { ascending: true });
+
+    const { data: cats } = await supabase
+      .from('categories')
+      .select('id,name,bucket_id,is_transfer,sort_order')
+      .eq('user_id', session.user.id)
+      .order('sort_order', { ascending: true });
+
+    const groupIdByKey = new Map<string, string>();
+    (groups || []).forEach(g => { if ((g as any).key) groupIdByKey.set((g as any).key, (g as any).id); });
+
+    const bucketsByGroupKey = new Map<string, any[]>();
+    (buckets || []).forEach((b: any) => {
+      const groupKey = [...groupIdByKey.entries()].find(([, id]) => id === b.group_id)?.[0];
+      if (!groupKey) return;
+      const arr = bucketsByGroupKey.get(groupKey) || [];
+      arr.push(b);
+      bucketsByGroupKey.set(groupKey, arr);
+    });
+
+    const catsByBucket = new Map<string, any[]>();
+    (cats || []).forEach((c: any) => {
+      const arr = catsByBucket.get(c.bucket_id) || [];
+      arr.push(c);
+      catsByBucket.set(c.bucket_id, arr);
+    });
+
+    const buildGroup = (key: string, meta: any): CategoryGroup => {
+      const groupBuckets = (bucketsByGroupKey.get(key) || []).map((b: any) => ({
+        id: b.id,
+        name: b.name,
+        description: undefined,
+        color: meta?.buckets?.[0]?.color || 'bg-muted',
+        icon: meta?.icon || '📁',
+        groupId: key,
+        categories: (catsByBucket.get(b.id) || []).map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          description: undefined,
+        })),
+      }));
+      return {
+        id: key,
+        name: meta?.name || key,
+        type: (meta?.type as any) || 'Expense',
+        description: meta?.description,
+        color: meta?.color || 'bg-muted',
+        icon: meta?.icon || '📁',
+        buckets: groupBuckets,
+      } as CategoryGroup;
+    };
+
+    return [
+      buildGroup('income', groupMeta.income),
+      buildGroup('expenses', groupMeta.expenses),
+      buildGroup('assets', groupMeta.assets),
+      buildGroup('liability', groupMeta.liability),
+      buildGroup('transfers', groupMeta.transfers),
+    ];
+  };
+
+  const syncToSupabase = async (groups: CategoryGroup[]) => {
+    if (!session?.user?.id) return;
+    // Map group key -> id
+    const { data: groupsRows } = await supabase.from('category_groups').select('id,key');
+    const groupMap = new Map<string, string>();
+    (groupsRows || []).forEach((g: any) => groupMap.set(g.key, g.id));
+
+    // Upsert buckets and categories
+    for (const g of groups) {
+      const groupId = groupMap.get(g.id);
+      if (!groupId) continue;
+      for (const b of g.buckets || []) {
+        // Try to find existing by name and group
+        const { data: existingBuckets } = await supabase
+          .from('category_buckets')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .eq('group_id', groupId)
+          .eq('name', b.name)
+          .limit(1);
+        let bucketId = existingBuckets && existingBuckets[0]?.id;
+        if (!bucketId) {
+          const { data: inserted, error: ibErr } = await supabase
+            .from('category_buckets')
+            .insert([{ user_id: session.user.id, group_id: groupId, name: b.name }])
+            .select('id')
+            .single();
+          if (ibErr) {
+            console.warn('Bucket upsert error', ibErr);
+            continue;
+          }
+          bucketId = inserted?.id;
+        }
+        // Upsert categories
+        for (const c of b.categories || []) {
+          const { data: existingCat } = await supabase
+            .from('categories')
+            .select('id')
+            .eq('user_id', session.user.id)
+            .eq('bucket_id', bucketId)
+            .eq('name', c.name)
+            .limit(1);
+          if (!existingCat || existingCat.length === 0) {
+            await supabase.from('categories').insert([{ user_id: session.user.id, bucket_id: bucketId, name: c.name }]);
+          }
+        }
+      }
+    }
+  };
+
+  // Fetch category groups (Supabase when authenticated, else localStorage/defaults)
+  const { data: categoryGroups = defaultCategoryGroups, isLoading: groupsLoading } = useQuery({
+    queryKey: ['category-groups', session?.user?.id],
+    queryFn: loadFromSupabase,
+    enabled: true,
   });
 
   // Save category groups mutation
   const saveCategoryGroups = useMutation({
     mutationFn: async (groups: CategoryGroup[]) => {
       localStorage.setItem('categoryGroups', JSON.stringify(groups));
+      await syncToSupabase(groups);
       return groups;
     },
     onSuccess: () => {
@@ -481,7 +616,7 @@ export const CategoryManager = () => {
         description: "Category structure has been updated successfully.",
       });
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: "Error",
         description: "Failed to update category structure.",
@@ -602,10 +737,15 @@ export const CategoryManager = () => {
     setCollapsedBuckets(new Set(allBucketIds));
   };
 
-  const resetCategories = () => {
+  const resetCategories = async () => {
     try {
       localStorage.removeItem('categoryGroups');
-      queryClient.invalidateQueries({ queryKey: ['category-groups'] });
+      if (session?.user?.id) {
+        await supabase.from('categories').delete().eq('user_id', session.user.id);
+        await supabase.from('category_buckets').delete().eq('user_id', session.user.id);
+        await supabase.rpc('seed_default_categories');
+      }
+      queryClient.invalidateQueries({ queryKey: ['category-groups', session?.user?.id] });
       setCollapsedGroups(new Set());
       setCollapsedBuckets(new Set());
       toast({ title: 'Categories Reset', description: 'Restored default categories.' });

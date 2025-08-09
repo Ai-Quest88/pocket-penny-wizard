@@ -120,6 +120,112 @@ export type Database = {
           },
         ]
       }
+      categories: {
+        Row: {
+          bucket_id: string
+          created_at: string
+          id: string
+          is_transfer: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bucket_id: string
+          created_at?: string
+          id?: string
+          is_transfer?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bucket_id?: string
+          created_at?: string
+          id?: string
+          is_transfer?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_bucket_id_fkey"
+            columns: ["bucket_id"]
+            isOneToOne: false
+            referencedRelation: "category_buckets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      category_buckets: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_buckets_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "category_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      category_groups: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       entities: {
         Row: {
           country_of_residence: string
@@ -335,6 +441,7 @@ export type Database = {
           amount: number
           asset_account_id: string | null
           category: string
+          category_id: string | null
           comment: string | null
           created_at: string | null
           currency: string
@@ -349,6 +456,7 @@ export type Database = {
           amount: number
           asset_account_id?: string | null
           category: string
+          category_id?: string | null
           comment?: string | null
           created_at?: string | null
           currency: string
@@ -363,6 +471,7 @@ export type Database = {
           amount?: number
           asset_account_id?: string | null
           category?: string
+          category_id?: string | null
           comment?: string | null
           created_at?: string | null
           currency?: string
@@ -425,7 +534,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      seed_default_categories: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
