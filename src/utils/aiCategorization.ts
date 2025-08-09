@@ -3,34 +3,33 @@ import { supabase } from '@/integrations/supabase/client';
 
 let isInitialized = false;
 
+// Utility: soft timeout wrapper for supabase.functions.invoke (does not abort underlying fetch)
+async function withTimeout<T>(promise: Promise<T>, ms: number, context: string): Promise<T> {
+  let timeoutId: number | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(`[timeout] ${context} exceeded ${ms}ms`)), ms) as unknown as number;
+  });
+  try {
+    // Race the invoke with a timeout
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
+  }
+}
+
 // Test Google Gemini API connectivity via edge function
 export const testGeminiConnection = async (): Promise<{ success: boolean; error?: string }> => {
   try {
     console.log('Testing Google Gemini API connection via edge function...');
-    
-    const response = await fetch('https://nqqbvlvuzyctmysablzw.supabase.co/functions/v1/categorize-transaction', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xcWJ2bHZ1enljdG15c2FibHp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgzODY0NTIsImV4cCI6MjA1Mzk2MjQ1Mn0.2Z6_5YBxzfsJga8n2vOiTTE3nxPjPpiUcRZe7dpA1V4`
-      },
-      body: JSON.stringify({
-        testMode: true
-      })
-    });
-
-    console.log('Edge function response status:', response.status);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Edge function error details:', errorText);
-      return { 
-        success: false, 
-        error: `HTTP ${response.status}: ${response.statusText} - ${errorText}` 
-      };
+    const { data, error } = await withTimeout(
+      supabase.functions.invoke('categorize-transaction', { body: { testMode: true } }),
+      30000,
+      'testGeminiConnection'
+    );
+    if (error) {
+      console.error('❌ categorize-transaction test error:', error.message);
+      return { success: false, error: error.message };
     }
-
-    const data = await response.json();
     console.log('Google Gemini API test successful via edge function:', data);
     
     if (data.success) {
@@ -509,48 +508,17 @@ async function processBatchWithRetry(
 
       console.log(`📡 Making request to AI service at ${new Date().toISOString()}...`);
       console.log(`📦 Request payload size: ${JSON.stringify(requestBody).length} characters`);
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-      
-      const response = await fetch('https://nqqbvlvuzyctmysablzw.supabase.co/functions/v1/categorize-transaction', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xcWJ2bHZ1enljdG15c2FibHp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgzODY0NTIsImV4cCI6MjA1Mzk2MjQ1Mn0.2Z6_5YBxzfsJga8n2vOiTTE3nxPjPpiUcRZe7dpA1V4`
-        },
-        body: JSON.stringify(requestBody),
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-
+      const { data, error } = await withTimeout(
+        supabase.functions.invoke('categorize-transaction', { body: requestBody }),
+        30000,
+        `batchInvoke attempt ${attempt}`
+      );
       const responseTime = Date.now() - startTime;
-      console.log(`📊 AI Response received in ${responseTime}ms - Status: ${response.status} ${response.statusText}`);
-      console.log(`📋 Response headers:`, Object.fromEntries(response.headers.entries()));
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`❌ AI Service Error Response (${response.status}):`, errorText);
-        
-        // Log specific error details for different status codes
-        if (response.status === 429) {
-          console.error(`🚫 RATE LIMIT: Google Gemini API rate limit exceeded on attempt ${attempt}`);
-        } else if (response.status === 500) {
-          console.error(`💥 SERVER ERROR: Google Gemini API internal server error on attempt ${attempt}`);
-        } else if (response.status === 503) {
-          console.error(`🔧 SERVICE UNAVAILABLE: Google Gemini API temporarily unavailable on attempt ${attempt}`);
-        } else if (response.status === 401) {
-          console.error(`🔑 UNAUTHORIZED: Google Gemini API authentication failed on attempt ${attempt}`);
-        } else if (response.status === 400) {
-          console.error(`📝 BAD REQUEST: Invalid request to Google Gemini API on attempt ${attempt}`);
-          console.error(`📦 Request body that caused error:`, JSON.stringify(requestBody, null, 2));
-        }
-        
-        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+      if (error) {
+        // Log error with context
+        console.error(`❌ AI Service Error (attempt ${attempt}) after ${responseTime}ms:`, error.message);
+        throw new Error(error.message);
       }
-
-      const data = await response.json();
       console.log(`📦 AI Response data received:`, {
         hasCategories: !!data.categories,
         isArray: Array.isArray(data.categories),
@@ -652,20 +620,12 @@ export const categorizeTransactionAI = async (description: string, userId: strin
   console.log(`AI categorization for: "${description}"`);
   
   try {
-    const response = await fetch('https://nqqbvlvuzyctmysablzw.supabase.co/functions/v1/categorize-transaction', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xcWJ2bHZ1enljdG15c2FibHp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgzODY0NTIsImV4cCI6MjA1Mzk2MjQ1Mn0.2Z6_5YBxzfsJga8n2vOiTTE3nxPjPpiUcRZe7dpA1V4`
-      },
-      body: JSON.stringify({ description, userId })
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const data = await response.json();
+    const { data, error } = await withTimeout(
+      supabase.functions.invoke('categorize-transaction', { body: { description, userId } }),
+      30000,
+      'categorizeTransactionAI'
+    );
+    if (error) throw error;
     if (data.category && categories.includes(data.category)) {
       console.log(`Categorized "${description}" -> ${data.category} (source: ${data.source})`);
       return data.category;
@@ -682,20 +642,12 @@ export const categorizeTransactionAI = async (description: string, userId: strin
 // Legacy function for backward compatibility
 export const categorizeTransactionWithAI = async (description: string): Promise<string> => {
   try {
-    const response = await fetch('https://nqqbvlvuzyctmysablzw.supabase.co/functions/v1/categorize-transaction', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xcWJ2bHZ1enljdG15c2FibHp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgzODY0NTIsImV4cCI6MjA1Mzk2MjQ1Mn0.2Z6_5YBxzfsJga8n2vOiTTE3nxPjPpiUcRZe7dpA1V4`
-      },
-      body: JSON.stringify({ description, userId: 'legacy-call' })
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const data = await response.json();
+    const { data, error } = await withTimeout(
+      supabase.functions.invoke('categorize-transaction', { body: { description, userId: 'legacy-call' } }),
+      30000,
+      'categorizeTransactionWithAI'
+    );
+    if (error) throw error;
     if (data.category && categories.includes(data.category)) {
       return data.category;
     }

@@ -1,13 +1,29 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+const allowedOrigins = new Set([
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:3000',
+  'http://localhost:8080',
+  'https://pocket-penny-wizard.lovable.app',
+]);
+
+const buildCorsHeaders = (origin: string | null) => {
+  const isDev = (Deno.env.get('DENO_ENV') || Deno.env.get('ENV') || 'development') !== 'production';
+  const allowOrigin = (origin && allowedOrigins.has(origin))
+    || (isDev && origin?.startsWith('http://localhost:'))
+    ? (origin as string)
+    : 'https://pocket-penny-wizard.lovable.app';
+  return {
+    'Access-Control-Allow-Origin': allowOrigin,
+    'Vary': 'Origin',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  } as Record<string, string>;
 };
 
 // Use Google Gemini API instead of Groq
-const geminiApiKey = Deno.env.get('VITE_GEMINI_API_KEY');
+const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
 
 const availableCategories = [
   'Groceries', 'Restaurants', 'Gas & Fuel', 'Shopping', 'Entertainment', 'Healthcare', 
@@ -181,6 +197,8 @@ const processBatch = async (batch: string[], userId: string): Promise<string[]> 
 };
 
 serve(async (req) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = buildCorsHeaders(origin);
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
