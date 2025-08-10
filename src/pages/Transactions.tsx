@@ -1,17 +1,19 @@
 
 import { Button } from "@/components/ui/button"
-import { PlusCircle, ArrowLeftRight, Upload, Plus } from "lucide-react"
+import { PlusCircle, ArrowLeftRight, Upload, Plus, Search } from "lucide-react"
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { UnifiedCsvUpload } from "@/components/transaction-forms/UnifiedCsvUpload"
 import { ManualTransactionDialog } from "@/components/transactions/ManualTransactionDialog"
 import { TransactionList } from "@/components/TransactionList"
+import { DuplicateDetector } from "@/components/transactions/DuplicateDetector"
 import { useAuth } from "@/contexts/AuthContext"
 import { useNavigate, Link } from "react-router-dom"
 
 const Transactions = () => {
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false)
   const [isManualDialogOpen, setIsManualDialogOpen] = useState(false)
+  const [showDuplicateDetector, setShowDuplicateDetector] = useState(false)
   const { isAuthenticated, session } = useAuth();
   const navigate = useNavigate();
 
@@ -40,6 +42,15 @@ const Transactions = () => {
             <p className="text-muted-foreground">Manage your transactions</p>
           </div>
           <div className="flex items-center gap-2">
+            <Button 
+              variant="outline"
+              className="flex items-center gap-2"
+              onClick={() => setShowDuplicateDetector(true)}
+            >
+              <Search className="h-4 w-4" />
+              Find Duplicates
+            </Button>
+            
             <Link to="/transactions/transfers">
               <Button 
                 variant="outline"
@@ -85,7 +96,11 @@ const Transactions = () => {
           </div>
         </header>
 
-        <TransactionList />
+        {showDuplicateDetector ? (
+          <DuplicateDetector onClose={() => setShowDuplicateDetector(false)} />
+        ) : (
+          <TransactionList />
+        )}
       </div>
     </div>
   )
