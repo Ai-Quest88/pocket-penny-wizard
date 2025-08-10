@@ -100,14 +100,14 @@ ${categoriesText}
 CRITICAL AUSTRALIAN-SPECIFIC RULES:
 1. "Linkt", "toll", "e-toll", "etoll", "citylink", "eastlink", "M1 toll", etc. → Tolls
 2. McDonald's, KFC, Subway, Burger King, Domino's, Hungry Jack's → Fast Food  
-3. Coles, Woolworths, IGA, ALDI → Groceries
-4. Shell, BP, Caltex, Ampol, 7-Eleven (fuel stations) → Gas & Fuel
+3. Coles, Woolworths, IGA, ALDI → Supermarket
+4. Shell, BP, Caltex, Ampol, 7-Eleven (fuel stations) → Fuel
 5. Uber Eats, DoorDash, Menulog, Deliveroo → Food Delivery
-6. Netflix, Spotify, Apple Music, Stan, Disney+ → Subscriptions
-7. Government, ATO, Revenue Office, tax office → Taxes
+6. Netflix, Spotify, Apple Music, Stan, Disney+ → Streaming Services
+7. Government, ATO, Revenue Office, tax office → Legal Fees
 8. Opal, Myki, Go Card, public transport → Public Transport
-9. Telstra, Optus, Vodafone → Utilities
-10. CommBank, NAB, Westpac, ANZ (banking fees) → Banking
+9. Telstra, Optus, Vodafone → Phone
+10. CommBank, NAB, Westpac, ANZ (banking fees) → Insurance
 
 Return ONLY a valid JSON array with objects containing "index" and "category" fields. No markdown, no explanations.
 
@@ -208,9 +208,35 @@ const processBatch = async (batch: string[], userId: string): Promise<string[]> 
       const sortedParsed = parsed.sort((a, b) => (a.index || 0) - (b.index || 0));
       
       const categories = sortedParsed.map(item => {
-        if (item.category && userCategories.includes(item.category)) {
-          return item.category;
+        const category = item.category?.trim();
+        
+        // Try exact match first
+        if (category && userCategories.includes(category)) {
+          return category;
         }
+        
+        // Try case-insensitive match
+        const lowerCategory = category?.toLowerCase();
+        const matchedCategory = userCategories.find(cat => 
+          cat.toLowerCase() === lowerCategory
+        );
+        
+        if (matchedCategory) {
+          return matchedCategory;
+        }
+        
+        // Try partial match for common variations
+        if (lowerCategory) {
+          const partialMatch = userCategories.find(cat => {
+            const lowerCat = cat.toLowerCase();
+            return lowerCat.includes(lowerCategory) || lowerCategory.includes(lowerCat);
+          });
+          
+          if (partialMatch) {
+            return partialMatch;
+          }
+        }
+        
         return 'Uncategorized';
       });
       
