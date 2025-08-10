@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.48.1';
 
 const allowedOrigins = new Set([
   'http://localhost:5173',
@@ -25,7 +26,14 @@ const buildCorsHeaders = (origin: string | null) => {
 // Use Google Gemini API instead of Groq
 const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
 
-const availableCategories = [
+// Supabase client
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+);
+
+// Fallback categories if user has no custom categories
+const fallbackCategories = [
   'Groceries', 'Restaurants', 'Gas & Fuel', 'Shopping', 'Entertainment', 'Healthcare', 
   'Insurance', 'Utilities', 'Transportation', 'Education', 'Travel', 'Gifts & Donations', 
   'Personal Care', 'Professional Services', 'Home & Garden', 'Electronics', 'Clothing', 
@@ -35,6 +43,34 @@ const availableCategories = [
   'Alimony', 'Gifts Received', 'Refunds', 'Cryptocurrency', 'Fast Food', 'Public Transport', 
   'Tolls', 'Food Delivery'
 ];
+
+// Function to get user's custom categories
+const getUserCategories = async (userId: string): Promise<string[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('name')
+      .eq('user_id', userId)
+      .order('sort_order', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching user categories:', error);
+      return fallbackCategories;
+    }
+
+    const userCategories = data?.map(cat => cat.name) || [];
+    
+    // Always include 'Uncategorized' as a fallback option
+    if (!userCategories.includes('Uncategorized')) {
+      userCategories.push('Uncategorized');
+    }
+
+    return userCategories.length > 0 ? userCategories : fallbackCategories;
+  } catch (error) {
+    console.error('Error in getUserCategories:', error);
+    return fallbackCategories;
+  }
+};
 
 // Google Gemini models to use (only flash for better free tier limits)
 const geminiModels = [
@@ -49,7 +85,7 @@ const getNextModel = () => {
   return model;
 };
 
-const createEnhancedPrompt = (input: string[] | string, isBatch: boolean = false) => {
+const createEnhancedPrompt = (input: string[] | string, availableCategories: string[], isBatch: boolean = false) => {
   const categoriesText = availableCategories.join(', ');
   
   if (isBatch && Array.isArray(input)) {
@@ -113,7 +149,8 @@ const chunkArray = (array: string[], chunkSize: number): string[][] => {
 
 // Process a single batch of transactions using Google Gemini
 const processBatch = async (batch: string[], userId: string): Promise<string[]> => {
-  const prompt = createEnhancedPrompt(batch, true);
+  const userCategories = await getUserCategories(userId);
+  const prompt = createEnhancedPrompt(batch, userCategories, true);
   const model = getNextModel();
   
   console.log(`Processing batch of ${batch.length} transactions with Gemini model: ${model}`);
@@ -170,7 +207,7 @@ const processBatch = async (batch: string[], userId: string): Promise<string[]> 
       const sortedParsed = parsed.sort((a, b) => (a.index || 0) - (b.index || 0));
       
       const categories = sortedParsed.map(item => {
-        if (item.category && availableCategories.includes(item.category)) {
+        if (item.category && userCategories.includes(item.category)) {
           return item.category;
         }
         return 'Uncategorized';
@@ -263,7 +300,8 @@ serve(async (req) => {
       throw new Error('Description is required');
     }
 
-    const prompt = createEnhancedPrompt(body.description, false);
+    const userCategories = await getUserCategories(body.userId || '');
+    const prompt = createEnhancedPrompt(body.description, userCategories, false);
     const model = getNextModel();
     
     console.log(`Categorizing single transaction with Gemini model: ${model}`);
@@ -308,7 +346,7 @@ serve(async (req) => {
     const data = await response.json();
     const category = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
 
-    if (category && availableCategories.includes(category)) {
+    if (category && userCategories.includes(category)) {
       return new Response(JSON.stringify({ 
         category,
         source: 'gemini_ai',
