@@ -8,6 +8,7 @@ const allowedOrigins = new Set([
   'http://localhost:3000',
   'http://localhost:8080',
   'https://pocket-penny-wizard.lovable.app',
+  'https://ea5a8953-f452-4559-8101-648db6e66270.lovableproject.com',
 ]);
 
 const buildCorsHeaders = (origin: string | null) => {
