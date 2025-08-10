@@ -1,15 +1,17 @@
 
 import { Button } from "@/components/ui/button"
-import { PlusCircle, ArrowLeftRight } from "lucide-react"
+import { PlusCircle, ArrowLeftRight, Upload, Plus } from "lucide-react"
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { UnifiedCsvUpload } from "@/components/transaction-forms/UnifiedCsvUpload"
+import { ManualTransactionDialog } from "@/components/transactions/ManualTransactionDialog"
 import { TransactionList } from "@/components/TransactionList"
 import { useAuth } from "@/contexts/AuthContext"
 import { useNavigate, Link } from "react-router-dom"
 
 const Transactions = () => {
-  const [isAddingTransaction, setIsAddingTransaction] = useState(false)
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false)
+  const [isManualDialogOpen, setIsManualDialogOpen] = useState(false)
   const { isAuthenticated, session } = useAuth();
   const navigate = useNavigate();
 
@@ -26,12 +28,7 @@ const Transactions = () => {
 
   const handleTransactionUploadSuccess = () => {
     console.log("Transaction upload completed successfully, closing dialog");
-    setIsAddingTransaction(false);
-  };
-
-  const handleDialogOpenChange = (open: boolean) => {
-    console.log("Dialog open state changing to:", open);
-    setIsAddingTransaction(open);
+    setIsUploadDialogOpen(false);
   };
 
   return (
@@ -52,17 +49,23 @@ const Transactions = () => {
                 View Transfers
               </Button>
             </Link>
-            <Dialog open={isAddingTransaction} onOpenChange={handleDialogOpenChange}>
+            
+            <Button 
+              variant="outline"
+              className="flex items-center gap-2"
+              onClick={() => setIsManualDialogOpen(true)}
+            >
+              <Plus className="h-4 w-4" />
+              Add Manually
+            </Button>
+
+            <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
               <DialogTrigger asChild>
                 <Button 
                   className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
-                  onClick={() => {
-                    console.log("Add Transaction button clicked");
-                    setIsAddingTransaction(true);
-                  }}
                 >
-                  <PlusCircle className="h-4 w-4" />
-                  Add Transaction
+                  <Upload className="h-4 w-4" />
+                  Upload CSV
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -74,6 +77,11 @@ const Transactions = () => {
                 </div>
               </DialogContent>
             </Dialog>
+
+            <ManualTransactionDialog 
+              open={isManualDialogOpen} 
+              onOpenChange={setIsManualDialogOpen} 
+            />
           </div>
         </header>
 
