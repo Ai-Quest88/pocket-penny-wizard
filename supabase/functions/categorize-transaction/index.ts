@@ -151,6 +151,7 @@ const chunkArray = (array: string[], chunkSize: number): string[][] => {
 // Process a single batch of transactions using Google Gemini
 const processBatch = async (batch: string[], userId: string): Promise<string[]> => {
   const userCategories = await getUserCategories(userId);
+  console.log('Available user categories:', userCategories);
   const prompt = createEnhancedPrompt(batch, userCategories, true);
   const model = getNextModel();
   
@@ -201,17 +202,22 @@ const processBatch = async (batch: string[], userId: string): Promise<string[]> 
     // Clean up the response - remove markdown formatting if present
     content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     
+    console.log('Raw AI response content:', content);
+    
     const parsed = JSON.parse(content);
+    console.log('Parsed AI response:', parsed);
     
     if (Array.isArray(parsed)) {
       // Sort by index to ensure correct order
       const sortedParsed = parsed.sort((a, b) => (a.index || 0) - (b.index || 0));
       
-      const categories = sortedParsed.map(item => {
+      const categories = sortedParsed.map((item, index) => {
         const category = item.category?.trim();
+        console.log(`Processing item ${index + 1}: AI suggested "${category}"`);
         
         // Try exact match first
         if (category && userCategories.includes(category)) {
+          console.log(`✓ Exact match found: "${category}"`);
           return category;
         }
         
@@ -222,6 +228,7 @@ const processBatch = async (batch: string[], userId: string): Promise<string[]> 
         );
         
         if (matchedCategory) {
+          console.log(`✓ Case-insensitive match found: "${matchedCategory}" for "${category}"`);
           return matchedCategory;
         }
         
@@ -233,10 +240,12 @@ const processBatch = async (batch: string[], userId: string): Promise<string[]> 
           });
           
           if (partialMatch) {
+            console.log(`✓ Partial match found: "${partialMatch}" for "${category}"`);
             return partialMatch;
           }
         }
         
+        console.log(`✗ No match found for "${category}", defaulting to Uncategorized`);
         return 'Uncategorized';
       });
       
