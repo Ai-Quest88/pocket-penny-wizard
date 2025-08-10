@@ -51,12 +51,7 @@ const getUserCategories = async (userId: string): Promise<string[]> => {
     console.log('Fetching categories for userId:', userId);
     const { data, error } = await supabase
       .from('categories')
-      .select(`
-        name,
-        category_buckets!inner(
-          user_id
-        )
-      `)
+      .select('name, category_buckets!inner(user_id)')
       .eq('category_buckets.user_id', userId)
       .order('sort_order', { ascending: true });
 
