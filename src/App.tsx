@@ -172,7 +172,7 @@ const AppRoutes = () => {
             <>
               <AppSidebar />
               <main className="flex-1 relative">
-                <div className="flex justify-between items-center p-4 bg-card/50 backdrop-blur-sm">
+                <div className="flex justify-between items-center p-4 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border/40 sticky top-0 z-30">
                   <div className="flex items-center gap-4">
                     <SidebarTrigger />
                     <img 
