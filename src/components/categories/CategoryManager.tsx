@@ -453,6 +453,15 @@ export const CategoryManager = () => {
     assets: defaultCategoryGroups.find(g => g.id === 'assets'),
     liabilities: defaultCategoryGroups.find(g => g.id === 'liabilities'),
     transfers: defaultCategoryGroups.find(g => g.id === 'transfers'),
+    investments: {
+      id: 'investments',
+      name: 'Investments',
+      type: 'Assets' as const,
+      description: 'Investment portfolios and accounts',
+      color: 'bg-emerald-50 border-emerald-200',
+      icon: '💹',
+      buckets: []
+    },
   };
 
   const loadFromSupabase = async (): Promise<CategoryGroup[]> => {
@@ -493,6 +502,16 @@ export const CategoryManager = () => {
       .order('sort_order', { ascending: true });
 
     console.log('CategoryManager: Buckets fetched:', bucketsRaw);
+    
+    // Log investment group specifically
+    const investmentGroup = groups?.find(g => g.key === 'investments');
+    console.log('CategoryManager: Investment group found:', investmentGroup);
+    
+    const investmentBuckets = bucketsRaw?.filter(b => {
+      const groupMatch = groups?.find(g => g.id === b.group_id);
+      return groupMatch?.key === 'investments';
+    });
+    console.log('CategoryManager: Investment buckets:', investmentBuckets);
 
     const { data: catsRaw } = await supabase
       .from('categories')
@@ -571,6 +590,7 @@ export const CategoryManager = () => {
       buildGroup('assets', groupMeta.assets),
       buildGroup('liabilities', groupMeta.liabilities),
       buildGroup('transfers', groupMeta.transfers),
+      buildGroup('investments', groupMeta.investments),
     ];
   };
 
