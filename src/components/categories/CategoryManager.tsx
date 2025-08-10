@@ -296,18 +296,62 @@ const defaultCategoryGroups: CategoryGroup[] = [
         ]
       },
       {
-        id: "investments",
-        name: "Investments",
-        description: "Investment accounts",
+        id: "shares-etfs",
+        name: "Shares & ETFs",
+        description: "Shares and exchange traded funds",
         color: "bg-blue-100 border-blue-300",
         icon: "📈",
         groupId: "assets",
         categories: [
-          { id: "stocks", name: "Stocks", description: "Individual stocks" },
-          { id: "bonds", name: "Bonds", description: "Bond investments" },
+          { id: "asx-shares", name: "ASX Shares", description: "Australian stock exchange shares" },
+          { id: "international-shares", name: "International Shares", description: "International stock investments" },
           { id: "etfs", name: "ETFs", description: "Exchange traded funds" },
-          { id: "mutual-funds", name: "Mutual Funds", description: "Mutual fund investments" },
-          { id: "retirement-accounts", name: "Retirement Accounts", description: "401k, IRA, etc." }
+          { id: "managed-funds", name: "Managed Funds", description: "Professionally managed funds" },
+          { id: "index-funds", name: "Index Funds", description: "Index tracking funds" }
+        ]
+      },
+      {
+        id: "superannuation",
+        name: "Superannuation",
+        description: "Australian retirement savings",
+        color: "bg-blue-100 border-blue-300",
+        icon: "🏦",
+        groupId: "assets",
+        categories: [
+          { id: "employer-super", name: "Employer Super", description: "Employer contributions" },
+          { id: "salary-sacrifice", name: "Salary Sacrifice", description: "Pre-tax contributions" },
+          { id: "personal-contributions", name: "Personal Contributions", description: "After-tax contributions" },
+          { id: "government-co-contribution", name: "Government Co-contribution", description: "Government matching" },
+          { id: "smsf", name: "SMSF", description: "Self-managed super fund" }
+        ]
+      },
+      {
+        id: "cryptocurrency",
+        name: "Cryptocurrency",
+        description: "Digital currencies",
+        color: "bg-blue-100 border-blue-300",
+        icon: "₿",
+        groupId: "assets",
+        categories: [
+          { id: "bitcoin", name: "Bitcoin", description: "Bitcoin holdings" },
+          { id: "ethereum", name: "Ethereum", description: "Ethereum holdings" },
+          { id: "altcoins", name: "Altcoins", description: "Alternative cryptocurrencies" },
+          { id: "stablecoins", name: "Stablecoins", description: "Stable value cryptocurrencies" }
+        ]
+      },
+      {
+        id: "alternative-investments",
+        name: "Alternative Investments",
+        description: "Non-traditional investments",
+        color: "bg-blue-100 border-blue-300",
+        icon: "💰",
+        groupId: "assets",
+        categories: [
+          { id: "investment-property", name: "Investment Property", description: "Rental property investments" },
+          { id: "reits", name: "REITs", description: "Real estate investment trusts" },
+          { id: "commodities", name: "Commodities", description: "Physical commodities" },
+          { id: "bonds", name: "Bonds", description: "Government and corporate bonds" },
+          { id: "term-deposits", name: "Term Deposits", description: "Fixed term deposits" }
         ]
       },
       {
@@ -453,15 +497,6 @@ export const CategoryManager = () => {
     assets: defaultCategoryGroups.find(g => g.id === 'assets'),
     liabilities: defaultCategoryGroups.find(g => g.id === 'liabilities'),
     transfers: defaultCategoryGroups.find(g => g.id === 'transfers'),
-    investments: {
-      id: 'investments',
-      name: 'Investments',
-      type: 'Assets' as const,
-      description: 'Investment portfolios and accounts',
-      color: 'bg-emerald-50 border-emerald-200',
-      icon: '💹',
-      buckets: []
-    },
   };
 
   const loadFromSupabase = async (): Promise<CategoryGroup[]> => {
@@ -503,15 +538,8 @@ export const CategoryManager = () => {
 
     console.log('CategoryManager: Buckets fetched:', bucketsRaw);
     
-    // Log investment group specifically
-    const investmentGroup = groups?.find(g => g.key === 'investments');
-    console.log('CategoryManager: Investment group found:', investmentGroup);
-    
-    const investmentBuckets = bucketsRaw?.filter(b => {
-      const groupMatch = groups?.find(g => g.id === b.group_id);
-      return groupMatch?.key === 'investments';
-    });
-    console.log('CategoryManager: Investment buckets:', investmentBuckets);
+    // Log groups for debugging
+    console.log('CategoryManager: Groups fetched:', groups);
 
     const { data: catsRaw } = await supabase
       .from('categories')
@@ -587,7 +615,6 @@ export const CategoryManager = () => {
     return [
       buildGroup('income', groupMeta.income),
       buildGroup('expenses', groupMeta.expenses),
-      buildGroup('investments', groupMeta.investments),
       buildGroup('assets', groupMeta.assets),
       buildGroup('liabilities', groupMeta.liabilities),
       buildGroup('transfers', groupMeta.transfers),
