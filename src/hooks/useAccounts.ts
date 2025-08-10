@@ -13,6 +13,7 @@ interface Account {
   accountNumber?: string;
   currentBalance: number;
   accountType: 'asset' | 'liability';
+  currency?: string;
 }
 
 export const useAccounts = () => {
@@ -34,6 +35,7 @@ export const useAccounts = () => {
           category,
           account_number,
           value,
+          currency,
           entity_id,
           entities!inner(
             id,
@@ -59,6 +61,7 @@ export const useAccounts = () => {
           category,
           account_number,
           amount,
+          currency,
           entity_id,
           entities!inner(
             id,
@@ -87,7 +90,8 @@ export const useAccounts = () => {
             entityType: asset.entities.type,
             accountNumber: asset.account_number,
             currentBalance: calculatedBalance?.calculatedBalance || Number(asset.value),
-            accountType: 'asset'
+            accountType: 'asset',
+            currency: asset.currency,
           });
         });
       }
@@ -104,7 +108,8 @@ export const useAccounts = () => {
             entityType: liability.entities.type,
             accountNumber: liability.account_number,
             currentBalance: calculatedBalance?.calculatedBalance || Number(liability.amount),
-            accountType: 'liability'
+            accountType: 'liability',
+            currency: liability.currency,
           });
         });
       }

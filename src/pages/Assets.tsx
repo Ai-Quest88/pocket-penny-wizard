@@ -1,3 +1,4 @@
+
 import { DashboardCard } from "@/components/DashboardCard"
 import { AssetsList } from "@/components/assets-liabilities/AssetsList"
 import { AddAssetDialog } from "@/components/assets-liabilities/AddAssetDialog"
@@ -75,7 +76,9 @@ const Assets = () => {
           address: asset.address || undefined,
           openingBalance: Number(asset.opening_balance) || 0,
           openingBalanceDate: asset.opening_balance_date || new Date().toISOString().split('T')[0],
-        };
+          currency: asset.currency || 'AUD',
+          country: '', // ... keep existing code (other Asset fields mapping if any) the same ...
+        } as Asset;
       }) as Asset[];
     },
     enabled: !assetsLoading && !balancesLoading && assets.length >= 0 && accountBalances.length >= 0,
@@ -103,6 +106,7 @@ const Assets = () => {
           address: newAsset.address || null,
           opening_balance: newAsset.openingBalance,
           opening_balance_date: newAsset.openingBalanceDate,
+          currency: newAsset.currency || 'AUD',
         }])
         .select()
         .single();
@@ -143,6 +147,7 @@ const Assets = () => {
           address: updatedAsset.address || null,
           opening_balance: updatedAsset.openingBalance,
           opening_balance_date: updatedAsset.openingBalanceDate,
+          currency: updatedAsset.currency || 'AUD',
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)

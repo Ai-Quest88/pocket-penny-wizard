@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { fetchExchangeRates, convertAmount, ExchangeRates } from "./currencyUtils";
 
@@ -43,14 +44,14 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
     supabase
       .from('assets')
       .select(`
-        id, name, type, category, account_number, value, opening_balance, opening_balance_date,
+        id, name, type, category, account_number, value, opening_balance, opening_balance_date, currency,
         entities!inner(name, type)
       `)
       .eq('user_id', userId),
     supabase
       .from('liabilities')
       .select(`
-        id, name, type, category, account_number, amount, opening_balance, opening_balance_date,
+        id, name, type, category, account_number, amount, opening_balance, opening_balance_date, currency,
         entities!inner(name, type)
       `)
       .eq('user_id', userId)
@@ -76,6 +77,7 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
     const openingBalanceDate = new Date(asset.opening_balance_date);
     console.log(`🔍 Asset ${asset.name}:`);
     console.log(`  Opening balance date: ${asset.opening_balance_date} (${openingBalanceDate.toISOString()})`);
+    console.log(`  Account currency: ${asset.currency || DEFAULT_CURRENCY}`);
     
     // Find all transactions for this asset account
     const allAccountTransactions = transactions.filter(t => t.asset_account_id === asset.id);
@@ -103,8 +105,14 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
       return sum + convertedAmount;
     }, 0);
     
+    // Convert opening balance from account currency to DEFAULT_CURRENCY
+    const rawOpeningBalance = Number(asset.opening_balance);
+    const openingCurrency = asset.currency || DEFAULT_CURRENCY;
+    const openingBalance = openingCurrency === DEFAULT_CURRENCY || !exchangeRates
+      ? rawOpeningBalance
+      : convertAmount(rawOpeningBalance, openingCurrency, DEFAULT_CURRENCY, exchangeRates);
+
     // For assets: Closing Balance = Opening Balance + Transactions
-    const openingBalance = Number(asset.opening_balance);
     const calculatedBalance = openingBalance + transactionSum;
 
     balances.push({
@@ -117,7 +125,7 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
       calculatedBalance // This is the closing balance
     });
 
-    console.log(`Asset ${asset.name}: Opening ${openingBalance} + Transactions ${transactionSum} = Closing ${calculatedBalance}`);
+    console.log(`Asset ${asset.name}: Opening ${openingBalance} ${DEFAULT_CURRENCY} + Transactions ${transactionSum} = Closing ${calculatedBalance}`);
   });
 
   // Calculate balances for liabilities  
@@ -128,6 +136,8 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
       t.liability_account_id === liability.id && 
       new Date(t.date) >= openingBalanceDate
     );
+    console.log(`🔍 Liability ${liability.name}:`);
+    console.log(`  Account currency: ${liability.currency || DEFAULT_CURRENCY}`);
     
     // Convert transaction amounts to DEFAULT_CURRENCY before summing
     const transactionSum = accountTransactions.reduce((sum, t) => {
@@ -143,7 +153,13 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
       return sum + convertedAmount;
     }, 0);
     
-    const openingBalance = Number(liability.opening_balance);
+    // Convert opening balance from account currency to DEFAULT_CURRENCY
+    const rawOpeningBalance = Number(liability.opening_balance);
+    const openingCurrency = liability.currency || DEFAULT_CURRENCY;
+    const openingBalance = openingCurrency === DEFAULT_CURRENCY || !exchangeRates
+      ? rawOpeningBalance
+      : convertAmount(rawOpeningBalance, openingCurrency, DEFAULT_CURRENCY, exchangeRates);
+
     let calculatedBalance: number;
     
     // Different calculation logic based on liability type

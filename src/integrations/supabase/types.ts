@@ -20,6 +20,7 @@ export type Database = {
           address: string | null
           category: string
           created_at: string
+          currency: string
           entity_id: string
           id: string
           name: string
@@ -35,6 +36,7 @@ export type Database = {
           address?: string | null
           category: string
           created_at?: string
+          currency?: string
           entity_id: string
           id?: string
           name: string
@@ -50,6 +52,7 @@ export type Database = {
           address?: string | null
           category?: string
           created_at?: string
+          currency?: string
           entity_id?: string
           id?: string
           name?: string
@@ -378,6 +381,7 @@ export type Database = {
           category: string
           created_at: string
           credit_limit: number | null
+          currency: string
           entity_id: string
           id: string
           interest_rate: number | null
@@ -396,6 +400,7 @@ export type Database = {
           category: string
           created_at?: string
           credit_limit?: number | null
+          currency?: string
           entity_id: string
           id?: string
           interest_rate?: number | null
@@ -414,6 +419,7 @@ export type Database = {
           category?: string
           created_at?: string
           credit_limit?: number | null
+          currency?: string
           entity_id?: string
           id?: string
           interest_rate?: number | null
