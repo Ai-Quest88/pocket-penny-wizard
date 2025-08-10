@@ -48,11 +48,14 @@ const fallbackCategories = [
 // Function to get user's custom categories
 const getUserCategories = async (userId: string): Promise<string[]> => {
   try {
+    console.log('Fetching categories for userId:', userId);
     const { data, error } = await supabase
       .from('categories')
       .select('name')
       .eq('user_id', userId)
       .order('sort_order', { ascending: true });
+
+    console.log('Categories query result:', { data, error });
 
     if (error) {
       console.error('Error fetching user categories:', error);
@@ -60,12 +63,14 @@ const getUserCategories = async (userId: string): Promise<string[]> => {
     }
 
     const userCategories = data?.map(cat => cat.name) || [];
+    console.log('Raw user categories from DB:', userCategories);
     
     // Always include 'Uncategorized' as a fallback option
     if (!userCategories.includes('Uncategorized')) {
       userCategories.push('Uncategorized');
     }
 
+    console.log('Final user categories array:', userCategories);
     return userCategories.length > 0 ? userCategories : fallbackCategories;
   } catch (error) {
     console.error('Error in getUserCategories:', error);
