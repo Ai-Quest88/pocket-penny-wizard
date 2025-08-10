@@ -456,7 +456,9 @@ export const CategoryManager = () => {
   };
 
   const loadFromSupabase = async (): Promise<CategoryGroup[]> => {
+    console.log('CategoryManager: loadFromSupabase called, user ID:', session?.user?.id);
     if (!session?.user?.id) {
+      console.log('CategoryManager: No user session, loading from localStorage');
       const stored = localStorage.getItem('categoryGroups');
       if (stored) {
         try {
@@ -472,6 +474,8 @@ export const CategoryManager = () => {
       // Fallback to defaults if nothing stored or stored is empty; also ensure Adjustments are excluded
       return defaultCategoryGroups.filter((g) => g.id !== 'adjustments' && g.type !== 'Adjustments');
     }
+    
+    console.log('CategoryManager: Authenticated user, seeding defaults');
     // Ensure defaults for user
     await supabase.rpc('seed_default_categories');
 
@@ -480,17 +484,23 @@ export const CategoryManager = () => {
       .select('id,key,name,sort_order')
       .order('sort_order', { ascending: true });
 
+    console.log('CategoryManager: Groups fetched:', groups);
+
     const { data: bucketsRaw } = await supabase
       .from('category_buckets')
       .select('id,name,group_id,sort_order')
       .eq('user_id', session.user.id)
       .order('sort_order', { ascending: true });
 
+    console.log('CategoryManager: Buckets fetched:', bucketsRaw);
+
     const { data: catsRaw } = await supabase
       .from('categories')
       .select('id,name,bucket_id,is_transfer,sort_order')
       .eq('user_id', session.user.id)
       .order('sort_order', { ascending: true });
+
+    console.log('CategoryManager: Categories fetched:', catsRaw);
 
     let buckets = bucketsRaw || [];
     let cats = catsRaw || [];
