@@ -33,7 +33,10 @@ export const AddCategoryDialog = ({ open, onOpenChange, onAddCategory }: AddCate
         .eq('user_id', session.user.id)
         .order('sort_order', { ascending: true });
 
-      return (buckets || []).map((bucket: any) => bucket.name);
+      // Filter out null/undefined names and ensure they're strings
+      return (buckets || [])
+        .map((bucket: any) => bucket.name)
+        .filter((name: any) => name && typeof name === 'string' && name.trim().length > 0);
     },
     enabled: !!session?.user && open,
   });
@@ -93,7 +96,7 @@ export const AddCategoryDialog = ({ open, onOpenChange, onAddCategory }: AddCate
                 sideOffset={4}
               >
                 {availableBuckets
-                  .filter((bucket: any) => bucket.name && bucket.name.trim() !== "")
+                  .filter((bucket: any) => bucket && bucket.name && typeof bucket.name === 'string' && bucket.name.trim() !== "")
                   .map((bucket: any) => (
                     <SelectItem 
                       key={bucket.name} 
