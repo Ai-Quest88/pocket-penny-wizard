@@ -5,8 +5,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { categoryBuckets } from "@/types/transaction-forms";
 import { Plus } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface AddCategoryDialogProps {
   open: boolean;
@@ -17,30 +19,41 @@ interface AddCategoryDialogProps {
 export const AddCategoryDialog = ({ open, onOpenChange, onAddCategory }: AddCategoryDialogProps) => {
   const [categoryName, setCategoryName] = useState("");
   const [selectedBucket, setSelectedBucket] = useState("");
+  const { session } = useAuth();
 
-  // Buckets from Category Manager (localStorage) with fallback
-  const availableBuckets = (() => {
-    try {
-      const stored = localStorage.getItem('categoryGroups');
-      if (stored) {
-        const groups = JSON.parse(stored);
-        if (Array.isArray(groups) && groups.length) {
-          return groups
-            .flatMap((g: any) => Array.isArray(g?.buckets) ? g.buckets : [])
-            .map((b: any) => ({
-              name: String(b?.name || '').trim(),
-              categories: Array.isArray(b?.categories)
-                ? b.categories.map((c: any) => String(c?.name || '').trim()).filter((n: string) => n.length > 0)
-                : []
-            }))
-            .filter((b: any) => b.name.length > 0 && b.categories.length > 0);
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to load categoryGroups from localStorage:', e);
-    }
-    return categoryBuckets;
-  })();
+  // Fetch user's category buckets from database
+  const { data: userBuckets = [] } = useQuery({
+    queryKey: ['user-category-buckets', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return [];
+
+      const { data: buckets } = await supabase
+        .from('category_buckets')
+        .select('name')
+        .eq('user_id', session.user.id)
+        .order('sort_order', { ascending: true });
+
+      return (buckets || []).map((bucket: any) => bucket.name);
+    },
+    enabled: !!session?.user && open,
+  });
+
+  // Use user's buckets if available, fallback to default buckets
+  const availableBuckets = userBuckets.length > 0 
+    ? userBuckets.map(name => ({ name }))
+    : [
+        { name: "Housing" },
+        { name: "Transport" }, 
+        { name: "Groceries" },
+        { name: "Utilities" },
+        { name: "Entertainment" },
+        { name: "Healthcare" },
+        { name: "Shopping" },
+        { name: "Dining" },
+        { name: "Education" },
+        { name: "Personal Care" },
+        { name: "Professional Services" }
+      ];
 
   const handleSubmit = () => {
     if (!categoryName.trim() || !selectedBucket) return;
