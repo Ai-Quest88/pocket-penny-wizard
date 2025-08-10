@@ -49,10 +49,28 @@ const fallbackCategories = [
 const getUserCategories = async (userId: string): Promise<string[]> => {
   try {
     console.log('Fetching categories for userId:', userId);
+    
+    // First, let's get all category buckets for this user
+    const { data: buckets, error: bucketsError } = await supabase
+      .from('category_buckets')
+      .select('id')
+      .eq('user_id', userId);
+    
+    console.log('User buckets:', buckets, 'Error:', bucketsError);
+    
+    if (bucketsError || !buckets || buckets.length === 0) {
+      console.error('No buckets found for user:', bucketsError);
+      return fallbackCategories;
+    }
+    
+    const bucketIds = buckets.map(bucket => bucket.id);
+    console.log('Bucket IDs:', bucketIds);
+    
+    // Now get all categories for these buckets
     const { data, error } = await supabase
       .from('categories')
-      .select('name, category_buckets!inner(user_id)')
-      .eq('category_buckets.user_id', userId)
+      .select('name')
+      .in('bucket_id', bucketIds)
       .order('sort_order', { ascending: true });
 
     console.log('Categories query result:', { data, error });
@@ -71,7 +89,7 @@ const getUserCategories = async (userId: string): Promise<string[]> => {
     }
 
     console.log('Final user categories array:', userCategories);
-    return userCategories.length > 0 ? userCategories : fallbackCategories;
+    return userCategories.length > 1 ? userCategories : fallbackCategories; // Changed from > 0 to > 1 since we always add Uncategorized
   } catch (error) {
     console.error('Error in getUserCategories:', error);
     return fallbackCategories;
