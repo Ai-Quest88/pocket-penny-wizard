@@ -321,11 +321,17 @@ serve(async (req) => {
       }
       
       console.log(`Chunked batch processing completed: ${allCategories.length} total categories`);
+      console.log('Final categories array (first 10):', allCategories.slice(0, 10));
       
       return new Response(JSON.stringify({ 
         categories: allCategories,
         source: 'gemini_ai_batch_chunked',
-        chunksProcessed: chunks.length
+        chunksProcessed: chunks.length,
+        debug: {
+          totalTransactions: body.descriptions.length,
+          totalCategories: allCategories.length,
+          sampleCategories: allCategories.slice(0, 10)
+        }
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
