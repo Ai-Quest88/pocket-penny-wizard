@@ -587,10 +587,10 @@ export const CategoryManager = () => {
     return [
       buildGroup('income', groupMeta.income),
       buildGroup('expenses', groupMeta.expenses),
+      buildGroup('investments', groupMeta.investments),
       buildGroup('assets', groupMeta.assets),
       buildGroup('liabilities', groupMeta.liabilities),
       buildGroup('transfers', groupMeta.transfers),
-      buildGroup('investments', groupMeta.investments),
     ];
   };
 
