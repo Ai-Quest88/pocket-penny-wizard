@@ -17,7 +17,8 @@ import { Trash2, Edit, X, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
 import { Progress } from "@/components/ui/progress";
 
 interface Transaction {
@@ -45,6 +46,7 @@ export const BulkEditActions = ({
   const [newCategory, setNewCategory] = useState("");
   const [deleteProgress, setDeleteProgress] = useState(0);
   const { toast } = useToast();
+  const { session } = useAuth();
   const queryClient = useQueryClient();
 
   const handleBulkDelete = async () => {
@@ -155,8 +157,27 @@ export const BulkEditActions = ({
 
   if (selectedTransactions.length === 0) return null;
 
-  // Comprehensive filtering to prevent empty categories
-  const validCategories = ['Groceries', 'Restaurants', 'Gas & Fuel', 'Shopping', 'Entertainment', 'Healthcare', 'Insurance', 'Utilities', 'Transportation', 'Education', 'Travel', 'Gifts & Donations', 'Personal Care', 'Professional Services', 'Home & Garden', 'Electronics', 'Clothing', 'Books', 'Subscriptions', 'Banking', 'Investment', 'Taxes', 'Legal', 'Uncategorized', 'Transfer In', 'Transfer Out', 'Internal Transfer', 'Income', 'Salary', 'Business', 'Freelance', 'Interest', 'Dividends', 'Other Income', 'Rental Income', 'Government Benefits', 'Pension', 'Child Support', 'Alimony', 'Gifts Received', 'Refunds', 'Cryptocurrency', 'Fast Food', 'Public Transport', 'Tolls', 'Food Delivery'].filter(cat => cat && typeof cat === 'string' && cat.trim() !== "");
+  // Fetch user's categories from database
+  const { data: userCategories = [] } = useQuery({
+    queryKey: ['user-categories', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return [];
+
+      const { data: cats } = await supabase
+        .from('categories')
+        .select('name')
+        .eq('user_id', session.user.id)
+        .order('sort_order', { ascending: true });
+
+      return (cats || []).map((cat: any) => cat.name);
+    },
+    enabled: !!session?.user,
+  });
+
+  // Use user's categories if available, fallback to uncategorized
+  const validCategories = userCategories.length > 0 
+    ? userCategories
+    : ['Uncategorized'];
 
   return (
     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">

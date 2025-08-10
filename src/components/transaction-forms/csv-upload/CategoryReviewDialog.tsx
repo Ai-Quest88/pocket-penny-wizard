@@ -12,6 +12,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Brain, CheckCircle, AlertCircle, Clock, HelpCircle } from "lucide-react";
 import { addUserCategoryRule } from "@/utils/transactionCategories";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Transaction {
   description: string;
@@ -45,6 +48,7 @@ export const CategoryReviewDialog = ({
   onConfirm, 
   isApplying = false 
 }: CategoryReviewDialogProps) => {
+  const { session } = useAuth();
   const [reviewedTransactions, setReviewedTransactions] = useState<TransactionReview[]>(() => 
     transactions.map((transaction, index) => ({
       ...transaction,
@@ -53,6 +57,28 @@ export const CategoryReviewDialog = ({
       createRule: transaction.category === 'Uncategorized' // Default to true for uncategorized
     }))
   );
+
+  // Fetch user's categories from database
+  const { data: userCategories = [] } = useQuery({
+    queryKey: ['user-categories', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return [];
+
+      const { data: cats } = await supabase
+        .from('categories')
+        .select('name')
+        .eq('user_id', session.user.id)
+        .order('sort_order', { ascending: true });
+
+      return (cats || []).map((cat: any) => cat.name);
+    },
+    enabled: !!session?.user && open,
+  });
+
+  // Use user's categories if available, include uncategorized
+  const validCategories = userCategories.length > 0 
+    ? [...userCategories, 'Uncategorized']
+    : ['Uncategorized'];
 
   const handleCategoryChange = (index: number, category: string) => {
     setReviewedTransactions(prev => 
@@ -239,7 +265,7 @@ export const CategoryReviewDialog = ({
                               <SelectValue placeholder="Select category" />
                             </SelectTrigger>
                             <SelectContent className="max-h-48 overflow-y-auto z-50">
-                              {['Groceries', 'Restaurants', 'Gas & Fuel', 'Shopping', 'Entertainment', 'Healthcare', 'Insurance', 'Utilities', 'Transportation', 'Education', 'Travel', 'Gifts & Donations', 'Personal Care', 'Professional Services', 'Home & Garden', 'Electronics', 'Clothing', 'Books', 'Subscriptions', 'Banking', 'Investment', 'Taxes', 'Legal', 'Uncategorized', 'Transfer In', 'Transfer Out', 'Internal Transfer', 'Income', 'Salary', 'Business', 'Freelance', 'Interest', 'Dividends', 'Other Income', 'Rental Income', 'Government Benefits', 'Pension', 'Child Support', 'Alimony', 'Gifts Received', 'Refunds', 'Cryptocurrency', 'Fast Food', 'Public Transport', 'Tolls', 'Food Delivery'].map((category) => (
+                              {validCategories.map((category) => (
                                 <SelectItem key={category} value={category}>
                                   {category}
                                 </SelectItem>

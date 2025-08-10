@@ -236,18 +236,10 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
     }
   }
 
-  // Use user's categories if available, fallback to default categories
+  // Use user's categories if available, fallback to uncategorized
   const validCategories = userCategories.length > 0 
     ? userCategories
-    : ['Groceries', 'Restaurants', 'Gas & Fuel', 'Shopping', 'Entertainment',
-       'Healthcare', 'Insurance', 'Utilities', 'Transportation', 'Education',
-       'Travel', 'Gifts & Donations', 'Personal Care', 'Professional Services',
-       'Home & Garden', 'Electronics', 'Clothing', 'Books', 'Subscriptions',
-       'Banking', 'Investment', 'Taxes', 'Legal', 'Uncategorized', 'Transfer In', 'Transfer Out', 'Internal Transfer',
-       'Income', 'Salary', 'Business', 'Freelance', 'Interest', 'Dividends',
-       'Other Income', 'Rental Income', 'Government Benefits', 'Pension',
-       'Child Support', 'Alimony', 'Gifts Received', 'Refunds',
-       'Cryptocurrency', 'Fast Food', 'Public Transport', 'Tolls', 'Food Delivery'];
+    : ['Uncategorized'];
 
   // Enhanced filtering with comprehensive validation for currencies
   const validCurrencies = currencies

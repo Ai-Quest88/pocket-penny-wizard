@@ -6,6 +6,9 @@ import { Card } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CheckCircle, X, Edit2, Loader2, Brain, AlertCircle, Sparkles } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { useQuery } from "@tanstack/react-query"
+import { supabase } from "@/integrations/supabase/client"
+import { useAuth } from "@/contexts/AuthContext"
 
 interface CategorySuggestion {
   id: string
@@ -32,6 +35,29 @@ export const CategoryConfirmationDialog = ({
   isApplying
 }: CategoryConfirmationDialogProps) => {
   const [modifiedSuggestions, setModifiedSuggestions] = useState<CategorySuggestion[]>(suggestions)
+  const { session } = useAuth();
+
+  // Fetch user's categories from database
+  const { data: userCategories = [] } = useQuery({
+    queryKey: ['user-categories', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return [];
+
+      const { data: cats } = await supabase
+        .from('categories')
+        .select('name')
+        .eq('user_id', session.user.id)
+        .order('sort_order', { ascending: true });
+
+      return (cats || []).map((cat: any) => cat.name);
+    },
+    enabled: !!session?.user && open,
+  });
+
+  // Use user's categories if available, fallback to uncategorized
+  const validCategories = userCategories.length > 0 
+    ? userCategories.filter(cat => cat !== 'Uncategorized')
+    : [];
 
   const handleCategoryChange = (transactionId: string, newCategory: string) => {
     setModifiedSuggestions(prev =>
@@ -166,7 +192,7 @@ export const CategoryConfirmationDialog = ({
                                 <SelectValue placeholder={isUncategorized ? "Choose category..." : "Change category..."} />
                               </SelectTrigger>
                               <SelectContent>
-                                {['Groceries', 'Restaurants', 'Gas & Fuel', 'Shopping', 'Entertainment', 'Healthcare', 'Insurance', 'Utilities', 'Transportation', 'Education', 'Travel', 'Gifts & Donations', 'Personal Care', 'Professional Services', 'Home & Garden', 'Electronics', 'Clothing', 'Books', 'Subscriptions', 'Banking', 'Investment', 'Taxes', 'Legal', 'Transfer In', 'Transfer Out', 'Internal Transfer', 'Income', 'Salary', 'Business', 'Freelance', 'Interest', 'Dividends', 'Other Income', 'Rental Income', 'Government Benefits', 'Pension', 'Child Support', 'Alimony', 'Gifts Received', 'Refunds', 'Cryptocurrency', 'Fast Food', 'Public Transport', 'Tolls', 'Food Delivery'].filter(cat => cat !== 'Uncategorized').map((category) => (
+                                {validCategories.map((category) => (
                                   <SelectItem key={category} value={category}>
                                     {category}
                                   </SelectItem>
