@@ -5,7 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, X } from "lucide-react";
 import { useState, useEffect } from "react";
-import { categories } from "@/utils/transactionCategories";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SearchFilters {
   searchTerm: string;
@@ -21,11 +23,29 @@ interface TransactionSearchProps {
 }
 
 export const TransactionSearch = ({ onFiltersChange, totalResults, initialFilters }: TransactionSearchProps) => {
+  const { session } = useAuth();
   const [filters, setFilters] = useState<SearchFilters>(initialFilters || {
     searchTerm: "",
     category: "",
     dateRange: "",
     amountRange: ""
+  });
+
+  // Fetch user's custom categories
+  const { data: userCategories = [] } = useQuery({
+    queryKey: ['user-categories', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return [];
+
+      const { data } = await supabase
+        .from('categories')
+        .select('name')
+        .eq('user_id', session.user.id)
+        .order('sort_order', { ascending: true });
+
+      return data?.map(cat => cat.name) || [];
+    },
+    enabled: !!session?.user?.id,
   });
 
   // Sync with initialFilters changes
@@ -73,7 +93,7 @@ export const TransactionSearch = ({ onFiltersChange, totalResults, initialFilter
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
-            {categories.map((category) => (
+            {userCategories.map((category) => (
               <SelectItem key={category} value={category}>
                 {category}
               </SelectItem>
