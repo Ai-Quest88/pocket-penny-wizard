@@ -109,13 +109,23 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
 
   // Update available buckets when user categories load
   useEffect(() => {
+    console.log("EditTransactionDialog - userCategoryBuckets:", userCategoryBuckets);
+    console.log("EditTransactionDialog - categoriesLoading:", categoriesLoading);
+    
     if (userCategoryBuckets.length > 0) {
+      console.log("EditTransactionDialog - Using user categories");
       setAvailableBuckets(userCategoryBuckets);
     } else {
-      // Fallback to default categories
-      setAvailableBuckets(categoryBuckets);
+      console.log("EditTransactionDialog - Using fallback categories");
+      // Fallback to minimal categories if user has no custom categories
+      setAvailableBuckets([
+        {
+          name: "General",
+          categories: ["Uncategorized"]
+        }
+      ]);
     }
-  }, [userCategoryBuckets]);
+  }, [userCategoryBuckets, categoriesLoading]);
   
   const isUncategorized = transaction?.category === 'Uncategorized';
 
@@ -316,6 +326,12 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
                 availableBuckets={availableBuckets}
                 onAddCategory={handleAddCategory}
               />
+              
+              {/* Debug info */}
+              <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
+                Debug: {availableBuckets.length} buckets available
+                {availableBuckets.map(bucket => ` | ${bucket.name}: ${bucket.categories.length} categories`)}
+              </div>
 
               <CommentField control={form.control} name="comment" />
 
