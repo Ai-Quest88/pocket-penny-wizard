@@ -25,7 +25,7 @@ const buildCorsHeaders = (origin: string | null) => {
 };
 
 // Use Google Gemini API instead of Groq
-const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+const geminiApiKey = Deno.env.get('VITE_GEMINI_API_KEY');
 
 // Supabase client
 const supabase = createClient(
