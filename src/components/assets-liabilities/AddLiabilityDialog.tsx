@@ -23,6 +23,7 @@ import { FamilyMember, BusinessEntity } from "@/types/entities"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/contexts/AuthContext"
 import { useQuery } from "@tanstack/react-query"
+import { currencies } from "@/utils/currencyUtils"
 
 interface AddLiabilityDialogProps {
   onAddLiability: (liability: Omit<Liability, "id">) => void
@@ -46,8 +47,8 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
     openingBalance: 0,
     openingBalanceDate: new Date().toISOString().split('T')[0],
     creditLimit: 0,
-    currency: "USD",
-    country: "US"
+    currency: "AUD",
+    country: "AU"
   })
 
   // Fetch entities from Supabase
@@ -174,8 +175,8 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
       openingBalance: 0,
       openingBalanceDate: new Date().toISOString().split('T')[0],
       creditLimit: 0,
-      currency: "USD",
-      country: "US"
+      currency: "AUD",
+      country: "AU"
     })
     setSelectedEntityId("")
     setOpeningBalanceDate(new Date().toISOString().split('T')[0])
@@ -199,8 +200,8 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
         openingBalance: 0,
         openingBalanceDate: new Date().toISOString().split('T')[0],
         creditLimit: 0,
-        currency: "USD",
-        country: "US"
+        currency: "AUD",
+        country: "AU"
       })
       setSelectedEntityId("")
       setOpeningBalanceDate(new Date().toISOString().split('T')[0])
@@ -392,6 +393,30 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
                   : "When the current outstanding balance was recorded"}
               </p>
             )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="liability-currency">Currency</Label>
+            <Select
+              value={newLiability.currency}
+              onValueChange={(value) => setNewLiability({ ...newLiability, currency: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select currency" />
+              </SelectTrigger>
+              <SelectContent>
+                {currencies.map((currency) => (
+                  <SelectItem key={currency.code} value={currency.code}>
+                    <div className="flex items-center gap-2">
+                      <span>{currency.flag}</span>
+                      <span>{currency.symbol}</span>
+                      <span>{currency.code}</span>
+                      <span className="text-muted-foreground">- {currency.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           
           <Button onClick={handleAddLiability} className="w-full">

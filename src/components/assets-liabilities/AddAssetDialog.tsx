@@ -25,6 +25,7 @@ import { FamilyMember, BusinessEntity } from "@/types/entities"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/contexts/AuthContext"
 import { useQuery } from "@tanstack/react-query"
+import { currencies } from "@/utils/currencyUtils"
 
 interface AddAssetDialogProps {
   onAddAsset: (asset: Omit<Asset, "id">) => void
@@ -49,8 +50,8 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
     address: "",
     openingBalance: 0,
     openingBalanceDate: new Date().toISOString().split('T')[0],
-    currency: "USD",
-    country: "US"
+    currency: "AUD",
+    country: "AU"
   })
 
   // Fetch entities from Supabase
@@ -117,8 +118,8 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
         address: "",
         openingBalance: 0,
         openingBalanceDate: new Date().toISOString().split('T')[0],
-        currency: "USD",
-        country: "US"
+        currency: "AUD",
+        country: "AU"
       })
       setOpeningBalanceDate(new Date().toISOString().split('T')[0])
       setSelectedEntityId("")
@@ -256,6 +257,30 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
                 {assetCategoryGroups[newAsset.type].map((category) => (
                   <SelectItem key={category} value={category}>
                     {category.split("_").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ")}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="asset-currency">Currency</Label>
+            <Select
+              value={newAsset.currency}
+              onValueChange={(value) => setNewAsset({ ...newAsset, currency: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select currency" />
+              </SelectTrigger>
+              <SelectContent>
+                {currencies.map((currency) => (
+                  <SelectItem key={currency.code} value={currency.code}>
+                    <div className="flex items-center gap-2">
+                      <span>{currency.flag}</span>
+                      <span>{currency.symbol}</span>
+                      <span>{currency.code}</span>
+                      <span className="text-muted-foreground">- {currency.name}</span>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
