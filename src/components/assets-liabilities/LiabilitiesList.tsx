@@ -8,6 +8,7 @@ import { Trash2, Link, CreditCard, Building2, DollarSign, Percent } from "lucide
 import { useCurrency } from "@/contexts/CurrencyContext"
 import { AccountTypeIndicator } from "@/components/accounts/AccountTypeIndicator"
 import { Badge } from "@/components/ui/badge"
+import { formatCurrency, getCurrencyByCode } from "@/utils/currencyUtils"
 import { Progress } from "@/components/ui/progress"
 import {
   AlertDialog,
@@ -29,7 +30,7 @@ interface LiabilitiesListProps {
 
 export function LiabilitiesList({ liabilities, onEditLiability, onDeleteLiability }: LiabilitiesListProps) {
   const [entities, setEntities] = useState<(FamilyMember | BusinessEntity)[]>([])
-  const { formatCurrency } = useCurrency()
+  const { formatCurrency: formatDisplayCurrency, displayCurrency, convertAmount } = useCurrency()
 
   useEffect(() => {
     const savedEntities = localStorage.getItem('entities')
@@ -106,8 +107,8 @@ export function LiabilitiesList({ liabilities, onEditLiability, onDeleteLiabilit
                           className="h-2"
                         />
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>Available: {formatCurrency(liability.creditLimit - liability.amount)}</span>
-                          <span>Limit: {formatCurrency(liability.creditLimit)}</span>
+                          <span>Available: {formatCurrency(liability.creditLimit - liability.amount, liability.currency)}</span>
+                          <span>Limit: {formatCurrency(liability.creditLimit, liability.currency)}</span>
                         </div>
                       </div>
                     )}
@@ -150,10 +151,20 @@ export function LiabilitiesList({ liabilities, onEditLiability, onDeleteLiabilit
                       </AlertDialogContent>
                     </AlertDialog>
                   )}
-                  <div className="text-right">
-                    <p className="text-lg font-semibold text-red-600">
-                      {formatCurrency(liability.amount)}
-                    </p>
+                  <div className="text-right space-y-1">
+                    <div className="flex items-center gap-2 justify-end">
+                      <Badge variant="outline" className="text-xs">
+                        {getCurrencyByCode(liability.currency)?.symbol || liability.currency}
+                      </Badge>
+                      <p className="text-lg font-semibold text-red-600">
+                        {formatCurrency(liability.amount, liability.currency)}
+                      </p>
+                    </div>
+                    {liability.currency !== displayCurrency && (
+                      <p className="text-xs text-muted-foreground">
+                        ≈ {formatDisplayCurrency(convertAmount(liability.amount, liability.currency))}
+                      </p>
+                    )}
                     <p className="text-xs text-muted-foreground">
                       {liability.creditLimit ? "Outstanding" : "Total Owed"}
                     </p>
@@ -197,7 +208,7 @@ export function LiabilitiesList({ liabilities, onEditLiability, onDeleteLiabilit
                     )}
                     {liability.monthlyPayment && (
                       <div className="text-sm text-muted-foreground">
-                        Monthly Payment: {formatCurrency(liability.monthlyPayment)}
+                        Monthly Payment: {formatCurrency(liability.monthlyPayment, liability.currency)}
                       </div>
                     )}
                   </div>
@@ -239,10 +250,20 @@ export function LiabilitiesList({ liabilities, onEditLiability, onDeleteLiabilit
                       </AlertDialogContent>
                     </AlertDialog>
                   )}
-                  <div className="text-right">
-                    <p className="text-lg font-semibold text-red-600">
-                      {formatCurrency(liability.amount)}
-                    </p>
+                  <div className="text-right space-y-1">
+                    <div className="flex items-center gap-2 justify-end">
+                      <Badge variant="outline" className="text-xs">
+                        {getCurrencyByCode(liability.currency)?.symbol || liability.currency}
+                      </Badge>
+                      <p className="text-lg font-semibold text-red-600">
+                        {formatCurrency(liability.amount, liability.currency)}
+                      </p>
+                    </div>
+                    {liability.currency !== displayCurrency && (
+                      <p className="text-xs text-muted-foreground">
+                        ≈ {formatDisplayCurrency(convertAmount(liability.amount, liability.currency))}
+                      </p>
+                    )}
                     <p className="text-xs text-muted-foreground">Outstanding</p>
                   </div>
                 </div>
@@ -316,10 +337,20 @@ export function LiabilitiesList({ liabilities, onEditLiability, onDeleteLiabilit
                         </AlertDialogContent>
                       </AlertDialog>
                     )}
-                    <div className="text-right">
-                      <p className="text-lg font-semibold text-red-600">
-                        {formatCurrency(liability.amount)}
-                      </p>
+                    <div className="text-right space-y-1">
+                      <div className="flex items-center gap-2 justify-end">
+                        <Badge variant="outline" className="text-xs">
+                          {getCurrencyByCode(liability.currency)?.symbol || liability.currency}
+                        </Badge>
+                        <p className="text-lg font-semibold text-red-600">
+                          {formatCurrency(liability.amount, liability.currency)}
+                        </p>
+                      </div>
+                      {liability.currency !== displayCurrency && (
+                        <p className="text-xs text-muted-foreground">
+                          ≈ {formatDisplayCurrency(convertAmount(liability.amount, liability.currency))}
+                        </p>
+                      )}
                       <p className="text-xs text-muted-foreground">Amount Owed</p>
                     </div>
                   </div>

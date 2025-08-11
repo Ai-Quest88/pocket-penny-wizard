@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { TableCell, TableRow } from '../ui/table';
 import { Transaction } from '../TransactionList';
-import { formatCurrency } from '@/utils/currencyUtils';
+import { formatCurrency, getCurrencyByCode } from '@/utils/currencyUtils';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { EditTransactionDialog } from './EditTransactionDialog';
 import { Badge } from '../ui/badge';
@@ -33,7 +33,7 @@ export const TransactionTableRow: React.FC<TransactionTableRowProps> = ({
 }) => {
   const { session } = useAuth();
   const { toast } = useToast();
-  const { displayCurrency } = useCurrency();
+  const { displayCurrency, convertAmount } = useCurrency();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const handleDelete = async () => {
@@ -112,9 +112,23 @@ export const TransactionTableRow: React.FC<TransactionTableRowProps> = ({
         </Badge>
       </TableCell>
       <TableCell className="text-right font-medium">
-        <span className={transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}>
-          {formatCurrency(transaction.amount, displayCurrency)}
-        </span>
+        <div className="flex flex-col items-end gap-1">
+          <div className="flex items-center gap-2">
+            {transaction.currency !== displayCurrency && (
+              <Badge variant="outline" className="text-xs">
+                {getCurrencyByCode(transaction.currency)?.symbol || transaction.currency}
+              </Badge>
+            )}
+            <span className={transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}>
+              {formatCurrency(transaction.amount, transaction.currency)}
+            </span>
+          </div>
+          {transaction.currency !== displayCurrency && (
+            <span className="text-xs text-muted-foreground">
+              ≈ {formatCurrency(convertAmount(transaction.amount, transaction.currency), displayCurrency)}
+            </span>
+          )}
+        </div>
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
         {getAccountName(transaction)}

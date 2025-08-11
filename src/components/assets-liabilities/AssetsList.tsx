@@ -10,6 +10,7 @@ import { Trash2, Link, Banknote, TrendingUp, Home, Car, Building2 } from "lucide
 import { useCurrency } from "@/contexts/CurrencyContext"
 import { AccountTypeIndicator } from "@/components/accounts/AccountTypeIndicator"
 import { Badge } from "@/components/ui/badge"
+import { formatCurrency, getCurrencyByCode } from "@/utils/currencyUtils"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,7 +31,7 @@ interface AssetsListProps {
 
 export function AssetsList({ assets, onEditAsset, onDeleteAsset }: AssetsListProps) {
   const { session } = useAuth()
-  const { formatCurrency } = useCurrency()
+  const { formatCurrency: formatDisplayCurrency, displayCurrency, convertAmount } = useCurrency()
   
   // Fetch entities from Supabase
   const { data: entities = [] } = useQuery({
@@ -153,10 +154,20 @@ export function AssetsList({ assets, onEditAsset, onDeleteAsset }: AssetsListPro
                       </AlertDialogContent>
                     </AlertDialog>
                   )}
-                  <div className="text-right">
-                    <p className="text-lg font-semibold text-green-600">
-                      {formatCurrency(asset.value)}
-                    </p>
+                  <div className="text-right space-y-1">
+                    <div className="flex items-center gap-2 justify-end">
+                      <Badge variant="outline" className="text-xs">
+                        {getCurrencyByCode(asset.currency)?.symbol || asset.currency}
+                      </Badge>
+                      <p className="text-lg font-semibold text-green-600">
+                        {formatCurrency(asset.value, asset.currency)}
+                      </p>
+                    </div>
+                    {asset.currency !== displayCurrency && (
+                      <p className="text-xs text-muted-foreground">
+                        ≈ {formatDisplayCurrency(convertAmount(asset.value, asset.currency))}
+                      </p>
+                    )}
                     <p className="text-xs text-muted-foreground">Current Balance</p>
                   </div>
                 </div>
@@ -224,10 +235,20 @@ export function AssetsList({ assets, onEditAsset, onDeleteAsset }: AssetsListPro
                       </AlertDialogContent>
                     </AlertDialog>
                   )}
-                  <div className="text-right">
-                    <p className="text-lg font-semibold text-green-600">
-                      {formatCurrency(asset.value)}
-                    </p>
+                  <div className="text-right space-y-1">
+                    <div className="flex items-center gap-2 justify-end">
+                      <Badge variant="outline" className="text-xs">
+                        {getCurrencyByCode(asset.currency)?.symbol || asset.currency}
+                      </Badge>
+                      <p className="text-lg font-semibold text-green-600">
+                        {formatCurrency(asset.value, asset.currency)}
+                      </p>
+                    </div>
+                    {asset.currency !== displayCurrency && (
+                      <p className="text-xs text-muted-foreground">
+                        ≈ {formatDisplayCurrency(convertAmount(asset.value, asset.currency))}
+                      </p>
+                    )}
                     <p className="text-xs text-muted-foreground">Market Value</p>
                   </div>
                 </div>
@@ -300,10 +321,20 @@ export function AssetsList({ assets, onEditAsset, onDeleteAsset }: AssetsListPro
                       </AlertDialogContent>
                     </AlertDialog>
                   )}
-                  <div className="text-right">
-                    <p className="text-lg font-semibold text-green-600">
-                      {formatCurrency(asset.value)}
-                    </p>
+                  <div className="text-right space-y-1">
+                    <div className="flex items-center gap-2 justify-end">
+                      <Badge variant="outline" className="text-xs">
+                        {getCurrencyByCode(asset.currency)?.symbol || asset.currency}
+                      </Badge>
+                      <p className="text-lg font-semibold text-green-600">
+                        {formatCurrency(asset.value, asset.currency)}
+                      </p>
+                    </div>
+                    {asset.currency !== displayCurrency && (
+                      <p className="text-xs text-muted-foreground">
+                        ≈ {formatDisplayCurrency(convertAmount(asset.value, asset.currency))}
+                      </p>
+                    )}
                     <p className="text-xs text-muted-foreground">Estimated Value</p>
                   </div>
                 </div>
@@ -372,10 +403,20 @@ export function AssetsList({ assets, onEditAsset, onDeleteAsset }: AssetsListPro
                         </AlertDialogContent>
                       </AlertDialog>
                     )}
-                    <div className="text-right">
-                      <p className="text-lg font-semibold text-green-600">
-                        {formatCurrency(asset.value)}
-                      </p>
+                    <div className="text-right space-y-1">
+                      <div className="flex items-center gap-2 justify-end">
+                        <Badge variant="outline" className="text-xs">
+                          {getCurrencyByCode(asset.currency)?.symbol || asset.currency}
+                        </Badge>
+                        <p className="text-lg font-semibold text-green-600">
+                          {formatCurrency(asset.value, asset.currency)}
+                        </p>
+                      </div>
+                      {asset.currency !== displayCurrency && (
+                        <p className="text-xs text-muted-foreground">
+                          ≈ {formatDisplayCurrency(convertAmount(asset.value, asset.currency))}
+                        </p>
+                      )}
                       <p className="text-xs text-muted-foreground">Current Value</p>
                     </div>
                   </div>
