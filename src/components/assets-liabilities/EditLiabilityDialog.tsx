@@ -23,6 +23,7 @@ import { FamilyMember, BusinessEntity } from "@/types/entities"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/contexts/AuthContext"
 import { useQuery } from "@tanstack/react-query"
+import { currencies } from "@/utils/currencyUtils"
 
 interface EditLiabilityDialogProps {
   liability: Liability;
@@ -316,6 +317,30 @@ export function EditLiabilityDialog({ liability, onEditLiability }: EditLiabilit
               </div>
             </>
           )}
+
+          <div className="space-y-2">
+            <Label htmlFor="liability-currency">Currency</Label>
+            <Select
+              value={formData.currency}
+              onValueChange={(value) => setFormData({ ...formData, currency: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select currency" />
+              </SelectTrigger>
+              <SelectContent>
+                {currencies.map((currency) => (
+                  <SelectItem key={currency.code} value={currency.code}>
+                    <div className="flex items-center gap-2">
+                      <span>{currency.flag}</span>
+                      <span>{currency.symbol}</span>
+                      <span>{currency.code}</span>
+                      <span className="text-muted-foreground">- {currency.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           
           <Button onClick={handleSubmit} className="w-full">Update Liability</Button>
         </div>
