@@ -132,6 +132,8 @@ CRITICAL AUSTRALIAN-SPECIFIC RULES:
 9. Telstra, Optus, Vodafone → Phone
 10. CommBank, NAB, Westpac, ANZ (banking fees) → Insurance
 
+CRITICAL: You MUST ONLY use categories from the AVAILABLE CATEGORIES list above. If a transaction seems like fuel but "Fuel" is not available, try "Gas" instead. If neither exists, use "Uncategorized".
+
 Return ONLY a valid JSON array with objects containing "index" and "category" fields. No markdown, no explanations.
 
 TRANSACTIONS TO CATEGORIZE:
