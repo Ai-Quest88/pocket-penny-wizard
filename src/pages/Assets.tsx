@@ -8,16 +8,27 @@ import { supabase } from "@/integrations/supabase/client"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useAuth } from "@/contexts/AuthContext"
 import { useAccountBalances } from "@/hooks/useAccountBalances"
+import { calculateAccountBalances } from "@/utils/balanceCalculations"
 import { useCurrency } from "@/contexts/CurrencyContext"
 
 const Assets = () => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { session } = useAuth()
-  const { formatCurrency, displayCurrency } = useCurrency()
-
-  // First fetch account balances
+  const { formatCurrency, displayCurrency, convertAmount } = useCurrency()
+  
+  // First fetch account balances (these are converted to display currency)
   const { data: accountBalances = [], isLoading: balancesLoading } = useAccountBalances()
+  
+  // Also fetch raw balances in original currencies
+  const { data: rawBalances = [], isLoading: rawBalancesLoading } = useQuery({
+    queryKey: ['raw-account-balances', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user) return [];
+      return await calculateAccountBalances(session.user.id);
+    },
+    enabled: !!session?.user,
+  });
 
   // Fetch assets from Supabase with user authentication
   const { data: assets = [], isLoading: assetsLoading } = useQuery({
@@ -68,11 +79,15 @@ const Assets = () => {
         const finalValue = calculatedBalance?.calculatedBalance ?? Number(asset.value);
         console.log(`  - Final value being displayed: ${finalValue}`);
         
+        // Use the raw balance (in original currency) for display
+        const rawBalance = rawBalances.find(b => b.accountId === asset.id);
+        const originalValue = rawBalance ? rawBalance.calculatedBalance : Number(asset.value);
+        
         return {
           id: asset.id,
           entityId: asset.entity_id,
           name: asset.name,
-          value: finalValue,
+          value: originalValue,
           type: asset.type,
           category: asset.category,
           history: [], // Historical values would be fetched separately if needed
@@ -85,11 +100,11 @@ const Assets = () => {
         } as Asset;
       }) as Asset[];
     },
-    enabled: !assetsLoading && !balancesLoading && assets.length >= 0 && accountBalances.length >= 0,
+    enabled: !assetsLoading && !balancesLoading && !rawBalancesLoading && assets.length >= 0,
   });
 
   const transformedAssets = assetsWithBalances.data || [];
-  const isLoading = assetsLoading || balancesLoading || assetsWithBalances.isLoading;
+  const isLoading = assetsLoading || balancesLoading || rawBalancesLoading || assetsWithBalances.isLoading;
 
   // Add asset mutation
   const addAssetMutation = useMutation({
