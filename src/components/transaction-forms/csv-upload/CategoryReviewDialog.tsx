@@ -110,6 +110,8 @@ export const CategoryReviewDialog = ({
   console.log('Valid categories for dropdown:', validCategories);
   console.log('Categories loading:', categoriesLoading);
   console.log('Categories error:', categoriesError);
+  console.log('Sample transaction category:', reviewedTransactions[0]?.category);
+  console.log('Sample transaction userCategory:', reviewedTransactions[0]?.userCategory);
 
   // If no categories found and not loading, offer to seed
   const shouldOfferSeeding = !categoriesLoading && userCategories.length === 0 && !categoriesError;
@@ -314,7 +316,7 @@ export const CategoryReviewDialog = ({
                         </TableCell>
                         <TableCell>
                           <Select
-                            value={transaction.userCategory || transaction.category}
+                            value={transaction.userCategory || transaction.category || 'Uncategorized'}
                             onValueChange={(value) => handleCategoryChange(index, value)}
                           >
                             <SelectTrigger className="w-full h-8 bg-background border border-input">
