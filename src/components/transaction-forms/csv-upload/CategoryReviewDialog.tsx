@@ -317,10 +317,10 @@ export const CategoryReviewDialog = ({
                             value={transaction.userCategory || transaction.category}
                             onValueChange={(value) => handleCategoryChange(index, value)}
                           >
-                            <SelectTrigger className="w-full h-8">
+                            <SelectTrigger className="w-full h-8 bg-background border border-input">
                               <SelectValue placeholder="Select category" />
                             </SelectTrigger>
-                            <SelectContent className="max-h-48 overflow-y-auto z-50">
+                            <SelectContent className="max-h-48 overflow-y-auto z-[100] bg-background border border-input">
                               {validCategories.map((category) => (
                                 <SelectItem key={category} value={category}>
                                   {category}
