@@ -60,11 +60,12 @@ const Assets = () => {
 
   // Transform assets with calculated balances - this runs after both queries complete
   const assetsWithBalances = useQuery({
-    queryKey: ['assets-with-balances', assets, accountBalances],
+    queryKey: ['assets-with-balances', assets, accountBalances, rawBalances],
     queryFn: () => {
       console.log('Transforming assets with calculated balances');
       console.log('Assets:', assets);
       console.log('Available account balances:', accountBalances);
+      console.log('Available raw balances:', rawBalances);
 
       return assets.map(asset => {
         // Get the calculated balance for this asset
@@ -100,7 +101,7 @@ const Assets = () => {
         } as Asset;
       }) as Asset[];
     },
-    enabled: !assetsLoading && !balancesLoading && !rawBalancesLoading && assets.length >= 0,
+    enabled: !assetsLoading && !balancesLoading && !rawBalancesLoading && !!assets && !!rawBalances,
   });
 
   const transformedAssets = assetsWithBalances.data || [];
