@@ -35,7 +35,7 @@ const supabase = createClient(
 
 // Fallback categories if user has no custom categories
 const fallbackCategories = [
-  'Groceries', 'Restaurants', 'Gas & Fuel', 'Shopping', 'Entertainment', 'Healthcare', 
+  'Groceries', 'Restaurants', 'Gas', 'Fuel', 'Shopping', 'Entertainment', 'Healthcare', 
   'Insurance', 'Utilities', 'Transportation', 'Education', 'Travel', 'Gifts & Donations', 
   'Personal Care', 'Professional Services', 'Home & Garden', 'Electronics', 'Clothing', 
   'Books', 'Subscriptions', 'Banking', 'Investment', 'Taxes', 'Legal', 'Uncategorized', 
@@ -120,19 +120,16 @@ const createEnhancedPrompt = (input: string[] | string, availableCategories: str
 AVAILABLE CATEGORIES:
 ${categoriesText}
 
-CRITICAL AUSTRALIAN-SPECIFIC RULES:
-1. "Linkt", "toll", "e-toll", "etoll", "citylink", "eastlink", "M1 toll", etc. → Tolls
-2. McDonald's, KFC, Subway, Burger King, Domino's, Hungry Jack's → Fast Food  
-3. Coles, Woolworths, IGA, ALDI → Supermarket
-4. Shell, BP, Caltex, Ampol, 7-Eleven (fuel stations) → Fuel
-5. Uber Eats, DoorDash, Menulog, Deliveroo → Food Delivery
-6. Netflix, Spotify, Apple Music, Stan, Disney+ → Streaming Services
-7. Government, ATO, Revenue Office, tax office → Legal Fees
-8. Opal, Myki, Go Card, public transport → Public Transport
-9. Telstra, Optus, Vodafone → Phone
-10. CommBank, NAB, Westpac, ANZ (banking fees) → Insurance
+ABSOLUTE RULES - THESE CANNOT BE BROKEN:
+1. You MUST only choose from the exact categories listed above
+2. You CANNOT create new category names like "Gas & Fuel" or combine categories
+3. For fuel stations (Shell, BP, Caltex, Ampol, 7-Eleven), use "Fuel" if available, otherwise use "Gas"
+4. For McDonald's, KFC, Subway → use "Fast Food" 
+5. For Coles, Woolworths, IGA, ALDI → use "Supermarket"
+6. For public transport (Opal, Myki) → use "Public Transport"
+7. If uncertain, use "Uncategorized"
 
-CRITICAL: You MUST ONLY use categories from the AVAILABLE CATEGORIES list above. If a transaction seems like fuel but "Fuel" is not available, try "Gas" instead. If neither exists, use "Uncategorized".
+CRITICAL: Every response MUST be a category from the AVAILABLE CATEGORIES list above. No exceptions.
 
 Return ONLY a valid JSON array with objects containing "index" and "category" fields. No markdown, no explanations.
 
