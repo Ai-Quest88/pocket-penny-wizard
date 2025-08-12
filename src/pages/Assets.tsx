@@ -58,11 +58,15 @@ const Assets = () => {
       return assets.map(asset => {
         // Get the calculated balance for this asset
         const calculatedBalance = accountBalances.find(b => b.accountId === asset.id);
-        console.log(`Asset ${asset.name}: Looking for balance with accountId ${asset.id}`);
-        console.log(`Found calculated balance:`, calculatedBalance);
+        console.log(`🔍 Asset ${asset.name}:`);
+        console.log(`  - Database opening_balance: ${asset.opening_balance}`);
+        console.log(`  - Database currency: ${asset.currency}`);
+        console.log(`  - Calculated balance object:`, calculatedBalance);
+        console.log(`  - calculatedBalance?.calculatedBalance: ${calculatedBalance?.calculatedBalance}`);
+        console.log(`  - asset.value from DB: ${asset.value}`);
         
         const finalValue = calculatedBalance?.calculatedBalance ?? Number(asset.value);
-        console.log(`Final value for ${asset.name}: ${finalValue}`);
+        console.log(`  - Final value being displayed: ${finalValue}`);
         
         return {
           id: asset.id,
