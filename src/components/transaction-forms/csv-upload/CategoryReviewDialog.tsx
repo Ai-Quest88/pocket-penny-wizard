@@ -316,7 +316,10 @@ export const CategoryReviewDialog = ({
                         </TableCell>
                         <TableCell>
                           <Select
-                            value={transaction.userCategory || transaction.category || 'Uncategorized'}
+                            value={validCategories.includes(transaction.userCategory || transaction.category) 
+                              ? (transaction.userCategory || transaction.category)
+                              : 'Uncategorized'
+                            }
                             onValueChange={(value) => handleCategoryChange(index, value)}
                           >
                             <SelectTrigger className="w-full h-8 bg-background border border-input">
