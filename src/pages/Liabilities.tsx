@@ -171,6 +171,7 @@ const Liabilities = () => {
           opening_balance: updatedLiability.openingBalance,
           opening_balance_date: updatedLiability.openingBalanceDate,
           credit_limit: updatedLiability.creditLimit || null,
+          currency: updatedLiability.currency || 'AUD', // Add currency field
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)
@@ -183,6 +184,8 @@ const Liabilities = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['liabilities'] });
       queryClient.invalidateQueries({ queryKey: ['account-balances'] });
+      queryClient.invalidateQueries({ queryKey: ['raw-account-balances'] });
+      queryClient.invalidateQueries({ queryKey: ['liabilities-with-balances'] });
       toast({
         title: "Liability Updated",
         description: "Your liability has been updated successfully.",
