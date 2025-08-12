@@ -59,26 +59,60 @@ export const CategoryReviewDialog = ({
   );
 
   // Fetch user's categories from database
-  const { data: userCategories = [] } = useQuery({
+  const { data: userCategories = [], isLoading: categoriesLoading, error: categoriesError } = useQuery({
     queryKey: ['user-categories', session?.user?.id],
     queryFn: async () => {
       if (!session?.user?.id) return [];
 
-      const { data: cats } = await supabase
+      console.log('Fetching categories for user:', session.user.id);
+      
+      const { data: cats, error } = await supabase
         .from('categories')
         .select('name')
         .eq('user_id', session.user.id)
         .order('sort_order', { ascending: true });
 
+      if (error) {
+        console.error('Error fetching categories:', error);
+        throw error;
+      }
+
+      console.log('Fetched categories:', cats);
       return (cats || []).map((cat: any) => cat.name);
     },
     enabled: !!session?.user && open,
   });
 
+  // Auto-seed categories if user has none
+  const seedCategories = async () => {
+    if (!session?.user?.id) return;
+    
+    try {
+      const { error } = await supabase.rpc('seed_default_categories');
+      if (error) {
+        console.error('Error seeding categories:', error);
+      } else {
+        console.log('Successfully seeded default categories');
+        // Refetch categories after seeding
+        window.location.reload(); // Simple refresh to get new categories
+      }
+    } catch (error) {
+      console.error('Error calling seed function:', error);
+    }
+  };
+
   // Use user's categories if available, include uncategorized
   const validCategories = userCategories.length > 0 
     ? [...userCategories, 'Uncategorized']
     : ['Uncategorized'];
+
+  console.log('User categories:', userCategories);
+  console.log('Valid categories for dropdown:', validCategories);
+  console.log('Categories loading:', categoriesLoading);
+  console.log('Categories error:', categoriesError);
+
+  // If no categories found and not loading, offer to seed
+  const shouldOfferSeeding = !categoriesLoading && userCategories.length === 0 && !categoriesError;
 
   const handleCategoryChange = (index: number, category: string) => {
     setReviewedTransactions(prev => 
@@ -140,6 +174,28 @@ export const CategoryReviewDialog = ({
           </DialogHeader>
 
         <div className="space-y-4 flex-1 overflow-hidden">
+          {/* Categories Warning */}
+          {shouldOfferSeeding && (
+            <Card className="p-4 bg-yellow-50 border-yellow-200">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <h3 className="font-medium text-yellow-900">No Categories Found</h3>
+                  <p className="text-sm text-yellow-700">
+                    You don't have any categories set up yet. Would you like to create default categories?
+                  </p>
+                </div>
+                <Button 
+                  onClick={seedCategories}
+                  variant="outline" 
+                  size="sm"
+                  className="border-yellow-300 text-yellow-700 hover:bg-yellow-100"
+                >
+                  Create Categories
+                </Button>
+              </div>
+            </Card>
+          )}
+
           {/* Summary */}
           <Card className="p-4 bg-blue-50 border-blue-200">
             <div className="flex items-center justify-between">
