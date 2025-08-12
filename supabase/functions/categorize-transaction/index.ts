@@ -151,10 +151,12 @@ ${categoriesText}
 CRITICAL AUSTRALIAN-SPECIFIC RULES:
 1. "Linkt", "toll", "e-toll", "etoll" → Tolls
 2. McDonald's, KFC, Subway → Fast Food  
-3. Coles, Woolworths, IGA, ALDI → Groceries
-4. Shell, BP, Caltex, Ampol → Gas & Fuel
-5. Netflix, Spotify → Subscriptions
-6. Government, ATO → Taxes
+3. Coles, Woolworths, IGA, ALDI → Supermarket
+4. Shell, BP, Caltex, Ampol, 7-Eleven (fuel stations) → Fuel
+5. Netflix, Spotify → Streaming Services
+6. Government, ATO → Legal Fees
+
+YOU MUST ONLY USE CATEGORIES FROM THE AVAILABLE CATEGORIES LIST ABOVE. DO NOT CREATE NEW CATEGORY NAMES.
 
 Transaction: "${input}"
 
