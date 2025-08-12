@@ -10,6 +10,7 @@ export interface AccountBalance {
   openingBalance: number;
   transactionSum: number;
   calculatedBalance: number; // This is the closing balance
+  currency: string; // Account's original currency
 }
 
 export const calculateAccountBalances = async (userId: string): Promise<AccountBalance[]> => {
@@ -105,12 +106,10 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
       return sum + convertedAmount;
     }, 0);
     
-    // Convert opening balance from account currency to DEFAULT_CURRENCY
+    // Keep opening balance in original currency - don't convert here
     const rawOpeningBalance = Number(asset.opening_balance);
     const openingCurrency = asset.currency || DEFAULT_CURRENCY;
-    const openingBalance = openingCurrency === DEFAULT_CURRENCY || !exchangeRates
-      ? rawOpeningBalance
-      : convertAmount(rawOpeningBalance, openingCurrency, DEFAULT_CURRENCY, exchangeRates);
+    const openingBalance = rawOpeningBalance; // Store in original currency
 
     // For assets: Closing Balance = Opening Balance + Transactions
     const calculatedBalance = openingBalance + transactionSum;
@@ -122,7 +121,8 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
       accountType: 'asset',
       openingBalance,
       transactionSum,
-      calculatedBalance // This is the closing balance
+      calculatedBalance, // This is the closing balance
+      currency: openingCurrency
     });
 
     console.log(`Asset ${asset.name}: Opening ${openingBalance} ${DEFAULT_CURRENCY} + Transactions ${transactionSum} = Closing ${calculatedBalance}`);
@@ -153,12 +153,10 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
       return sum + convertedAmount;
     }, 0);
     
-    // Convert opening balance from account currency to DEFAULT_CURRENCY
+    // Keep opening balance in original currency - don't convert here
     const rawOpeningBalance = Number(liability.opening_balance);
     const openingCurrency = liability.currency || DEFAULT_CURRENCY;
-    const openingBalance = openingCurrency === DEFAULT_CURRENCY || !exchangeRates
-      ? rawOpeningBalance
-      : convertAmount(rawOpeningBalance, openingCurrency, DEFAULT_CURRENCY, exchangeRates);
+    const openingBalance = rawOpeningBalance; // Store in original currency
 
     let calculatedBalance: number;
     
@@ -180,7 +178,8 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
       accountType: 'liability',
       openingBalance,
       transactionSum,
-      calculatedBalance // This is the closing balance
+      calculatedBalance, // This is the closing balance
+      currency: openingCurrency
     });
   });
 

@@ -13,25 +13,22 @@ export const useAccountBalances = () => {
       if (!session?.user) return [];
       const balances = await calculateAccountBalances(session.user.id);
       
-      // Convert all balances to display currency
-      // Assuming assets/liabilities are stored in AUD as default
-      const DEFAULT_ASSET_LIABILITY_CURRENCY = 'AUD';
-      
+      // Convert all balances from their original currency to display currency
       return balances.map(balance => ({
         ...balance,
         openingBalance: convertAmount(
           balance.openingBalance, 
-          DEFAULT_ASSET_LIABILITY_CURRENCY, 
+          balance.currency, 
           displayCurrency
         ),
         transactionSum: convertAmount(
           balance.transactionSum, 
-          DEFAULT_ASSET_LIABILITY_CURRENCY, 
+          balance.currency, 
           displayCurrency
         ),
         calculatedBalance: convertAmount(
           balance.calculatedBalance, 
-          DEFAULT_ASSET_LIABILITY_CURRENCY, 
+          balance.currency, 
           displayCurrency
         ),
       }));
