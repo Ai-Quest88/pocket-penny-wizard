@@ -150,11 +150,11 @@ export function EditLiabilityDialog({ liability, onEditLiability }: EditLiabilit
           <Pencil className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Liability</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto">
           <div className="space-y-2">
             <Label htmlFor="entity">Entity</Label>
             <Select
