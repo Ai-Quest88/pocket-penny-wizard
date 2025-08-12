@@ -223,7 +223,10 @@ const Assets = () => {
     },
   });
 
-  const totalAssets = transformedAssets.reduce((sum, asset) => sum + asset.value, 0)
+  // Calculate total assets using converted balances (in display currency)
+  const totalAssets = accountBalances
+    .filter(balance => balance.accountType === 'asset')
+    .reduce((sum, balance) => sum + balance.calculatedBalance, 0)
   const monthlyChange = 3.2 // This could be calculated based on historical data
 
   const handleAddAsset = (newAsset: Omit<Asset, "id">) => {
