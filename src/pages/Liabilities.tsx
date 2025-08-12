@@ -7,16 +7,27 @@ import { supabase } from "@/integrations/supabase/client"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useAuth } from "@/contexts/AuthContext"
 import { useAccountBalances } from "@/hooks/useAccountBalances"
+import { calculateAccountBalances } from "@/utils/balanceCalculations"
 import { useCurrency } from "@/contexts/CurrencyContext"
 
 const Liabilities = () => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { session } = useAuth()
-  const { formatCurrency, displayCurrency } = useCurrency()
+  const { formatCurrency, displayCurrency, convertAmount } = useCurrency()
 
-  // First fetch account balances
+  // First fetch account balances (these are converted to display currency)
   const { data: accountBalances = [], isLoading: balancesLoading } = useAccountBalances()
+  
+  // Also fetch raw balances in original currencies
+  const { data: rawBalances = [], isLoading: rawBalancesLoading } = useQuery({
+    queryKey: ['raw-account-balances', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user) return [];
+      return await calculateAccountBalances(session.user.id);
+    },
+    enabled: !!session?.user,
+  });
 
   // Fetch liabilities from Supabase with user authentication
   const { data: liabilities = [], isLoading: liabilitiesLoading } = useQuery({
@@ -46,7 +57,7 @@ const Liabilities = () => {
         id: liability.id,
         entityId: liability.entity_id,
         name: liability.name,
-        amount: Number(liability.amount),
+        amount: Number(liability.opening_balance), // Use opening_balance instead of amount
         type: liability.type,
         category: liability.category,
         history: [], // Historical values would be fetched separately if needed
@@ -57,6 +68,7 @@ const Liabilities = () => {
         openingBalance: Number(liability.opening_balance) || 0,
         openingBalanceDate: liability.opening_balance_date || new Date().toISOString().split('T')[0],
         creditLimit: liability.credit_limit ? Number(liability.credit_limit) : undefined,
+        currency: liability.currency || 'AUD'
       })) as Liability[];
     },
     enabled: !!session?.user,
@@ -64,28 +76,32 @@ const Liabilities = () => {
 
   // Transform liabilities with calculated balances - this runs after both queries complete
   const liabilitiesWithBalances = useQuery({
-    queryKey: ['liabilities-with-balances', liabilities, accountBalances],
+    queryKey: ['liabilities-with-balances', liabilities, accountBalances, rawBalances],
     queryFn: () => {
       console.log('Transforming liabilities with calculated balances');
       console.log('Liabilities:', liabilities);
       console.log('Available account balances:', accountBalances);
+      console.log('Available raw balances:', rawBalances);
 
       return liabilities.map(liability => {
         // Get the calculated balance for this liability
         const calculatedBalance = accountBalances.find(b => b.accountId === liability.id);
-        console.log(`Liability ${liability.name}: Looking for balance with accountId ${liability.id}`);
-        console.log(`Found calculated balance:`, calculatedBalance);
+        console.log(`🔍 Liability ${liability.name}:`);
+        console.log(`  - Database opening_balance: ${liability.amount}`); // This is actually opening_balance
+        console.log(`  - Database currency: ${liability.currency}`);
+        console.log(`  - Calculated balance object:`, calculatedBalance);
         
-        const finalAmount = calculatedBalance?.calculatedBalance ?? Number(liability.amount);
-        console.log(`Final amount for ${liability.name}: ${finalAmount}`);
+        // Use the raw balance (in original currency) for display
+        const rawBalance = rawBalances.find(b => b.accountId === liability.id);
+        const originalAmount = rawBalance ? rawBalance.calculatedBalance : Number(liability.amount);
         
         return {
           ...liability,
-          amount: finalAmount, // Use calculated balance instead of static amount
+          amount: originalAmount, // Use original currency amount
         };
       }) as Liability[];
     },
-    enabled: !liabilitiesLoading && !balancesLoading && liabilities.length >= 0 && accountBalances.length >= 0,
+    enabled: !liabilitiesLoading && !balancesLoading && !rawBalancesLoading && !!liabilities && !!rawBalances,
   });
 
   const transformedLiabilities = liabilitiesWithBalances.data || [];
@@ -210,9 +226,12 @@ const Liabilities = () => {
     },
   });
 
-  const totalLiabilities = transformedLiabilities.reduce((sum, liability) => sum + liability.amount, 0)
+  // Calculate total liabilities using converted balances (in display currency)
+  const totalLiabilities = accountBalances
+    .filter(balance => balance.accountType === 'liability')
+    .reduce((sum, balance) => sum + balance.calculatedBalance, 0)
   const monthlyChange = -1.5 // This could be calculated based on historical data
-  const isLoading = liabilitiesLoading || balancesLoading || liabilitiesWithBalances.isLoading;
+  const isLoading = liabilitiesLoading || balancesLoading || rawBalancesLoading || liabilitiesWithBalances.isLoading;
 
   const handleAddLiability = (newLiability: Omit<Liability, "id">) => {
     addLiabilityMutation.mutate(newLiability);
