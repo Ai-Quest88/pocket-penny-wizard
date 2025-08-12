@@ -92,27 +92,31 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
       console.log(`  Sample transaction dates:`, allAccountTransactions.slice(0, 3).map(t => t.date));
     }
     
-    // Convert transaction amounts to DEFAULT_CURRENCY before summing
+    // Get opening balance currency first
+    const openingCurrency = asset.currency || DEFAULT_CURRENCY;
+    
+    // Keep transaction amounts in account currency - don't convert to DEFAULT_CURRENCY
     const transactionSum = accountTransactions.reduce((sum, t) => {
       const amount = Number(t.amount);
       const transactionCurrency = t.currency || DEFAULT_CURRENCY;
       
-      // Convert to default currency if needed
-      const convertedAmount = transactionCurrency === DEFAULT_CURRENCY || !exchangeRates
+      // Only convert if transaction currency differs from account currency
+      const convertedAmount = transactionCurrency === openingCurrency || !exchangeRates
         ? amount 
-        : convertAmount(amount, transactionCurrency, DEFAULT_CURRENCY, exchangeRates);
+        : convertAmount(amount, transactionCurrency, openingCurrency, exchangeRates);
       
-      console.log(`  Transaction: ${amount} ${transactionCurrency} → ${convertedAmount} ${DEFAULT_CURRENCY}`);
+      console.log(`  Transaction: ${amount} ${transactionCurrency} → ${convertedAmount} ${openingCurrency}`);
       return sum + convertedAmount;
     }, 0);
     
     // Keep opening balance in original currency - don't convert here
     const rawOpeningBalance = Number(asset.opening_balance);
-    const openingCurrency = asset.currency || DEFAULT_CURRENCY;
     const openingBalance = rawOpeningBalance; // Store in original currency
 
     // For assets: Closing Balance = Opening Balance + Transactions
     const calculatedBalance = openingBalance + transactionSum;
+
+    console.log(`Asset ${asset.name}: Opening ${openingBalance} ${openingCurrency} + Transactions ${transactionSum} = Closing ${calculatedBalance}`);
 
     balances.push({
       accountId: asset.id,
@@ -125,7 +129,7 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
       currency: openingCurrency
     });
 
-    console.log(`Asset ${asset.name}: Opening ${openingBalance} ${DEFAULT_CURRENCY} + Transactions ${transactionSum} = Closing ${calculatedBalance}`);
+    
   });
 
   // Calculate balances for liabilities  
@@ -139,23 +143,25 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
     console.log(`🔍 Liability ${liability.name}:`);
     console.log(`  Account currency: ${liability.currency || DEFAULT_CURRENCY}`);
     
-    // Convert transaction amounts to DEFAULT_CURRENCY before summing
+    // Get opening balance currency first
+    const openingCurrency = liability.currency || DEFAULT_CURRENCY;
+    
+    // Keep transaction amounts in account currency - don't convert to DEFAULT_CURRENCY
     const transactionSum = accountTransactions.reduce((sum, t) => {
       const amount = Number(t.amount);
       const transactionCurrency = t.currency || DEFAULT_CURRENCY;
       
-      // Convert to default currency if needed
-      const convertedAmount = transactionCurrency === DEFAULT_CURRENCY || !exchangeRates
+      // Only convert if transaction currency differs from account currency
+      const convertedAmount = transactionCurrency === openingCurrency || !exchangeRates
         ? amount 
-        : convertAmount(amount, transactionCurrency, DEFAULT_CURRENCY, exchangeRates);
+        : convertAmount(amount, transactionCurrency, openingCurrency, exchangeRates);
       
-      console.log(`  Transaction: ${amount} ${transactionCurrency} → ${convertedAmount} ${DEFAULT_CURRENCY}`);
+      console.log(`  Transaction: ${amount} ${transactionCurrency} → ${convertedAmount} ${openingCurrency}`);
       return sum + convertedAmount;
     }, 0);
     
     // Keep opening balance in original currency - don't convert here
     const rawOpeningBalance = Number(liability.opening_balance);
-    const openingCurrency = liability.currency || DEFAULT_CURRENCY;
     const openingBalance = rawOpeningBalance; // Store in original currency
 
     let calculatedBalance: number;
