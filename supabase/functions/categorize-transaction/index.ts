@@ -33,17 +33,20 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_ANON_KEY') ?? ''
 );
 
-// Fallback categories if user has no custom categories
-const fallbackCategories = [
-  'Groceries', 'Restaurants', 'Gas', 'Fuel', 'Shopping', 'Entertainment', 'Healthcare', 
-  'Insurance', 'Utilities', 'Transportation', 'Education', 'Travel', 'Gifts & Donations', 
-  'Personal Care', 'Professional Services', 'Home & Garden', 'Electronics', 'Clothing', 
-  'Books', 'Subscriptions', 'Banking', 'Investment', 'Taxes', 'Legal', 'Uncategorized', 
-  'Transfer In', 'Transfer Out', 'Income', 'Salary', 'Business', 'Freelance', 'Interest', 'Dividends', 
-  'Other Income', 'Rental Income', 'Government Benefits', 'Pension', 'Child Support', 
-  'Alimony', 'Gifts Received', 'Refunds', 'Cryptocurrency', 'Fast Food', 'Public Transport', 
-  'Tolls', 'Food Delivery'
-];
+// Function to seed default categories if user has none
+const seedDefaultCategories = async (userId: string): Promise<void> => {
+  try {
+    console.log('Seeding default categories for user:', userId);
+    const { data, error } = await supabase.rpc('seed_default_categories');
+    if (error) {
+      console.error('Error seeding categories:', error);
+    } else {
+      console.log('Successfully seeded default categories');
+    }
+  } catch (error) {
+    console.error('Error calling seed function:', error);
+  }
+};
 
 // Function to get user's custom categories
 const getUserCategories = async (userId: string): Promise<string[]> => {
@@ -59,8 +62,22 @@ const getUserCategories = async (userId: string): Promise<string[]> => {
     console.log('User buckets:', buckets, 'Error:', bucketsError);
     
     if (bucketsError || !buckets || buckets.length === 0) {
-      console.error('No buckets found for user:', bucketsError);
-      return fallbackCategories;
+      console.error('No buckets found for user, seeding default categories:', bucketsError);
+      await seedDefaultCategories(userId);
+      
+      // Try fetching buckets again after seeding
+      const { data: newBuckets, error: newBucketsError } = await supabase
+        .from('category_buckets')
+        .select('id')
+        .eq('user_id', userId);
+      
+      if (newBucketsError || !newBuckets || newBuckets.length === 0) {
+        console.error('Still no buckets after seeding:', newBucketsError);
+        return ['Uncategorized']; // Only return Uncategorized if DB categories fail
+      }
+      
+      // Update buckets with newly seeded data
+      buckets.splice(0, buckets.length, ...newBuckets);
     }
     
     const bucketIds = buckets.map(bucket => bucket.id);
@@ -77,7 +94,7 @@ const getUserCategories = async (userId: string): Promise<string[]> => {
 
     if (error) {
       console.error('Error fetching user categories:', error);
-      return fallbackCategories;
+      return ['Uncategorized'];
     }
 
     const userCategories = data?.map(cat => cat.name) || [];
@@ -89,10 +106,10 @@ const getUserCategories = async (userId: string): Promise<string[]> => {
     }
 
     console.log('Final user categories array:', userCategories);
-    return userCategories.length > 1 ? userCategories : fallbackCategories; // Changed from > 0 to > 1 since we always add Uncategorized
+    return userCategories;
   } catch (error) {
     console.error('Error in getUserCategories:', error);
-    return fallbackCategories;
+    return ['Uncategorized'];
   }
 };
 
