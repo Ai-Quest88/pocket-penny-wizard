@@ -89,7 +89,7 @@ export const AddToHouseholdDialog: React.FC<AddToHouseholdDialogProps> = ({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-h-[90vh]">
+      <DialogContent className="max-w-lg max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>
             Add to Household

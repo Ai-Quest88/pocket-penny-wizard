@@ -140,7 +140,7 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
           Add Asset
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[90vh]">
+      <DialogContent className="max-w-lg max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Add New Asset</DialogTitle>
           <DialogDescription>

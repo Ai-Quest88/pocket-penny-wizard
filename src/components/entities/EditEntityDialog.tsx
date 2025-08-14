@@ -94,7 +94,7 @@ export function EditEntityDialog({ entity, onEditEntity }: EditEntityDialogProps
           <Pencil className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md max-h-[90vh]">
+      <DialogContent className="max-w-lg max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Edit Entity</DialogTitle>
         </DialogHeader>

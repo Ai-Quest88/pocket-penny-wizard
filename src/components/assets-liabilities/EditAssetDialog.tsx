@@ -103,7 +103,7 @@ export function EditAssetDialog({ asset, onEditAsset }: EditAssetDialogProps) {
           <Pencil className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md max-h-[90vh]">
+      <DialogContent className="max-w-lg max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Edit Asset</DialogTitle>
         </DialogHeader>

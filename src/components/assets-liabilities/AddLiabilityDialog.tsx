@@ -224,7 +224,7 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
           Add Liability
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[90vh]">
+      <DialogContent className="max-w-lg max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Add New Liability</DialogTitle>
         </DialogHeader>

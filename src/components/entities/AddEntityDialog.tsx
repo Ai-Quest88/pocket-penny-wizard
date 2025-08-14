@@ -197,7 +197,7 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
           Add Entity
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md max-h-[90vh]">
+      <DialogContent className="max-w-lg max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Add New Entity</DialogTitle>
         </DialogHeader>
