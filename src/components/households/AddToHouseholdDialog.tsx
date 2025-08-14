@@ -13,6 +13,7 @@ import {
   DialogTitle, 
   DialogTrigger 
 } from '../ui/dialog';
+import { ScrollArea } from '../ui/scroll-area';
 import { 
   Select,
   SelectContent,
@@ -88,14 +89,15 @@ export const AddToHouseholdDialog: React.FC<AddToHouseholdDialogProps> = ({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>
             Add to Household
           </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4">
+        <ScrollArea className="max-h-[70vh] pr-4">
+          <div className="space-y-4">
           <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
             <User className="w-5 h-5 text-gray-500" />
             <div>
@@ -142,9 +144,10 @@ export const AddToHouseholdDialog: React.FC<AddToHouseholdDialogProps> = ({
               >
                 {addMemberMutation.isPending ? 'Adding...' : 'Add to Household'}
               </Button>
-            </div>
-          </form>
-        </div>
+              </div>
+            </form>
+          </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );

@@ -6,6 +6,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -223,11 +224,12 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
           Add Liability
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Add New Liability</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <ScrollArea className="max-h-[70vh] pr-4">
+          <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="entity">Entity</Label>
             <Select
@@ -419,10 +421,11 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
             </Select>
           </div>
           
-          <Button onClick={handleAddLiability} className="w-full">
-            Add Liability
-          </Button>
-        </div>
+            <Button onClick={handleAddLiability} className="w-full">
+              Add Liability
+            </Button>
+          </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   )

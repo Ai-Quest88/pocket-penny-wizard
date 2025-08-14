@@ -8,6 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -93,11 +94,12 @@ export function EditEntityDialog({ entity, onEditEntity }: EditEntityDialogProps
           <Pencil className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Edit Entity</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <ScrollArea className="max-h-[70vh] pr-4">
+          <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label>Entity Type</Label>
             <Select
@@ -202,10 +204,11 @@ export function EditEntityDialog({ entity, onEditEntity }: EditEntityDialogProps
             </>
           )}
 
-          <Button onClick={handleSubmit} className="w-full">
-            Update Entity
-          </Button>
-        </div>
+            <Button onClick={handleSubmit} className="w-full">
+              Update Entity
+            </Button>
+          </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );

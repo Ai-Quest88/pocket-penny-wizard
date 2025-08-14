@@ -8,6 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -139,14 +140,15 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
           Add Asset
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Add New Asset</DialogTitle>
           <DialogDescription>
             Create a new asset and assign it to an entity.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <ScrollArea className="max-h-[70vh] pr-4">
+          <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="entity">Entity</Label>
             <Select
@@ -287,8 +289,9 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
             </Select>
           </div>
           
-          <Button onClick={handleAddAsset} className="w-full">Add Asset</Button>
-        </div>
+            <Button onClick={handleAddAsset} className="w-full">Add Asset</Button>
+          </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   )
