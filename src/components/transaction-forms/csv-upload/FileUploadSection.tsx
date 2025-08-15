@@ -16,7 +16,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
   isProcessing
 }) => {
   const downloadTemplate = () => {
-    const template = 'Date,Amount,Description,Category,Currency\n01/01/2024,-50.00,Coffee Shop,Food & Dining,AUD\n02/01/2024,2000.00,Salary,Income,AUD'
+    const template = 'Date,Amount,Description\n01/01/2024,-50.00,Coffee Shop\n02/01/2024,2000.00,Salary'
     const blob = new Blob([template], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -29,11 +29,11 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
   const downloadExcelTemplate = () => {
     // Create sample data with DD/MM/YYYY format
     const templateData = [
-      ['Date', 'Amount', 'Description', 'Category', 'Currency'],
-      ['01/01/2024', -50.00, 'Coffee Shop', 'Food & Dining', 'AUD'],
-      ['02/01/2024', 2000.00, 'Salary', 'Income', 'AUD'],
-      ['03/01/2024', -25.50, 'Gas Station', 'Transportation', 'AUD'],
-      ['04/01/2024', -120.00, 'Grocery Store', 'Food & Dining', 'AUD']
+      ['Date', 'Amount', 'Description'],
+      ['01/01/2024', -50.00, 'Coffee Shop'],
+      ['02/01/2024', 2000.00, 'Salary'],
+      ['03/01/2024', -25.50, 'Gas Station'],
+      ['04/01/2024', -120.00, 'Grocery Store']
     ]
 
     // Create workbook and worksheet
@@ -41,7 +41,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
     const worksheet = XLSX.utils.aoa_to_sheet(templateData)
     
     // Add some formatting - make headers bold (if supported)
-    const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:E1')
+    const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:C1')
     for (let col = range.s.c; col <= range.e.c; col++) {
       const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col })
       if (!worksheet[cellAddress]) continue
@@ -56,8 +56,6 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
       { width: 12 }, // Date
       { width: 10 }, // Amount
       { width: 20 }, // Description
-      { width: 15 }, // Category
-      { width: 10 }  // Currency
     ]
     
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Transactions')
