@@ -64,36 +64,46 @@ export const PreviewTable = ({ data, mappings, defaultSettings, selectedAccount 
       </div>
       
       <div className="border rounded-lg overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Description</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Currency</TableHead>
-              <TableHead>Account</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {previewData.map((row, index) => (
-              <TableRow key={index}>
-                <TableCell>{getValue(row, mappings.description, defaultSettings.description)}</TableCell>
-                <TableCell>{getValue(row, mappings.amount, '0')}</TableCell>
-                <TableCell className="font-mono">{getValue(row, mappings.date, '')}</TableCell>
-                <TableCell>{getValue(row, mappings.currency, defaultSettings.currency)}</TableCell>
-                <TableCell>
-                  {selectedAccount ? (
-                    <span className="text-sm text-muted-foreground">
-                      {selectedAccount.name}
-                    </span>
-                  ) : (
-                    <span className="text-sm text-red-500">No account</span>
-                  )}
-                </TableCell>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="min-w-[120px]">Description</TableHead>
+                <TableHead className="min-w-[80px]">Amount</TableHead>
+                <TableHead className="min-w-[100px]">Date</TableHead>
+                <TableHead className="min-w-[80px]">Currency</TableHead>
+                <TableHead className="min-w-[120px]">Account</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {previewData.map((row, index) => (
+                <TableRow key={index}>
+                  <TableCell className="max-w-[200px] truncate" title={getValue(row, mappings.description, defaultSettings.description)}>
+                    {getValue(row, mappings.description, defaultSettings.description)}
+                  </TableCell>
+                  <TableCell className="max-w-[100px] truncate text-right">
+                    {getValue(row, mappings.amount, '0')}
+                  </TableCell>
+                  <TableCell className="font-mono max-w-[120px] truncate">
+                    {getValue(row, mappings.date, '')}
+                  </TableCell>
+                  <TableCell className="max-w-[80px] truncate">
+                    {getValue(row, mappings.currency, defaultSettings.currency)}
+                  </TableCell>
+                  <TableCell className="max-w-[150px] truncate">
+                    {selectedAccount ? (
+                      <span className="text-sm text-muted-foreground" title={selectedAccount.name}>
+                        {selectedAccount.name}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-red-500">No account</span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
       
       {data.length > 5 && (
