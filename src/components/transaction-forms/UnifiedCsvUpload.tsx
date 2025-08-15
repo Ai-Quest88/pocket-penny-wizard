@@ -3,7 +3,7 @@ import { FileUploadSection } from "./csv-upload/FileUploadSection";
 import { ColumnMappingSection } from "./csv-upload/ColumnMappingSection";
 import { DefaultSettingsSection } from "./csv-upload/DefaultSettingsSection";
 import { PreviewTable } from "./csv-upload/PreviewTable";
-import { EditablePreviewTable } from "./csv-upload/EditablePreviewTable";
+
 import { AutoMappingAlert } from "./csv-upload/AutoMappingAlert";
 import { AccountSelectionSection } from "./csv-upload/AccountSelectionSection";
 import { DuplicateReviewDialog } from "./csv-upload/DuplicateReviewDialog";
