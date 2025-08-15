@@ -13,7 +13,6 @@ export interface Entity {
 
 export interface IndividualEntity extends Entity {
   type: "individual";
-  relationship?: string; // e.g., "spouse", "child", "parent", "self"
   dateOfBirth?: string;
 }
 

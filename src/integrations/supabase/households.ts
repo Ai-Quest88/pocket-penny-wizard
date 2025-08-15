@@ -170,7 +170,6 @@ export const getAvailableEntities = async (): Promise<IndividualEntity[]> => {
     taxIdentifier: row.tax_identifier || undefined,
     countryOfResidence: row.country_of_residence,
     dateAdded: row.date_added,
-    relationship: row.relationship || undefined,
     dateOfBirth: row.date_of_birth || undefined,
   }));
 };
@@ -204,7 +203,6 @@ export const getHouseholdEntities = async (householdId: string): Promise<Individ
     taxIdentifier: row.tax_identifier || undefined,
     countryOfResidence: row.country_of_residence,
     dateAdded: row.date_added,
-    relationship: row.relationship || undefined,
     dateOfBirth: row.date_of_birth || undefined,
   }));
 };

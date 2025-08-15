@@ -102,9 +102,7 @@ export const AddToHouseholdDialog: React.FC<AddToHouseholdDialogProps> = ({
             <User className="w-5 h-5 text-gray-500" />
             <div>
               <p className="font-medium">{individual.name}</p>
-              <p className="text-sm text-gray-600">
-                {individual.relationship ? `${individual.relationship}` : 'Individual'}
-              </p>
+              <p className="text-sm text-gray-600">Individual</p>
             </div>
           </div>
 

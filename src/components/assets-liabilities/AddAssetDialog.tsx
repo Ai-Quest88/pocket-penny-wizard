@@ -81,7 +81,6 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
         taxIdentifier: entity.tax_identifier || '',
         countryOfResidence: entity.country_of_residence,
         dateAdded: entity.date_added,
-        relationship: entity.relationship || '',
         dateOfBirth: entity.date_of_birth || '',
         registrationNumber: entity.registration_number || '',
         incorporationDate: entity.incorporation_date || '',

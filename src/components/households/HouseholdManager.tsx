@@ -241,9 +241,6 @@ export const HouseholdManager: React.FC = () => {
                         <div key={entity.id} className="flex items-center text-sm text-gray-600">
                           <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
                           {entity.name}
-                          {entity.relationship && (
-                            <span className="text-gray-400 ml-1">({entity.relationship})</span>
-                          )}
                         </div>
                       ))}
                     </div>
@@ -466,11 +463,6 @@ const CreateHouseholdForm: React.FC<CreateHouseholdFormProps> = ({ onSubmit }) =
                   className="text-sm font-normal cursor-pointer"
                 >
                   {entity.name}
-                  {entity.relationship && (
-                    <span className="text-muted-foreground ml-1">
-                      ({entity.relationship})
-                    </span>
-                  )}
                 </Label>
               </div>
             ))}
@@ -683,11 +675,6 @@ const EditHouseholdForm: React.FC<EditHouseholdFormProps> = ({ household, onSubm
                   className="text-sm font-normal cursor-pointer"
                 >
                   {entity.name}
-                  {entity.relationship && (
-                    <span className="text-muted-foreground ml-1">
-                      ({entity.relationship})
-                    </span>
-                  )}
                 </Label>
               </div>
             ))}

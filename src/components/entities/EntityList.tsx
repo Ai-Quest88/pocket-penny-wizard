@@ -62,10 +62,6 @@ export const EntityList = ({ entities, onDeleteEntity, onEditEntity, checkEntity
             </div>
             {entity.type === "individual" ? (
               <>
-                <div>
-                  <p className="font-medium">Relationship</p>
-                  <p className="text-muted-foreground">{(entity as IndividualEntity).relationship || "N/A"}</p>
-                </div>
                 {(entity as IndividualEntity).dateOfBirth && (
                   <div>
                     <p className="font-medium">Date of Birth</p>

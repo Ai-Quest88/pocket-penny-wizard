@@ -84,11 +84,6 @@ export const HouseholdList: React.FC<HouseholdListProps> = ({
                     <User className="w-3 h-3 text-gray-400" />
                      <span className="text-sm">
                        {member.name}
-                       {member.relationship && (
-                         <Badge variant="outline" className="ml-2 text-xs">
-                           {member.relationship}
-                         </Badge>
-                       )}
                      </span>
                   </div>
                 ))}

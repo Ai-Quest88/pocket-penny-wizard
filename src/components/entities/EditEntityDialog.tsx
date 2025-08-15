@@ -37,7 +37,6 @@ export function EditEntityDialog({ entity, onEditEntity }: EditEntityDialogProps
     type: entity.type as EntityType,
     description: entity.description || "",
     countryOfResidence: entity.countryOfResidence,
-    relationship: (entity as IndividualEntity).relationship || "",
     dateOfBirth: (entity as IndividualEntity).dateOfBirth || "",
     registrationNumber: (entity as BusinessEntity).registrationNumber || "",
     incorporationDate: (entity as BusinessEntity).incorporationDate || "",
@@ -66,7 +65,6 @@ export function EditEntityDialog({ entity, onEditEntity }: EditEntityDialogProps
       const individualEntity: Omit<IndividualEntity, "id" | "dateAdded"> = {
         ...baseEntity,
         type: "individual",
-        relationship: formData.relationship,
         dateOfBirth: formData.dateOfBirth,
       };
       onEditEntity(entity.id, individualEntity);
@@ -159,14 +157,6 @@ export function EditEntityDialog({ entity, onEditEntity }: EditEntityDialogProps
 
           {entityType === "individual" ? (
             <>
-              <div className="space-y-2">
-                <Label>Relationship</Label>
-                <Input
-                  value={formData.relationship}
-                  onChange={(e) => setFormData({ ...formData, relationship: e.target.value })}
-                  placeholder="e.g., Spouse, Child"
-                />
-              </div>
               <div className="space-y-2">
                 <Label>Date of Birth</Label>
                 <Input
