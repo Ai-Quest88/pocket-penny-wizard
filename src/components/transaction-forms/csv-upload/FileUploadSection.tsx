@@ -16,7 +16,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
   isProcessing
 }) => {
   const downloadTemplate = () => {
-    const template = 'Date,Amount,Description\n01/01/2024,-50.00,Coffee Shop\n02/01/2024,2000.00,Salary'
+    const template = 'Date,Description,Amount\n01/01/2024,Coffee Shop,-50.00\n02/01/2024,Salary,2000.00'
     const blob = new Blob([template], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -29,11 +29,11 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
   const downloadExcelTemplate = () => {
     // Create sample data with DD/MM/YYYY format
     const templateData = [
-      ['Date', 'Amount', 'Description'],
-      ['01/01/2024', -50.00, 'Coffee Shop'],
-      ['02/01/2024', 2000.00, 'Salary'],
-      ['03/01/2024', -25.50, 'Gas Station'],
-      ['04/01/2024', -120.00, 'Grocery Store']
+      ['Date', 'Description', 'Amount'],
+      ['01/01/2024', 'Coffee Shop', -50.00],
+      ['02/01/2024', 'Salary', 2000.00],
+      ['03/01/2024', 'Gas Station', -25.50],
+      ['04/01/2024', 'Grocery Store', -120.00]
     ]
 
     // Create workbook and worksheet
@@ -54,8 +54,8 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
     // Set column widths
     worksheet['!cols'] = [
       { width: 12 }, // Date
-      { width: 10 }, // Amount
       { width: 20 }, // Description
+      { width: 10 }, // Amount
     ]
     
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Transactions')
