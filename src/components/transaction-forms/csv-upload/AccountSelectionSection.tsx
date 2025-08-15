@@ -51,10 +51,10 @@ export const AccountSelectionSection = ({
       </div>
       
       <Select value={selectedAccountId || "no-account"} onValueChange={handleValueChange}>
-        <SelectTrigger>
+        <SelectTrigger className="w-full">
           <SelectValue placeholder="Select an account for these transactions" />
         </SelectTrigger>
-        <SelectContent className="max-h-80 bg-background border shadow-lg z-[100]">
+        <SelectContent className="max-h-80 w-full bg-background border shadow-lg z-[100]">
           <SelectItem value="no-account" className="border-b mb-2">
             <div className="flex flex-col py-2">
               <span className="font-medium">No Account</span>
@@ -74,11 +74,11 @@ export const AccountSelectionSection = ({
                   value={account.id}
                   className="pl-6 py-3"
                 >
-                  <div className="flex items-center gap-3 w-full">
-                    <Building2 className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
+                  <div className="flex items-start gap-3 w-full min-w-0">
+                    <Building2 className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0 overflow-hidden">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium truncate">{account.name}</span>
+                        <span className="font-medium truncate flex-1">{account.name}</span>
                         <AccountTypeIndicator 
                           type={account.type} 
                           category={account.type.toLowerCase().replace(' ', '_')}
@@ -86,14 +86,14 @@ export const AccountSelectionSection = ({
                           className="flex-shrink-0"
                         />
                       </div>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>{account.entityName}</span>
-                        <span className="text-green-600 font-medium">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground gap-2">
+                        <span className="truncate flex-1">{account.entityName}</span>
+                        <span className="text-green-600 font-medium whitespace-nowrap">
                           {formatCurrency(account.currentBalance)}
                         </span>
                       </div>
                       {account.accountNumber && (
-                        <div className="text-xs text-muted-foreground">
+                        <div className="text-xs text-muted-foreground truncate">
                           A/C: {account.accountNumber}
                         </div>
                       )}
@@ -119,11 +119,11 @@ export const AccountSelectionSection = ({
                   value={account.id}
                   className="pl-6 py-3"
                 >
-                  <div className="flex items-center gap-3 w-full">
-                    <Building2 className="h-4 w-4 text-red-600 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
+                  <div className="flex items-start gap-3 w-full min-w-0">
+                    <Building2 className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0 overflow-hidden">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium truncate">{account.name}</span>
+                        <span className="font-medium truncate flex-1">{account.name}</span>
                         <AccountTypeIndicator 
                           type={account.type} 
                           category={account.type.toLowerCase().replace(' ', '_')}
@@ -131,14 +131,14 @@ export const AccountSelectionSection = ({
                           className="flex-shrink-0"
                         />
                       </div>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>{account.entityName}</span>
-                        <span className="text-red-600 font-medium">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground gap-2">
+                        <span className="truncate flex-1">{account.entityName}</span>
+                        <span className="text-red-600 font-medium whitespace-nowrap">
                           {formatCurrency(Math.abs(account.currentBalance))}
                         </span>
                       </div>
                       {account.accountNumber && (
-                        <div className="text-xs text-muted-foreground">
+                        <div className="text-xs text-muted-foreground truncate">
                           A/C: {account.accountNumber}
                         </div>
                       )}
