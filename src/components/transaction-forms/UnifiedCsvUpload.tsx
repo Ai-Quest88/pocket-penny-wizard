@@ -596,7 +596,7 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
             </div>
           </div>
           
-          <EditablePreviewTable
+          <PreviewTable
             data={parsedData}
             mappings={{
               description: mappings.description,
@@ -606,7 +606,6 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
             }}
             defaultSettings={defaultSettings}
             selectedAccount={selectedAccountId ? accounts.find(acc => acc.id === selectedAccountId) : null}
-            onDataChange={handleDataChange}
           />
           
           <div className="flex flex-col items-end space-y-2">
