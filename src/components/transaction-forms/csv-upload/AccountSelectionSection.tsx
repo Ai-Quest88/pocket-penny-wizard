@@ -51,10 +51,37 @@ export const AccountSelectionSection = ({
       </div>
       
       <Select value={selectedAccountId || "no-account"} onValueChange={handleValueChange}>
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder="Select an account for these transactions" />
+        <SelectTrigger className="w-full h-auto min-h-[40px]">
+          {selectedAccountId ? (
+            <div className="flex items-center justify-between w-full gap-2 py-1">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <Building2 className="h-4 w-4 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium truncate">
+                    {accounts.find(acc => acc.id === selectedAccountId)?.name}
+                  </div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {accounts.find(acc => acc.id === selectedAccountId)?.entityName}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <AccountTypeIndicator 
+                  type={accounts.find(acc => acc.id === selectedAccountId)?.type || ''} 
+                  category={accounts.find(acc => acc.id === selectedAccountId)?.type?.toLowerCase().replace(' ', '_') || ''}
+                  accountType={accounts.find(acc => acc.id === selectedAccountId)?.accountType || 'asset'}
+                  className="text-xs"
+                />
+                <span className="text-sm font-medium">
+                  {formatCurrency(accounts.find(acc => acc.id === selectedAccountId)?.currentBalance || 0)}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <SelectValue placeholder="Select an account for these transactions" />
+          )}
         </SelectTrigger>
-        <SelectContent className="max-h-80 w-full bg-background border shadow-lg z-[100]">
+        <SelectContent className="max-h-80 w-[var(--radix-select-trigger-width)] bg-background border shadow-lg z-[100]">
           <SelectItem value="no-account" className="border-b mb-2">
             <div className="flex flex-col py-2">
               <span className="font-medium">No Account</span>
