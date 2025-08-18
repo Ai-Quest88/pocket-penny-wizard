@@ -17,6 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAccounts } from "@/hooks/useAccounts";
 import { addUserCategoryRule } from "@/utils/transactionCategories";
+import { seedDefaultCategories } from "@/utils/seedCategories";
 
 import { supabase } from "@/integrations/supabase/client";
 
@@ -437,6 +438,10 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
       });
       return;
     }
+
+    // First, ensure user has categories seeded
+    console.log('Ensuring categories are seeded before processing...');
+    await seedDefaultCategories();
 
     setIsProcessing(true);
     setUploadProgress({

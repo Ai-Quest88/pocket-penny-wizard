@@ -46,15 +46,27 @@ const createAuthenticatedSupabaseClient = (authHeader: string | null) => {
   return supabaseClient;
 };
 
-// Function to seed default categories if user has none - removed as it's not needed
-// The system should work with existing categories or fall back to basic ones
+// Function to seed default categories if user has none  
+const seedDefaultCategories = async (userId: string, supabaseClient: any): Promise<void> => {
+  try {
+    console.log('Seeding default categories for user:', userId);
+    const { data, error } = await supabaseClient.rpc('seed_default_categories');
+    if (error) {
+      console.error('Error seeding categories:', error);
+    } else {
+      console.log('Successfully seeded default categories');
+    }
+  } catch (error) {
+    console.error('Error calling seed function:', error);
+  }
+};
 
 // Function to get user's custom categories
 const getUserCategories = async (userId: string, supabaseClient: any): Promise<string[]> => {
   try {
     console.log('Fetching categories for userId:', userId);
     
-    // Directly fetch categories for the user, bypassing buckets for simplicity
+    // First check if user has any categories at all
     const { data, error } = await supabaseClient
       .from('categories')
       .select('name')
@@ -75,13 +87,29 @@ const getUserCategories = async (userId: string, supabaseClient: any): Promise<s
     const userCategories = data?.map(cat => cat.name) || [];
     console.log('Raw user categories from DB:', userCategories);
     
-    // If no categories found, return basic ones
+    // If no categories found, try to seed them first
     if (userCategories.length === 0) {
-      console.log('No categories found, returning basic categories');
-      return [
-        'Food & Dining', 'Shopping', 'Transportation', 'Bills & Utilities', 
-        'Entertainment', 'Healthcare', 'Income', 'Transfer', 'Uncategorized'
-      ];
+      console.log('No categories found, attempting to seed default categories');
+      await seedDefaultCategories(userId, supabaseClient);
+      
+      // Try fetching again after seeding
+      const { data: newData, error: newError } = await supabaseClient
+        .from('categories')
+        .select('name')
+        .eq('user_id', userId)
+        .order('sort_order', { ascending: true });
+      
+      if (newError || !newData || newData.length === 0) {
+        console.log('Still no categories after seeding, returning basic categories');
+        return [
+          'Food & Dining', 'Shopping', 'Transportation', 'Bills & Utilities', 
+          'Entertainment', 'Healthcare', 'Income', 'Transfer', 'Uncategorized'
+        ];
+      }
+      
+      const seededCategories = newData.map(cat => cat.name);
+      console.log('Successfully seeded categories:', seededCategories);
+      return seededCategories;
     }
     
     // Always include 'Uncategorized' as a fallback option
