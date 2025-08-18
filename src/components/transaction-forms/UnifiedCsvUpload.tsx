@@ -128,6 +128,11 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
   const { session } = useAuth();
   const queryClient = useQueryClient();
 
+  // Debug account selection
+  console.log('UnifiedCsvUpload - Accounts:', accounts);
+  console.log('UnifiedCsvUpload - Selected Account ID:', selectedAccountId);
+  console.log('UnifiedCsvUpload - Found Account:', selectedAccountId ? accounts.find(acc => acc.id === selectedAccountId) : null);
+
   const handleFileUpload = (data: CSVRow[], fileHeaders: string[]) => {
     console.log('handleFileUpload called with:', { data: data.slice(0, 2), fileHeaders });
     setParsedData(data);
