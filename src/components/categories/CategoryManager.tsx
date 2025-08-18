@@ -105,7 +105,7 @@ const defaultCategoryGroups: CategoryGroup[] = [
           { id: "tax-returns", name: "Tax Returns", description: "Tax refunds" },
           { id: "alimony", name: "Alimony", description: "Alimony payments" },
           { id: "child-support", name: "Child Support", description: "Child support payments" },
-          { id: "government-benefits", name: "Government Benefits", description: "Social security, etc." }
+          { id: "government-benefits", name: "Government Benefits", description: "Centrelink, pensions, etc." }
         ]
       }
     ]

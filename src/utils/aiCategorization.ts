@@ -164,7 +164,7 @@ const comprehensiveAustralianRules = (description: string): string | null => {
   
   // === HEALTHCARE ===
   if (lowerDesc.includes('cbhs') || lowerDesc.includes('000187') || // CBHS health fund
-      lowerDesc.includes('medicare') || lowerDesc.includes('health fund') ||
+      lowerDesc.includes('medicare australia') || lowerDesc.includes('health fund') ||
       lowerDesc.includes('doctor') || lowerDesc.includes('medical') || lowerDesc.includes('pharmacy') ||
       lowerDesc.includes('chemist') || lowerDesc.includes('hospital') || lowerDesc.includes('dental') ||
       lowerDesc.includes('physiotherapy') || lowerDesc.includes('optometrist')) {
