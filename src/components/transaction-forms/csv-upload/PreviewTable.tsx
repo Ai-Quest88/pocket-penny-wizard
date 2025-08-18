@@ -31,6 +31,8 @@ export const PreviewTable = ({ data, mappings, defaultSettings, selectedAccount 
     mappings
   });
   
+  console.log('PreviewTable SELECTED ACCOUNT:', selectedAccount);
+  
   if (previewData.length > 0 && mappings.date) {
     console.log('DATE VALUES IN PREVIEW:');
     previewData.forEach((row, idx) => {
