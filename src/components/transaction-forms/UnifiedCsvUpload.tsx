@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { FileUploadSection } from "./csv-upload/FileUploadSection";
 import { ColumnMappingSection } from "./csv-upload/ColumnMappingSection";
-import { DefaultSettingsSection } from "./csv-upload/DefaultSettingsSection";
+
 import { PreviewTable } from "./csv-upload/PreviewTable";
 
 import { AutoMappingAlert } from "./csv-upload/AutoMappingAlert";
@@ -114,7 +114,7 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
   const [parsedData, setParsedData] = useState<CSVRow[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
   const [mappings, setMappings] = useState<Record<string, string>>(initialMappings);
-  const [defaultSettings, setDefaultSettings] = useState<DefaultSettings>(initialSettings);
+  
   const [isProcessing, setIsProcessing] = useState(false);
   const [autoMappedColumns, setAutoMappedColumns] = useState<{ [key: string]: string }>({});
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
@@ -173,9 +173,6 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
     setMappings(prev => ({ ...prev, [field]: header }));
   };
 
-  const handleDefaultSettingsChange = (field: keyof DefaultSettings, value: string) => {
-    setDefaultSettings(prev => ({ ...prev, [field]: value }));
-  };
 
   const handleAcceptAutoMapping = () => {
     setMappings(prev => ({
@@ -284,7 +281,6 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
         setParsedData([]);
         setHeaders([]);
         setMappings(initialMappings);
-        setDefaultSettings(initialSettings);
         setSelectedAccountId(null);
         setPendingTransactions([]);
         
@@ -456,11 +452,11 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
 
     try {
       const formattedTransactions = parsedData.map((row) => {
-        const description = getValue(row, mappings.description, defaultSettings.description);
+        const description = getValue(row, mappings.description, 'Transaction');
         const amountStr = String(getValue(row, mappings.amount, '0'));
         const amount = parseFloat(amountStr.replace(/[^-\d.]/g, ''));
         const dateStr = getValue(row, mappings.date, '');
-        const currency = getValue(row, mappings.currency, defaultSettings.currency);
+        const currency = getValue(row, mappings.currency, 'AUD');
 
         return {
           user_id: session.user.id,
@@ -575,10 +571,6 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
             onMappingChange={handleMappingChange}
           />
           
-          <DefaultSettingsSection
-            defaultSettings={defaultSettings}
-            onSettingsChange={handleDefaultSettingsChange}
-          />
 
           <AccountSelectionSection
             selectedAccountId={selectedAccountId}
@@ -604,7 +596,7 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
               date: mappings.date,
               currency: mappings.currency,
             }}
-            defaultSettings={defaultSettings}
+            defaultSettings={initialSettings}
             selectedAccount={selectedAccountId ? accounts.find(acc => acc.id === selectedAccountId) : null}
           />
           
