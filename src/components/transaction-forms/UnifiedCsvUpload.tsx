@@ -526,7 +526,11 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
       }
 
       const result = await response.json();
-      console.log('AI batch categorization completed:', result);
+      console.log('✅ AI batch categorization completed successfully:', {
+        categoriesCount: result.categories?.length,
+        categories: result.categories?.slice(0, 5), // First 5 for debugging
+        result
+      });
 
       // Combine transactions with AI categories
       const categorizedTransactions = formattedTransactions.map((transaction, index) => ({
@@ -535,7 +539,11 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
         aiConfidence: result.confidence || 0,
       }));
 
-      console.log('AI categorization completed:', categorizedTransactions.slice(0, 2));
+      console.log('🎯 AI categorization mapping completed:', {
+        originalCount: formattedTransactions.length,
+        categorizedCount: categorizedTransactions.length,
+        firstFewCategorized: categorizedTransactions.slice(0, 3)
+      });
 
       // Show category review dialog for user to edit categories before saving
       setPendingTransactions(categorizedTransactions);
@@ -550,11 +558,27 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
         errorStack: error instanceof Error ? error.stack : undefined,
         transactionCount: parsedData?.length || 0,
         selectedAccount: selectedAccountId,
-        mappings: mappings
+        mappings: mappings,
+        errorType: error?.constructor?.name || 'Unknown'
       });
+      
+      // More specific error handling
+      let errorDescription = 'Unknown error occurred';
+      if (error instanceof Error) {
+        if (error.message.includes('AI categorization failed')) {
+          errorDescription = `AI categorization service error: ${error.message}`;
+        } else if (error.message.includes('Network')) {
+          errorDescription = `Network connectivity issue: ${error.message}`;
+        } else if (error.message.includes('fetch')) {
+          errorDescription = `API request failed: ${error.message}`;
+        } else {
+          errorDescription = error.message;
+        }
+      }
+
       toast({
         title: "Processing Error",
-        description: `Failed to process transactions: ${error instanceof Error ? error.message : 'Unknown error'}. Check console for details.`,
+        description: `Failed to process transactions: ${errorDescription}. Check console for detailed logs.`,
         variant: "destructive",
       });
       setUploadProgress(null);
