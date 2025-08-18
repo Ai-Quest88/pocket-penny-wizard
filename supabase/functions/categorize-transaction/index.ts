@@ -27,78 +27,62 @@ const buildCorsHeaders = (origin: string | null) => {
 // Use Google Gemini API instead of Groq
 const geminiApiKey = Deno.env.get('VITE_GEMINI_API_KEY');
 
-// Supabase client
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-);
-
-// Function to seed default categories if user has none
-const seedDefaultCategories = async (userId: string): Promise<void> => {
-  try {
-    console.log('Seeding default categories for user:', userId);
-    const { data, error } = await supabase.rpc('seed_default_categories');
-    if (error) {
-      console.error('Error seeding categories:', error);
-    } else {
-      console.log('Successfully seeded default categories');
-    }
-  } catch (error) {
-    console.error('Error calling seed function:', error);
+// Create Supabase client with authentication
+const createAuthenticatedSupabaseClient = (authHeader: string | null) => {
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+  );
+  
+  if (authHeader) {
+    supabaseClient.auth.setSession = () => Promise.resolve({ data: { session: null }, error: null });
+    // Set the auth header for this client
+    supabaseClient.rest.headers = { 
+      ...supabaseClient.rest.headers,
+      'Authorization': authHeader 
+    };
   }
+  
+  return supabaseClient;
 };
 
+// Function to seed default categories if user has none - removed as it's not needed
+// The system should work with existing categories or fall back to basic ones
+
 // Function to get user's custom categories
-const getUserCategories = async (userId: string): Promise<string[]> => {
+const getUserCategories = async (userId: string, supabaseClient: any): Promise<string[]> => {
   try {
     console.log('Fetching categories for userId:', userId);
     
-    // First, let's get all category buckets for this user
-    const { data: buckets, error: bucketsError } = await supabase
-      .from('category_buckets')
-      .select('id')
-      .eq('user_id', userId);
-    
-    console.log('User buckets:', buckets, 'Error:', bucketsError);
-    
-    if (bucketsError || !buckets || buckets.length === 0) {
-      console.error('No buckets found for user, seeding default categories:', bucketsError);
-      await seedDefaultCategories(userId);
-      
-      // Try fetching buckets again after seeding
-      const { data: newBuckets, error: newBucketsError } = await supabase
-        .from('category_buckets')
-        .select('id')
-        .eq('user_id', userId);
-      
-      if (newBucketsError || !newBuckets || newBuckets.length === 0) {
-        console.error('Still no buckets after seeding:', newBucketsError);
-        return ['Uncategorized']; // Only return Uncategorized if DB categories fail
-      }
-      
-      // Update buckets with newly seeded data
-      buckets.splice(0, buckets.length, ...newBuckets);
-    }
-    
-    const bucketIds = buckets.map(bucket => bucket.id);
-    console.log('Bucket IDs:', bucketIds);
-    
-    // Now get all categories for these buckets
-    const { data, error } = await supabase
+    // Directly fetch categories for the user, bypassing buckets for simplicity
+    const { data, error } = await supabaseClient
       .from('categories')
       .select('name')
-      .in('bucket_id', bucketIds)
+      .eq('user_id', userId)
       .order('sort_order', { ascending: true });
 
     console.log('Categories query result:', { data, error });
 
     if (error) {
       console.error('Error fetching user categories:', error);
-      return ['Uncategorized'];
+      // Return basic categories as fallback
+      return [
+        'Food & Dining', 'Shopping', 'Transportation', 'Bills & Utilities', 
+        'Entertainment', 'Healthcare', 'Income', 'Transfer', 'Uncategorized'
+      ];
     }
 
     const userCategories = data?.map(cat => cat.name) || [];
     console.log('Raw user categories from DB:', userCategories);
+    
+    // If no categories found, return basic ones
+    if (userCategories.length === 0) {
+      console.log('No categories found, returning basic categories');
+      return [
+        'Food & Dining', 'Shopping', 'Transportation', 'Bills & Utilities', 
+        'Entertainment', 'Healthcare', 'Income', 'Transfer', 'Uncategorized'
+      ];
+    }
     
     // Always include 'Uncategorized' as a fallback option
     if (!userCategories.includes('Uncategorized')) {
@@ -109,7 +93,11 @@ const getUserCategories = async (userId: string): Promise<string[]> => {
     return userCategories;
   } catch (error) {
     console.error('Error in getUserCategories:', error);
-    return ['Uncategorized'];
+    // Return basic categories as fallback
+    return [
+      'Food & Dining', 'Shopping', 'Transportation', 'Bills & Utilities', 
+      'Entertainment', 'Healthcare', 'Income', 'Transfer', 'Uncategorized'
+    ];
   }
 };
 
@@ -190,8 +178,8 @@ const chunkArray = (array: string[], chunkSize: number): string[][] => {
 };
 
 // Process a single batch of transactions using Google Gemini
-const processBatch = async (batch: string[], userId: string): Promise<string[]> => {
-  const userCategories = await getUserCategories(userId);
+const processBatch = async (batch: string[], userId: string, supabaseClient: any): Promise<string[]> => {
+  const userCategories = await getUserCategories(userId, supabaseClient);
   console.log('Available user categories:', userCategories);
   const prompt = createEnhancedPrompt(batch, userCategories, true);
   const model = getNextModel();
@@ -320,6 +308,10 @@ serve(async (req) => {
   try {
     const body = await req.json();
     
+    // Get authorization header
+    const authHeader = req.headers.get('authorization');
+    const supabaseClient = createAuthenticatedSupabaseClient(authHeader);
+    
     if (body.testMode) {
       return new Response(JSON.stringify({ success: true, message: 'Google Gemini AI categorization ready' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -346,7 +338,7 @@ serve(async (req) => {
         console.log(`Processing chunk ${i + 1}/${chunks.length} with ${chunk.length} transactions`);
         
         try {
-          const chunkCategories = await processBatch(chunk, body.userId);
+          const chunkCategories = await processBatch(chunk, body.userId, supabaseClient);
           allCategories.push(...chunkCategories);
           
           // Small delay between chunks to avoid rate limits
@@ -383,7 +375,7 @@ serve(async (req) => {
       throw new Error('Description is required');
     }
 
-    const userCategories = await getUserCategories(body.userId || '');
+    const userCategories = await getUserCategories(body.userId || '', supabaseClient);
     const prompt = createEnhancedPrompt(body.description, userCategories, false);
     const model = getNextModel();
     
