@@ -522,7 +522,27 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
             userId: session.user.id,
           }
         });
-        throw new Error(`AI categorization failed: ${response.status} ${response.statusText} - ${errorText}`);
+        
+        // Instead of throwing an error, fallback to uncategorized transactions
+        console.warn('🔄 AI categorization failed, using fallback to proceed with upload');
+        const fallbackTransactions = formattedTransactions.map(transaction => ({
+          ...transaction,
+          category: 'Uncategorized',
+          aiConfidence: 0,
+        }));
+        
+        console.log('📋 Using fallback categorization for', fallbackTransactions.length, 'transactions');
+        setPendingTransactions(fallbackTransactions);
+        setShowCategoryReview(true);
+        setUploadProgress(null);
+        setIsProcessing(false);
+        
+        toast({
+          title: "AI Categorization Unavailable",
+          description: "Proceeding with uncategorized transactions. You can edit categories before saving.",
+          variant: "default",
+        });
+        return;
       }
 
       const result = await response.json();
