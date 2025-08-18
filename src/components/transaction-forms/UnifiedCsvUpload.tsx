@@ -465,6 +465,9 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
         const dateStr = getValue(row, mappings.date, '');
         const currency = 'AUD'; // Fixed currency
 
+        // Get the selected account details
+        const selectedAccount = selectedAccountId ? accounts.find(acc => acc.id === selectedAccountId) : null;
+
         return {
           user_id: session.user.id,
           description: description.trim(),
@@ -472,8 +475,8 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
           date: formatDateForSupabase(dateStr),
           currency: currency,
           category: 'Uncategorized', // Will be set by AI
-          asset_account_id: selectedAccountId?.includes('asset') ? selectedAccountId : null,
-          liability_account_id: selectedAccountId?.includes('liability') ? selectedAccountId : null,
+          asset_account_id: selectedAccount?.accountType === 'asset' ? selectedAccountId : null,
+          liability_account_id: selectedAccount?.accountType === 'liability' ? selectedAccountId : null,
         };
       });
 
