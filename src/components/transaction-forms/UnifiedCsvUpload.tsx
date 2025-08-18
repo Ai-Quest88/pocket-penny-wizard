@@ -524,10 +524,17 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
       setIsProcessing(false);
 
     } catch (error) {
-      console.error('Error in transaction processing:', error);
+      console.error('❌ DETAILED ERROR in transaction processing:', {
+        error,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorStack: error instanceof Error ? error.stack : undefined,
+        transactionCount: parsedData?.length || 0,
+        selectedAccount: selectedAccountId,
+        mappings: mappings
+      });
       toast({
         title: "Processing Error",
-        description: `Failed to process transactions: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        description: `Failed to process transactions: ${error instanceof Error ? error.message : 'Unknown error'}. Check console for details.`,
         variant: "destructive",
       });
       setUploadProgress(null);
