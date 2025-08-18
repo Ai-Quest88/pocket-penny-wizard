@@ -485,7 +485,17 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
       // AI Categorization using batch processing
       const descriptions = formattedTransactions.map(t => t.description);
       
+      // Get the selected account details for debugging
+      const selectedAccount = selectedAccountId ? accounts.find(acc => acc.id === selectedAccountId) : null;
+      
       console.log('Starting batch AI categorization for', descriptions.length, 'transactions');
+      console.log('📊 Account details for transactions:', {
+        selectedAccountId,
+        selectedAccount,
+        accountType: selectedAccount?.accountType,
+        assetAccountId: selectedAccount?.accountType === 'asset' ? selectedAccountId : null,
+        liabilityAccountId: selectedAccount?.accountType === 'liability' ? selectedAccountId : null
+      });
       
       const response = await fetch(`https://nqqbvlvuzyctmysablzw.supabase.co/functions/v1/categorize-transaction`, {
         method: 'POST',
@@ -501,8 +511,18 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
       });
 
       if (!response.ok) {
-        console.warn('AI batch categorization failed, using fallback');
-        throw new Error(`AI categorization failed: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('❌ AI categorization API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText,
+          requestData: {
+            batchMode: true,
+            descriptions: descriptions,
+            userId: session.user.id,
+          }
+        });
+        throw new Error(`AI categorization failed: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
       const result = await response.json();
