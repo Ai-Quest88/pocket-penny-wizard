@@ -11,7 +11,6 @@ const requiredFields = [
   { key: 'description', label: 'Description *' },
   { key: 'amount', label: 'Amount *' },
   { key: 'date', label: 'Date *' },
-  { key: 'currency', label: 'Currency' },
 ];
 
 export const ColumnMappingSection = ({ 

@@ -46,7 +46,6 @@ const initialMappings: Record<string, string> = {
   description: '',
   amount: '',
   date: '',
-  currency: '',
 };
 
 const initialSettings: DefaultSettings = {
@@ -163,7 +162,6 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
       description: autoMappings.description || mappings.description,
       amount: autoMappings.amount || mappings.amount,
       date: autoMappings.date || mappings.date,
-      currency: autoMappings.currency || mappings.currency,
     };
     console.log('Setting new mappings:', newMappings);
     setMappings(newMappings);
@@ -180,7 +178,6 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
       description: autoMappedColumns.description || prev.description,
       amount: autoMappedColumns.amount || prev.amount,
       date: autoMappedColumns.date || prev.date,
-      currency: autoMappedColumns.currency || prev.currency,
     }));
   };
 
@@ -456,7 +453,7 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
         const amountStr = String(getValue(row, mappings.amount, '0'));
         const amount = parseFloat(amountStr.replace(/[^-\d.]/g, ''));
         const dateStr = getValue(row, mappings.date, '');
-        const currency = getValue(row, mappings.currency, 'AUD');
+        const currency = 'AUD'; // Fixed currency
 
         return {
           user_id: session.user.id,
@@ -584,7 +581,6 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
               <p>Description column: {mappings.description || "Not mapped"}</p>
               <p>Amount column: {mappings.amount || "Not mapped"}</p>
               <p>Date column: {mappings.date || "Not mapped"}</p>
-              <p>Currency column: {mappings.currency || "Not mapped"}</p>
             </div>
           </div>
           
@@ -594,7 +590,7 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
               description: mappings.description,
               amount: mappings.amount,
               date: mappings.date,
-              currency: mappings.currency,
+              currency: 'AUD',
             }}
             defaultSettings={initialSettings}
             selectedAccount={selectedAccountId ? accounts.find(acc => acc.id === selectedAccountId) : null}
