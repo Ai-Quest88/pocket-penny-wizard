@@ -137,6 +137,67 @@ export class TransactionInsertionHelper {
   }
 
   /**
+   * Insert transactions with duplicate checking
+   */
+  async insertTransactionsWithDuplicateCheck(transactions: TransactionData[]): Promise<{ success: number; failed: number; duplicates: number }> {
+    let success = 0;
+    let failed = 0;
+    let duplicates = 0;
+
+    for (const transaction of transactions) {
+      try {
+        // Check for duplicates based on description, amount, and date
+        const { data: existingTransactions, error: checkError } = await this.supabase
+          .from('transactions')
+          .select('id')
+          .eq('user_id', this.userId)
+          .eq('description', transaction.description)
+          .eq('amount', transaction.amount)
+          .eq('date', transaction.date)
+          .limit(1);
+
+        if (checkError) {
+          console.error('Duplicate check failed:', checkError);
+          failed++;
+          continue;
+        }
+
+        if (existingTransactions && existingTransactions.length > 0) {
+          duplicates++;
+          continue;
+        }
+
+        // Insert if not duplicate
+        const { error } = await this.supabase
+          .from('transactions')
+          .insert({
+            date: transaction.date,
+            description: transaction.description,
+            amount: transaction.amount,
+            category: transaction.category || 'Uncategorized',
+            comment: transaction.comment,
+            currency: transaction.currency || 'AUD',
+            asset_account_id: transaction.asset_account_id,
+            liability_account_id: transaction.liability_account_id,
+            user_id: this.userId
+          });
+
+        if (error) {
+          console.error('Transaction insertion failed:', error);
+          failed++;
+        } else {
+          success++;
+        }
+      } catch (error) {
+        console.error('Transaction insertion error:', error);
+        failed++;
+      }
+    }
+
+    return { success, failed, duplicates };
+  }
+
+  /**
    * Process CSV upload with AI category discovery
    */
   async processCsvUpload(transactions: TransactionData[]): Promise<{
@@ -199,11 +260,23 @@ export class TransactionInsertionHelper {
 
 // Hook for using the transaction insertion helper
 export const useTransactionInsertion = () => {
-  const { user } = useAuth();
+  const { session } = useAuth();
   
-  if (!user) {
+  if (!session) {
     throw new Error('User must be authenticated to use transaction insertion');
   }
   
-  return new TransactionInsertionHelper(user.id);
+  return new TransactionInsertionHelper(session.user.id);
 };
+
+// Standalone function for inserting transactions with duplicate checking
+export async function insertTransactionsWithDuplicateCheck(transactions: TransactionData[]) {
+  const authResult = await supabase.auth.getSession();
+  
+  if (!authResult.data.session?.user) {
+    throw new Error('User must be authenticated');
+  }
+  
+  const helper = new TransactionInsertionHelper(authResult.data.session.user.id);
+  return await helper.insertTransactionsWithDuplicateCheck(transactions);
+}

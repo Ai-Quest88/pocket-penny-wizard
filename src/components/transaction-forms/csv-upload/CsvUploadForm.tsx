@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { Upload, FileText, CheckCircle, AlertCircle, Loader2, Brain } from 'lucide-react';
-import { parseCsvFile } from './helpers/csvParser';
+import { parseCSV } from '@/utils/csvParser';
 import { useTransactionInsertion, TransactionData } from './helpers/transactionInsertion';
 import { AICategoryDiscovery } from '@/components/categories/AICategoryDiscovery';
 
@@ -44,8 +44,21 @@ export default function CsvUploadForm() {
 
     try {
       // Parse CSV file
-      const transactions = await parseCsvFile(file);
-      setUploadState(prev => ({ 
+      const result = await parseCSV(await file.text());
+      if (!result.success || !result.transactions) {
+        throw new Error(result.error || 'Failed to parse CSV');
+      }
+      
+      const transactions = result.transactions.map(t => ({
+        date: t.date,
+        description: t.description,
+        amount: parseFloat(t.amount),
+        category: t.category,
+        comment: t.comment,
+        currency: t.currency
+      }));
+      
+      setUploadState(prev => ({
         ...prev, 
         transactions,
         currentStep: 'parsing_complete',
@@ -293,8 +306,15 @@ export default function CsvUploadForm() {
         </p>
       </div>
 
-      {/* AI Category Discovery Component */}
-      <AICategoryDiscovery />
+      {/* AI Category Discovery Component - placeholder for now */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>AI Category Discovery</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">AI-powered category discovery will automatically organize your transactions during upload.</p>
+        </CardContent>
+      </Card>
 
       {/* Main Upload Area */}
       {uploadState.currentStep === 'idle' && renderUploadArea()}

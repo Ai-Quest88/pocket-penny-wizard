@@ -1,6 +1,19 @@
-import { Database } from "@/integrations/supabase/types";
+import { supabase } from '@/integrations/supabase/client';
 
-type Transaction = Database['public']['Tables']['transactions']['Row'] & {
+type Transaction = {
+  id: string;
+  user_id: string;
+  amount: number;
+  date: string;
+  description: string;
+  category: string;
+  currency: string;
+  category_id: string | null;
+  asset_account_id: string | null;
+  liability_account_id: string | null;
+  comment: string | null;
+  created_at: string | null;
+  updated_at: string | null;
   assets?: { name: string } | null;
   liabilities?: { name: string } | null;
 };

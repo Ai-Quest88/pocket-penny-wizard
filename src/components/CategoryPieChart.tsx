@@ -99,7 +99,7 @@ export const CategoryPieChart = ({ entityId }: CategoryPieChartProps) => {
   const formattedData = Object.entries(chartData)
     .map(([category, value]) => ({
       name: category,
-      value: value,
+      value: Number(value) || 0,
     }))
     .filter(item => item.value > 0)
     .sort((a, b) => b.value - a.value)
