@@ -115,6 +115,15 @@ const comprehensiveAustralianRules = (description: string): string | null => {
     return 'Groceries';
   }
   
+  // Bakeries and bread shops
+  if (lowerDesc.includes('bake') || lowerDesc.includes('bakery') || 
+      lowerDesc.includes('bread') || lowerDesc.includes('pastry') ||
+      lowerDesc.includes('donut') || lowerDesc.includes('cake') ||
+      lowerDesc.includes('patisserie') || lowerDesc.includes('croissant') ||
+      lowerDesc.includes('muffin') || lowerDesc.includes('pie shop')) {
+    return 'Groceries';
+  }
+  
   // Fast food chains
   if (lowerDesc.includes('mcdonald') || lowerDesc.includes('kfc') || lowerDesc.includes('subway') ||
       lowerDesc.includes('hungry jack') || lowerDesc.includes('red rooster') ||
