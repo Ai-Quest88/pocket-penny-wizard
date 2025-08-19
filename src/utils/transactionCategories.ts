@@ -252,7 +252,7 @@ export const categorizeBatchTransactions = async (
 
 // Main categorization function with updated priority order
 export const categorizeTransaction = async (description: string, userId?: string, amount?: number): Promise<string> => {
-  console.log(`Categorizing with updated priority order: "${description}"`);
+  console.log(`Categorizing with AI-first approach: "${description}"`);
   
   // Priority 1: User-defined rules (HIGHEST priority - user preferences override everything)
   const userRuleCategory = matchUserDefinedRule(description);
@@ -261,33 +261,35 @@ export const categorizeTransaction = async (description: string, userId?: string
     return userRuleCategory;
   }
 
-  // Priority 2: Database lookup (similar past transactions) if userId is provided
+  // Priority 2: AI categorization (PRIMARY method - let AI handle most transactions)
+  if (userId) {
+    try {
+      const { categorizeTransactionWithAI } = await import('@/utils/aiCategorization');
+      const aiCategory = await categorizeTransactionWithAI(description);
+      console.log(`Priority 2 - AI categorized: "${description}" -> ${aiCategory}`);
+      
+      if (categories.includes(aiCategory)) {
+        return aiCategory;
+      }
+    } catch (error) {
+      console.warn('AI categorization failed, continuing to database lookup:', error);
+    }
+  }
+
+  // Priority 3: Database lookup (similar past transactions)
   if (userId) {
     const similarCategory = await findSimilarTransactionCategory(description, userId);
     if (similarCategory) {
-      console.log(`Priority 2 - Database lookup matched: "${description}" -> ${similarCategory}`);
+      console.log(`Priority 3 - Database lookup matched: "${description}" -> ${similarCategory}`);
       return similarCategory;
     }
   }
 
-  // Priority 3: Enhanced built-in rules (including Linkt/toll fixes)
+  // Priority 4: Essential built-in rules (ONLY for critical cases like transfers/taxes)
   const essentialCategory = categorizeByBuiltInRules(description, amount);
   if (essentialCategory) {
-    console.log(`Priority 3 - Enhanced built-in rule matched: "${description}" -> ${essentialCategory}`);
+    console.log(`Priority 4 - Essential built-in rule matched: "${description}" -> ${essentialCategory}`);
     return essentialCategory;
-  }
-
-  // Priority 4: AI categorization (primary method for new transactions)
-  try {
-    const { categorizeTransactionWithAI } = await import('@/utils/aiCategorization');
-    const aiCategory = await categorizeTransactionWithAI(description);
-    console.log(`Priority 4 - AI categorized: "${description}" -> ${aiCategory}`);
-    
-    if (categories.includes(aiCategory)) {
-      return aiCategory;
-    }
-  } catch (error) {
-    console.warn('AI categorization failed, continuing to fallback:', error);
   }
 
   // Priority 5: Uncategorized (fallback)
