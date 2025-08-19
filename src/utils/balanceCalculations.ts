@@ -121,7 +121,7 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
     balances.push({
       accountId: asset.id,
       accountName: asset.name,
-      entityName: asset.entities.name,
+      entityName: asset.entities?.[0]?.name || 'Unknown',
       accountType: 'asset',
       openingBalance,
       transactionSum,
@@ -180,7 +180,7 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
     balances.push({
       accountId: liability.id,
       accountName: liability.name,
-      entityName: liability.entities.name,
+      entityName: liability.entities?.[0]?.name || 'Unknown',
       accountType: 'liability',
       openingBalance,
       transactionSum,

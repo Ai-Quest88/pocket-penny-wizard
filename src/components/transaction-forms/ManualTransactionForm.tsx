@@ -94,8 +94,8 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
           name: asset.name,
           type: asset.category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
           accountNumber: asset.account_number,
-          entityName: asset.entities.name,
-          entityType: asset.entities.type,
+          entityName: asset.entities?.[0]?.name || 'Unknown',
+          entityType: asset.entities?.[0]?.type || 'Unknown',
           accountType: 'asset' as const,
           displayType: 'Asset'
         })),
@@ -104,8 +104,8 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
           name: liability.name,
           type: liability.category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
           accountNumber: liability.account_number,
-          entityName: liability.entities.name,
-          entityType: liability.entities.type,
+          entityName: liability.entities?.[0]?.name || 'Unknown',
+          entityType: liability.entities?.[0]?.type || 'Unknown',
           accountType: 'liability' as const,
           displayType: 'Liability'
         }))
