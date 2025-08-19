@@ -284,7 +284,8 @@ export const categorizeTransaction = async (description: string, userId?: string
       const aiCategory = await categorizeTransactionWithAI(description);
       console.log(`Priority 4 - AI categorized: "${description}" -> ${aiCategory}`);
       
-      if (categories.includes(aiCategory)) {
+      // Trust the AI result since it uses the user's actual categories
+      if (aiCategory && aiCategory.trim() !== '') {
         return aiCategory;
       }
     } catch (error) {
