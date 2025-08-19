@@ -233,4 +233,144 @@ CREATE TRIGGER update_transactions_updated_at
 CREATE TRIGGER update_budgets_updated_at 
     BEFORE UPDATE ON budgets 
     FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- ===== NEW AI-DRIVEN CATEGORY SYSTEM =====
+
+-- Dynamic category groups (AI-generated)
+CREATE TABLE IF NOT EXISTS category_groups (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  color TEXT DEFAULT 'bg-blue-100',
+  icon TEXT DEFAULT '📁',
+  sort_order INTEGER DEFAULT 0,
+  is_ai_generated BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Dynamic category buckets (AI-grouped)
+CREATE TABLE IF NOT EXISTS category_buckets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) NOT NULL,
+  group_id UUID REFERENCES category_groups(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  color TEXT DEFAULT 'bg-blue-200',
+  icon TEXT DEFAULT '📂',
+  sort_order INTEGER DEFAULT 0,
+  is_ai_generated BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Dynamic categories (AI-discovered)
+CREATE TABLE IF NOT EXISTS categories (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) NOT NULL,
+  bucket_id UUID REFERENCES category_buckets(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  merchant_patterns TEXT[], -- AI-learned merchant patterns
+  is_transfer BOOLEAN DEFAULT false,
+  sort_order INTEGER DEFAULT 0,
+  is_ai_generated BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Category discovery sessions (track AI learning)
+CREATE TABLE IF NOT EXISTS category_discovery_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) NOT NULL,
+  session_type TEXT NOT NULL, -- 'initial', 'batch', 'ongoing'
+  transactions_processed INTEGER DEFAULT 0,
+  new_categories_created INTEGER DEFAULT 0,
+  categories_grouped INTEGER DEFAULT 0,
+  ai_confidence_score NUMERIC DEFAULT 0,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Merchant normalization (AI-learned patterns)
+CREATE TABLE IF NOT EXISTS merchants (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) NOT NULL,
+  name TEXT NOT NULL,
+  normalized_name TEXT,
+  category_id UUID REFERENCES categories(id),
+  mcc TEXT, -- Merchant Category Code
+  country TEXT,
+  patterns TEXT[], -- AI-learned transaction patterns
+  confidence_score NUMERIC DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Enable RLS on new tables
+ALTER TABLE category_groups ENABLE ROW LEVEL SECURITY;
+ALTER TABLE category_buckets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE category_discovery_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE merchants ENABLE ROW LEVEL SECURITY;
+
+-- RLS policies for category_groups
+CREATE POLICY "Users can view their own category groups" ON category_groups FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can create their own category groups" ON category_groups FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own category groups" ON category_groups FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own category groups" ON category_groups FOR DELETE USING (auth.uid() = user_id);
+
+-- RLS policies for category_buckets
+CREATE POLICY "Users can view their own category buckets" ON category_buckets FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can create their own category buckets" ON category_buckets FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own category buckets" ON category_buckets FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own category buckets" ON category_buckets FOR DELETE USING (auth.uid() = user_id);
+
+-- RLS policies for categories
+CREATE POLICY "Users can view their own categories" ON categories FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can create their own categories" ON categories FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own categories" ON categories FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own categories" ON categories FOR DELETE USING (auth.uid() = user_id);
+
+-- RLS policies for category_discovery_sessions
+CREATE POLICY "Users can view their own discovery sessions" ON category_discovery_sessions FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can create their own discovery sessions" ON category_discovery_sessions FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- RLS policies for merchants
+CREATE POLICY "Users can view their own merchants" ON merchants FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can create their own merchants" ON merchants FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own merchants" ON merchants FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own merchants" ON merchants FOR DELETE USING (auth.uid() = user_id);
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_category_groups_user_id ON category_groups(user_id);
+CREATE INDEX IF NOT EXISTS idx_category_buckets_user_id ON category_buckets(user_id);
+CREATE INDEX IF NOT EXISTS idx_category_buckets_group_id ON category_buckets(group_id);
+CREATE INDEX IF NOT EXISTS idx_categories_user_id ON categories(user_id);
+CREATE INDEX IF NOT EXISTS idx_categories_bucket_id ON categories(bucket_id);
+CREATE INDEX IF NOT EXISTS idx_merchants_user_id ON merchants(user_id);
+CREATE INDEX IF NOT EXISTS idx_merchants_category_id ON merchants(category_id);
+CREATE INDEX IF NOT EXISTS idx_merchants_normalized_name ON merchants(normalized_name);
+
+-- Triggers for updated_at
+CREATE TRIGGER update_category_groups_updated_at 
+    BEFORE UPDATE ON category_groups 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_category_buckets_updated_at 
+    BEFORE UPDATE ON category_buckets 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_categories_updated_at 
+    BEFORE UPDATE ON categories 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_merchants_updated_at 
+    BEFORE UPDATE ON merchants 
+    FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column(); 

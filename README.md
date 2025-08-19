@@ -2,7 +2,7 @@
 
 **Australia's Premier Personal Finance Management Platform**
 
-An intelligent personal finance application built specifically for Australian users, featuring AI-powered transaction categorization, multi-entity financial management, and comprehensive analytics.
+An intelligent personal finance application built specifically for Australian users, featuring **AI-powered category discovery**, multi-entity financial management, and comprehensive analytics.
 
 ## 🚀 Quick Start
 
@@ -44,8 +44,39 @@ Visit `http://localhost:5173` to view the application.
 
 **Backend & Services**
 - **Supabase** - Backend as a Service (PostgreSQL, Auth, RLS)
-- **Google Gemini AI** - Transaction categorization
+- **Google Gemini AI** - Transaction categorization & category discovery
 - **Vercel** - Deployment and hosting
+
+## 🧠 AI-Powered Category System
+
+### **Smart Category Discovery**
+- **Zero Setup Required** - AI automatically discovers categories from your transactions
+- **Pattern Learning** - Learns merchant patterns and spending habits
+- **Intelligent Grouping** - Organizes categories into logical buckets automatically
+- **Australian Context** - Understands local merchants (Coles, Woolworths, Linkt, etc.)
+
+### **How It Works**
+1. **Upload Transactions** - CSV or manual entry
+2. **AI Analysis** - Gemini AI analyzes spending patterns
+3. **Category Discovery** - Creates personalized categories automatically
+4. **Smart Organization** - Groups similar categories into logical buckets
+5. **Continuous Learning** - Categories evolve as you add more transactions
+
+### **Example AI Discovery**
+```
+AI discovers from your transactions:
+├── Groceries
+│   ├── Supermarket (Coles, Woolworths, IGA)
+│   ├── Fresh Food (Butcher, Bakery, Markets)
+│   └── Specialty (Health Food, Organic)
+├── Transport
+│   ├── Fuel (Shell, BP, Caltex)
+│   ├── Public Transport (Opal, Myki)
+│   └── Tolls (Linkt, CityLink, EastLink)
+└── Entertainment
+    ├── Streaming (Netflix, Spotify, Disney+)
+    └── Dining (Restaurants, Cafes, Fast Food)
+```
 
 ## 📚 Documentation
 
@@ -96,13 +127,20 @@ finsight/
 ├── docs/                    # Comprehensive documentation
 ├── src/
 │   ├── components/         # React components
-│   │   ├── categories/    # Category management components
+│   │   ├── categories/    # AI-driven category management
 │   │   ├── entities/      # Entity management components
 │   │   ├── transactions/  # Transaction components
 │   │   └── ui/           # Shared UI components
 │   ├── utils/             # Utility functions
 │   │   └── financialYearUtils.ts  # Financial year calculations
 │   └── types/             # TypeScript type definitions
+├── supabase/              # Database migrations and AI edge functions
+│   ├── functions/
+│   │   ├── discover-categories/    # AI category discovery
+│   │   ├── group-categories/       # AI category organization
+│   │   └── categorize-transaction/ # Transaction categorization
+│   └── migrations/        # Database schema
+└── public/                # Static assets
 ```
 
 ## 🌍 Multi-Country Financial Year System
@@ -136,67 +174,17 @@ const isInFY = isDateInFinancialYear(date, financialYear);
 - **Entity Level**: Uses primary country's financial year for entity-wide reporting
 - **Account Level**: Account-specific country/currency for detailed analysis
 - **Household Level**: Aggregated view across all entities and countries
-│   ├── pages/             # Route components
-│   ├── hooks/             # Custom React hooks
-│   ├── utils/             # Utility functions
-│   ├── types/             # TypeScript type definitions
-│   └── integrations/      # External service integrations
-├── supabase/              # Database migrations and functions
-└── public/                # Static assets
-```
 
 ## 🌟 Key Features
 
-- **🤖 AI-Powered Categorization** - 95%+ accurate transaction categorization using Google Gemini
+- **🧠 AI-Powered Category Discovery** - Zero setup, AI learns your spending patterns
 - **🏢 Multi-Entity Management** - Support for personal, business, family, and trust finances
 - **🇦🇺 Australian-First Design** - Built specifically for Australian banking and tax systems
 - **📊 Advanced Analytics** - Comprehensive reporting and financial insights
 - **💱 Multi-Currency Support** - Real-time exchange rates for 30+ currencies
 - **📱 Mobile-Responsive** - Optimized for all devices
 - **🔒 Bank-Level Security** - Row-level security and data encryption
-- **📂 Hierarchical Categories** - Groups → Buckets → Categories organization system
-
-## 📂 Category Management System
-
-The application features a sophisticated hierarchical category management system:
-
-### **Structure:**
-- **Groups**: High-level financial categories (Income, Expenses, Assets, Liabilities, Transfers, Adjustments)
-- **Buckets**: Logical groupings within each group (e.g., Entertainment, Food & Dining within Expenses)
-- **Categories**: Specific transaction types within each bucket
-
-### **Features:**
-- **Collapsible Interface**: Expand/collapse groups and buckets for better organization
-- **Drag & Drop**: Move categories between buckets with visual feedback
-- **Industry Standards**: Pre-populated with common financial categories
-- **Custom Management**: Add new buckets and categories with custom icons
-- **Visual Hierarchy**: Parent-child layout with connection lines
-
-### **Example Structure:**
-```
-💰 Income
-├── 💼 Primary Income
-│   ├── Salary
-│   ├── Wages
-│   └── Bonuses
-└── 🏢 Business Income
-    ├── Freelance
-    └── Consulting
-
-💸 Expenses
-├── 🏠 Housing
-│   ├── Rent
-│   ├── Mortgage
-│   └── Utilities
-├── 🍽️ Food & Dining
-│   ├── Groceries
-│   ├── Restaurants
-│   └── Coffee Shops
-└── 🎬 Entertainment
-    ├── Movies
-    ├── Concerts
-    └── Streaming Services
-```
+- **📈 Continuous Learning** - Categories evolve and improve over time
 
 ## 🚀 Deployment
 
@@ -236,4 +224,4 @@ This project is proprietary software. All rights reserved.
 
 ---
 
-**Built with ❤️ for the Australian financial community**
+**Built with ❤️ and AI for the Australian financial community**

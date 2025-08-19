@@ -1,184 +1,209 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
-interface TransactionData {
+export interface TransactionData {
+  date: string;
   description: string;
   amount: number;
-  date: string;
-  currency: string;
+  category?: string;
+  comment?: string;
+  currency?: string;
+  asset_account_id?: string;
+  liability_account_id?: string;
+}
+
+export interface CategoryDiscoveryResult {
   category: string;
-  asset_account_id?: string | null;
-  liability_account_id?: string | null;
-  user_id: string;
+  confidence: number;
+  is_new_category: boolean;
+  group_name?: string;
+  bucket_name?: string;
 }
 
-interface DuplicateGroup {
-  transactions: (TransactionData & { originalIndex: number })[];
-  key: string;
-}
+export class TransactionInsertionHelper {
+  private supabase;
+  private userId: string;
 
-interface ProcessResult {
-  inserted: number;
-  duplicates: number;
-  potentialDuplicates?: DuplicateGroup[];
-  needsUserReview?: boolean;
-}
-
-export const insertTransactionsWithDuplicateCheck = async (
-  transactions: TransactionData[],
-  userApprovedDuplicates?: number[] // Indices of transactions user wants to keep despite being duplicates
-): Promise<ProcessResult> => {
-  let insertedCount = 0;
-  let duplicateCount = 0;
-  let errorCount = 0;
-
-  console.log(`🔍 Starting duplicate check for ${transactions.length} transactions`);
-  console.log(`📋 Sample transaction:`, transactions[0]);
-
-  // Step 1: Find potential duplicates within the CSV batch
-  const potentialDuplicates: DuplicateGroup[] = [];
-  const processedTransactions: TransactionData[] = [];
-  const duplicateMap = new Map<string, (TransactionData & { originalIndex: number })[]>();
-  
-  // Group transactions by potential duplicate key
-  transactions.forEach((txn, index) => {
-    const key = `${txn.date}|${txn.description}|${txn.amount}|${txn.user_id}`;
-    
-    if (!duplicateMap.has(key)) {
-      duplicateMap.set(key, []);
-    }
-    duplicateMap.get(key)!.push({ ...txn, originalIndex: index });
-  });
-
-  // Identify groups with multiple transactions (potential duplicates)
-  duplicateMap.forEach((group, key) => {
-    if (group.length > 1) {
-      potentialDuplicates.push({ transactions: group, key });
-      console.log(`🔍 POTENTIAL DUPLICATES FOUND: ${group.length} transactions with key: ${key}`);
-      group.forEach((txn, i) => {
-        console.log(`  ${i + 1}. Line ${txn.originalIndex + 1}: "${txn.description}" - $${txn.amount} on ${txn.date}`);
-      });
-    } else {
-      // Single transaction, add to process list
-      processedTransactions.push(group[0]);
-    }
-  });
-
-  // If we found potential duplicates and user hasn't reviewed them yet, return for user review
-  if (potentialDuplicates.length > 0 && !userApprovedDuplicates) {
-    console.log(`⏸️ Found ${potentialDuplicates.length} groups of potential duplicates. Requesting user review.`);
-    return {
-      inserted: 0,
-      duplicates: 0,
-      potentialDuplicates,
-      needsUserReview: true
-    };
+  constructor(userId: string) {
+    this.supabase = supabase;
+    this.userId = userId;
   }
 
-  // If user has reviewed duplicates, process their decisions
-  if (userApprovedDuplicates && potentialDuplicates.length > 0) {
-    potentialDuplicates.forEach(group => {
-      group.transactions.forEach((txn, index) => {
-        if (index === 0 || userApprovedDuplicates.includes(txn.originalIndex)) {
-          // Keep first transaction of each group, plus any user-approved duplicates
-          processedTransactions.push(txn);
-          console.log(`✅ USER APPROVED: "${txn.description}" - $${txn.amount} on ${txn.date}`);
+  /**
+   * Discover categories for transactions using AI
+   */
+  async discoverCategories(transactions: TransactionData[]): Promise<CategoryDiscoveryResult[]> {
+    try {
+      // Extract unique descriptions for AI analysis
+      const uniqueDescriptions = [...new Set(transactions.map(t => t.description))];
+      
+      const { data: { session } } = await this.supabase.auth.getSession();
+      
+      const response = await fetch(`https://nqqbvlvuzyctmysablzw.supabase.co/functions/v1/discover-categories`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
+        },
+        body: JSON.stringify({
+          descriptions: uniqueDescriptions,
+          user_id: this.userId
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to discover categories');
+      }
+
+      const result = await response.json();
+      return result.categories;
+    } catch (error) {
+      console.error('Category discovery failed:', error);
+      // Fallback to basic categorization
+      return transactions.map(t => ({
+        category: this.getFallbackCategory(t.description),
+        confidence: 0.5,
+        is_new_category: false
+      }));
+    }
+  }
+
+  /**
+   * Group discovered categories into logical structure
+   */
+  async groupCategories(categories: CategoryDiscoveryResult[]): Promise<void> {
+    try {
+      const { data: { session } } = await this.supabase.auth.getSession();
+      
+      const response = await fetch(`https://nqqbvlvuzyctmysablzw.supabase.co/functions/v1/group-categories`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
+        },
+        body: JSON.stringify({
+          categories: categories,
+          user_id: this.userId
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to group categories');
+      }
+    } catch (error) {
+      console.error('Category grouping failed:', error);
+    }
+  }
+
+  /**
+   * Insert transactions with discovered categories
+   */
+  async insertTransactions(transactions: TransactionData[], discoveredCategories: CategoryDiscoveryResult[]): Promise<{ success: number; failed: number }> {
+    let success = 0;
+    let failed = 0;
+
+    for (let i = 0; i < transactions.length; i++) {
+      const transaction = transactions[i];
+      const category = discoveredCategories[i];
+
+      try {
+        const { error } = await this.supabase
+          .from('transactions')
+          .insert({
+            date: transaction.date,
+            description: transaction.description,
+            amount: transaction.amount,
+            category: category.category,
+            comment: transaction.comment,
+            currency: transaction.currency || 'AUD',
+            asset_account_id: transaction.asset_account_id,
+            liability_account_id: transaction.liability_account_id,
+            user_id: this.userId
+          });
+
+        if (error) {
+          console.error('Transaction insertion failed:', error);
+          failed++;
         } else {
-          duplicateCount++;
-          console.log(`🔄 USER REJECTED DUPLICATE: "${txn.description}" - $${txn.amount} on ${txn.date}`);
+          success++;
         }
-      });
-    });
+      } catch (error) {
+        console.error('Transaction insertion error:', error);
+        failed++;
+      }
+    }
+
+    return { success, failed };
   }
 
-  console.log(`📋 After duplicate review: ${processedTransactions.length} transactions to process`);
-
-  // Step 2: Check remaining transactions against database
-  const batchSize = 10;
-  const transactionsToInsert: any[] = [];
-  
-  for (let i = 0; i < processedTransactions.length; i += batchSize) {
-    const batch = processedTransactions.slice(i, i + batchSize);
-    
-    // Check for exact duplicates in database
-    const duplicateCheckPromises = batch.map(async (transaction) => {
-      const { data: exactMatches, error: exactError } = await supabase
-        .from('transactions')
-        .select('id, description, amount, date')
-        .eq('user_id', transaction.user_id)
-        .eq('description', transaction.description)
-        .eq('amount', transaction.amount)
-        .eq('date', transaction.date);
-
-      if (exactError) {
-        console.error('Error checking for exact duplicate:', exactError);
-        return { transaction, isDuplicate: false, reason: 'error' };
-      }
-
-      if (exactMatches && exactMatches.length > 0) {
-        return { transaction, isDuplicate: true, reason: 'database_match' };
-      }
-
-      return { transaction, isDuplicate: false, reason: 'unique' };
-    });
-
-    const duplicateResults = await Promise.all(duplicateCheckPromises);
-
-    // Collect non-duplicates for bulk insert
-    for (const result of duplicateResults) {
-      if (result.isDuplicate) {
-        console.log(`🔄 DATABASE DUPLICATE SKIPPED (${result.reason}): "${result.transaction.description}" - $${result.transaction.amount} on ${result.transaction.date}`);
-        duplicateCount++;
-      } else {
-        console.log(`✅ PREPARED FOR BULK INSERT: "${result.transaction.description}" - $${result.transaction.amount} on ${result.transaction.date}`);
-        transactionsToInsert.push({
-          user_id: result.transaction.user_id,
-          description: result.transaction.description,
-          amount: result.transaction.amount,
-          date: result.transaction.date,
-          currency: result.transaction.currency,
-          category: result.transaction.category,
-          asset_account_id: result.transaction.asset_account_id,
-          liability_account_id: result.transaction.liability_account_id,
-        });
-      }
+  /**
+   * Process CSV upload with AI category discovery
+   */
+  async processCsvUpload(transactions: TransactionData[]): Promise<{
+    success: number;
+    failed: number;
+    categories_discovered: number;
+    new_categories_created: number;
+  }> {
+    try {
+      // Step 1: Discover categories using AI
+      console.log('Discovering categories...');
+      const discoveredCategories = await this.discoverCategories(transactions);
+      
+      // Step 2: Group categories into logical structure
+      console.log('Grouping categories...');
+      await this.groupCategories(discoveredCategories);
+      
+      // Step 3: Insert transactions with discovered categories
+      console.log('Inserting transactions...');
+      const { success, failed } = await this.insertTransactions(transactions, discoveredCategories);
+      
+      // Count new categories
+      const newCategoriesCount = discoveredCategories.filter(c => c.is_new_category).length;
+      
+      return {
+        success,
+        failed,
+        categories_discovered: discoveredCategories.length,
+        new_categories_created: newCategoriesCount
+      };
+    } catch (error) {
+      console.error('CSV upload processing failed:', error);
+      throw error;
     }
   }
 
-  // Bulk insert all valid transactions at once
-  if (transactionsToInsert.length > 0) {
-    console.log(`💾 BULK INSERTING ${transactionsToInsert.length} transactions...`);
-    const bulkStartTime = Date.now();
+  /**
+   * Fallback category mapping for when AI fails
+   */
+  private getFallbackCategory(description: string): string {
+    const lowerDesc = description.toLowerCase();
     
-    const { data: insertedData, error: bulkInsertError } = await supabase
-      .from('transactions')
-      .insert(transactionsToInsert)
-      .select('id');
-
-    const bulkTime = Date.now() - bulkStartTime;
-    
-    if (bulkInsertError) {
-      console.error(`❌ BULK INSERT ERROR:`, bulkInsertError);
-      errorCount = transactionsToInsert.length;
-    } else {
-      insertedCount = insertedData?.length || transactionsToInsert.length;
-      console.log(`✅ BULK INSERT SUCCESS: ${insertedCount} transactions inserted in ${bulkTime}ms`);
-      console.log(`📊 Bulk insert performance: ${(insertedCount / bulkTime * 1000).toFixed(1)} transactions/second`);
+    // Basic pattern matching
+    if (lowerDesc.includes('woolworths') || lowerDesc.includes('coles') || lowerDesc.includes('supermarket')) {
+      return 'Groceries';
     }
-  } else {
-    console.log(`ℹ️ No transactions to insert (all were duplicates or errors)`);
+    if (lowerDesc.includes('petrol') || lowerDesc.includes('fuel') || lowerDesc.includes('bp') || lowerDesc.includes('shell')) {
+      return 'Transport';
+    }
+    if (lowerDesc.includes('netflix') || lowerDesc.includes('spotify') || lowerDesc.includes('streaming')) {
+      return 'Entertainment';
+    }
+    if (lowerDesc.includes('salary') || lowerDesc.includes('wage') || lowerDesc.includes('income')) {
+      return 'Income';
+    }
+    
+    return 'Uncategorized';
   }
+}
 
-  console.log(`📊 FINAL SUMMARY:`);
-  console.log(`  📤 Total transactions processed: ${transactions.length}`);
-  console.log(`  ✅ Successfully inserted: ${insertedCount}`);
-  console.log(`  🔄 Total duplicates skipped: ${duplicateCount}`);
-  console.log(`  ❌ Errors: ${errorCount}`);
-  console.log(`  🧮 Accounted for: ${insertedCount + duplicateCount + errorCount}/${transactions.length}`);
-  console.log(`  📈 Success rate: ${((insertedCount / transactions.length) * 100).toFixed(1)}%`);
+// Hook for using the transaction insertion helper
+export const useTransactionInsertion = () => {
+  const { user } = useAuth();
   
-  if (insertedCount + duplicateCount + errorCount !== transactions.length) {
-    console.warn(`⚠️ MISMATCH: ${transactions.length - (insertedCount + duplicateCount + errorCount)} transactions unaccounted for!`);
+  if (!user) {
+    throw new Error('User must be authenticated to use transaction insertion');
   }
   
-  return { inserted: insertedCount, duplicates: duplicateCount };
+  return new TransactionInsertionHelper(user.id);
 };

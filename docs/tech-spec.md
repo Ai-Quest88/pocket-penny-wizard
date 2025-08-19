@@ -1,1169 +1,163 @@
-# Finsight - Technical Specification
+# Technical Specification
+
+## Overview
+Finsight is a personal finance management platform built with modern web technologies, featuring AI-powered category discovery and intelligent financial insights.
+
+## Architecture
+
+### Frontend
+- **Framework**: React 18 with TypeScript
+- **Build Tool**: Vite
+- **Styling**: Tailwind CSS with shadcn/ui components
+- **State Management**: React Context + React Query
+- **Routing**: React Router DOM
+
+### Backend
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Supabase Auth
+- **Edge Functions**: Deno-based serverless functions
+- **Real-time**: Supabase real-time subscriptions
+
+### AI Integration
+- **Category Discovery**: Google Gemini AI for intelligent transaction categorization
+- **On-device Processing**: WebGPU-powered local inference (future)
+- **Pattern Recognition**: Merchant pattern matching and learning
+
+## Database Schema
+
+### Core Tables
+- `user_profiles`: User account information
+- `entities`: Financial entities (individuals, companies, trusts)
+- `households`: Group financial management
+- `transactions`: Financial transactions
+- `assets`: Financial assets and accounts
+- `liabilities`: Debts and loans
+- `budgets`: Budget planning and tracking
+
+### AI-Driven Category System
+- `category_groups`: High-level category groupings (Income, Expenses, Assets, Liabilities)
+- `category_buckets`: Logical subdivisions within groups
+- `categories`: Individual categories with merchant patterns
+- `merchants`: Merchant information and categorization
+- `category_discovery_sessions`: AI discovery session tracking
+
+## AI Category Discovery Flow
+
+### 1. Transaction Upload
+- User uploads CSV with transaction data
+- System extracts unique merchant descriptions
+- AI analyzes patterns and context
+
+### 2. Category Discovery
+- Gemini AI processes merchant descriptions
+- Generates appropriate category names
+- Assigns confidence scores
+- Suggests logical groupings
+
+### 3. Category Organization
+- AI groups related categories into buckets
+- Creates hierarchical structure
+- Assigns colors and icons
+- Maintains user-specific organization
+
+### 4. Continuous Learning
+- Tracks categorization accuracy
+- Learns from user corrections
+- Improves merchant pattern matching
+- Adapts to user's financial behavior
+
+## Security Features
+
+### Data Protection
+- Row Level Security (RLS) on all tables
+- User isolation and data segregation
+- Encrypted data transmission
+- Secure API key management
+
+### Authentication
+- Supabase Auth integration
+- JWT token management
+- Session persistence
+- Secure password handling
+
+## Performance Optimizations
+
+### Database
+- Indexed queries for common operations
+- Efficient joins and relationships
+- Query optimization
+- Connection pooling
+
+### Frontend
+- Lazy loading of components
+- Optimized bundle splitting
+- Efficient state updates
+- Memoized calculations
+
+## API Endpoints
+
+### Edge Functions
+- `/functions/v1/discover-categories`: AI category discovery
+- `/functions/v1/group-categories`: Category organization
+- `/functions/v1/categorize-transaction`: Individual transaction categorization
 
-## Table of Contents
-1. [System Architecture](#system-architecture)
-2. [Database Schema & Data Models](#database-schema--data-models)
-3. [API & Integration Layer](#api--integration-layer)
-4. [Component Architecture](#component-architecture)
-5. [Security Implementation](#security-implementation)
-6. [Performance & Scalability](#performance--scalability)
-7. [Development Environment](#development-environment)
-8. [Deployment Pipeline](#deployment-pipeline)
-9. [Code Quality & Standards](#code-quality--standards)
+### REST API
+- `/api/discover-categories`: Category discovery wrapper
+- `/api/group-categories`: Category grouping wrapper
 
----
+## Development Setup
 
-## System Architecture
+### Prerequisites
+- Node.js 18+
+- npm 9+
+- Supabase CLI
+- Google AI Studio account
 
-### Frontend Technology Stack
-```
-React 18.3.1 (Main Framework)
-├── TypeScript 5.5.3        (Type safety & developer experience)
-├── Vite 5.4.1              (Build tool & development server)
-├── TailwindCSS 3.4.11      (Utility-first CSS framework)
-├── shadcn/ui                (Modern component library)
-├── Radix UI primitives      (Accessible, unstyled components)
-├── React Router DOM 6.26.2  (Client-side routing)
-├── TanStack React Query 5.56.2 (Server state management)
-├── React Hook Form 7.53.0   (Form handling)
-├── Zod 3.23.8              (Schema validation)
-├── Recharts 2.12.7         (Data visualization)
-├── React Dropzone 14.3.8   (File upload handling)
-├── Date-fns 3.6.0          (Date manipulation)
-└── Lucide React 0.462.0    (Icon library)
-```
-
-### Backend Infrastructure
-**Supabase (Backend-as-a-Service)**
-- **PostgreSQL Database**: Primary data storage with Row Level Security
-- **Supabase Auth**: Authentication & session management
-- **Edge Functions**: Deno-based serverless compute for AI processing
-- **Storage**: File upload & document storage
-- **Real-time**: WebSocket connections for live data updates
-
-### External Services Integration
-**Google Gemini AI**
-- Model: `gemini-1.5-flash` (primary AI model)
-- Batch Processing: 100 transactions per request
-- Australian Context: Specialized banking prompts
-- Fallback System: Rule-based categorization
-
-**Exchange Rates API**
-- Provider: `open.er-api.com`
-- Base Currency: USD with AUD optimization
-- Cache Duration: 24 hours with fallback rates
-- Support: 30+ major currencies
-
----
-
-## Database Schema & Data Models
-
-### Core Table Structure
-
-#### User Management
-```sql
-CREATE TABLE user_profiles (
-    id UUID PRIMARY KEY REFERENCES auth.users(id),
-    email TEXT NOT NULL,
-    full_name TEXT,
-    currency_preference TEXT DEFAULT 'AUD',
-    notification_settings JSONB,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-```
-
-#### Entity Management
-```sql
-CREATE TABLE entities (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES auth.users(id),
-    name TEXT NOT NULL,
-    type TEXT NOT NULL CHECK (type IN ('Individual', 'Family Member', 'Business', 'Trust', 'Super Fund')),
-    country_of_residence TEXT NOT NULL DEFAULT 'Australia',
-    primary_country TEXT NOT NULL DEFAULT 'AU',
-    primary_currency TEXT NOT NULL DEFAULT 'AUD',
-    tax_identifier TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-```
-
-#### Financial Accounts
-```sql
-CREATE TABLE assets (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES auth.users(id),
-    entity_id UUID NOT NULL REFERENCES entities(id),
-    name TEXT NOT NULL,
-    category TEXT NOT NULL CHECK (category IN ('Cash', 'Investment', 'Property', 'Vehicle', 'Other')),
-    value DECIMAL(15,2) NOT NULL DEFAULT 0,
-    country TEXT NOT NULL DEFAULT 'AU',
-    currency TEXT NOT NULL DEFAULT 'AUD',
-    opening_balance DECIMAL(15,2) NOT NULL DEFAULT 0,
-    opening_balance_date DATE NOT NULL DEFAULT CURRENT_DATE
-);
-```
-
-CREATE TABLE liabilities (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES auth.users(id),
-    entity_id UUID NOT NULL REFERENCES entities(id),
-    name TEXT NOT NULL,
-    category TEXT NOT NULL CHECK (category IN ('Credit Card', 'Personal Loan', 'Mortgage', 'Business Loan', 'Other')),
-    amount DECIMAL(15,2) NOT NULL DEFAULT 0,
-    opening_balance DECIMAL(15,2) NOT NULL DEFAULT 0,
-    opening_balance_date DATE NOT NULL DEFAULT CURRENT_DATE
-);
-```
-
-#### Transaction Data
-```sql
-CREATE TABLE transactions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES auth.users(id),
-    description TEXT NOT NULL,
-    amount DECIMAL(15,2) NOT NULL,
-    currency TEXT NOT NULL DEFAULT 'AUD',
-    date DATE NOT NULL,
-    category TEXT NOT NULL,
-    asset_account_id UUID REFERENCES assets(id),
-    liability_account_id UUID REFERENCES liabilities(id),
-    comment TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
-    CONSTRAINT transactions_single_account_check 
-    CHECK (
-        (asset_account_id IS NOT NULL AND liability_account_id IS NULL) OR
-        (asset_account_id IS NULL AND liability_account_id IS NOT NULL) OR
-        (asset_account_id IS NULL AND liability_account_id IS NULL)
-    )
-);
-```
-
-### TypeScript Data Models
-```typescript
-// Core entity types
-export type EntityType = 'Individual' | 'Family Member' | 'Business' | 'Trust' | 'Super Fund';
-export type AssetCategory = 'Cash' | 'Investment' | 'Property' | 'Vehicle' | 'Other';
-export type LiabilityCategory = 'Credit Card' | 'Personal Loan' | 'Mortgage' | 'Business Loan' | 'Other';
-
-// Transaction interface
-export interface Transaction {
-  id: string
-  description: string
-  amount: number
-  currency: string
-  date: string
-  category: string
-  asset_account_id?: string
-  liability_account_id?: string
-  comment?: string
-  user_id: string
-}
-
-// Transaction categories (42 predefined categories)
-export const categories = [
-  'Groceries', 'Restaurants', 'Gas & Fuel', 'Shopping', 'Entertainment',
-  'Healthcare', 'Insurance', 'Utilities', 'Transportation', 'Education',
-  'Travel', 'Gifts & Donations', 'Personal Care', 'Professional Services',
-  'Home & Garden', 'Electronics', 'Clothing', 'Books', 'Subscriptions',
-  'Banking', 'Investment', 'Taxes', 'Legal', 'Uncategorized', 'Transfer In', 
-  'Transfer Out', 'Internal Transfer', 'Income', 'Salary', 'Business', 
-  'Freelance', 'Interest', 'Dividends', 'Other Income', 'Rental Income', 
-  'Government Benefits', 'Pension', 'Child Support', 'Alimony', 
-  'Gifts Received', 'Refunds', 'Cryptocurrency', 'Fast Food', 
-  'Public Transport', 'Tolls', 'Food Delivery'
-];
-```
-
-### Database Performance Optimization
-```sql
--- Critical indexes for query performance
-CREATE INDEX idx_transactions_user_id ON transactions(user_id);
-CREATE INDEX idx_transactions_date ON transactions(date DESC);
-CREATE INDEX idx_transactions_category ON transactions(category);
-CREATE INDEX idx_entities_user_id ON entities(user_id);
-CREATE INDEX idx_assets_user_id ON assets(user_id);
-CREATE INDEX idx_liabilities_user_id ON liabilities(user_id);
-```
-
----
-
-## API & Integration Layer
-
-### Supabase Client Configuration
-```typescript
-// src/integrations/supabase/client.ts
-import { createClient } from '@supabase/supabase-js'
-import type { Database } from './types'
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-    flowType: 'pkce'
-  }
-})
-```
-
-### AI Categorization Edge Function
-```typescript
-// supabase/functions/categorize-transaction/index.ts
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-interface CategoryRequest {
-  description: string;
-  descriptions?: string[];
-  userId: string;
-  batchMode?: boolean;
-}
-
-const geminiApiKey = Deno.env.get('VITE_GEMINI_API_KEY');
-const BATCH_SIZE = 100; // Optimal for accuracy
-
-serve(async (req) => {
-  try {
-    const body: CategoryRequest = await req.json();
-    
-    if (body.batchMode && body.descriptions) {
-      // Process in chunks for optimal performance
-      const chunks = chunkArray(body.descriptions, BATCH_SIZE);
-      const allCategories: string[] = [];
-      
-      for (let i = 0; i < chunks.length; i++) {
-        const chunkCategories = await processBatch(chunks[i], body.userId);
-        allCategories.push(...chunkCategories);
-        
-        // Rate limiting between chunks
-        if (i < chunks.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      }
-      
-      return new Response(JSON.stringify({ 
-        categories: allCategories,
-        source: 'gemini_ai_batch_chunked' 
-      }));
-    }
-
-    // Single transaction processing
-    const category = await processSingleTransaction(body.description);
-    return new Response(JSON.stringify({ category, source: 'gemini_ai' }));
-
-  } catch (error) {
-    return new Response(JSON.stringify({ 
-      category: 'Uncategorized', 
-      source: 'error' 
-    }), { status: 500 });
-  }
-});
-```
-
-### React Query Data Layer
-```typescript
-// Custom hooks for data fetching
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-
-export const useTransactions = (userId: string, filters?: TransactionFilters) => {
-  return useQuery({
-    queryKey: ['transactions', userId, filters],
-    queryFn: async () => {
-      let query = supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', userId)
-        .order('date', { ascending: false });
-
-      if (filters?.category) query = query.eq('category', filters.category);
-      if (filters?.dateFrom) query = query.gte('date', filters.dateFrom);
-      if (filters?.dateTo) query = query.lte('date', filters.dateTo);
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
-    },
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    cacheTime: 1000 * 60 * 30, // 30 minutes
-  });
-};
-
-export const useCreateTransaction = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async (transaction: TransactionInsert) => {
-      const { data, error } = await supabase
-        .from('transactions')
-        .insert(transaction)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['account-balances'] });
-    },
-  });
-};
-```
-
----
-
-## Component Architecture
-
-### Application Structure
-```
-src/
-├── App.tsx                    # Root component with routing
-├── main.tsx                   # Application entry point
-├── components/                # Shared components
-│   ├── ui/                   # shadcn/ui base components
-│   ├── forms/                # Form-specific components
-│   ├── charts/               # Chart components
-│   └── layout/               # Layout components
-├── pages/                    # Route components
-├── contexts/                 # React Context providers
-├── hooks/                    # Custom React hooks
-├── utils/                    # Utility functions
-├── types/                    # TypeScript type definitions
-└── integrations/            # External service integrations
-```
-
-### Key Component Patterns
-
-#### Protected Route Pattern
-```typescript
-import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
-
-export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
-  
-  if (isLoading) return <div>Loading...</div>;
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
-  return <>{children}</>;
-};
-```
-
-#### Form Component with Validation
-```typescript
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-
-const transactionSchema = z.object({
-  description: z.string().min(1, 'Description is required'),
-  amount: z.number().min(0.01, 'Amount must be greater than 0'),
-  date: z.string().min(1, 'Date is required'),
-  category: z.string().min(1, 'Category is required'),
-});
-
-export const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit }) => {
-  const form = useForm({
-    resolver: zodResolver(transactionSchema),
-    defaultValues: { currency: 'AUD' }
-  });
-
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
-        {/* Form fields */}
-      </form>
-    </Form>
-  );
-};
-```
-
-#### Context Providers
-```typescript
-// Authentication Context
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  return <AuthContext.Provider value={{ user, session }}>{children}</AuthContext.Provider>;
-};
-```
-
-### Category Management System
-
-#### Component Architecture
-The category management system implements a hierarchical structure with three main components:
-
-```typescript
-// CategoryManager.tsx - Main orchestrator component
-export interface CategoryGroup {
-  id: string;
-  name: string;
-  type: 'Income' | 'Expense' | 'Assets' | 'Liability' | 'Transfers' | 'Adjustments';
-  description?: string;
-  color: string;
-  icon?: string;
-  buckets: CategoryBucket[];
-}
-
-export interface CategoryBucket {
-  id: string;
-  name: string;
-  description?: string;
-  color: string;
-  icon?: string;
-  categories: Category[];
-  groupId: string;
-}
-
-export interface Category {
-  id: string;
-  name: string;
-  description?: string;
-}
-```
-
-#### Component Structure
-```
-src/components/categories/
-├── CategoryManager.tsx          # Main category management interface
-├── CategoryGroupCard.tsx        # Individual bucket display component
-└── AddCategoryDialog.tsx        # Category creation dialog
-```
-
-#### Key Features Implementation
-
-**Collapsible Interface**
-```typescript
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-
-// Groups and buckets can be collapsed independently
-const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
-const [collapsedBuckets, setCollapsedBuckets] = useState<Set<string>>(new Set());
-```
-
-**Drag & Drop Functionality**
-```typescript
-// CategoryGroupCard.tsx
-const handleDrop = (e: React.DragEvent) => {
-  e.preventDefault();
-  const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-  const { categoryId, bucketId: fromBucketId } = data;
-  
-  if (fromBucketId !== bucket.id) {
-    onMoveCategory(categoryId, fromBucketId, bucket.id);
-  }
-};
-```
-
-**Local Storage Persistence**
-```typescript
-// CategoryManager.tsx
-const { data: categoryGroups = defaultCategoryGroups } = useQuery({
-  queryKey: ['category-groups', session?.user?.id],
-  queryFn: async () => {
-    const stored = localStorage.getItem('categoryGroups');
-    if (stored) {
-      return JSON.parse(stored);
-    }
-    return defaultCategoryGroups;
-  },
-});
-```
-
-#### Visual Hierarchy Implementation
-
-**Parent-Child Layout**
-```typescript
-// CategoryManager.tsx
-<CollapsibleContent>
-  <div className="ml-8 mt-4 space-y-4">
-    {group.buckets.map((bucket) => (
-      <div key={bucket.id} className="relative">
-        {/* Connection line */}
-        <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-muted-foreground/30" />
-        
-        {/* Connection dot */}
-        <div className="absolute left-3.5 top-6 w-1 h-1 bg-muted-foreground/50 rounded-full" />
-```
-
-### Multi-Country Financial Year System
-
-#### Component Architecture
-The financial year system implements computed financial years with country-specific rules:
-
-```typescript
-// FinancialYearDisplay.tsx - Financial year information display
-export interface FinancialYear {
-  startDate: Date;
-  endDate: Date;
-  name: string;
-  taxYear: number;
-}
-
-export interface CountryRule {
-  countryCode: string;
-  countryName: string;
-  currencyCode: string;
-  financialYearStartMonth: number;
-  financialYearStartDay: number;
-}
-```
-
-#### Component Structure
-```
-src/components/entities/
-├── EntityManager.tsx          # Main entity management interface
-├── EntityList.tsx             # Entity list display
-├── AddEntityDialog.tsx        # Add new entity dialog
-├── EditEntityDialog.tsx       # Edit entity dialog
-├── DeleteEntityDialog.tsx     # Delete entity confirmation
-├── FinancialYearDisplay.tsx   # Financial year information display
-└── index.ts                  # Export file
-```
-
-#### Financial Year Utilities
-```
-src/utils/
-└── financialYearUtils.ts      # Financial year calculations and country rules
-```
-
-#### Database Schema Updates
-```sql
--- Add primary country and currency to entities
-ALTER TABLE entities 
-ADD COLUMN primary_country TEXT NOT NULL DEFAULT 'US',
-ADD COLUMN primary_currency TEXT NOT NULL DEFAULT 'USD';
-
--- Add country and currency to assets
-ALTER TABLE assets 
-ADD COLUMN country TEXT NOT NULL DEFAULT 'AU',
-ADD COLUMN currency TEXT NOT NULL DEFAULT 'AUD';
-
--- Add country and currency to liabilities
-ALTER TABLE liabilities 
-ADD COLUMN country TEXT NOT NULL DEFAULT 'AU',
-ADD COLUMN currency TEXT NOT NULL DEFAULT 'AUD';
-
--- Create country rules table
-CREATE TABLE country_rules (
-  country_code TEXT PRIMARY KEY,
-  country_name TEXT NOT NULL,
-  currency_code TEXT NOT NULL,
-  financial_year_start_month INTEGER NOT NULL,
-  financial_year_start_day INTEGER NOT NULL DEFAULT 1,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
-```
-
-#### Key Features Implementation
-
-**Computed Financial Years**
-```typescript
-// financialYearUtils.ts
-export function getCurrentFinancialYear(countryCode: string): FinancialYear {
-  const rules = COUNTRY_RULES[countryCode] || COUNTRY_RULES['US'];
-  const currentDate = new Date();
-  
-  return getFinancialYearForDate(countryCode, currentDate);
-}
-
-export function getFinancialYearForDate(countryCode: string, date: Date): FinancialYear {
-  const rules = COUNTRY_RULES[countryCode] || COUNTRY_RULES['US'];
-  
-  // Calculate financial year start date
-  const fyStartDate = new Date(date.getFullYear(), rules.financialYearStartMonth - 1, rules.financialYearStartDay);
-  
-  // Adjust if date is before FY start
-  if (date < fyStartDate) {
-    fyStartDate.setFullYear(fyStartDate.getFullYear() - 1);
-  }
-  
-  // Calculate end date and tax year
-  const fyEndDate = new Date(fyStartDate);
-  fyEndDate.setFullYear(fyEndDate.getFullYear() + 1);
-  fyEndDate.setDate(fyEndDate.getDate() - 1);
-  
-  const taxYear = fyEndDate.getFullYear();
-  
-  return {
-    startDate: fyStartDate,
-    endDate: fyEndDate,
-    name: countryCode === 'IN' ? `FY${taxYear - 1}-${(taxYear % 100).toString().padStart(2, '0')}` : `FY${taxYear}`,
-    taxYear,
-  };
-}
-```
-
-**Country Rules Configuration**
-```typescript
-// financialYearUtils.ts
-export const COUNTRY_RULES: Record<string, CountryRule> = {
-  'AU': { countryCode: 'AU', countryName: 'Australia', currencyCode: 'AUD', financialYearStartMonth: 7, financialYearStartDay: 1 },
-  'IN': { countryCode: 'IN', countryName: 'India', currencyCode: 'INR', financialYearStartMonth: 4, financialYearStartDay: 1 },
-  'US': { countryCode: 'US', countryName: 'United States', currencyCode: 'USD', financialYearStartMonth: 1, financialYearStartDay: 1 },
-};
-```
-
-**Entity Management Integration**
-```typescript
-// AddEntityDialog.tsx
-const [formData, setFormData] = useState({
-  name: "",
-  type: "individual" as EntityType,
-  description: "",
-  countryOfResidence: "",
-  
-  // ... other fields
-});
-
-// Auto-set currency when country changes
-<Select
-  value={formData.countryOfResidence}
-  onValueChange={(value) => {
-    setFormData({ 
-      ...formData, 
-      countryOfResidence: value
-    });
-  }}
->
-```
-
-#### Performance Optimizations
-
-**Computed vs Stored Financial Years**
-- No database storage required for financial years
-- Fast in-memory calculations
-- Automatic updates when country rules change
-- No data migration needed for new countries
-
-**Country Rule Caching**
-- Static country rules configuration
-- Fast lookups with O(1) complexity
-- No external API calls for financial year calculations
-        
-        <CategoryGroupCard bucket={bucket} />
-      </div>
-    ))}
-  </div>
-</CollapsibleContent>
-```
-
-#### Performance Optimizations
-
-**React Query Integration**
-```typescript
-const saveCategoryGroups = useMutation({
-  mutationFn: async (groups: CategoryGroup[]) => {
-    localStorage.setItem('categoryGroups', JSON.stringify(groups));
-    return groups;
-  },
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ['category-groups'] });
-  },
-});
-```
-
-**Real-time Updates**
-- Immediate visual feedback for drag operations
-- Optimistic updates for better UX
-- Debounced save operations to prevent excessive writes
-
-#### Accessibility Features
-- Keyboard navigation support
-- Screen reader compatibility
-- Focus management for drag operations
-- ARIA labels for interactive elements
-
----
-
-## Security Implementation
-
-### Row Level Security (RLS)
-```sql
--- Enable RLS on all tables
-ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
-
--- Example policy for transactions
-CREATE POLICY "Users can view their own transactions" 
-  ON transactions FOR SELECT 
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can create their own transactions" 
-  ON transactions FOR INSERT 
-  WITH CHECK (auth.uid() = user_id);
-```
-
-### Input Validation & Sanitization
-```typescript
-// Comprehensive validation schemas
-export const transactionValidationSchema = z.object({
-  description: z.string()
-    .min(1, 'Description is required')
-    .max(255, 'Description too long')
-    .regex(/^[a-zA-Z0-9\s\-\.\,\(\)]+$/, 'Invalid characters'),
-  amount: z.number()
-    .min(0.01, 'Amount must be positive')
-    .max(999999999.99, 'Amount too large'),
-  date: z.string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
-  category: z.enum(categories),
-  currency: z.string().length(3, 'Currency must be 3 characters'),
-});
-```
-
-### Environment Variable Management
-```typescript
-interface EnvironmentVariables {
-  VITE_SUPABASE_URL: string;
-  VITE_SUPABASE_ANON_KEY: string;
-  VITE_GEMINI_API_KEY: string;
-}
-
-const validateEnvironment = (): EnvironmentVariables => {
-  const env = {
-    VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
-    VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY,
-    VITE_GEMINI_API_KEY: import.meta.env.VITE_GEMINI_API_KEY,
-  };
-
-  for (const [key, value] of Object.entries(env)) {
-    if (!value) throw new Error(`Missing required environment variable: ${key}`);
-  }
-
-  return env as EnvironmentVariables;
-};
-```
-
-### OAuth Configuration
-```typescript
-// Google OAuth 2.0 Configuration
-interface OAuthConfig {
-  clientId: string;
-  redirectUri: string;
-  scope: string[];
-}
-
-const oauthConfig: OAuthConfig = {
-  clientId: '551538503049-80ctg2j2o6v136nv1s9ma1q493k7vh8g.apps.googleusercontent.com',
-  redirectUri: 'https://pocket-penny-wizard.lovable.app/auth/callback',
-  scope: ['email', 'profile']
-};
-
-// Supabase Auth Configuration
-const supabaseAuthConfig = {
-  autoRefreshToken: true,
-  persistSession: true,
-  detectSessionInUrl: true,
-  flowType: 'pkce' as const
-};
-```
-
----
-
-## Performance & Scalability
-
-### Frontend Optimization
-
-#### Code Splitting & Lazy Loading
-```typescript
-import { lazy, Suspense } from 'react';
-
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Transactions = lazy(() => import('./pages/Transactions'));
-
-const AppRoutes = () => (
-  <Suspense fallback={<div>Loading...</div>}>
-    <Routes>
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/transactions" element={<Transactions />} />
-    </Routes>
-  </Suspense>
-);
-```
-
-#### React Query Caching Strategy
-```typescript
-export const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      cacheTime: 1000 * 60 * 30, // 30 minutes
-      retry: 3,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
-```
-
-### Backend Performance
-
-#### Database Query Optimization
-```sql
--- Optimized transaction query with pagination
-CREATE OR REPLACE FUNCTION get_user_transactions(
-  p_user_id UUID,
-  p_limit INTEGER DEFAULT 50,
-  p_offset INTEGER DEFAULT 0,
-  p_category TEXT DEFAULT NULL
-)
-RETURNS TABLE (
-  id UUID,
-  description TEXT,
-  amount DECIMAL,
-  currency TEXT,
-  date DATE,
-  category TEXT
-) AS $$
-BEGIN
-  RETURN QUERY
-  SELECT t.id, t.description, t.amount, t.currency, t.date, t.category
-  FROM transactions t
-  WHERE t.user_id = p_user_id
-    AND (p_category IS NULL OR t.category = p_category)
-  ORDER BY t.date DESC, t.created_at DESC
-  LIMIT p_limit
-  OFFSET p_offset;
-END;
-$$ LANGUAGE plpgsql;
-```
-
-#### AI Batch Processing
-```typescript
-// Optimized batch processing with controlled concurrency
-const CONCURRENT_BATCHES = 3;
-const BATCH_SIZE = 100;
-
-export const processCategorization = async (
-  descriptions: string[],
-  userId: string,
-  onProgress?: (completed: number, total: number) => void
-) => {
-  const batches = chunkArray(descriptions, BATCH_SIZE);
-  const results: string[] = new Array(descriptions.length);
-  
-  for (let i = 0; i < batches.length; i += CONCURRENT_BATCHES) {
-    const batchPromises = batches
-      .slice(i, i + CONCURRENT_BATCHES)
-      .map(async (batch, batchIndex) => {
-        const actualIndex = i + batchIndex;
-        const startIndex = actualIndex * BATCH_SIZE;
-        
-        try {
-          const categories = await categorizeTransactionsBatch(batch, userId);
-          categories.forEach((category, categoryIndex) => {
-            results[startIndex + categoryIndex] = category;
-          });
-          
-          onProgress?.(startIndex + batch.length, descriptions.length);
-        } catch (error) {
-          batch.forEach((_, categoryIndex) => {
-            results[startIndex + categoryIndex] = 'Uncategorized';
-          });
-        }
-      });
-    
-    await Promise.all(batchPromises);
-    
-    if (i + CONCURRENT_BATCHES < batches.length) {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-    }
-  }
-  
-  return results;
-};
-```
-
----
-
-## Development Environment
-
-### Local Development Setup
+### Environment Variables
 ```bash
-# Environment setup
-node --version  # Requires Node.js 18+
-npm --version   # npm 9+
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+VITE_GEMINI_API_KEY=your_gemini_key
+GEMINI_API_KEY=your_gemini_key
+```
 
-# Project initialization
-git clone <repository-url>
-cd finsight
+### Local Development
+```bash
 npm install
-
-# Environment configuration
-cp .env.example .env.local
-# Edit .env.local with API keys
-
-# Development server
-npm run dev  # Starts on http://localhost:5173
+npm run dev
 ```
 
-### Development Scripts
-```json
-{
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint .",
-    "type-check": "tsc --noEmit",
-    "preview": "vite preview",
-    "supabase:gen-types": "supabase gen types typescript --local > src/integrations/supabase/types.ts"
-  }
-}
-```
+## Deployment
 
-### Configuration Files
+### Supabase
+- Database migrations
+- Edge function deployment
+- Environment configuration
+- Production database setup
 
-#### TypeScript Configuration
-```json
-// tsconfig.json
-{
-  "compilerOptions": {
-    "target": "ES2022",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "allowJs": false,
-    "strict": true,
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "jsx": "react-jsx",
-    "baseUrl": ".",
-    "paths": { "@/*": ["./src/*"] }
-  },
-  "include": ["src"]
-}
-```
+### Frontend
+- Vite build optimization
+- Environment variable injection
+- CDN deployment
+- Performance monitoring
 
-#### Vite Configuration
-```typescript
-// vite.config.ts
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react-swc'
-import path from 'path'
+## Future Enhancements
 
-export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    alias: { '@': path.resolve(__dirname, './src') },
-  },
-  build: {
-    target: 'esnext',
-    sourcemap: true,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
-          'router-vendor': ['react-router-dom'],
-          'query-vendor': ['@tanstack/react-query'],
-          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
-          'chart-vendor': ['recharts'],
-          'supabase-vendor': ['@supabase/supabase-js'],
-        },
-      },
-    },
-  },
-})
-```
+### AI Improvements
+- On-device LLM inference
+- Advanced pattern recognition
+- Predictive categorization
+- Natural language queries
 
----
+### Open Banking
+- Direct bank connections
+- Real-time transaction sync
+- Payment initiation
+- Account aggregation
 
-## Deployment Pipeline
-
-### Vercel Deployment Configuration
-```json
-// vercel.json
-{
-  "framework": "vite",
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "env": {
-    "VITE_SUPABASE_URL": "@supabase-url",
-    "VITE_SUPABASE_ANON_KEY": "@supabase-anon-key",
-    "VITE_GEMINI_API_KEY": "@gemini-api-key"
-  },
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "X-XSS-Protection", "value": "1; mode=block" }
-      ]
-    }
-  ]
-}
-```
-
-### CI/CD Pipeline (GitHub Actions)
-```yaml
-# .github/workflows/deploy.yml
-name: Deploy to Vercel
-
-on:
-  push:
-    branches: [main]
-
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-        cache: 'npm'
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Type check
-      run: npm run type-check
-    
-    - name: Lint
-      run: npm run lint
-    
-    - name: Build
-      run: npm run build
-      env:
-        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-        VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
-    
-    - name: Deploy to Vercel
-      uses: vercel/action@v1
-      with:
-        vercel-token: ${{ secrets.VERCEL_TOKEN }}
-        vercel-args: '--prod'
-```
-
-### Supabase Edge Functions Deployment
-```bash
-# Deploy all functions
-supabase functions deploy
-
-# Deploy specific function
-supabase functions deploy categorize-transaction
-
-# Set environment variables
-supabase secrets set VITE_GEMINI_API_KEY=your_api_key_here
-
-# View function logs
-supabase functions logs categorize-transaction
-```
-
----
-
-## Code Quality & Standards
-
-### Code Style Guide
-```typescript
-// Naming conventions
-interface ComponentProps {  // PascalCase for interfaces
-  userName: string;         // camelCase for properties
-  isActive: boolean;
-  onUserClick: () => void;  // Event handlers prefixed with 'on'
-}
-
-const API_ENDPOINTS = {     // SCREAMING_SNAKE_CASE for constants
-  TRANSACTIONS: '/api/transactions',
-  USERS: '/api/users',
-} as const;
-
-// File naming conventions
-// Components: PascalCase (UserProfile.tsx)
-// Hooks: camelCase starting with 'use' (useUserData.ts)
-// Utils: camelCase (currencyUtils.ts)
-```
-
-### Error Handling Patterns
-```typescript
-// Custom error classes
-export class APIError extends Error {
-  constructor(
-    message: string,
-    public statusCode: number,
-    public response?: any
-  ) {
-    super(message);
-    this.name = 'APIError';
-  }
-}
-
-// Error boundary component
-export class ErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean; error?: Error }
-> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="error-fallback">
-          <h2>Something went wrong</h2>
-          <details>{this.state.error?.message}</details>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
-```
-
-### Performance Monitoring
-```typescript
-// Performance measurement utilities
-export const measurePerformance = (name: string, fn: () => void) => {
-  const start = performance.now();
-  const result = fn();
-  const end = performance.now();
-  
-  console.log(`${name} took ${end - start} milliseconds`);
-  
-  // Send to analytics service
-  if (typeof window !== 'undefined' && window.gtag) {
-    window.gtag('event', 'timing_complete', {
-      name: name,
-      value: Math.round(end - start),
-    });
-  }
-  
-  return result;
-};
-```
-
----
-
-**Document Version**: 1.0  
-**Last Updated**: January 2025  
-**Target Audience**: Developers, Architects, DevOps Engineers  
-**Next Review**: March 2025 
+### Mobile
+- React Native app
+- Offline capabilities
+- Push notifications
+- Biometric authentication 

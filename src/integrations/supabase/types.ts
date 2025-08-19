@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
+  // Allows to automatically instanciate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -20,7 +20,6 @@ export type Database = {
           address: string | null
           category: string
           created_at: string
-          currency: string
           entity_id: string
           id: string
           name: string
@@ -36,7 +35,6 @@ export type Database = {
           address?: string | null
           category: string
           created_at?: string
-          currency?: string
           entity_id: string
           id?: string
           name: string
@@ -52,7 +50,6 @@ export type Database = {
           address?: string | null
           category?: string
           created_at?: string
-          currency?: string
           entity_id?: string
           id?: string
           name?: string
@@ -123,112 +120,6 @@ export type Database = {
           },
         ]
       }
-      categories: {
-        Row: {
-          bucket_id: string
-          created_at: string
-          id: string
-          is_transfer: boolean
-          name: string
-          sort_order: number
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          bucket_id: string
-          created_at?: string
-          id?: string
-          is_transfer?: boolean
-          name: string
-          sort_order?: number
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          bucket_id?: string
-          created_at?: string
-          id?: string
-          is_transfer?: boolean
-          name?: string
-          sort_order?: number
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "categories_bucket_id_fkey"
-            columns: ["bucket_id"]
-            isOneToOne: false
-            referencedRelation: "category_buckets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      category_buckets: {
-        Row: {
-          created_at: string
-          group_id: string
-          id: string
-          name: string
-          sort_order: number
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          group_id: string
-          id?: string
-          name: string
-          sort_order?: number
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          group_id?: string
-          id?: string
-          name?: string
-          sort_order?: number
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "category_buckets_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "category_groups"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      category_groups: {
-        Row: {
-          created_at: string
-          id: string
-          key: string
-          name: string
-          sort_order: number
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          key: string
-          name: string
-          sort_order?: number
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          key?: string
-          name?: string
-          sort_order?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
       entities: {
         Row: {
           country_of_residence: string
@@ -241,6 +132,7 @@ export type Database = {
           incorporation_date: string | null
           name: string
           registration_number: string | null
+          relationship: string | null
           tax_identifier: string | null
           type: string
           updated_at: string
@@ -257,6 +149,7 @@ export type Database = {
           incorporation_date?: string | null
           name: string
           registration_number?: string | null
+          relationship?: string | null
           tax_identifier?: string | null
           type: string
           updated_at?: string
@@ -273,6 +166,7 @@ export type Database = {
           incorporation_date?: string | null
           name?: string
           registration_number?: string | null
+          relationship?: string | null
           tax_identifier?: string | null
           type?: string
           updated_at?: string
@@ -378,7 +272,6 @@ export type Database = {
           category: string
           created_at: string
           credit_limit: number | null
-          currency: string
           entity_id: string
           id: string
           interest_rate: number | null
@@ -393,40 +286,34 @@ export type Database = {
         }
         Insert: {
           account_number?: string | null
-          amount: number
-          category: string
           created_at?: string
-          credit_limit?: number | null
-          currency?: string
+          credit_limit?: string | null
           entity_id: string
           id?: string
-          interest_rate?: number | null
-          monthly_payment?: number | null
+          interest_rate?: string | null
+          monthly_payment?: string | null
           name: string
-          opening_balance?: number
-          opening_balance_date?: string
-          term_months?: number | null
+          opening_balance?: string | null
+          opening_balance_date?: string | null
+          term_months?: string | null
           type: string
-          updated_at?: string
+          updated_at?: string | null
           user_id: string
         }
         Update: {
           account_number?: string | null
-          amount?: number
-          category?: string
           created_at?: string
-          credit_limit?: number | null
-          currency?: string
+          credit_limit?: string | null
           entity_id?: string
           id?: string
-          interest_rate?: number | null
-          monthly_payment?: number | null
+          interest_rate?: string | null
+          monthly_payment?: string | null
           name?: string
-          opening_balance?: number
-          opening_balance_date?: string
-          term_months?: number | null
+          opening_balance?: string | null
+          opening_balance_date?: string | null
+          term_months?: string | null
           type?: string
-          updated_at?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: [
@@ -444,7 +331,6 @@ export type Database = {
           amount: number
           asset_account_id: string | null
           category: string
-          category_id: string | null
           comment: string | null
           created_at: string | null
           currency: string
@@ -459,7 +345,6 @@ export type Database = {
           amount: number
           asset_account_id?: string | null
           category: string
-          category_id?: string | null
           comment?: string | null
           created_at?: string | null
           currency: string
@@ -474,7 +359,6 @@ export type Database = {
           amount?: number
           asset_account_id?: string | null
           category?: string
-          category_id?: string | null
           comment?: string | null
           created_at?: string | null
           currency?: string
@@ -532,6 +416,269 @@ export type Database = {
         }
         Relationships: []
       }
+      // ===== NEW AI-DRIVEN CATEGORY SYSTEM =====
+      category_groups: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          description: string | null
+          color: string
+          icon: string
+          sort_order: number
+          is_ai_generated: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          description?: string | null
+          color?: string
+          icon?: string
+          sort_order?: number
+          is_ai_generated?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          description?: string | null
+          color?: string
+          icon?: string
+          sort_order?: number
+          is_ai_generated?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_groups_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      category_buckets: {
+        Row: {
+          id: string
+          user_id: string
+          group_id: string
+          name: string
+          description: string | null
+          color: string
+          icon: string
+          sort_order: number
+          is_ai_generated: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          group_id: string
+          name: string
+          description?: string | null
+          color?: string
+          icon?: string
+          sort_order?: number
+          is_ai_generated?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          group_id?: string
+          name?: string
+          description?: string | null
+          color?: string
+          icon?: string
+          sort_order?: number
+          is_ai_generated?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_buckets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "category_buckets_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "category_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      categories: {
+        Row: {
+          id: string
+          user_id: string
+          bucket_id: string
+          name: string
+          description: string | null
+          merchant_patterns: string[] | null
+          is_transfer: boolean
+          sort_order: number
+          is_ai_generated: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          bucket_id: string
+          name: string
+          description?: string | null
+          merchant_patterns?: string[] | null
+          is_transfer?: boolean
+          sort_order?: number
+          is_ai_generated?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          bucket_id?: string
+          name?: string
+          description?: string | null
+          merchant_patterns?: string[] | null
+          is_transfer?: boolean
+          sort_order?: number
+          is_ai_generated?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "categories_bucket_id_fkey"
+            columns: ["bucket_id"]
+            isOneToOne: false
+            referencedRelation: "category_buckets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      category_discovery_sessions: {
+        Row: {
+          id: string
+          user_id: string
+          session_type: string
+          transactions_processed: number
+          new_categories_created: number
+          categories_grouped: number
+          ai_confidence_score: number
+          metadata: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          session_type: string
+          transactions_processed?: number
+          new_categories_created?: number
+          categories_grouped?: number
+          ai_confidence_score?: number
+          metadata?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          session_type?: string
+          transactions_processed?: number
+          new_categories_created?: number
+          categories_grouped?: number
+          ai_confidence_score?: number
+          metadata?: Json | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_discovery_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      merchants: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          normalized_name: string | null
+          category_id: string | null
+          mcc: string | null
+          country: string | null
+          patterns: string[] | null
+          confidence_score: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          normalized_name?: string | null
+          category_id?: string | null
+          mcc?: string | null
+          country?: string | null
+          patterns?: string[] | null
+          confidence_score?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          normalized_name?: string | null
+          category_id?: string | null
+          mcc?: string | null
+          country?: string | null
+          patterns?: string | null
+          confidence_score?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchants_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -539,7 +686,7 @@ export type Database = {
     Functions: {
       seed_default_categories: {
         Args: Record<PropertyKey, never>
-        Returns: undefined
+        Returns: void
       }
     }
     Enums: {
@@ -562,14 +709,12 @@ export type Tables<
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof DefaultSchema["Tables"]
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+  ? DefaultSchema[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Row: infer R
     }
     ? R
@@ -577,7 +722,7 @@ export type Tables<
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
         DefaultSchema["Views"])
     ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        DefaultSchema["Views"])[TableName] extends {
         Row: infer R
       }
       ? R
@@ -591,20 +736,22 @@ export type TablesInsert<
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DefaultSchema["Tables"]
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+  ? DefaultSchema[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[TableName] extends {
         Insert: infer I
-      }
+    }
       ? I
       : never
     : never
@@ -616,18 +763,20 @@ export type TablesUpdate<
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DefaultSchema["Tables"]
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+  ? DefaultSchema[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[TableName] extends {
         Update: infer U
       }
       ? U
@@ -641,14 +790,14 @@ export type Enums<
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DefaultSchema["EnumName"]
     : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  ? DefaultSchema[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    ? DefaultSchema["Enums"][EnumName]
     : never
 
 export type CompositeTypes<
@@ -658,15 +807,11 @@ export type CompositeTypes<
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DefaultSchema["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
+> = DefaultSchema[DefaultSchemaEnumNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  ? DefaultSchema[DefaultSchemaEnumNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : never
 
 export const Constants = {
   public: {

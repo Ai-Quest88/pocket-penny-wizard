@@ -9,7 +9,7 @@ import { AccountSelectionSection } from "./csv-upload/AccountSelectionSection";
 import { DuplicateReviewDialog } from "./csv-upload/DuplicateReviewDialog";
 import { CategoryReviewDialog } from "./csv-upload/CategoryReviewDialog";
 import { ProgressiveUpload } from "./ProgressiveUpload";
-import { insertTransactionsWithDuplicateCheck } from "./csv-upload/helpers/transactionInsertion";
+import { useTransactionInsertion } from "./csv-upload/helpers/transactionInsertion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
@@ -127,6 +127,7 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
   const { toast } = useToast();
   const { session } = useAuth();
   const queryClient = useQueryClient();
+  const transactionHelper = useTransactionInsertion();
 
   // Debug account selection
   console.log('UnifiedCsvUpload - Accounts:', accounts);
@@ -323,18 +324,15 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
 
   const proceedWithDuplicateCheck = async (transactionsWithCategories: any[]) => {
     try {
-      // Check for duplicates
-      const result = await insertTransactionsWithDuplicateCheck(transactionsWithCategories);
+      // Use the new AI-driven transaction processing
+      const result = await transactionHelper.processCsvUpload(transactionsWithCategories);
       
-      // If duplicates need user review, show the dialog
-      if (result.needsUserReview && result.potentialDuplicates) {
-        console.log('🔍 Showing duplicate review dialog');
-        setDuplicateGroups(result.potentialDuplicates);
-        setShowDuplicateReview(true);
-        return; // Don't finish processing yet
-      }
+      toast({
+        title: "Upload Complete!",
+        description: `Successfully processed ${result.success} transactions. Created ${result.new_categories_created} new categories.`,
+      });
 
-      // If no duplicates or user already reviewed, continue normally
+      // Continue with normal flow
       await continueUpload();
       
     } catch (error) {
@@ -361,7 +359,7 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
         processedTransactions: pendingTransactions
       });
 
-      const result = await insertTransactionsWithDuplicateCheck(pendingTransactions, userApprovedDuplicates);
+      const result = await transactionHelper.processCsvUpload(pendingTransactions);
       
       // Count categorization results
       const categories = pendingTransactions.map(t => t.category);
@@ -378,17 +376,17 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
       console.log(`  Uncategorized: ${miscellaneousCount}/${categories.length}`);
       console.log('  Category breakdown:', categoryCounts);
       
-      const uploadMessage = `${result.inserted} transactions inserted, ${result.duplicates} duplicates skipped`;
-      const categorizationMessage = miscellaneousCount > 0 
-        ? ` • ${successfullyCategorizeed}/${categories.length} auto-categorized, ${miscellaneousCount} marked as Uncategorized`
-        : ` • All ${categories.length} transactions auto-categorized!`;
+      const uploadMessage = `${result.success} transactions processed, ${result.failed} failed`;
+      const categorizationMessage = result.new_categories_created > 0 
+        ? ` • ${result.new_categories_created} new categories created, ${result.categories_discovered} total categories discovered`
+        : ` • Used existing categories for all transactions`;
       
       toast({
         title: "Upload completed",
         description: uploadMessage + categorizationMessage,
       });
 
-      console.log('Upload completed:', result.inserted, 'inserted,', result.duplicates, 'duplicates skipped');
+      console.log('Upload completed:', result.success, 'successful,', result.failed, 'failed');
       
       setUploadProgress({
         phase: 'updating-balances',
