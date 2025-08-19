@@ -25,7 +25,7 @@ const buildCorsHeaders = (origin: string | null) => {
 };
 
 // Use Google Gemini API instead of Groq
-const geminiApiKey = Deno.env.get('VITE_GEMINI_API_KEY');
+const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
 
 // Create Supabase service client for database access
 const createServiceSupabaseClient = () => {
@@ -336,7 +336,7 @@ serve(async (req) => {
     }
 
     if (!geminiApiKey) {
-      throw new Error('VITE_GEMINI_API_KEY not configured');
+      throw new Error('GEMINI_API_KEY not configured');
     }
 
     // Handle batch processing with chunking
