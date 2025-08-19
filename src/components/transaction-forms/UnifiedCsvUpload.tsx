@@ -497,66 +497,68 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
         liabilityAccountId: selectedAccount?.accountType === 'liability' ? selectedAccountId : null
       });
       
-      const response = await fetch(`https://nqqbvlvuzyctmysablzw.supabase.co/functions/v1/categorize-transaction`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          batchMode: true,
-          descriptions: descriptions,
-          userId: session.user.id,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ AI categorization API error:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorText,
-          requestData: {
+      let aiCategories: string[] = [];
+      let useFallback = false;
+      
+      try {
+        console.log('🤖 Attempting AI categorization service...');
+        const response = await fetch(`https://nqqbvlvuzyctmysablzw.supabase.co/functions/v1/categorize-transaction`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
             batchMode: true,
             descriptions: descriptions,
             userId: session.user.id,
-          }
+          }),
         });
-        
-        // Instead of throwing an error, fallback to uncategorized transactions
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('❌ AI categorization API error:', {
+            status: response.status,
+            statusText: response.statusText,
+            errorText,
+          });
+          useFallback = true;
+        } else {
+          const result = await response.json();
+          console.log('✅ AI batch categorization completed successfully:', {
+            categoriesCount: result.categories?.length,
+            firstFewCategories: result.categories?.slice(0, 5)
+          });
+          
+          if (result.categories && Array.isArray(result.categories)) {
+            aiCategories = result.categories;
+          } else {
+            console.warn('⚠️ Invalid categories format from AI service');
+            useFallback = true;
+          }
+        }
+      } catch (networkError) {
+        console.error('🚨 Network error during AI categorization:', networkError);
+        console.warn('🔄 Using fallback due to fetch error');
+        useFallback = true;
+      }
+      
+      if (useFallback) {
         console.warn('🔄 AI categorization failed, using fallback to proceed with upload');
-        const fallbackTransactions = formattedTransactions.map(transaction => ({
-          ...transaction,
-          category: 'Uncategorized',
-          aiConfidence: 0,
-        }));
-        
-        console.log('📋 Using fallback categorization for', fallbackTransactions.length, 'transactions');
-        setPendingTransactions(fallbackTransactions);
-        setShowCategoryReview(true);
-        setUploadProgress(null);
-        setIsProcessing(false);
+        aiCategories = formattedTransactions.map(() => 'Uncategorized');
         
         toast({
-          title: "AI Categorization Unavailable",
+          title: "AI Categorization Unavailable", 
           description: "Proceeding with uncategorized transactions. You can edit categories before saving.",
           variant: "default",
         });
-        return;
       }
-
-      const result = await response.json();
-      console.log('✅ AI batch categorization completed successfully:', {
-        categoriesCount: result.categories?.length,
-        categories: result.categories?.slice(0, 5), // First 5 for debugging
-        result
-      });
-
+      
       // Combine transactions with AI categories
       const categorizedTransactions = formattedTransactions.map((transaction, index) => ({
         ...transaction,
-        category: result.categories?.[index] || 'Uncategorized',
-        aiConfidence: result.confidence || 0,
+        category: aiCategories[index] || 'Uncategorized',
+        aiConfidence: useFallback ? 0 : 0.8,
       }));
 
       console.log('🎯 AI categorization mapping completed:', {
