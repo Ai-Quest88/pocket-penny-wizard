@@ -29,7 +29,6 @@ export const CategoryManager = () => {
   // State for dialogs
   const [showAddCategoryDialog, setShowAddCategoryDialog] = useState(false);
   const [showAddBucketDialog, setShowAddBucketDialog] = useState(false);
-  const [showAddGroupDialog, setShowAddGroupDialog] = useState(false);
 
   const toggleSection = (type: string) => {
     setOpenSections(prev => ({ ...prev, [type]: !prev[type] }));
@@ -57,16 +56,6 @@ export const CategoryManager = () => {
 
   const handleAddCategory = (category: any, bucketId: string) => {
     addCategory({ category, bucketId });
-  };
-
-  const handleEditGroup = (group: CategoryGroupWithRelations) => {
-    console.log('Edit group:', group);
-    // TODO: Implement edit group functionality
-  };
-
-  const handleDeleteGroup = (groupId: string) => {
-    console.log('Delete group:', groupId);
-    // TODO: Implement delete group functionality
   };
 
   const handleAddBucket = (groupId: string) => {
@@ -120,10 +109,6 @@ export const CategoryManager = () => {
             <Plus className="h-4 w-4 mr-2" />
             Add Bucket
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setShowAddGroupDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Group
-          </Button>
           <Button variant="default" onClick={() => setShowAddCategoryDialog(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Add Category
@@ -145,8 +130,6 @@ export const CategoryManager = () => {
                     group={group}
                     isOpen={openSections[type]}
                     onToggle={() => toggleSection(type)}
-                    onEditGroup={handleEditGroup}
-                    onDeleteGroup={handleDeleteGroup}
                     onAddBucket={handleAddBucket}
                     onEditBucket={handleEditBucket}
                     onDeleteBucket={handleDeleteBucket}
@@ -164,14 +147,14 @@ export const CategoryManager = () => {
                   </div>
                   <h3 className="text-lg font-medium mb-2">{config.label}</h3>
                   <p className="text-muted-foreground mb-4">
-                    No {config.label.toLowerCase()} categories yet
+                    No {config.label.toLowerCase()} buckets yet
                   </p>
                   <Button
                     variant="outline"
-                    onClick={() => setShowAddGroupDialog(true)}
+                    onClick={() => setShowAddBucketDialog(true)}
                   >
                     <Plus className="h-4 w-4 mr-2" />
-                    Add First Group
+                    Add First Bucket
                   </Button>
                 </div>
               )}

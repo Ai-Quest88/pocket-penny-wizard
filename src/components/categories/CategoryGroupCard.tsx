@@ -10,8 +10,6 @@ interface CategoryGroupCardProps {
   group: CategoryGroupWithRelations;
   isOpen: boolean;
   onToggle: () => void;
-  onEditGroup?: (group: CategoryGroupWithRelations) => void;
-  onDeleteGroup?: (groupId: string) => void;
   onAddBucket?: (groupId: string) => void;
   onEditBucket?: (bucketId: string) => void;
   onDeleteBucket?: (bucketId: string) => void;
@@ -24,8 +22,6 @@ export const CategoryGroupCard = ({
   group,
   isOpen,
   onToggle,
-  onEditGroup,
-  onDeleteGroup,
   onAddBucket,
   onEditBucket,
   onDeleteBucket,
@@ -70,26 +66,6 @@ export const CategoryGroupCard = ({
                 )}
               </div>
               <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEditGroup?.(group);
-                  }}
-                >
-                  <Edit className="h-3 w-3" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeleteGroup?.(group.id);
-                  }}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
                 {isOpen ? 
                   <ChevronDown className="h-4 w-4" /> : 
                   <ChevronRight className="h-4 w-4" />
