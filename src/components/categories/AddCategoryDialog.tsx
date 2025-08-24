@@ -5,14 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CategoryGroup, Category } from "./CategoryManager";
+import { CategoryGroupWithRelations, Category } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 
 interface AddCategoryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddCategory: (category: Omit<Category, 'id'>, bucketId: string) => void;
-  categoryGroups: CategoryGroup[];
+  onAddCategory: (category: Omit<Category, 'id' | 'user_id' | 'bucket_id' | 'created_at' | 'updated_at'>, bucketId: string) => void;
+  categoryGroups: CategoryGroupWithRelations[];
 }
 
 export const AddCategoryDialog = ({
@@ -28,7 +28,7 @@ export const AddCategoryDialog = ({
   const [selectedBucketId, setSelectedBucketId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const groups = (categoryGroups ?? []) as CategoryGroup[];
+  const groups = categoryGroups ?? [];
   // Get all existing category names for validation
   const existingCategories = groups.flatMap(group => 
     (group.buckets ?? []).flatMap(bucket => (bucket.categories ?? []).map(cat => cat.name))
@@ -83,7 +83,11 @@ export const AddCategoryDialog = ({
     try {
       onAddCategory({
         name: categoryName.trim(),
-        description: categoryDescription.trim() || undefined
+        description: categoryDescription.trim() || null,
+        merchant_patterns: null,
+        is_transfer: false,
+        sort_order: 0,
+        is_ai_generated: false
       }, selectedBucketId);
       
       setCategoryName("");

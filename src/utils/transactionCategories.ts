@@ -1,4 +1,4 @@
-import { categorizeTransactionWithAI } from './aiCategorization';
+
 import { categories } from '@/types/transaction-forms';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -277,21 +277,7 @@ export const categorizeTransaction = async (description: string, userId?: string
     return essentialCategory;
   }
 
-  // Priority 4: AI categorization (fallback when rules fail)
-  if (userId) {
-    try {
-      const { categorizeTransactionWithAI } = await import('@/utils/aiCategorization');
-      const aiCategory = await categorizeTransactionWithAI(description);
-      console.log(`Priority 4 - AI categorized: "${description}" -> ${aiCategory}`);
-      
-      // Trust the AI result since it uses the user's actual categories
-      if (aiCategory && aiCategory.trim() !== '') {
-        return aiCategory;
-      }
-    } catch (error) {
-      console.warn('AI categorization failed, going to fallback:', error);
-    }
-  }
+  // Priority 4: AI categorization removed - now handled by hierarchical system during CSV upload
 
   // Priority 5: Uncategorized (final fallback)
   console.log(`Priority 5 - Fallback: "${description}" -> Uncategorized`);

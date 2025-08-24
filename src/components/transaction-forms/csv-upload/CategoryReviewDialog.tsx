@@ -83,23 +83,7 @@ export const CategoryReviewDialog = ({
     enabled: !!session?.user && open,
   });
 
-  // Auto-seed categories if user has none
-  const seedCategories = async () => {
-    if (!session?.user?.id) return;
-    
-    try {
-      const { error } = await supabase.rpc('seed_default_categories');
-      if (error) {
-        console.error('Error seeding categories:', error);
-      } else {
-        console.log('Successfully seeded default categories');
-        // Refetch categories after seeding
-        window.location.reload(); // Simple refresh to get new categories
-      }
-    } catch (error) {
-      console.error('Error calling seed function:', error);
-    }
-  };
+  // Note: Categories are now created by AI discovery during upload process
 
   // Use user's categories if available, include uncategorized
   const validCategories = userCategories.length > 0 

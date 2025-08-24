@@ -89,7 +89,8 @@ CREATE TABLE IF NOT EXISTS transactions (
   description TEXT NOT NULL,
   amount NUMERIC NOT NULL,
   currency TEXT NOT NULL,
-  category TEXT NOT NULL,
+  category_id UUID REFERENCES categories(id),
+  category_name TEXT, -- For display purposes and backwards compatibility
   date DATE NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
@@ -242,6 +243,7 @@ CREATE TABLE IF NOT EXISTS category_groups (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) NOT NULL,
   name TEXT NOT NULL,
+  category_type TEXT NOT NULL CHECK (category_type IN ('income', 'expense', 'asset', 'liability', 'transfer')),
   description TEXT,
   color TEXT DEFAULT 'bg-blue-100',
   icon TEXT DEFAULT '📁',

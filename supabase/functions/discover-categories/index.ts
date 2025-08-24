@@ -7,13 +7,18 @@ const allowedOrigins = new Set([
   'http://127.0.0.1:5173',
   'http://localhost:3000',
   'http://localhost:8080',
+  'http://localhost:8081',
+  'http://localhost:8082',
+  'http://127.0.0.1:8080',
+  'http://127.0.0.1:8081',
+  'http://127.0.0.1:8082',
   'https://pocket-penny-wizard.lovable.app',
 ]);
 
 const buildCorsHeaders = (origin: string | null) => {
   const isDev = (Deno.env.get('DENO_ENV') || Deno.env.get('ENV') || 'development') !== 'production';
-  const allowOrigin = (origin && allowedOrigins.has(origin))
-    || (isDev && origin?.startsWith('http://localhost:'))
+  const isLocal = origin?.startsWith('http://localhost:') || origin?.startsWith('http://127.0.0.1:');
+  const allowOrigin = (origin && allowedOrigins.has(origin)) || (isDev && isLocal)
     ? (origin as string)
     : 'https://pocket-penny-wizard.lovable.app';
   return {
@@ -42,6 +47,7 @@ interface DiscoveredCategory {
 
 interface CategoryGroup {
   name: string;
+  type: 'income' | 'expense' | 'asset' | 'liability' | 'transfer';
   description: string;
   color: string;
   icon: string;
@@ -67,25 +73,34 @@ TRANSACTIONS:
 ${sampleTransactions}
 
 TASK: Create a hierarchical category structure with:
-1. High-level groups (Income, Expenses, Assets, Liabilities, Transfers)
+1. High-level groups classified by type (income, expense, asset, liability, transfer)
 2. Logical buckets within each group
 3. Specific categories with merchant patterns
 
-RULES:
+CLASSIFICATION RULES:
+- INCOME: Salary, wages, dividends, interest, rental income, business income
+- EXPENSE: All spending (groceries, utilities, entertainment, etc.)
+- ASSET: Property purchases, investments, savings deposits
+- LIABILITY: Loan payments, credit card payments, mortgage payments
+- TRANSFER: Movement between own accounts (no financial impact)
+
+CATEGORIZATION RULES:
 - Group similar spending patterns together
 - Use clear, descriptive names
 - Consider merchant patterns for categorization
 - Australian context (Coles, Woolworths, Linkt, etc.)
 - Include confidence scores (0-1) for each category
+- Classify each group with proper type
 
 OUTPUT FORMAT (JSON):
 {
   "groups": [
     {
-      "name": "Expenses",
-      "description": "Money going out",
+      "name": "Food & Dining",
+      "type": "expense",
+      "description": "All food-related spending",
       "color": "bg-red-100",
-      "icon": "💸",
+      "icon": "🍽️",
       "buckets": [
         {
           "name": "Groceries",
@@ -231,6 +246,17 @@ serve(async (req) => {
   }
 });
 
+// Normalize category type to match database enum
+function normalizeGroupType(input: string): 'income' | 'expense' | 'asset' | 'liability' | 'transfer' {
+  const v = (input || '').toLowerCase().trim();
+  if (v.startsWith('income')) return 'income';
+  if (v.startsWith('expense')) return 'expense';
+  if (v.startsWith('asset')) return 'asset';
+  if (v.startsWith('liability')) return 'liability';
+  if (v.startsWith('transfer')) return 'transfer';
+  return 'expense'; // default fallback
+}
+
 async function storeDiscoveredCategories(
   supabase: any, 
   userId: string, 
@@ -266,6 +292,7 @@ async function storeDiscoveredCategories(
       .insert([{
         user_id: userId,
         name: group.name,
+        category_type: normalizeGroupType(group.type),
         description: group.description,
         color: group.color,
         icon: group.icon,

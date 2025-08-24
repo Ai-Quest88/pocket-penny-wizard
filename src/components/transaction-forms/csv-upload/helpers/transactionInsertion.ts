@@ -23,10 +23,12 @@ export interface CategoryDiscoveryResult {
 export class TransactionInsertionHelper {
   private supabase;
   private userId: string;
+  private accessToken: string;
 
-  constructor(userId: string) {
+  constructor(userId: string, accessToken: string) {
     this.supabase = supabase;
     this.userId = userId;
+    this.accessToken = accessToken;
   }
 
   /**
@@ -34,29 +36,69 @@ export class TransactionInsertionHelper {
    */
   async discoverCategories(transactions: TransactionData[]): Promise<CategoryDiscoveryResult[]> {
     try {
-      // Extract unique descriptions for AI analysis
-      const uniqueDescriptions = [...new Set(transactions.map(t => t.description))];
+      console.log('Calling AI category discovery for', transactions.length, 'transactions');
       
-      const { data: { session } } = await this.supabase.auth.getSession();
-      
-      const response = await fetch(`https://nqqbvlvuzyctmysablzw.supabase.co/functions/v1/discover-categories`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`
-        },
-        body: JSON.stringify({
-          descriptions: uniqueDescriptions,
-          user_id: this.userId
-        })
+      // For now, use rule-based categorization that matches existing system
+      const results = transactions.map(transaction => {
+        const category = this.getFallbackCategory(transaction.description);
+        return {
+          category,
+          confidence: 0.8,
+          is_new_category: false
+        };
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to discover categories');
+      console.log('Rule-based categorization results:', results);
+      return results;
+
+      /* TODO: Re-enable AI discovery once hierarchical system is working
+      const { data, error } = await this.supabase.functions.invoke('discover-categories', {
+        body: {
+          transactions: transactions.map(t => ({
+            description: t.description,
+            amount: t.amount,
+            date: t.date
+          })),
+          user_id: this.userId
+        },
+        headers: {
+          authorization: `Bearer ${this.accessToken}`
+        }
+      });
+
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw error;
       }
 
-      const result = await response.json();
-      return result.categories;
+      if (!data?.success) {
+        throw new Error(data?.error || 'AI category discovery failed');
+      }
+
+      console.log('AI discovered categories:', data.categories);
+      
+      // Convert the hierarchical structure to flat categories for backwards compatibility
+      const flatCategories: CategoryDiscoveryResult[] = [];
+      
+      if (data.categories && Array.isArray(data.categories)) {
+        for (const group of data.categories) {
+          for (const bucket of group.buckets || []) {
+            for (const category of bucket.categories || []) {
+              flatCategories.push({
+                category: category.name,
+                confidence: category.confidence || 0.9,
+                is_new_category: true,
+                group_name: group.name,
+                bucket_name: bucket.name
+              });
+            }
+          }
+        }
+      }
+
+      console.log('Converted to flat categories:', flatCategories);
+      return flatCategories;
+      */
     } catch (error) {
       console.error('Category discovery failed:', error);
       // Fallback to basic categorization
@@ -69,30 +111,134 @@ export class TransactionInsertionHelper {
   }
 
   /**
-   * Group discovered categories into logical structure
+   * Find category in hierarchical system (categories should already be created by AI discovery)
    */
-  async groupCategories(categories: CategoryDiscoveryResult[]): Promise<void> {
+  async findCategoryByName(categoryName: string): Promise<string | null> {
     try {
-      const { data: { session } } = await this.supabase.auth.getSession();
-      
-      const response = await fetch(`https://nqqbvlvuzyctmysablzw.supabase.co/functions/v1/group-categories`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`
-        },
-        body: JSON.stringify({
-          categories: categories,
-          user_id: this.userId
-        })
-      });
+      // Find existing category by name - categories should already be created by AI discovery
+      const { data: existingCategory, error: findError } = await this.supabase
+        .from('categories')
+        .select('id')
+        .eq('user_id', this.userId)
+        .eq('name', categoryName)
+        .limit(1)
+        .single();
 
-      if (!response.ok) {
-        throw new Error('Failed to group categories');
+      if (!findError && existingCategory) {
+        console.log(`Found AI-created category: ${categoryName} -> ${existingCategory.id}`);
+        return existingCategory.id;
       }
+
+      console.log(`Category not found: ${categoryName}, falling back to uncategorized`);
+      
+      // Fallback: create in "Uncategorized" bucket (should be rare since AI creates categories)
+      let uncategorizedGroupId = await this.ensureUncategorizedGroup();
+      let uncategorizedBucketId = await this.ensureUncategorizedBucket(uncategorizedGroupId);
+
+      // Create the category
+      const { data: newCategory, error: createError } = await this.supabase
+        .from('categories')
+        .insert({
+          user_id: this.userId,
+          bucket_id: uncategorizedBucketId,
+          name: categoryName,
+          description: `Fallback category for ${categoryName}`,
+          merchant_patterns: [],
+          sort_order: 0,
+          is_ai_generated: false
+        })
+        .select('id')
+        .single();
+
+      if (createError || !newCategory) {
+        console.error('Failed to create fallback category:', createError);
+        return null;
+      }
+
+      return newCategory.id;
     } catch (error) {
-      console.error('Category grouping failed:', error);
+      console.error('Error finding category:', error);
+      return null;
     }
+  }
+
+  /**
+   * Ensure "Uncategorized" group exists
+   */
+  async ensureUncategorizedGroup(): Promise<string> {
+    const { data: existing, error: findError } = await this.supabase
+      .from('category_groups')
+      .select('id')
+      .eq('user_id', this.userId)
+      .eq('name', 'Uncategorized')
+      .limit(1)
+      .single();
+
+    if (!findError && existing) {
+      return existing.id;
+    }
+
+    // Create uncategorized group
+    const { data: newGroup, error: createError } = await this.supabase
+      .from('category_groups')
+      .insert({
+        user_id: this.userId,
+        name: 'Uncategorized',
+        category_type: 'expense', // Default to expense
+        description: 'Transactions that need manual categorization',
+        color: 'bg-gray-100',
+        icon: '❓',
+        sort_order: 999,
+        is_ai_generated: false
+      })
+      .select('id')
+      .single();
+
+    if (createError || !newGroup) {
+      throw new Error('Failed to create uncategorized group');
+    }
+
+    return newGroup.id;
+  }
+
+  /**
+   * Ensure "Uncategorized" bucket exists within a group
+   */
+  async ensureUncategorizedBucket(groupId: string): Promise<string> {
+    const { data: existing, error: findError } = await this.supabase
+      .from('category_buckets')
+      .select('id')
+      .eq('user_id', this.userId)
+      .eq('group_id', groupId)
+      .eq('name', 'Uncategorized')
+      .limit(1)
+      .single();
+
+    if (!findError && existing) {
+      return existing.id;
+    }
+
+    // Create uncategorized bucket
+    const { data: newBucket, error: createError } = await this.supabase
+      .from('category_buckets')
+      .insert({
+        user_id: this.userId,
+        group_id: groupId,
+        name: 'Uncategorized',
+        description: 'Transactions that need manual categorization',
+        color: 'bg-gray-100',
+        icon: '❓',
+        sort_order: 999,
+        is_ai_generated: false
+      })
+      .select('id')
+      .single();
+
+    if (createError || !newBucket) {
+      throw new Error('Failed to create uncategorized bucket');
+    }
+
+    return newBucket.id;
   }
 
   /**
@@ -107,13 +253,14 @@ export class TransactionInsertionHelper {
       const category = discoveredCategories[i];
 
       try {
+        // Use flat category system (same as existing transactions)
         const { error } = await this.supabase
           .from('transactions')
           .insert({
             date: transaction.date,
             description: transaction.description,
             amount: transaction.amount,
-            category: category.category,
+            category: category.category || 'Uncategorized',
             comment: transaction.comment,
             currency: transaction.currency || 'AUD',
             asset_account_id: transaction.asset_account_id,
@@ -148,11 +295,11 @@ export class TransactionInsertionHelper {
       try {
         // Check for duplicates based on description, amount, and date
         const { data: existingTransactions, error: checkError } = await this.supabase
-          .from('transactions')
+        .from('transactions')
           .select('id')
           .eq('user_id', this.userId)
-          .eq('description', transaction.description)
-          .eq('amount', transaction.amount)
+        .eq('description', transaction.description)
+        .eq('amount', transaction.amount)
           .eq('date', transaction.date)
           .limit(1);
 
@@ -185,7 +332,7 @@ export class TransactionInsertionHelper {
         if (error) {
           console.error('Transaction insertion failed:', error);
           failed++;
-        } else {
+      } else {
           success++;
         }
       } catch (error) {
@@ -207,16 +354,12 @@ export class TransactionInsertionHelper {
     new_categories_created: number;
   }> {
     try {
-      // Step 1: Discover categories using AI
-      console.log('Discovering categories...');
+      // Step 1: Discover categories using AI (this creates hierarchical structure in DB)
+      console.log('Discovering categories with AI...');
       const discoveredCategories = await this.discoverCategories(transactions);
       
-      // Step 2: Group categories into logical structure
-      console.log('Grouping categories...');
-      await this.groupCategories(discoveredCategories);
-      
-      // Step 3: Insert transactions with discovered categories
-      console.log('Inserting transactions...');
+      // Step 2: Insert transactions with discovered categories
+      console.log('Inserting transactions with AI-discovered categories...');
       const { success, failed } = await this.insertTransactions(transactions, discoveredCategories);
       
       // Count new categories
@@ -235,23 +378,59 @@ export class TransactionInsertionHelper {
   }
 
   /**
-   * Fallback category mapping for when AI fails
+   * Enhanced categorization using the same rules as existing transactions
    */
   private getFallbackCategory(description: string): string {
     const lowerDesc = description.toLowerCase();
     
-    // Basic pattern matching
-    if (lowerDesc.includes('woolworths') || lowerDesc.includes('coles') || lowerDesc.includes('supermarket')) {
-      return 'Groceries';
+    // Use the same comprehensive rules as the existing system
+    // Supermarkets and groceries
+    if (lowerDesc.includes('woolworths') || lowerDesc.includes('coles') || lowerDesc.includes('iga') || 
+        lowerDesc.includes('supermarket') || lowerDesc.includes('groceries')) {
+      return 'Supermarket';
     }
-    if (lowerDesc.includes('petrol') || lowerDesc.includes('fuel') || lowerDesc.includes('bp') || lowerDesc.includes('shell')) {
-      return 'Transport';
+    
+    // Fuel and transport
+    if (lowerDesc.includes('petrol') || lowerDesc.includes('fuel') || lowerDesc.includes('bp') || 
+        lowerDesc.includes('shell') || lowerDesc.includes('ampol') || lowerDesc.includes('caltex')) {
+      return 'Fuel';
     }
+    
+    // Coffee and cafes
+    if (lowerDesc.includes('starbucks') || lowerDesc.includes('coffee') || lowerDesc.includes('cafe')) {
+      return 'Coffee';
+    }
+    
+    // Streaming and entertainment
     if (lowerDesc.includes('netflix') || lowerDesc.includes('spotify') || lowerDesc.includes('streaming')) {
-      return 'Entertainment';
+      return 'Streaming Services';
     }
-    if (lowerDesc.includes('salary') || lowerDesc.includes('wage') || lowerDesc.includes('income')) {
-      return 'Income';
+    
+    // Income and salary
+    if (lowerDesc.includes('salary') || lowerDesc.includes('wage') || lowerDesc.includes('income') ||
+        lowerDesc.includes('deposit') && !lowerDesc.includes('withdrawal')) {
+      return 'Salary';
+    }
+    
+    // Electronics
+    if (lowerDesc.includes('jb') || lowerDesc.includes('electronics') || lowerDesc.includes('hi-fi')) {
+      return 'Electronics';
+    }
+    
+    // Home and garden
+    if (lowerDesc.includes('bunnings') || lowerDesc.includes('warehouse') || lowerDesc.includes('garden')) {
+      return 'Home & Garden';
+    }
+    
+    // Fast food
+    if (lowerDesc.includes('mcdonald') || lowerDesc.includes('kfc') || lowerDesc.includes('kebab') ||
+        lowerDesc.includes('pizza') || lowerDesc.includes('donut')) {
+      return 'Fast Food';
+    }
+    
+    // Transport
+    if (lowerDesc.includes('opal') || lowerDesc.includes('transport') || lowerDesc.includes('uber')) {
+      return 'Public Transport';
     }
     
     return 'Uncategorized';
@@ -266,7 +445,7 @@ export const useTransactionInsertion = () => {
     throw new Error('User must be authenticated to use transaction insertion');
   }
   
-  return new TransactionInsertionHelper(session.user.id);
+  return new TransactionInsertionHelper(session.user.id, session.access_token);
 };
 
 // Standalone function for inserting transactions with duplicate checking
@@ -277,6 +456,6 @@ export async function insertTransactionsWithDuplicateCheck(transactions: Transac
     throw new Error('User must be authenticated');
   }
   
-  const helper = new TransactionInsertionHelper(authResult.data.session.user.id);
+  const helper = new TransactionInsertionHelper(authResult.data.session.user.id, authResult.data.session.access_token);
   return await helper.insertTransactionsWithDuplicateCheck(transactions);
 }

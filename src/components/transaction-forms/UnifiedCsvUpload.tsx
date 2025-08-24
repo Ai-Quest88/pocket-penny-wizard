@@ -17,7 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAccounts } from "@/hooks/useAccounts";
 import { addUserCategoryRule } from "@/utils/transactionCategories";
-import { seedDefaultCategories } from "@/utils/seedCategories";
+
 
 import { supabase } from "@/integrations/supabase/client";
 
@@ -322,47 +322,29 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
     setDuplicateGroups([]);
   };
 
-  const proceedWithDuplicateCheck = async (transactionsWithCategories: any[]) => {
-    try {
-      // Use the new AI-driven transaction processing
-      const result = await transactionHelper.processCsvUpload(transactionsWithCategories);
-      
-      toast({
-        title: "Upload Complete!",
-        description: `Successfully processed ${result.success} transactions. Created ${result.new_categories_created} new categories.`,
-      });
 
-      // Continue with normal flow
-      await continueUpload();
-      
-    } catch (error) {
-      console.error('Error processing transactions:', error);
-      toast({
-        title: "Error",
-        description: "Failed to process transactions. Please try again.",
-        variant: "destructive",
-      });
-      setIsProcessing(false);
-      setUploadProgress(null);
-    }
-  };
 
-  const continueUpload = async (userApprovedDuplicates?: number[]) => {
+  const continueUpload = async (userApprovedDuplicates?: number[], transactionsToProcess?: any[]) => {
     try {
-      console.log('🔄 Continuing upload with user decisions...', userApprovedDuplicates);
+      console.log('🔄 Starting hierarchical AI categorization and upload...', userApprovedDuplicates);
+      
+      // Use passed transactions or fall back to pendingTransactions
+      const transactionsForProcessing = transactionsToProcess || pendingTransactions;
+      console.log('📦 Transactions to process:', transactionsForProcessing.length);
       
       setUploadProgress({
-        phase: 'saving',
+        phase: 'categorizing',
         currentStep: 1,
-        totalSteps: 1,
-        message: 'Saving transactions to database...',
-        processedTransactions: pendingTransactions
+        totalSteps: 3,
+        message: 'Discovering categories with AI...',
+        processedTransactions: transactionsForProcessing
       });
 
-      const result = await transactionHelper.processCsvUpload(pendingTransactions);
+      // Use hierarchical AI categorization system
+      const result = await transactionHelper.processCsvUpload(transactionsForProcessing);
       
       // Count categorization results
-      const categories = pendingTransactions.map(t => t.category);
+      const categories = transactionsForProcessing.map(t => t.category);
       const categoryCounts = categories.reduce((acc, category) => {
         acc[category] = (acc[category] || 0) + 1;
         return acc;
@@ -401,6 +383,8 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
       queryClient.invalidateQueries({ queryKey: ['assets'] });
       queryClient.invalidateQueries({ queryKey: ['liabilities'] });
       queryClient.invalidateQueries({ queryKey: ['netWorth'] });
+      // Invalidate categories to show AI-discovered hierarchy
+      queryClient.invalidateQueries({ queryKey: ['categories-with-relations'] });
       
       setUploadProgress({
         phase: 'complete',
@@ -442,9 +426,7 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
       return;
     }
 
-    // First, ensure user has categories seeded
-    console.log('Ensuring categories are seeded before processing...');
-    await seedDefaultCategories();
+    // Note: Categories will be discovered by AI during processing
 
     setIsProcessing(true);
     setUploadProgress({
@@ -480,96 +462,23 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
 
       console.log('Formatted transactions for AI categorization:', formattedTransactions.slice(0, 2));
 
-      // AI Categorization using batch processing
-      const descriptions = formattedTransactions.map(t => t.description);
+      // Use hierarchical AI categorization system
+      console.log('🚀 Starting AI-powered hierarchical categorization for', formattedTransactions.length, 'transactions');
       
-      // Get the selected account details for debugging
+      // Get the selected account details
       const selectedAccount = selectedAccountId ? accounts.find(acc => acc.id === selectedAccountId) : null;
-      
-      console.log('Starting batch AI categorization for', descriptions.length, 'transactions');
       console.log('📊 Account details for transactions:', {
         selectedAccountId,
         selectedAccount,
         accountType: selectedAccount?.accountType,
-        assetAccountId: selectedAccount?.accountType === 'asset' ? selectedAccountId : null,
-        liabilityAccountId: selectedAccount?.accountType === 'liability' ? selectedAccountId : null
-      });
-      
-      let aiCategories: string[] = [];
-      let useFallback = false;
-      
-      try {
-        console.log('🤖 Attempting AI categorization service...');
-        const response = await fetch(`https://nqqbvlvuzyctmysablzw.supabase.co/functions/v1/categorize-transaction`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            batchMode: true,
-            descriptions: descriptions,
-            userId: session.user.id,
-          }),
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('❌ AI categorization API error:', {
-            status: response.status,
-            statusText: response.statusText,
-            errorText,
-          });
-          useFallback = true;
-        } else {
-          const result = await response.json();
-          console.log('✅ AI batch categorization completed successfully:', {
-            categoriesCount: result.categories?.length,
-            firstFewCategories: result.categories?.slice(0, 5)
-          });
-          
-          if (result.categories && Array.isArray(result.categories)) {
-            aiCategories = result.categories;
-          } else {
-            console.warn('⚠️ Invalid categories format from AI service');
-            useFallback = true;
-          }
-        }
-      } catch (networkError) {
-        console.error('🚨 Network error during AI categorization:', networkError);
-        console.warn('🔄 Using fallback due to fetch error');
-        useFallback = true;
-      }
-      
-      if (useFallback) {
-        console.warn('🔄 AI categorization failed, using fallback to proceed with upload');
-        aiCategories = formattedTransactions.map(() => 'Uncategorized');
-        
-        toast({
-          title: "AI Categorization Unavailable", 
-          description: "Proceeding with uncategorized transactions. You can edit categories before saving.",
-          variant: "default",
-        });
-      }
-      
-      // Combine transactions with AI categories
-      const categorizedTransactions = formattedTransactions.map((transaction, index) => ({
-        ...transaction,
-        category: aiCategories[index] || 'Uncategorized',
-        aiConfidence: useFallback ? 0 : 0.8,
-      }));
-
-      console.log('🎯 AI categorization mapping completed:', {
-        originalCount: formattedTransactions.length,
-        categorizedCount: categorizedTransactions.length,
-        firstFewCategorized: categorizedTransactions.slice(0, 3)
       });
 
-      // Show category review dialog for user to edit categories before saving
-      setPendingTransactions(categorizedTransactions);
-      setShowCategoryReview(true);
-      setUploadProgress(null);
-      setIsProcessing(false);
+      // Store transactions for AI discovery processing
+      setPendingTransactions(formattedTransactions);
+      
+      // Trigger AI discovery and upload process
+      console.log('🎯 Starting AI discovery process for', formattedTransactions.length, 'transactions');
+      continueUpload(undefined, formattedTransactions);
 
     } catch (error) {
       console.error('❌ DETAILED ERROR in transaction processing:', {
