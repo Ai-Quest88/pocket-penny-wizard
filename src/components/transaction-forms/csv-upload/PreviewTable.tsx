@@ -1,4 +1,5 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useCategoryHierarchy } from "@/hooks/useCategoryHierarchy";
 
 interface PreviewTableProps {
   data: any[];
@@ -23,6 +24,7 @@ interface PreviewTableProps {
 
 export const PreviewTable = ({ data, mappings, defaultSettings, selectedAccount }: PreviewTableProps) => {
   const previewData = data.slice(0, 5);
+  const { predictCategoryHierarchy } = useCategoryHierarchy();
 
   // Debug information
   console.log('PreviewTable RECEIVED DATA:', { 
@@ -74,35 +76,46 @@ export const PreviewTable = ({ data, mappings, defaultSettings, selectedAccount 
                 <TableHead className="min-w-[80px]">Amount</TableHead>
                 <TableHead className="min-w-[100px]">Date</TableHead>
                 <TableHead className="min-w-[80px]">Currency</TableHead>
+                <TableHead className="min-w-[200px]">Predicted Category</TableHead>
                 <TableHead className="min-w-[120px]">Account</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {previewData.map((row, index) => (
-                <TableRow key={index}>
-                  <TableCell className="max-w-[200px] truncate" title={getValue(row, mappings.description, defaultSettings.description)}>
-                    {getValue(row, mappings.description, defaultSettings.description)}
-                  </TableCell>
-                  <TableCell className="max-w-[100px] truncate text-right">
-                    {getValue(row, mappings.amount, '0')}
-                  </TableCell>
-                  <TableCell className="font-mono max-w-[120px] truncate">
-                    {getValue(row, mappings.date, '')}
-                  </TableCell>
-                  <TableCell className="max-w-[80px] truncate">
-                    {getValue(row, mappings.currency, defaultSettings.currency)}
-                  </TableCell>
-                  <TableCell className="max-w-[150px] truncate">
-                    {selectedAccount ? (
-                      <span className="text-sm text-muted-foreground" title={selectedAccount.name}>
-                        {selectedAccount.name}
+              {previewData.map((row, index) => {
+                const description = getValue(row, mappings.description, defaultSettings.description);
+                const predictedCategory = predictCategoryHierarchy(description);
+                
+                return (
+                  <TableRow key={index}>
+                    <TableCell className="max-w-[200px] truncate" title={description}>
+                      {description}
+                    </TableCell>
+                    <TableCell className="max-w-[100px] truncate text-right">
+                      {getValue(row, mappings.amount, '0')}
+                    </TableCell>
+                    <TableCell className="font-mono max-w-[120px] truncate">
+                      {getValue(row, mappings.date, '')}
+                    </TableCell>
+                    <TableCell className="max-w-[80px] truncate">
+                      {getValue(row, mappings.currency, defaultSettings.currency)}
+                    </TableCell>
+                    <TableCell className="max-w-[250px] truncate" title={predictedCategory}>
+                      <span className="text-sm text-muted-foreground italic">
+                        {predictedCategory}
                       </span>
-                    ) : (
-                      <span className="text-sm text-red-500">No account</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
+                    </TableCell>
+                    <TableCell className="max-w-[150px] truncate">
+                      {selectedAccount ? (
+                        <span className="text-sm text-muted-foreground" title={selectedAccount.name}>
+                          {selectedAccount.name}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-red-500">No account</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
