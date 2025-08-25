@@ -90,10 +90,14 @@ export const CategoryReviewDialog = ({
 
   // Note: Categories are now created by AI discovery during upload process
 
-  // Helper to get category hierarchy from actual categorized data
-  const getCategoryHierarchy = (transaction: Transaction) => {
+  // Helper to get category hierarchy components from actual categorized data
+  const getCategoryComponents = (transaction: Transaction) => {
     if (!categoryData || !transaction.category_id) {
-      return transaction.category || 'Uncategorized';
+      return {
+        group: 'N/A',
+        bucket: 'N/A', 
+        category: transaction.category || 'Uncategorized'
+      };
     }
     
     // Search through all categories to find the full hierarchy
@@ -102,14 +106,22 @@ export const CategoryReviewDialog = ({
         for (const bucket of group.buckets || []) {
           for (const category of bucket.categories || []) {
             if (category.id === transaction.category_id) {
-              return `${group.name} → ${bucket.name} → ${category.name}`;
+              return {
+                group: group.name,
+                bucket: bucket.name,
+                category: category.name
+              };
             }
           }
         }
       }
     }
     
-    return transaction.category || 'Uncategorized';
+    return {
+      group: 'N/A',
+      bucket: 'N/A',
+      category: transaction.category || 'Uncategorized'
+    };
   };
 
   // Use user's categories if available, include uncategorized
@@ -278,14 +290,47 @@ export const CategoryReviewDialog = ({
                         </TooltipContent>
                       </Tooltip>
                     </TableHead>
-                     <TableHead className="w-80">
+                     <TableHead className="w-32">
                        <Tooltip>
                          <TooltipTrigger className="flex items-center gap-1 cursor-help">
-                           AI Category (Group → Bucket → Category)
+                           AI Group
                            <HelpCircle className="h-3 w-3 text-muted-foreground" />
                          </TooltipTrigger>
                          <TooltipContent>
-                           <p>AI-suggested category hierarchy for this transaction. Shows the full path: Group → Bucket → Category</p>
+                           <p>AI-suggested category group (highest level)</p>
+                         </TooltipContent>
+                       </Tooltip>
+                     </TableHead>
+                     <TableHead className="w-32">
+                       <Tooltip>
+                         <TooltipTrigger className="flex items-center gap-1 cursor-help">
+                           AI Bucket
+                           <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                         </TooltipTrigger>
+                         <TooltipContent>
+                           <p>AI-suggested category bucket (middle level)</p>
+                         </TooltipContent>
+                       </Tooltip>
+                     </TableHead>
+                     <TableHead className="w-40">
+                       <Tooltip>
+                         <TooltipTrigger className="flex items-center gap-1 cursor-help">
+                           AI Category
+                           <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                         </TooltipTrigger>
+                         <TooltipContent>
+                           <p>AI-suggested category (lowest level)</p>
+                         </TooltipContent>
+                       </Tooltip>
+                     </TableHead>
+                     <TableHead className="w-56">
+                       <Tooltip>
+                         <TooltipTrigger className="flex items-center gap-1 cursor-help">
+                           Override Category
+                           <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                         </TooltipTrigger>
+                         <TooltipContent>
+                           <p>Change the category if needed</p>
                          </TooltipContent>
                        </Tooltip>
                      </TableHead>
@@ -303,69 +348,82 @@ export const CategoryReviewDialog = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {reviewedTransactions.map((transaction, index) => {
-                    const isUncategorized = (transaction.userCategory || transaction.category) === 'Uncategorized';
-                    const categoryChanged = transaction.userCategory !== transaction.category;
-                    
-                    return (
-                      <TableRow 
-                        key={index} 
-                        className={isUncategorized ? 'bg-amber-50' : 'bg-green-50'}
-                      >
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="font-medium text-sm">{transaction.description}</div>
-                            {categoryChanged && (
-                              <div className="flex items-center gap-1 text-xs text-blue-600">
-                                <Clock className="h-3 w-3" />
-                                <span>Changed from "{transaction.category}"</span>
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right font-mono">
-                          ${Math.abs(transaction.amount).toFixed(2)}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {new Date(transaction.date).toLocaleDateString()}
-                        </TableCell>
+                   {reviewedTransactions.map((transaction, index) => {
+                     const isUncategorized = (transaction.userCategory || transaction.category) === 'Uncategorized';
+                     const categoryChanged = transaction.userCategory !== transaction.category;
+                     const categoryComponents = getCategoryComponents(transaction);
+                     
+                     return (
+                       <TableRow 
+                         key={index} 
+                         className={isUncategorized ? 'bg-amber-50' : 'bg-green-50'}
+                       >
                          <TableCell>
-                           <div className="space-y-2">
-                             <div className="text-sm">
-                               <div className="flex items-center gap-2">
-                                 <Brain className="h-4 w-4 text-blue-500" />
-                                 <span className="font-medium text-blue-700">
-                                   {getCategoryHierarchy(transaction)}
-                                 </span>
-                                 {transaction.aiConfidence && (
-                                   <Badge 
-                                     variant={transaction.aiConfidence > 0.8 ? "default" : "secondary"}
-                                     className="text-xs"
-                                   >
-                                     {Math.round(transaction.aiConfidence * 100)}%
-                                   </Badge>
-                                 )}
+                           <div className="space-y-1">
+                             <div className="font-medium text-sm">{transaction.description}</div>
+                             {categoryChanged && (
+                               <div className="flex items-center gap-1 text-xs text-blue-600">
+                                 <Clock className="h-3 w-3" />
+                                 <span>Changed from "{transaction.category}"</span>
                                </div>
-                             </div>
-                             <Select
-                               value={validCategories.includes(transaction.userCategory || transaction.category) 
-                                 ? (transaction.userCategory || transaction.category)
-                                 : 'Uncategorized'
-                               }
-                               onValueChange={(value) => handleCategoryChange(index, value)}
-                             >
-                               <SelectTrigger className="w-full h-8 bg-background border border-input">
-                                 <SelectValue placeholder="Override category" />
-                               </SelectTrigger>
-                               <SelectContent className="max-h-48 overflow-y-auto z-[100] bg-background border border-input">
-                                 {validCategories.map((category) => (
-                                   <SelectItem key={category} value={category}>
-                                     {category}
-                                   </SelectItem>
-                                 ))}
-                               </SelectContent>
-                             </Select>
+                             )}
                            </div>
+                         </TableCell>
+                         <TableCell className="text-right font-mono">
+                           ${Math.abs(transaction.amount).toFixed(2)}
+                         </TableCell>
+                         <TableCell className="text-sm">
+                           {new Date(transaction.date).toLocaleDateString()}
+                         </TableCell>
+                         <TableCell>
+                           <div className="flex items-center gap-2">
+                             <Brain className="h-4 w-4 text-blue-500" />
+                             <span className="text-sm font-medium text-blue-700">
+                               {categoryComponents.group}
+                             </span>
+                           </div>
+                         </TableCell>
+                         <TableCell>
+                           <div className="flex items-center gap-2">
+                             <span className="text-sm font-medium text-purple-700">
+                               {categoryComponents.bucket}
+                             </span>
+                           </div>
+                         </TableCell>
+                         <TableCell>
+                           <div className="flex items-center gap-2">
+                             <span className="text-sm font-medium text-green-700">
+                               {categoryComponents.category}
+                             </span>
+                             {transaction.aiConfidence && (
+                               <Badge 
+                                 variant={transaction.aiConfidence > 0.8 ? "default" : "secondary"}
+                                 className="text-xs ml-2"
+                               >
+                                 {Math.round(transaction.aiConfidence * 100)}%
+                               </Badge>
+                             )}
+                           </div>
+                         </TableCell>
+                         <TableCell>
+                           <Select
+                             value={validCategories.includes(transaction.userCategory || transaction.category) 
+                               ? (transaction.userCategory || transaction.category)
+                               : 'Uncategorized'
+                             }
+                             onValueChange={(value) => handleCategoryChange(index, value)}
+                           >
+                             <SelectTrigger className="w-full h-8 bg-background border border-input">
+                               <SelectValue placeholder="Override category" />
+                             </SelectTrigger>
+                             <SelectContent className="max-h-48 overflow-y-auto z-[100] bg-background border border-input">
+                               {validCategories.map((category) => (
+                                 <SelectItem key={category} value={category}>
+                                   {category}
+                                 </SelectItem>
+                               ))}
+                             </SelectContent>
+                           </Select>
                          </TableCell>
                         <TableCell>
                           {(transaction.userCategory || transaction.category) !== 'Uncategorized' && (
