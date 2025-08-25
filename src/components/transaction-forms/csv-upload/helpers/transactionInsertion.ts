@@ -68,18 +68,30 @@ export class TransactionInsertionHelper {
       // If AI discovery succeeded, process the results
       console.log('AI discovery succeeded:', data);
       
-      // For now, return a simplified structure until we fully implement hierarchical categories
-      const results = transactions.map(transaction => {
-        const category = this.getFallbackCategory(transaction.description);
-        return {
-          category,
-          confidence: 0.9,
+      if (data?.success && data?.categorized_transactions) {
+        // Use the actual AI categorization results
+        const results = data.categorized_transactions.map((categorizedTransaction: any, index: number) => ({
+          category: categorizedTransaction.category_name || 'Uncategorized',
+          confidence: categorizedTransaction.confidence || 0.9,
           is_new_category: true
-        };
-      });
+        }));
+        
+        console.log('AI categorization results:', results);
+        return results;
+      } else {
+        // Fall back to rule-based categorization if AI didn't return expected format
+        const results = transactions.map(transaction => {
+          const category = this.getFallbackCategory(transaction.description);
+          return {
+            category,
+            confidence: 0.8,
+            is_new_category: false
+          };
+        });
 
-      console.log('AI categorization results:', results);
-      return results;
+        console.log('Fallback categorization results:', results);
+        return results;
+      }
 
       /* TODO: Re-enable AI discovery once hierarchical system is working
       const { data, error } = await this.supabase.functions.invoke('discover-categories', {

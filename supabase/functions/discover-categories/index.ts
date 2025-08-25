@@ -227,11 +227,15 @@ serve(async (req) => {
     // Store discovered categories in database
     const sessionId = await storeDiscoveredCategories(supabase, user.id, discoveredCategories, transactions.length);
 
+    // Categorize individual transactions using the discovered categories
+    const categorizedTransactions = await categorizeTransactions(transactions, discoveredCategories, user.id);
+
     return new Response(JSON.stringify({
       success: true,
       categories: discoveredCategories,
+      categorized_transactions: categorizedTransactions,
       session_id: sessionId,
-      message: `Discovered ${discoveredCategories.length} category groups with ${discoveredCategories.reduce((sum, g) => sum + g.buckets.length, 0)} buckets`
+      message: `Discovered ${discoveredCategories.length} category groups with ${discoveredCategories.reduce((sum, g) => sum + g.buckets.length, 0)} buckets and categorized ${categorizedTransactions.length} transactions`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
@@ -423,3 +427,74 @@ async function storeDiscoveredCategories(
   return session.id;
 }
 
+// Function to categorize individual transactions using discovered categories
+async function categorizeTransactions(
+  transactions: Transaction[], 
+  discoveredCategories: CategoryGroup[], 
+  userId: string
+): Promise<{ transaction_description: string; category_name: string; confidence: number }[]> {
+  const categorizedTransactions = [];
+  
+  // Build a flat list of all categories from the hierarchical structure
+  const allCategories: { name: string; patterns: string[] }[] = [];
+  
+  for (const group of discoveredCategories) {
+    for (const bucket of group.buckets) {
+      for (const category of bucket.categories) {
+        allCategories.push({
+          name: category.name,
+          patterns: category.merchant_patterns || []
+        });
+      }
+    }
+  }
+  
+  // Categorize each transaction
+  for (const transaction of transactions) {
+    const description = transaction.description.toLowerCase();
+    let bestMatch = 'Uncategorized';
+    let bestConfidence = 0.5;
+    
+    // Try to match against merchant patterns
+    for (const category of allCategories) {
+      for (const pattern of category.patterns) {
+        if (description.includes(pattern.toLowerCase())) {
+          bestMatch = category.name;
+          bestConfidence = 0.9;
+          break;
+        }
+      }
+      if (bestConfidence === 0.9) break;
+    }
+    
+    // If no pattern match, try to match against category names
+    if (bestConfidence < 0.9) {
+      for (const category of allCategories) {
+        const categoryWords = category.name.toLowerCase().split(/[^a-z]+/);
+        const descriptionWords = description.split(/[^a-z]+/);
+        
+        const matchingWords = categoryWords.filter(word => 
+          word.length > 2 && descriptionWords.some(descWord => 
+            descWord.includes(word) || word.includes(descWord)
+          )
+        );
+        
+        if (matchingWords.length > 0) {
+          const confidence = Math.min(0.8, matchingWords.length / categoryWords.length);
+          if (confidence > bestConfidence) {
+            bestMatch = category.name;
+            bestConfidence = confidence;
+          }
+        }
+      }
+    }
+    
+    categorizedTransactions.push({
+      transaction_description: transaction.description,
+      category_name: bestMatch,
+      confidence: bestConfidence
+    });
+  }
+  
+  return categorizedTransactions;
+}
