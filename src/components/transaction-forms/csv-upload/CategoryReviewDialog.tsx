@@ -15,6 +15,8 @@ import { addUserCategoryRule } from "@/utils/transactionCategories";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCategoryHierarchy } from "@/hooks/useCategoryHierarchy";
+import { useCategories } from "@/hooks/useCategories";
 
 interface Transaction {
   description: string;
@@ -22,9 +24,11 @@ interface Transaction {
   date: string;
   currency: string;
   category: string;
+  category_id?: string | null;
   user_id: string;
   asset_account_id?: string | null;
   liability_account_id?: string | null;
+  aiConfidence?: number;
 }
 
 interface TransactionReview extends Transaction {
@@ -49,6 +53,7 @@ export const CategoryReviewDialog = ({
   isApplying = false 
 }: CategoryReviewDialogProps) => {
   const { session } = useAuth();
+  const { categoryData } = useCategories();
   const [reviewedTransactions, setReviewedTransactions] = useState<TransactionReview[]>(() => 
     transactions.map((transaction, index) => ({
       ...transaction,
@@ -84,6 +89,28 @@ export const CategoryReviewDialog = ({
   });
 
   // Note: Categories are now created by AI discovery during upload process
+
+  // Helper to get category hierarchy from actual categorized data
+  const getCategoryHierarchy = (transaction: Transaction) => {
+    if (!categoryData || !transaction.category_id) {
+      return transaction.category || 'Uncategorized';
+    }
+    
+    // Search through all categories to find the full hierarchy
+    for (const groupArray of Object.values(categoryData)) {
+      for (const group of groupArray) {
+        for (const bucket of group.buckets || []) {
+          for (const category of bucket.categories || []) {
+            if (category.id === transaction.category_id) {
+              return `${group.name} → ${bucket.name} → ${category.name}`;
+            }
+          }
+        }
+      }
+    }
+    
+    return transaction.category || 'Uncategorized';
+  };
 
   // Use user's categories if available, include uncategorized
   const validCategories = userCategories.length > 0 
@@ -251,17 +278,17 @@ export const CategoryReviewDialog = ({
                         </TooltipContent>
                       </Tooltip>
                     </TableHead>
-                    <TableHead className="w-56">
-                      <Tooltip>
-                        <TooltipTrigger className="flex items-center gap-1 cursor-help">
-                          Category
-                          <HelpCircle className="h-3 w-3 text-muted-foreground" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>AI-suggested category for this transaction. You can change it here.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TableHead>
+                     <TableHead className="w-80">
+                       <Tooltip>
+                         <TooltipTrigger className="flex items-center gap-1 cursor-help">
+                           AI Category (Group → Bucket → Category)
+                           <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                         </TooltipTrigger>
+                         <TooltipContent>
+                           <p>AI-suggested category hierarchy for this transaction. Shows the full path: Group → Bucket → Category</p>
+                         </TooltipContent>
+                       </Tooltip>
+                     </TableHead>
                     <TableHead className="w-24">
                       <Tooltip>
                         <TooltipTrigger className="flex items-center gap-1 cursor-help">
@@ -302,26 +329,44 @@ export const CategoryReviewDialog = ({
                         <TableCell className="text-sm">
                           {new Date(transaction.date).toLocaleDateString()}
                         </TableCell>
-                        <TableCell>
-                          <Select
-                            value={validCategories.includes(transaction.userCategory || transaction.category) 
-                              ? (transaction.userCategory || transaction.category)
-                              : 'Uncategorized'
-                            }
-                            onValueChange={(value) => handleCategoryChange(index, value)}
-                          >
-                            <SelectTrigger className="w-full h-8 bg-background border border-input">
-                              <SelectValue placeholder="Select category" />
-                            </SelectTrigger>
-                            <SelectContent className="max-h-48 overflow-y-auto z-[100] bg-background border border-input">
-                              {validCategories.map((category) => (
-                                <SelectItem key={category} value={category}>
-                                  {category}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
+                         <TableCell>
+                           <div className="space-y-2">
+                             <div className="text-sm">
+                               <div className="flex items-center gap-2">
+                                 <Brain className="h-4 w-4 text-blue-500" />
+                                 <span className="font-medium text-blue-700">
+                                   {getCategoryHierarchy(transaction)}
+                                 </span>
+                                 {transaction.aiConfidence && (
+                                   <Badge 
+                                     variant={transaction.aiConfidence > 0.8 ? "default" : "secondary"}
+                                     className="text-xs"
+                                   >
+                                     {Math.round(transaction.aiConfidence * 100)}%
+                                   </Badge>
+                                 )}
+                               </div>
+                             </div>
+                             <Select
+                               value={validCategories.includes(transaction.userCategory || transaction.category) 
+                                 ? (transaction.userCategory || transaction.category)
+                                 : 'Uncategorized'
+                               }
+                               onValueChange={(value) => handleCategoryChange(index, value)}
+                             >
+                               <SelectTrigger className="w-full h-8 bg-background border border-input">
+                                 <SelectValue placeholder="Override category" />
+                               </SelectTrigger>
+                               <SelectContent className="max-h-48 overflow-y-auto z-[100] bg-background border border-input">
+                                 {validCategories.map((category) => (
+                                   <SelectItem key={category} value={category}>
+                                     {category}
+                                   </SelectItem>
+                                 ))}
+                               </SelectContent>
+                             </Select>
+                           </div>
+                         </TableCell>
                         <TableCell>
                           {(transaction.userCategory || transaction.category) !== 'Uncategorized' && (
                             <div className="flex items-center justify-center">
