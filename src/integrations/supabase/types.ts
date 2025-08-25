@@ -72,6 +72,7 @@ export type Database = {
           account_number: string | null
           address: string | null
           category: string | null
+          country: string | null
           created_at: string | null
           currency: string | null
           description: string | null
@@ -92,6 +93,7 @@ export type Database = {
           account_number?: string | null
           address?: string | null
           category?: string | null
+          country?: string | null
           created_at?: string | null
           currency?: string | null
           description?: string | null
@@ -112,6 +114,7 @@ export type Database = {
           account_number?: string | null
           address?: string | null
           category?: string | null
+          country?: string | null
           created_at?: string | null
           currency?: string | null
           description?: string | null
@@ -452,6 +455,7 @@ export type Database = {
           account_number: string | null
           amount: number
           category: string | null
+          country: string | null
           created_at: string | null
           credit_limit: number | null
           currency: string | null
@@ -474,6 +478,7 @@ export type Database = {
           account_number?: string | null
           amount: number
           category?: string | null
+          country?: string | null
           created_at?: string | null
           credit_limit?: number | null
           currency?: string | null
@@ -496,6 +501,7 @@ export type Database = {
           account_number?: string | null
           amount?: number
           category?: string | null
+          country?: string | null
           created_at?: string | null
           credit_limit?: number | null
           currency?: string | null
