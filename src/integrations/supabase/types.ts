@@ -1,219 +1,860 @@
-// Simple, maintainable database types
-// Add types incrementally as needed
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
 
-export interface UserProfile {
-  id: string
-  email: string
-  full_name: string | null
-  avatar_url: string | null
-  currency_preference: string | null
-  created_at: string
-}
-
-export interface Transaction {
-  id: string
-  user_id: string
-  description: string
-  amount: number
-  date: string
-  currency: string
-  category_id: string | null
-  category_name: string | null
-  comment: string | null
-  asset_account_id: string | null
-  liability_account_id: string | null
-  created_at: string | null
-  updated_at: string | null
-}
-
-export interface Asset {
-  id: string
-  user_id: string
-  entity_id: string
-  name: string
-  type: string
-  category: string
-  value: number
-  opening_balance: number
-  opening_balance_date: string
-          account_number: string | null
-          address: string | null
-          created_at: string
-  updated_at: string
-}
-
-export interface Liability {
-  id: string
-  user_id: string
-          entity_id: string
-          name: string
-  type: string
-  category: string
-  amount: number
-          opening_balance: number
-          opening_balance_date: string
-  credit_limit: number | null
-  interest_rate: number | null
-  monthly_payment: number | null
-  term_months: number | null
-  account_number: string | null
-  created_at: string
-          updated_at: string
-}
-
-export interface Entity {
-  id: string
-          user_id: string
-  household_id: string | null
-          name: string
-          type: string
-  description: string | null
-  country_of_residence: string
-  relationship: string | null
-  date_of_birth: string | null
-  incorporation_date: string | null
-  tax_identifier: string | null
-  registration_number: string | null
-  date_added: string
-  created_at: string
-  updated_at: string
-}
-
-export interface Household {
-  id: string
-          user_id: string
-  name: string
-  description: string | null
-  primary_contact_id: string | null
-  created_at: string | null
-  updated_at: string | null
-}
-
-export interface Budget {
-  id: string
-  user_id: string
-  entity_id: string | null
-  category: string
-          amount: number
-          period: string
-          start_date: string
-  end_date: string | null
-  is_active: boolean
-  created_at: string
-          updated_at: string
-}
-
-// ===== AI-DRIVEN CATEGORY SYSTEM =====
-
-export interface CategoryGroup {
-  id: string
-          user_id: string
-          name: string
-  category_type: 'income' | 'expense' | 'asset' | 'liability' | 'transfer'
-  description: string | null
-  color: string
-  icon: string
-          sort_order: number
-  is_ai_generated: boolean
-  created_at: string
-          updated_at: string
-}
-
-export interface CategoryBucket {
-  id: string
-          user_id: string
-          group_id: string
-          name: string
-  description: string | null
-  color: string
-  icon: string
-          sort_order: number
-  is_ai_generated: boolean
-  created_at: string
-          updated_at: string
-}
-
-export interface Category {
-  id: string
-          user_id: string
-  bucket_id: string
-          name: string
-  description: string | null
-  merchant_patterns: string[] | null
-  is_transfer: boolean
-          sort_order: number
-  is_ai_generated: boolean
-  created_at: string
-          updated_at: string
-        }
-
-export interface Merchant {
-          id: string
-          user_id: string
-          name: string
-  normalized_name: string | null
-  category_id: string | null
-  mcc: string | null
-  country: string | null
-  patterns: string[] | null
-  confidence_score: number
-          created_at: string
-  updated_at: string
-}
-
-export interface CategoryDiscoverySession {
-          id: string
-          user_id: string
-  session_type: string
-  transactions_processed: number
-  new_categories_created: number
-  categories_grouped: number
-  ai_confidence_score: number
-  metadata: Record<string, any> | null
-          created_at: string
-}
-
-export interface HistoricalValue {
-          id: string
-          user_id: string
-  asset_id: string | null
-  liability_id: string | null
-          date: string
-  value: number
-          created_at: string
-}
-
-// Simple Database type for Supabase client
-export interface Database {
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.3 (519615d)"
+  }
   public: {
     Tables: {
-      user_profiles: { Row: UserProfile; Insert: Partial<UserProfile>; Update: Partial<UserProfile> }
-      transactions: { Row: Transaction; Insert: Partial<Transaction>; Update: Partial<Transaction> }
-      assets: { Row: Asset; Insert: Partial<Asset>; Update: Partial<Asset> }
-      liabilities: { Row: Liability; Insert: Partial<Liability>; Update: Partial<Liability> }
-      entities: { Row: Entity; Insert: Partial<Entity>; Update: Partial<Entity> }
-      households: { Row: Household; Insert: Partial<Household>; Update: Partial<Household> }
-      budgets: { Row: Budget; Insert: Partial<Budget>; Update: Partial<Budget> }
-      category_groups: { Row: CategoryGroup; Insert: Partial<CategoryGroup>; Update: Partial<CategoryGroup> }
-      category_buckets: { Row: CategoryBucket; Insert: Partial<CategoryBucket>; Update: Partial<CategoryBucket> }
-      categories: { Row: Category; Insert: Partial<Category>; Update: Partial<Category> }
-      merchants: { Row: Merchant; Insert: Partial<Merchant>; Update: Partial<Merchant> }
-      category_discovery_sessions: { Row: CategoryDiscoverySession; Insert: Partial<CategoryDiscoverySession>; Update: Partial<CategoryDiscoverySession> }
-      historical_values: { Row: HistoricalValue; Insert: Partial<HistoricalValue>; Update: Partial<HistoricalValue> }
+      assets: {
+        Row: {
+          account_number: string | null
+          address: string | null
+          category: string
+          country: string
+          created_at: string | null
+          currency: string
+          entity_id: string
+          id: string
+          name: string
+          opening_balance: number | null
+          opening_balance_date: string | null
+          type: string
+          updated_at: string | null
+          user_id: string
+          value: number
+        }
+        Insert: {
+          account_number?: string | null
+          address?: string | null
+          category: string
+          country: string
+          created_at?: string | null
+          currency: string
+          entity_id: string
+          id?: string
+          name: string
+          opening_balance?: number | null
+          opening_balance_date?: string | null
+          type: string
+          updated_at?: string | null
+          user_id: string
+          value: number
+        }
+        Update: {
+          account_number?: string | null
+          address?: string | null
+          category?: string
+          country?: string
+          created_at?: string | null
+          currency?: string
+          entity_id?: string
+          id?: string
+          name?: string
+          opening_balance?: number | null
+          opening_balance_date?: string | null
+          type?: string
+          updated_at?: string | null
+          user_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budgets: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string | null
+          end_date: string | null
+          entity_id: string | null
+          id: string
+          is_active: boolean | null
+          period: string | null
+          start_date: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string | null
+          end_date?: string | null
+          entity_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          period?: string | null
+          start_date: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string | null
+          end_date?: string | null
+          entity_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          period?: string | null
+          start_date?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budgets_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      categories: {
+        Row: {
+          bucket_id: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_ai_generated: boolean | null
+          is_transfer: boolean | null
+          merchant_patterns: string[] | null
+          name: string
+          sort_order: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          bucket_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_ai_generated?: boolean | null
+          is_transfer?: boolean | null
+          merchant_patterns?: string[] | null
+          name: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          bucket_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_ai_generated?: boolean | null
+          is_transfer?: boolean | null
+          merchant_patterns?: string[] | null
+          name?: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_bucket_id_fkey"
+            columns: ["bucket_id"]
+            isOneToOne: false
+            referencedRelation: "category_buckets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      category_buckets: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          group_id: string | null
+          icon: string | null
+          id: string
+          is_ai_generated: boolean | null
+          name: string
+          sort_order: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          group_id?: string | null
+          icon?: string | null
+          id?: string
+          is_ai_generated?: boolean | null
+          name: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          group_id?: string | null
+          icon?: string | null
+          id?: string
+          is_ai_generated?: boolean | null
+          name?: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_buckets_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "category_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      category_discovery_sessions: {
+        Row: {
+          ai_confidence_score: number | null
+          categories_grouped: number | null
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          new_categories_created: number | null
+          session_type: string
+          transactions_processed: number | null
+          user_id: string
+        }
+        Insert: {
+          ai_confidence_score?: number | null
+          categories_grouped?: number | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          new_categories_created?: number | null
+          session_type: string
+          transactions_processed?: number | null
+          user_id: string
+        }
+        Update: {
+          ai_confidence_score?: number | null
+          categories_grouped?: number | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          new_categories_created?: number | null
+          session_type?: string
+          transactions_processed?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      category_groups: {
+        Row: {
+          category_type: string
+          color: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_ai_generated: boolean | null
+          name: string
+          sort_order: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category_type: string
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_ai_generated?: boolean | null
+          name: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category_type?: string
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_ai_generated?: boolean | null
+          name?: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      country_rules: {
+        Row: {
+          country_code: string
+          country_name: string
+          created_at: string | null
+          currency_code: string
+          financial_year_start_day: number
+          financial_year_start_month: number
+        }
+        Insert: {
+          country_code: string
+          country_name: string
+          created_at?: string | null
+          currency_code: string
+          financial_year_start_day?: number
+          financial_year_start_month: number
+        }
+        Update: {
+          country_code?: string
+          country_name?: string
+          created_at?: string | null
+          currency_code?: string
+          financial_year_start_day?: number
+          financial_year_start_month?: number
+        }
+        Relationships: []
+      }
+      entities: {
+        Row: {
+          country_of_residence: string
+          created_at: string | null
+          date_added: string | null
+          date_of_birth: string | null
+          description: string | null
+          household_id: string | null
+          id: string
+          incorporation_date: string | null
+          name: string
+          primary_country: string
+          primary_currency: string
+          registration_number: string | null
+          relationship: string | null
+          tax_identifier: string | null
+          type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          country_of_residence: string
+          created_at?: string | null
+          date_added?: string | null
+          date_of_birth?: string | null
+          description?: string | null
+          household_id?: string | null
+          id?: string
+          incorporation_date?: string | null
+          name: string
+          primary_country?: string
+          primary_currency?: string
+          registration_number?: string | null
+          relationship?: string | null
+          tax_identifier?: string | null
+          type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          country_of_residence?: string
+          created_at?: string | null
+          date_added?: string | null
+          date_of_birth?: string | null
+          description?: string | null
+          household_id?: string | null
+          id?: string
+          incorporation_date?: string | null
+          name?: string
+          primary_country?: string
+          primary_currency?: string
+          registration_number?: string | null
+          relationship?: string | null
+          tax_identifier?: string | null
+          type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entities_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      historical_values: {
+        Row: {
+          asset_id: string | null
+          created_at: string | null
+          date: string
+          id: string
+          liability_id: string | null
+          user_id: string
+          value: number
+        }
+        Insert: {
+          asset_id?: string | null
+          created_at?: string | null
+          date: string
+          id?: string
+          liability_id?: string | null
+          user_id: string
+          value: number
+        }
+        Update: {
+          asset_id?: string | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          liability_id?: string | null
+          user_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historical_values_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historical_values_liability_id_fkey"
+            columns: ["liability_id"]
+            isOneToOne: false
+            referencedRelation: "liabilities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      households: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          primary_contact_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          primary_contact_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          primary_contact_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "households_primary_contact_id_fkey"
+            columns: ["primary_contact_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      liabilities: {
+        Row: {
+          account_number: string | null
+          amount: number
+          category: string
+          country: string
+          created_at: string | null
+          credit_limit: number | null
+          currency: string
+          entity_id: string
+          id: string
+          interest_rate: number | null
+          monthly_payment: number | null
+          name: string
+          opening_balance: number | null
+          opening_balance_date: string | null
+          term_months: number | null
+          type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          account_number?: string | null
+          amount: number
+          category: string
+          country: string
+          created_at?: string | null
+          credit_limit?: number | null
+          currency: string
+          entity_id: string
+          id?: string
+          interest_rate?: number | null
+          monthly_payment?: number | null
+          name: string
+          opening_balance?: number | null
+          opening_balance_date?: string | null
+          term_months?: number | null
+          type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          account_number?: string | null
+          amount?: number
+          category?: string
+          country?: string
+          created_at?: string | null
+          credit_limit?: number | null
+          currency?: string
+          entity_id?: string
+          id?: string
+          interest_rate?: number | null
+          monthly_payment?: number | null
+          name?: string
+          opening_balance?: number | null
+          opening_balance_date?: string | null
+          term_months?: number | null
+          type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "liabilities_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      merchants: {
+        Row: {
+          category_id: string | null
+          confidence_score: number | null
+          country: string | null
+          created_at: string | null
+          id: string
+          mcc: string | null
+          name: string
+          normalized_name: string | null
+          patterns: string[] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category_id?: string | null
+          confidence_score?: number | null
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          mcc?: string | null
+          name: string
+          normalized_name?: string | null
+          patterns?: string[] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category_id?: string | null
+          confidence_score?: number | null
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          mcc?: string | null
+          name?: string
+          normalized_name?: string | null
+          patterns?: string[] | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchants_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transactions: {
+        Row: {
+          amount: number
+          asset_account_id: string | null
+          category_id: string | null
+          category_name: string | null
+          comment: string | null
+          created_at: string | null
+          currency: string
+          date: string
+          description: string
+          id: string
+          liability_account_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          asset_account_id?: string | null
+          category_id?: string | null
+          category_name?: string | null
+          comment?: string | null
+          created_at?: string | null
+          currency: string
+          date: string
+          description: string
+          id?: string
+          liability_account_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          asset_account_id?: string | null
+          category_id?: string | null
+          category_name?: string | null
+          comment?: string | null
+          created_at?: string | null
+          currency?: string
+          date?: string
+          description?: string
+          id?: string
+          liability_account_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_transactions_category_id"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_asset_account_id_fkey"
+            columns: ["asset_account_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_liability_account_id_fkey"
+            columns: ["liability_account_id"]
+            isOneToOne: false
+            referencedRelation: "liabilities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          currency_preference: string | null
+          email: string
+          full_name: string | null
+          id: string
+          notification_settings: Json | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          currency_preference?: string | null
+          email: string
+          full_name?: string | null
+          id: string
+          notification_settings?: Json | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          currency_preference?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          notification_settings?: Json | null
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      get_current_financial_year: {
+        Args: { country_code: string }
+        Returns: {
+          end_date: string
+          name: string
+          start_date: string
+          tax_year: number
+        }[]
+      }
+      get_financial_year_for_date: {
+        Args: { country_code: string; target_date: string }
+        Returns: {
+          end_date: string
+          name: string
+          start_date: string
+          tax_year: number
+        }[]
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
     }
   }
 }
 
-// Extended types with nested relationships for UI components
-export interface CategoryGroupWithRelations extends CategoryGroup {
-  buckets?: CategoryBucketWithRelations[]
-}
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-export interface CategoryBucketWithRelations extends CategoryBucket {
-  categories?: Category[]
-}
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
-// Utility types
-export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row']
-export type TablesInsert<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Insert']
-export type TablesUpdate<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Update']
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const
