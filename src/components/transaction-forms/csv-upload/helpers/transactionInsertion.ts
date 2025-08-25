@@ -426,6 +426,44 @@ export class TransactionInsertionHelper {
     const lowerDesc = description.toLowerCase();
     
     // Use the same comprehensive rules as the existing system
+    // Transfers
+    if (lowerDesc.includes('transfer to') || lowerDesc.includes('transfer from') || 
+        lowerDesc.includes('payid') || lowerDesc.includes('bpay') || 
+        lowerDesc.includes('commbank app') || lowerDesc.includes('bank transfer')) {
+      return 'Transfers';
+    }
+    
+    // Government and tax payments
+    if (lowerDesc.includes('revenue') || lowerDesc.includes('tax') || lowerDesc.includes('ato') ||
+        lowerDesc.includes('council') || lowerDesc.includes('govt') || lowerDesc.includes('government')) {
+      return 'Government & Tax';
+    }
+    
+    // Toll roads
+    if (lowerDesc.includes('linkt') || lowerDesc.includes('toll') || lowerDesc.includes('etag') ||
+        lowerDesc.includes('e-tag') || lowerDesc.includes('motorway')) {
+      return 'Toll Roads';
+    }
+    
+    // Health and insurance
+    if (lowerDesc.includes('cbhs') || lowerDesc.includes('medicare') || lowerDesc.includes('health fund') ||
+        lowerDesc.includes('insurance') || lowerDesc.includes('medical') || lowerDesc.includes('dental')) {
+      return 'Health Insurance';
+    }
+    
+    // Telecommunications  
+    if (lowerDesc.includes('telstra') || lowerDesc.includes('optus') || lowerDesc.includes('vodafone') ||
+        lowerDesc.includes('mobile') || lowerDesc.includes('internet') || lowerDesc.includes('phone')) {
+      return 'Telecommunications';
+    }
+    
+    // Salary and income
+    if (lowerDesc.includes('salary') || lowerDesc.includes('wage') || lowerDesc.includes('income') ||
+        lowerDesc.includes('direct credit') || lowerDesc.includes('payroll') ||
+        (lowerDesc.includes('novel aquatech') || lowerDesc.includes('aquatech'))) {
+      return 'Salary';
+    }
+    
     // Supermarkets and groceries
     if (lowerDesc.includes('woolworths') || lowerDesc.includes('coles') || lowerDesc.includes('iga') || 
         lowerDesc.includes('supermarket') || lowerDesc.includes('groceries') || lowerDesc.includes('grocery') ||
@@ -448,12 +486,6 @@ export class TransactionInsertionHelper {
     // Streaming and entertainment
     if (lowerDesc.includes('netflix') || lowerDesc.includes('spotify') || lowerDesc.includes('streaming')) {
       return 'Streaming Services';
-    }
-    
-    // Income and salary
-    if (lowerDesc.includes('salary') || lowerDesc.includes('wage') || lowerDesc.includes('income') ||
-        lowerDesc.includes('deposit') && !lowerDesc.includes('withdrawal')) {
-      return 'Salary';
     }
     
     // Electronics

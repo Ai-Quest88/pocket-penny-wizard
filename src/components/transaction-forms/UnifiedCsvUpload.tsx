@@ -229,7 +229,7 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
         amount: transaction.amount,
         date: transaction.date,
         currency: transaction.currency,
-        category: transaction.userCategory || transaction.category,
+        category_name: transaction.userCategory || transaction.category,
         asset_account_id: transaction.asset_account_id,
         liability_account_id: transaction.liability_account_id,
         comment: transaction.comment || null,
