@@ -449,44 +449,121 @@ async function categorizeTransactions(
     }
   }
   
+  // Enhanced fallback categorization rules
+  const categorizeFallback = (description: string): string => {
+    const lowerDesc = description.toLowerCase();
+    
+    // Transfers
+    if (lowerDesc.includes('transfer to') || lowerDesc.includes('transfer from') || 
+        lowerDesc.includes('payid') || lowerDesc.includes('bpay') || 
+        lowerDesc.includes('commbank app') || lowerDesc.includes('bank transfer')) {
+      return 'Transfers';
+    }
+    
+    // Government and tax payments
+    if (lowerDesc.includes('revenue') || lowerDesc.includes('tax') || lowerDesc.includes('ato') ||
+        lowerDesc.includes('council') || lowerDesc.includes('govt') || lowerDesc.includes('government')) {
+      return 'Government & Tax';
+    }
+    
+    // Toll roads
+    if (lowerDesc.includes('linkt') || lowerDesc.includes('toll') || lowerDesc.includes('etag') ||
+        lowerDesc.includes('e-tag') || lowerDesc.includes('motorway')) {
+      return 'Toll Roads';
+    }
+    
+    // Health and insurance
+    if (lowerDesc.includes('cbhs') || lowerDesc.includes('medicare') || lowerDesc.includes('health fund') ||
+        lowerDesc.includes('insurance') || lowerDesc.includes('medical') || lowerDesc.includes('dental')) {
+      return 'Health Insurance';
+    }
+    
+    // Salary and income
+    if (lowerDesc.includes('salary') || lowerDesc.includes('wage') || lowerDesc.includes('income') ||
+        lowerDesc.includes('direct credit') || lowerDesc.includes('payroll') ||
+        (lowerDesc.includes('novel aquatech') || lowerDesc.includes('aquatech'))) {
+      return 'Salary';
+    }
+    
+    // Supermarkets and groceries - ENHANCED
+    if (lowerDesc.includes('woolworths') || lowerDesc.includes('coles') || lowerDesc.includes('iga') || 
+        lowerDesc.includes('supermarket') || lowerDesc.includes('groceries') || lowerDesc.includes('grocery') ||
+        lowerDesc.includes('grocery store') || lowerDesc === 'grocery store') {
+      return 'Groceries';
+    }
+    
+    // Fuel and transport - ENHANCED
+    if (lowerDesc.includes('petrol') || lowerDesc.includes('fuel') || lowerDesc.includes('bp') || 
+        lowerDesc.includes('shell') || lowerDesc.includes('ampol') || lowerDesc.includes('caltex') ||
+        lowerDesc.includes('gas station') || lowerDesc === 'gas station' || lowerDesc.includes('gas')) {
+      return 'Fuel';
+    }
+    
+    // Coffee and cafes
+    if (lowerDesc.includes('starbucks') || lowerDesc.includes('coffee') || lowerDesc.includes('cafe')) {
+      return 'Coffee Shops';
+    }
+    
+    // Return null if no match (so we can try AI categories first)
+    return null;
+  };
+  
   // Categorize each transaction
   for (const transaction of transactions) {
     const description = transaction.description.toLowerCase();
-    let bestMatch = 'Uncategorized';
+    let bestMatch = null;
     let bestConfidence = 0.5;
     
-    // Try to match against merchant patterns
-    for (const category of allCategories) {
-      for (const pattern of category.patterns) {
-        if (description.includes(pattern.toLowerCase())) {
-          bestMatch = category.name;
-          bestConfidence = 0.9;
-          break;
-        }
-      }
-      if (bestConfidence === 0.9) break;
-    }
-    
-    // If no pattern match, try to match against category names
-    if (bestConfidence < 0.9) {
+    // First, try rule-based categorization
+    const fallbackCategory = categorizeFallback(transaction.description);
+    if (fallbackCategory) {
+      bestMatch = fallbackCategory;
+      bestConfidence = 0.95;
+    } else {
+      // Try to match against AI-discovered merchant patterns
       for (const category of allCategories) {
-        const categoryWords = category.name.toLowerCase().split(/[^a-z]+/);
-        const descriptionWords = description.split(/[^a-z]+/);
-        
-        const matchingWords = categoryWords.filter(word => 
-          word.length > 2 && descriptionWords.some(descWord => 
-            descWord.includes(word) || word.includes(descWord)
-          )
-        );
-        
-        if (matchingWords.length > 0) {
-          const confidence = Math.min(0.8, matchingWords.length / categoryWords.length);
-          if (confidence > bestConfidence) {
+        for (const pattern of category.patterns) {
+          if (description.includes(pattern.toLowerCase())) {
             bestMatch = category.name;
-            bestConfidence = confidence;
+            bestConfidence = 0.9;
+            break;
+          }
+        }
+        if (bestConfidence === 0.9) break;
+      }
+      
+      // If no pattern match, try to match against AI category names with better logic
+      if (bestConfidence < 0.9) {
+        for (const category of allCategories) {
+          const categoryName = category.name.toLowerCase();
+          
+          // Direct exact match
+          if (description.includes(categoryName)) {
+            bestMatch = category.name;
+            bestConfidence = 0.85;
+            break;
+          }
+          
+          // Semantic matching for common variations
+          if (categoryName.includes('supermarket') && description.includes('grocery')) {
+            bestMatch = category.name;
+            bestConfidence = 0.8;
+            break;
+          }
+          
+          if (categoryName.includes('fuel') && description.includes('gas')) {
+            bestMatch = category.name;
+            bestConfidence = 0.8;
+            break;
           }
         }
       }
+    }
+    
+    // If still no match, use a more intelligent default
+    if (!bestMatch) {
+      bestMatch = 'Other Expenses';
+      bestConfidence = 0.3;
     }
     
     categorizedTransactions.push({
