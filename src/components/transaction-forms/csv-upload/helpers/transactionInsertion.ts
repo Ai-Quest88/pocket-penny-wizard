@@ -416,13 +416,15 @@ export class TransactionInsertionHelper {
     // Use the same comprehensive rules as the existing system
     // Supermarkets and groceries
     if (lowerDesc.includes('woolworths') || lowerDesc.includes('coles') || lowerDesc.includes('iga') || 
-        lowerDesc.includes('supermarket') || lowerDesc.includes('groceries') || lowerDesc.includes('grocery')) {
+        lowerDesc.includes('supermarket') || lowerDesc.includes('groceries') || lowerDesc.includes('grocery') ||
+        lowerDesc.includes('grocery store')) {
       return 'Groceries';
     }
     
     // Fuel and transport
     if (lowerDesc.includes('petrol') || lowerDesc.includes('fuel') || lowerDesc.includes('bp') || 
-        lowerDesc.includes('shell') || lowerDesc.includes('ampol') || lowerDesc.includes('caltex')) {
+        lowerDesc.includes('shell') || lowerDesc.includes('ampol') || lowerDesc.includes('caltex') ||
+        lowerDesc.includes('gas station') || lowerDesc.includes('gas')) {
       return 'Fuel';
     }
     
