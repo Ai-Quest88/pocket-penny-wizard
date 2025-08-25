@@ -14,57 +14,104 @@ export type Database = {
   }
   public: {
     Tables: {
-      assets: {
+      accounts: {
         Row: {
           account_number: string | null
-          address: string | null
-          category: string
-          country: string
+          balance: number | null
           created_at: string | null
-          currency: string
+          currency: string | null
           entity_id: string
           id: string
+          institution: string | null
+          is_active: boolean | null
           name: string
-          opening_balance: number | null
-          opening_balance_date: string | null
           type: string
           updated_at: string | null
           user_id: string
-          value: number
         }
         Insert: {
           account_number?: string | null
-          address?: string | null
-          category: string
-          country: string
+          balance?: number | null
           created_at?: string | null
-          currency: string
+          currency?: string | null
           entity_id: string
           id?: string
+          institution?: string | null
+          is_active?: boolean | null
           name: string
-          opening_balance?: number | null
-          opening_balance_date?: string | null
           type: string
           updated_at?: string | null
           user_id: string
-          value: number
         }
         Update: {
           account_number?: string | null
-          address?: string | null
-          category?: string
-          country?: string
+          balance?: number | null
           created_at?: string | null
-          currency?: string
+          currency?: string | null
           entity_id?: string
           id?: string
+          institution?: string | null
+          is_active?: boolean | null
           name?: string
-          opening_balance?: number | null
-          opening_balance_date?: string | null
           type?: string
           updated_at?: string | null
           user_id?: string
-          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounts_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assets: {
+        Row: {
+          created_at: string | null
+          currency: string | null
+          current_value: number
+          description: string | null
+          entity_id: string
+          id: string
+          location: string | null
+          name: string
+          purchase_date: string | null
+          purchase_price: number | null
+          type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          currency?: string | null
+          current_value: number
+          description?: string | null
+          entity_id: string
+          id?: string
+          location?: string | null
+          name: string
+          purchase_date?: string | null
+          purchase_price?: number | null
+          type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          currency?: string | null
+          current_value?: number
+          description?: string | null
+          entity_id?: string
+          id?: string
+          location?: string | null
+          name?: string
+          purchase_date?: string | null
+          purchase_price?: number | null
+          type?: string
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: [
           {
@@ -79,104 +126,60 @@ export type Database = {
       budgets: {
         Row: {
           amount: number
-          category: string
+          category_id: string | null
           created_at: string | null
+          currency: string | null
+          description: string | null
           end_date: string | null
-          entity_id: string | null
           id: string
           is_active: boolean | null
-          period: string | null
+          name: string
+          period: string
           start_date: string
           updated_at: string | null
           user_id: string
         }
         Insert: {
           amount: number
-          category: string
+          category_id?: string | null
           created_at?: string | null
+          currency?: string | null
+          description?: string | null
           end_date?: string | null
-          entity_id?: string | null
           id?: string
           is_active?: boolean | null
-          period?: string | null
+          name: string
+          period: string
           start_date: string
           updated_at?: string | null
           user_id: string
         }
         Update: {
           amount?: number
-          category?: string
+          category_id?: string | null
           created_at?: string | null
+          currency?: string | null
+          description?: string | null
           end_date?: string | null
-          entity_id?: string | null
           id?: string
           is_active?: boolean | null
-          period?: string | null
+          name?: string
+          period?: string
           start_date?: string
           updated_at?: string | null
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "budgets_entity_id_fkey"
-            columns: ["entity_id"]
+            foreignKeyName: "budgets_category_id_fkey"
+            columns: ["category_id"]
             isOneToOne: false
-            referencedRelation: "entities"
+            referencedRelation: "categories"
             referencedColumns: ["id"]
           },
         ]
       }
       categories: {
-        Row: {
-          bucket_id: string | null
-          created_at: string | null
-          description: string | null
-          id: string
-          is_ai_generated: boolean | null
-          is_transfer: boolean | null
-          merchant_patterns: string[] | null
-          name: string
-          sort_order: number | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          bucket_id?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          is_ai_generated?: boolean | null
-          is_transfer?: boolean | null
-          merchant_patterns?: string[] | null
-          name: string
-          sort_order?: number | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          bucket_id?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          is_ai_generated?: boolean | null
-          is_transfer?: boolean | null
-          merchant_patterns?: string[] | null
-          name?: string
-          sort_order?: number | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "categories_bucket_id_fkey"
-            columns: ["bucket_id"]
-            isOneToOne: false
-            referencedRelation: "category_buckets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      category_buckets: {
         Row: {
           color: string | null
           created_at: string | null
@@ -184,9 +187,10 @@ export type Database = {
           group_id: string | null
           icon: string | null
           id: string
-          is_ai_generated: boolean | null
+          is_system: boolean | null
           name: string
-          sort_order: number | null
+          parent_id: string | null
+          type: string
           updated_at: string | null
           user_id: string
         }
@@ -197,9 +201,10 @@ export type Database = {
           group_id?: string | null
           icon?: string | null
           id?: string
-          is_ai_generated?: boolean | null
+          is_system?: boolean | null
           name: string
-          sort_order?: number | null
+          parent_id?: string | null
+          type: string
           updated_at?: string | null
           user_id: string
         }
@@ -210,180 +215,142 @@ export type Database = {
           group_id?: string | null
           icon?: string | null
           id?: string
-          is_ai_generated?: boolean | null
+          is_system?: boolean | null
           name?: string
-          sort_order?: number | null
+          parent_id?: string | null
+          type?: string
           updated_at?: string | null
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "category_buckets_group_id_fkey"
+            foreignKeyName: "categories_group_id_fkey"
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "category_groups"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
         ]
       }
-      category_discovery_sessions: {
+      category_buckets: {
         Row: {
-          ai_confidence_score: number | null
-          categories_grouped: number | null
+          category_id: string
           created_at: string | null
           id: string
-          metadata: Json | null
-          new_categories_created: number | null
-          session_type: string
-          transactions_processed: number | null
+          keywords: string[] | null
+          name: string
+          rules: Json | null
+          updated_at: string | null
           user_id: string
         }
         Insert: {
-          ai_confidence_score?: number | null
-          categories_grouped?: number | null
+          category_id: string
           created_at?: string | null
           id?: string
-          metadata?: Json | null
-          new_categories_created?: number | null
-          session_type: string
-          transactions_processed?: number | null
+          keywords?: string[] | null
+          name: string
+          rules?: Json | null
+          updated_at?: string | null
           user_id: string
         }
         Update: {
-          ai_confidence_score?: number | null
-          categories_grouped?: number | null
+          category_id?: string
           created_at?: string | null
           id?: string
-          metadata?: Json | null
-          new_categories_created?: number | null
-          session_type?: string
-          transactions_processed?: number | null
+          keywords?: string[] | null
+          name?: string
+          rules?: Json | null
+          updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "category_buckets_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       category_groups: {
         Row: {
-          category_type: string
           color: string | null
           created_at: string | null
           description: string | null
           icon: string | null
           id: string
-          is_ai_generated: boolean | null
           name: string
-          sort_order: number | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
-          category_type: string
           color?: string | null
           created_at?: string | null
           description?: string | null
           icon?: string | null
           id?: string
-          is_ai_generated?: boolean | null
           name: string
-          sort_order?: number | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
-          category_type?: string
           color?: string | null
           created_at?: string | null
           description?: string | null
           icon?: string | null
           id?: string
-          is_ai_generated?: boolean | null
           name?: string
-          sort_order?: number | null
           updated_at?: string | null
           user_id?: string
         }
         Relationships: []
       }
-      country_rules: {
-        Row: {
-          country_code: string
-          country_name: string
-          created_at: string | null
-          currency_code: string
-          financial_year_start_day: number
-          financial_year_start_month: number
-        }
-        Insert: {
-          country_code: string
-          country_name: string
-          created_at?: string | null
-          currency_code: string
-          financial_year_start_day?: number
-          financial_year_start_month: number
-        }
-        Update: {
-          country_code?: string
-          country_name?: string
-          created_at?: string | null
-          currency_code?: string
-          financial_year_start_day?: number
-          financial_year_start_month?: number
-        }
-        Relationships: []
-      }
       entities: {
         Row: {
-          country_of_residence: string
+          address: string | null
           created_at: string | null
-          date_added: string | null
-          date_of_birth: string | null
-          description: string | null
+          email: string | null
           household_id: string | null
           id: string
-          incorporation_date: string | null
           name: string
-          primary_country: string
-          primary_currency: string
+          phone: string | null
           registration_number: string | null
-          relationship: string | null
           tax_identifier: string | null
           type: string
           updated_at: string | null
           user_id: string
         }
         Insert: {
-          country_of_residence: string
+          address?: string | null
           created_at?: string | null
-          date_added?: string | null
-          date_of_birth?: string | null
-          description?: string | null
+          email?: string | null
           household_id?: string | null
           id?: string
-          incorporation_date?: string | null
           name: string
-          primary_country?: string
-          primary_currency?: string
+          phone?: string | null
           registration_number?: string | null
-          relationship?: string | null
           tax_identifier?: string | null
           type: string
           updated_at?: string | null
           user_id: string
         }
         Update: {
-          country_of_residence?: string
+          address?: string | null
           created_at?: string | null
-          date_added?: string | null
-          date_of_birth?: string | null
-          description?: string | null
+          email?: string | null
           household_id?: string | null
           id?: string
-          incorporation_date?: string | null
           name?: string
-          primary_country?: string
-          primary_currency?: string
+          phone?: string | null
           registration_number?: string | null
-          relationship?: string | null
           tax_identifier?: string | null
           type?: string
           updated_at?: string | null
@@ -399,145 +366,77 @@ export type Database = {
           },
         ]
       }
-      historical_values: {
-        Row: {
-          asset_id: string | null
-          created_at: string | null
-          date: string
-          id: string
-          liability_id: string | null
-          user_id: string
-          value: number
-        }
-        Insert: {
-          asset_id?: string | null
-          created_at?: string | null
-          date: string
-          id?: string
-          liability_id?: string | null
-          user_id: string
-          value: number
-        }
-        Update: {
-          asset_id?: string | null
-          created_at?: string | null
-          date?: string
-          id?: string
-          liability_id?: string | null
-          user_id?: string
-          value?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "historical_values_asset_id_fkey"
-            columns: ["asset_id"]
-            isOneToOne: false
-            referencedRelation: "assets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "historical_values_liability_id_fkey"
-            columns: ["liability_id"]
-            isOneToOne: false
-            referencedRelation: "liabilities"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       households: {
         Row: {
           created_at: string | null
           description: string | null
           id: string
           name: string
-          primary_contact_id: string | null
+          owner_id: string
           updated_at: string | null
-          user_id: string
         }
         Insert: {
           created_at?: string | null
           description?: string | null
           id?: string
           name: string
-          primary_contact_id?: string | null
+          owner_id: string
           updated_at?: string | null
-          user_id: string
         }
         Update: {
           created_at?: string | null
           description?: string | null
           id?: string
           name?: string
-          primary_contact_id?: string | null
+          owner_id?: string
           updated_at?: string | null
-          user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "households_primary_contact_id_fkey"
-            columns: ["primary_contact_id"]
-            isOneToOne: false
-            referencedRelation: "entities"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       liabilities: {
         Row: {
-          account_number: string | null
-          amount: number
-          category: string
-          country: string
           created_at: string | null
-          credit_limit: number | null
-          currency: string
+          currency: string | null
+          current_balance: number
+          description: string | null
           entity_id: string
           id: string
           interest_rate: number | null
-          monthly_payment: number | null
           name: string
-          opening_balance: number | null
-          opening_balance_date: string | null
+          original_amount: number | null
+          start_date: string | null
           term_months: number | null
           type: string
           updated_at: string | null
           user_id: string
         }
         Insert: {
-          account_number?: string | null
-          amount: number
-          category: string
-          country: string
           created_at?: string | null
-          credit_limit?: number | null
-          currency: string
+          currency?: string | null
+          current_balance: number
+          description?: string | null
           entity_id: string
           id?: string
           interest_rate?: number | null
-          monthly_payment?: number | null
           name: string
-          opening_balance?: number | null
-          opening_balance_date?: string | null
+          original_amount?: number | null
+          start_date?: string | null
           term_months?: number | null
           type: string
           updated_at?: string | null
           user_id: string
         }
         Update: {
-          account_number?: string | null
-          amount?: number
-          category?: string
-          country?: string
           created_at?: string | null
-          credit_limit?: number | null
-          currency?: string
+          currency?: string | null
+          current_balance?: number
+          description?: string | null
           entity_id?: string
           id?: string
           interest_rate?: number | null
-          monthly_payment?: number | null
           name?: string
-          opening_balance?: number | null
-          opening_balance_date?: string | null
+          original_amount?: number | null
+          start_date?: string | null
           term_months?: number | null
           type?: string
           updated_at?: string | null
@@ -553,122 +452,101 @@ export type Database = {
           },
         ]
       }
-      merchants: {
+      notifications: {
         Row: {
-          category_id: string | null
-          confidence_score: number | null
-          country: string | null
           created_at: string | null
+          data: Json | null
           id: string
-          mcc: string | null
-          name: string
-          normalized_name: string | null
-          patterns: string[] | null
-          updated_at: string | null
+          is_read: boolean | null
+          message: string
+          title: string
+          type: string
           user_id: string
         }
         Insert: {
-          category_id?: string | null
-          confidence_score?: number | null
-          country?: string | null
           created_at?: string | null
+          data?: Json | null
           id?: string
-          mcc?: string | null
-          name: string
-          normalized_name?: string | null
-          patterns?: string[] | null
-          updated_at?: string | null
+          is_read?: boolean | null
+          message: string
+          title: string
+          type: string
           user_id: string
         }
         Update: {
-          category_id?: string | null
-          confidence_score?: number | null
-          country?: string | null
           created_at?: string | null
+          data?: Json | null
           id?: string
-          mcc?: string | null
-          name?: string
-          normalized_name?: string | null
-          patterns?: string[] | null
-          updated_at?: string | null
+          is_read?: boolean | null
+          message?: string
+          title?: string
+          type?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "merchants_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       transactions: {
         Row: {
+          account_id: string
           amount: number
-          asset_account_id: string | null
           category_id: string | null
-          category_name: string | null
-          comment: string | null
           created_at: string | null
-          currency: string
+          currency: string | null
           date: string
-          description: string
+          description: string | null
           id: string
-          liability_account_id: string | null
+          is_reconciled: boolean | null
+          notes: string | null
+          reference: string | null
+          type: string
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          account_id: string
           amount: number
-          asset_account_id?: string | null
           category_id?: string | null
-          category_name?: string | null
-          comment?: string | null
           created_at?: string | null
-          currency: string
+          currency?: string | null
           date: string
-          description: string
+          description?: string | null
           id?: string
-          liability_account_id?: string | null
+          is_reconciled?: boolean | null
+          notes?: string | null
+          reference?: string | null
+          type: string
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          account_id?: string
           amount?: number
-          asset_account_id?: string | null
           category_id?: string | null
-          category_name?: string | null
-          comment?: string | null
           created_at?: string | null
-          currency?: string
+          currency?: string | null
           date?: string
-          description?: string
+          description?: string | null
           id?: string
-          liability_account_id?: string | null
+          is_reconciled?: boolean | null
+          notes?: string | null
+          reference?: string | null
+          type?: string
           updated_at?: string | null
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "fk_transactions_category_id"
+            foreignKeyName: "transactions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_category_id_fkey"
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "transactions_asset_account_id_fkey"
-            columns: ["asset_account_id"]
-            isOneToOne: false
-            referencedRelation: "assets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "transactions_liability_account_id_fkey"
-            columns: ["liability_account_id"]
-            isOneToOne: false
-            referencedRelation: "liabilities"
             referencedColumns: ["id"]
           },
         ]
@@ -677,29 +555,26 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string | null
-          currency_preference: string | null
-          email: string
-          full_name: string | null
+          display_name: string | null
           id: string
-          notification_settings: Json | null
+          updated_at: string | null
+          user_id: string
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string | null
-          currency_preference?: string | null
-          email: string
-          full_name?: string | null
-          id: string
-          notification_settings?: Json | null
+          display_name?: string | null
+          id?: string
+          updated_at?: string | null
+          user_id: string
         }
         Update: {
           avatar_url?: string | null
           created_at?: string | null
-          currency_preference?: string | null
-          email?: string
-          full_name?: string | null
+          display_name?: string | null
           id?: string
-          notification_settings?: Json | null
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -708,24 +583,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_current_financial_year: {
-        Args: { country_code: string }
-        Returns: {
-          end_date: string
-          name: string
-          start_date: string
-          tax_year: number
-        }[]
-      }
-      get_financial_year_for_date: {
-        Args: { country_code: string; target_date: string }
-        Returns: {
-          end_date: string
-          name: string
-          start_date: string
-          tax_year: number
-        }[]
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
