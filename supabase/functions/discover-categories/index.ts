@@ -449,118 +449,92 @@ async function categorizeTransactions(
     }
   }
   
-  // Enhanced fallback categorization rules
-  const categorizeFallback = (description: string): string => {
-    const lowerDesc = description.toLowerCase();
-    
-    // Transfers
-    if (lowerDesc.includes('transfer to') || lowerDesc.includes('transfer from') || 
-        lowerDesc.includes('payid') || lowerDesc.includes('bpay') || 
-        lowerDesc.includes('commbank app') || lowerDesc.includes('bank transfer')) {
-      return 'Transfers';
-    }
-    
-    // Government and tax payments
-    if (lowerDesc.includes('revenue') || lowerDesc.includes('tax') || lowerDesc.includes('ato') ||
-        lowerDesc.includes('council') || lowerDesc.includes('govt') || lowerDesc.includes('government')) {
-      return 'Government & Tax';
-    }
-    
-    // Toll roads
-    if (lowerDesc.includes('linkt') || lowerDesc.includes('toll') || lowerDesc.includes('etag') ||
-        lowerDesc.includes('e-tag') || lowerDesc.includes('motorway')) {
-      return 'Toll Roads';
-    }
-    
-    // Health and insurance
-    if (lowerDesc.includes('cbhs') || lowerDesc.includes('medicare') || lowerDesc.includes('health fund') ||
-        lowerDesc.includes('insurance') || lowerDesc.includes('medical') || lowerDesc.includes('dental')) {
-      return 'Health Insurance';
-    }
-    
-    // Salary and income
-    if (lowerDesc.includes('salary') || lowerDesc.includes('wage') || lowerDesc.includes('income') ||
-        lowerDesc.includes('direct credit') || lowerDesc.includes('payroll') ||
-        (lowerDesc.includes('novel aquatech') || lowerDesc.includes('aquatech'))) {
-      return 'Salary';
-    }
-    
-    // Supermarkets and groceries - ENHANCED
-    if (lowerDesc.includes('woolworths') || lowerDesc.includes('coles') || lowerDesc.includes('iga') || 
-        lowerDesc.includes('supermarket') || lowerDesc.includes('groceries') || lowerDesc.includes('grocery') ||
-        lowerDesc.includes('grocery store') || lowerDesc === 'grocery store') {
-      return 'Groceries';
-    }
-    
-    // Fuel and transport - ENHANCED
-    if (lowerDesc.includes('petrol') || lowerDesc.includes('fuel') || lowerDesc.includes('bp') || 
-        lowerDesc.includes('shell') || lowerDesc.includes('ampol') || lowerDesc.includes('caltex') ||
-        lowerDesc.includes('gas station') || lowerDesc === 'gas station' || lowerDesc.includes('gas')) {
-      return 'Fuel';
-    }
-    
-    // Coffee and cafes
-    if (lowerDesc.includes('starbucks') || lowerDesc.includes('coffee') || lowerDesc.includes('cafe')) {
-      return 'Coffee Shops';
-    }
-    
-    // Return null if no match (so we can try AI categories first)
-    return null;
-  };
-  
   // Categorize each transaction
   for (const transaction of transactions) {
     const description = transaction.description.toLowerCase();
     let bestMatch = null;
     let bestConfidence = 0.5;
     
-    // First, try rule-based categorization
-    const fallbackCategory = categorizeFallback(transaction.description);
-    if (fallbackCategory) {
-      bestMatch = fallbackCategory;
-      bestConfidence = 0.95;
-    } else {
-      // Try to match against AI-discovered merchant patterns
-      for (const category of allCategories) {
-        for (const pattern of category.patterns) {
-          if (description.includes(pattern.toLowerCase())) {
-            bestMatch = category.name;
-            bestConfidence = 0.9;
-            break;
-          }
+    // First priority: Try to match against AI-discovered merchant patterns
+    for (const category of allCategories) {
+      for (const pattern of category.patterns) {
+        if (description.includes(pattern.toLowerCase())) {
+          bestMatch = category.name;
+          bestConfidence = 0.9;
+          break;
         }
-        if (bestConfidence === 0.9) break;
       }
-      
-      // If no pattern match, try to match against AI category names with better logic
-      if (bestConfidence < 0.9) {
-        for (const category of allCategories) {
-          const categoryName = category.name.toLowerCase();
-          
-          // Direct exact match
-          if (description.includes(categoryName)) {
-            bestMatch = category.name;
-            bestConfidence = 0.85;
-            break;
-          }
-          
-          // Semantic matching for common variations
-          if (categoryName.includes('supermarket') && description.includes('grocery')) {
-            bestMatch = category.name;
-            bestConfidence = 0.8;
-            break;
-          }
-          
-          if (categoryName.includes('fuel') && description.includes('gas')) {
-            bestMatch = category.name;
-            bestConfidence = 0.8;
-            break;
-          }
+      if (bestConfidence === 0.9) break;
+    }
+    
+    // Second priority: Try to match against AI category names with better logic
+    if (bestConfidence < 0.9) {
+      for (const category of allCategories) {
+        const categoryName = category.name.toLowerCase();
+        
+        // Direct exact match or contains match
+        if (description.includes(categoryName) || categoryName.includes(description.split(' ')[0])) {
+          bestMatch = category.name;
+          bestConfidence = 0.85;
+          break;
+        }
+        
+        // Semantic matching for common variations
+        if (categoryName.includes('supermarket') && description.includes('grocery')) {
+          bestMatch = category.name;
+          bestConfidence = 0.8;
+          break;
+        }
+        
+        if (categoryName.includes('fuel') && description.includes('gas')) {
+          bestMatch = category.name;
+          bestConfidence = 0.8;
+          break;
         }
       }
     }
     
-    // If still no match, use a more intelligent default
+    // Third priority: Enhanced fallback categorization but prefer AI categories when available
+    if (bestConfidence < 0.8) {
+      const lowerDesc = description.toLowerCase();
+      
+      // Look for specific AI categories first before falling back to generic names
+      if (lowerDesc.includes('novel aquatech') || lowerDesc.includes('aquatech')) {
+        // Find the specific salary category in AI categories
+        const salaryCategory = allCategories.find(cat => 
+          cat.name.toLowerCase().includes('salary') && 
+          (cat.name.toLowerCase().includes('novel') || cat.name.toLowerCase().includes('aquatech'))
+        );
+        if (salaryCategory) {
+          bestMatch = salaryCategory.name;
+          bestConfidence = 0.95;
+        }
+      } else if (lowerDesc.includes('salary') || lowerDesc.includes('wage') || 
+                 lowerDesc.includes('direct credit') || lowerDesc.includes('payroll')) {
+        // Find any salary category in AI categories
+        const salaryCategory = allCategories.find(cat => 
+          cat.name.toLowerCase().includes('salary')
+        );
+        if (salaryCategory) {
+          bestMatch = salaryCategory.name;
+          bestConfidence = 0.9;
+        }
+      } else if (lowerDesc.includes('transfer') || lowerDesc.includes('payid') || 
+                 lowerDesc.includes('bpay') || lowerDesc.includes('bank transfer')) {
+        // Find specific transfer categories in AI categories
+        const transferCategory = allCategories.find(cat => {
+          const catName = cat.name.toLowerCase();
+          return catName.includes('transfer') || catName.includes('payment') || 
+                 cat.patterns.some(pattern => lowerDesc.includes(pattern.toLowerCase()));
+        });
+        if (transferCategory) {
+          bestMatch = transferCategory.name;
+          bestConfidence = 0.9;
+        }
+      }
+    }
+    
+    // Final fallback: use a default category
     if (!bestMatch) {
       bestMatch = 'Other Expenses';
       bestConfidence = 0.3;
