@@ -190,7 +190,9 @@ export type Database = {
           group_id: string | null
           icon: string | null
           id: string
+          is_ai_generated: boolean | null
           is_system: boolean | null
+          merchant_patterns: string[] | null
           name: string
           parent_id: string | null
           sort_order: number | null
@@ -205,7 +207,9 @@ export type Database = {
           group_id?: string | null
           icon?: string | null
           id?: string
+          is_ai_generated?: boolean | null
           is_system?: boolean | null
+          merchant_patterns?: string[] | null
           name: string
           parent_id?: string | null
           sort_order?: number | null
@@ -220,7 +224,9 @@ export type Database = {
           group_id?: string | null
           icon?: string | null
           id?: string
+          is_ai_generated?: boolean | null
           is_system?: boolean | null
+          merchant_patterns?: string[] | null
           name?: string
           parent_id?: string | null
           sort_order?: number | null
@@ -249,7 +255,10 @@ export type Database = {
         Row: {
           category_id: string
           created_at: string | null
+          description: string | null
+          icon: string | null
           id: string
+          is_ai_generated: boolean | null
           keywords: string[] | null
           name: string
           rules: Json | null
@@ -259,7 +268,10 @@ export type Database = {
         Insert: {
           category_id: string
           created_at?: string | null
+          description?: string | null
+          icon?: string | null
           id?: string
+          is_ai_generated?: boolean | null
           keywords?: string[] | null
           name: string
           rules?: Json | null
@@ -269,7 +281,10 @@ export type Database = {
         Update: {
           category_id?: string
           created_at?: string | null
+          description?: string | null
+          icon?: string | null
           id?: string
+          is_ai_generated?: boolean | null
           keywords?: string[] | null
           name?: string
           rules?: Json | null
@@ -288,31 +303,37 @@ export type Database = {
       }
       category_groups: {
         Row: {
+          category_type: string | null
           color: string | null
           created_at: string | null
           description: string | null
           icon: string | null
           id: string
+          is_ai_generated: boolean | null
           name: string
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          category_type?: string | null
           color?: string | null
           created_at?: string | null
           description?: string | null
           icon?: string | null
           id?: string
+          is_ai_generated?: boolean | null
           name: string
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          category_type?: string | null
           color?: string | null
           created_at?: string | null
           description?: string | null
           icon?: string | null
           id?: string
+          is_ai_generated?: boolean | null
           name?: string
           updated_at?: string | null
           user_id?: string
