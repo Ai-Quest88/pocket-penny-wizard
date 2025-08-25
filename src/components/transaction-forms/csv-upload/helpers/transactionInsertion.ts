@@ -416,8 +416,8 @@ export class TransactionInsertionHelper {
     // Use the same comprehensive rules as the existing system
     // Supermarkets and groceries
     if (lowerDesc.includes('woolworths') || lowerDesc.includes('coles') || lowerDesc.includes('iga') || 
-        lowerDesc.includes('supermarket') || lowerDesc.includes('groceries')) {
-      return 'Supermarket';
+        lowerDesc.includes('supermarket') || lowerDesc.includes('groceries') || lowerDesc.includes('grocery')) {
+      return 'Groceries';
     }
     
     // Fuel and transport
@@ -428,7 +428,7 @@ export class TransactionInsertionHelper {
     
     // Coffee and cafes
     if (lowerDesc.includes('starbucks') || lowerDesc.includes('coffee') || lowerDesc.includes('cafe')) {
-      return 'Coffee';
+      return 'Coffee Shops';
     }
     
     // Streaming and entertainment
