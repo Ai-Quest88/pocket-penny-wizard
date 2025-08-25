@@ -4,6 +4,9 @@ import { Plus } from "lucide-react";
 import { CategoryGroupCard } from "./CategoryGroupCard";
 import { AddCategoryDialog } from "./AddCategoryDialog";
 import { useCategories } from "@/hooks/useCategories";
+import { useAuth } from "@/contexts/AuthContext";
+import { seedDefaultCategories } from "@/utils/seedDefaultCategories";
+import { useToast } from "@/hooks/use-toast";
 import { CategoryGroupWithRelations } from "@/integrations/supabase/types";
 
 const typeConfig = {
@@ -15,7 +18,9 @@ const typeConfig = {
 };
 
 export const CategoryManager = () => {
-  const { categoryData, isLoading, addCategory, addBucket, addGroup } = useCategories();
+  const { categoryData, isLoading, addCategory, addBucket, addGroup, refetch } = useCategories();
+  const { session } = useAuth();
+  const { toast } = useToast();
   
   // State for collapsible sections
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -83,6 +88,33 @@ export const CategoryManager = () => {
     // TODO: Implement delete category functionality
   };
 
+  const handleSeedCategories = async () => {
+    if (!session?.user?.id) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to seed categories.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await seedDefaultCategories(session.user.id);
+      await refetch();
+      toast({
+        title: "Success",
+        description: "Default categories have been created.",
+      });
+    } catch (error) {
+      console.error('Error seeding categories:', error);
+      toast({
+        title: "Error", 
+        description: "Failed to create default categories. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -108,6 +140,9 @@ export const CategoryManager = () => {
           <Button variant="outline" size="sm" onClick={() => setShowAddBucketDialog(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Add Bucket
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleSeedCategories}>
+            Seed Categories
           </Button>
           <Button variant="default" onClick={() => setShowAddCategoryDialog(true)}>
             <Plus className="h-4 w-4 mr-2" />

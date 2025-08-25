@@ -170,14 +170,18 @@ export const CategoryReviewDialog = ({
                     You don't have any categories set up yet. Would you like to create default categories?
                   </p>
                 </div>
-                <Button 
-                  onClick={seedCategories}
-                  variant="outline" 
-                  size="sm"
-                  className="border-yellow-300 text-yellow-700 hover:bg-yellow-100"
-                >
-                  Create Categories
-                </Button>
+                 <Button 
+                   onClick={() => {
+                     console.log('Seed categories functionality temporarily disabled');
+                     // TODO: Implement seed categories functionality
+                   }}
+                   variant="outline" 
+                   size="sm"
+                   className="border-yellow-300 text-yellow-700 hover:bg-yellow-100"
+                   disabled
+                 >
+                   Create Categories (Coming Soon)
+                 </Button>
               </div>
             </Card>
           )}

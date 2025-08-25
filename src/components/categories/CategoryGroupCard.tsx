@@ -46,12 +46,12 @@ export const CategoryGroupCard = ({
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-lg">{group.name}</span>
-                    {group.is_ai_generated && (
-                      <Badge variant="secondary" size="sm" className="flex items-center gap-1">
-                        <Brain className="h-3 w-3" />
-                        AI
-                      </Badge>
-                    )}
+                     {group.is_ai_generated && (
+                       <Badge variant="secondary" className="flex items-center gap-1">
+                         <Brain className="h-3 w-3" />
+                         AI
+                       </Badge>
+                     )}
                   </div>
                   {group.description && (
                     <p className="text-sm text-muted-foreground font-normal">
@@ -99,12 +99,12 @@ export const CategoryGroupCard = ({
                       <div className="flex items-center gap-2">
                         <span>{bucket.icon}</span>
                         <h4 className="font-medium">{bucket.name}</h4>
-                        {bucket.is_ai_generated && (
-                          <Badge variant="outline" size="sm" className="flex items-center gap-1">
-                            <Brain className="h-3 w-3" />
-                            AI
-                          </Badge>
-                        )}
+                         {bucket.is_ai_generated && (
+                           <Badge variant="outline" className="flex items-center gap-1">
+                             <Brain className="h-3 w-3" />
+                             AI
+                           </Badge>
+                         )}
                       </div>
                       <div className="flex items-center gap-1">
                         <Button

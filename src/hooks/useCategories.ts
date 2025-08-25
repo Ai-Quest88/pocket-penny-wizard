@@ -5,34 +5,34 @@ import { CategoryGroupWithRelations, CategoryBucketWithRelations, Category } fro
 import { useToast } from "@/hooks/use-toast";
 
 export const useCategories = () => {
-  const { user } = useAuth();
+  const { session } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Fetch all category data with nested relationships
   const { data: categoryData, isLoading, error, refetch } = useQuery({
-    queryKey: ['categories-with-relations', user?.id],
+    queryKey: ['categories-with-relations', session?.user?.id],
     queryFn: async (): Promise<Record<string, CategoryGroupWithRelations[]>> => {
-      if (!user?.id) return { income: [], expense: [], asset: [], liability: [], transfer: [] };
+      if (!session?.user?.id) return { income: [], expense: [], asset: [], liability: [], transfer: [] };
 
       // Fetch all data in parallel
       const [groupsResult, bucketsResult, categoriesResult] = await Promise.all([
         supabase
           .from('category_groups')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('user_id', session.user.id)
           .order('sort_order', { ascending: true }),
         
         supabase
           .from('category_buckets')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('user_id', session.user.id)
           .order('sort_order', { ascending: true }),
         
         supabase
           .from('categories')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('user_id', session.user.id)
           .order('sort_order', { ascending: true })
       ]);
 
@@ -69,20 +69,20 @@ export const useCategories = () => {
 
       return result;
     },
-    enabled: !!user?.id
+    enabled: !!session?.user?.id
   });
 
   // Add new category
   const addCategoryMutation = useMutation({
     mutationFn: async ({ category, bucketId }: { category: Omit<Category, 'id' | 'user_id' | 'created_at' | 'updated_at'>, bucketId: string }) => {
-      if (!user?.id) throw new Error('User not authenticated');
+      if (!session?.user?.id) throw new Error('User not authenticated');
 
       const { data, error } = await supabase
         .from('categories')
         .insert({
           ...category,
           bucket_id: bucketId,
-          user_id: user.id
+          user_id: session.user.id
         })
         .select()
         .single();
@@ -110,14 +110,14 @@ export const useCategories = () => {
   // Add new bucket
   const addBucketMutation = useMutation({
     mutationFn: async ({ bucket, groupId }: { bucket: Omit<CategoryBucketWithRelations, 'id' | 'user_id' | 'group_id' | 'created_at' | 'updated_at'>, groupId: string }) => {
-      if (!user?.id) throw new Error('User not authenticated');
+      if (!session?.user?.id) throw new Error('User not authenticated');
 
       const { data, error } = await supabase
         .from('category_buckets')
         .insert({
           ...bucket,
           group_id: groupId,
-          user_id: user.id
+          user_id: session.user.id
         })
         .select()
         .single();
@@ -145,13 +145,13 @@ export const useCategories = () => {
   // Add new group
   const addGroupMutation = useMutation({
     mutationFn: async (group: Omit<CategoryGroupWithRelations, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
-      if (!user?.id) throw new Error('User not authenticated');
+      if (!session?.user?.id) throw new Error('User not authenticated');
 
       const { data, error } = await supabase
         .from('category_groups')
         .insert({
           ...group,
-          user_id: user.id
+          user_id: session.user.id
         })
         .select()
         .single();
