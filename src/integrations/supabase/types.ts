@@ -141,6 +141,42 @@ export type Database = {
           },
         ]
       }
+      budget_categories: {
+        Row: {
+          budget_id: string
+          category_id: string
+          created_at: string | null
+          id: string
+        }
+        Insert: {
+          budget_id: string
+          category_id: string
+          created_at?: string | null
+          id?: string
+        }
+        Update: {
+          budget_id?: string
+          category_id?: string
+          created_at?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_categories_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "budgets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_categories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budgets: {
         Row: {
           amount: number
@@ -209,7 +245,6 @@ export type Database = {
           is_system: boolean | null
           merchant_patterns: string[] | null
           name: string
-          parent_id: string | null
           sort_order: number | null
           type: string
           updated_at: string | null
@@ -226,7 +261,6 @@ export type Database = {
           is_system?: boolean | null
           merchant_patterns?: string[] | null
           name: string
-          parent_id?: string | null
           sort_order?: number | null
           type: string
           updated_at?: string | null
@@ -243,7 +277,6 @@ export type Database = {
           is_system?: boolean | null
           merchant_patterns?: string[] | null
           name?: string
-          parent_id?: string | null
           sort_order?: number | null
           type?: string
           updated_at?: string | null
@@ -257,64 +290,37 @@ export type Database = {
             referencedRelation: "category_groups"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "categories_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
-          },
         ]
       }
-      category_buckets: {
+      category_discovery_sessions: {
         Row: {
-          category_id: string
+          categories_created: number | null
           created_at: string | null
-          description: string | null
-          icon: string | null
+          groups_created: number | null
           id: string
-          is_ai_generated: boolean | null
-          keywords: string[] | null
-          name: string
-          rules: Json | null
+          transaction_count: number | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
-          category_id: string
+          categories_created?: number | null
           created_at?: string | null
-          description?: string | null
-          icon?: string | null
+          groups_created?: number | null
           id?: string
-          is_ai_generated?: boolean | null
-          keywords?: string[] | null
-          name: string
-          rules?: Json | null
+          transaction_count?: number | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
-          category_id?: string
+          categories_created?: number | null
           created_at?: string | null
-          description?: string | null
-          icon?: string | null
+          groups_created?: number | null
           id?: string
-          is_ai_generated?: boolean | null
-          keywords?: string[] | null
-          name?: string
-          rules?: Json | null
+          transaction_count?: number | null
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "category_buckets_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       category_groups: {
         Row: {
@@ -684,7 +690,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_default_categories_for_user: {
+        Args: { target_user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
