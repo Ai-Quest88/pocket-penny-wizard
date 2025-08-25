@@ -16,6 +16,7 @@ export interface Transaction {
   amount: number;
   date: string;
   category: string;
+  category_name?: string; // New field from database
   currency: string;
   comment?: string;
   asset_account_id?: string;

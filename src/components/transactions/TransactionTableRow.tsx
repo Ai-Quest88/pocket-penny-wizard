@@ -11,6 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useCategoryHierarchy } from '@/hooks/useCategoryHierarchy';
 
 interface TransactionTableRowProps {
   transaction: Transaction;
@@ -34,6 +35,7 @@ export const TransactionTableRow: React.FC<TransactionTableRowProps> = ({
   const { session } = useAuth();
   const { toast } = useToast();
   const { displayCurrency, convertAmount } = useCurrency();
+  const { getCategoryHierarchy } = useCategoryHierarchy();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const handleDelete = async () => {
@@ -107,9 +109,23 @@ export const TransactionTableRow: React.FC<TransactionTableRowProps> = ({
         {transaction.description}
       </TableCell>
       <TableCell>
-        <Badge variant="secondary" className={getCategoryColor(transaction.category)}>
-          {transaction.category}
-        </Badge>
+        {(() => {
+          // Use category_name field (from database) or category field (fallback)
+          const categoryName = transaction.category_name || transaction.category || 'Uncategorized';
+          const categoryHierarchy = getCategoryHierarchy(categoryName);
+          
+          return (
+            <Badge 
+              variant="secondary" 
+              className={getCategoryColor(categoryName)}
+              title={categoryHierarchy}
+            >
+              <span className="max-w-[200px] truncate">
+                {categoryHierarchy}
+              </span>
+            </Badge>
+          );
+        })()}
       </TableCell>
       <TableCell className="text-right font-medium">
         <div className="flex flex-col items-end gap-1">
