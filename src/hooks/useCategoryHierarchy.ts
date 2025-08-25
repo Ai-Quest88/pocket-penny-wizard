@@ -8,16 +8,14 @@ export const useCategoryHierarchy = () => {
       return 'Uncategorized';
     }
 
-    // Search through all groups, buckets, and categories to find the hierarchy
+    // Search through all groups and categories to find the hierarchy (2-tier)
     for (const categoryType in categoryData) {
       const groups = categoryData[categoryType as keyof typeof categoryData];
       
       for (const group of groups) {
-        for (const bucket of group.buckets || []) {
-          for (const category of bucket.categories || []) {
-            if (category.name === categoryName) {
-              return `${category.name} → ${bucket.name} → ${group.name}`;
-            }
+        for (const category of group.categories || []) {
+          if (category.name === categoryName) {
+            return `${category.name} → ${group.name}`;
           }
         }
       }
@@ -43,13 +41,13 @@ export const useCategoryHierarchy = () => {
     }
     if (lowerDesc.includes('gas') || lowerDesc.includes('petrol') || lowerDesc.includes('fuel') || 
         lowerDesc.includes('bp') || lowerDesc.includes('caltex') || lowerDesc.includes('gas station')) {
-      return getCategoryHierarchy('Fuel');
+      return getCategoryHierarchy('Transport');
     }
     if (lowerDesc.includes('restaurant') || lowerDesc.includes('dining') || lowerDesc.includes('food')) {
-      return getCategoryHierarchy('Dining');
+      return getCategoryHierarchy('Restaurants');
     }
     if (lowerDesc.includes('transport') || lowerDesc.includes('taxi') || lowerDesc.includes('uber')) {
-      return getCategoryHierarchy('Transportation');
+      return getCategoryHierarchy('Transport');
     }
     
     return 'Will be categorized by AI';

@@ -32,17 +32,15 @@ export const PreviewTable = ({ data, mappings, defaultSettings, selectedAccount 
   const getCategoryHierarchy = (description: string) => {
     if (!categoryData) return predictCategoryHierarchy(description);
     
-    // Search through all categories to find matching merchant patterns
+    // Search through all categories to find matching merchant patterns (2-tier)
     for (const groupArray of Object.values(categoryData)) {
       for (const group of groupArray) {
-        for (const bucket of group.buckets || []) {
-          for (const category of bucket.categories || []) {
-            if (category.merchant_patterns) {
-              for (const pattern of category.merchant_patterns) {
-                if (description.toLowerCase().includes(pattern.toLowerCase()) || 
-                    pattern.toLowerCase().includes(description.toLowerCase())) {
-                  return `${group.name} → ${bucket.name} → ${category.name}`;
-                }
+        for (const category of group.categories || []) {
+          if (category.merchant_patterns) {
+            for (const pattern of category.merchant_patterns) {
+              if (description.toLowerCase().includes(pattern.toLowerCase()) || 
+                  pattern.toLowerCase().includes(description.toLowerCase())) {
+                return `${group.name} → ${category.name}`;
               }
             }
           }

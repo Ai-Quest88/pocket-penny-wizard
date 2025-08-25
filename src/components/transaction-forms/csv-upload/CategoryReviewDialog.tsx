@@ -111,18 +111,15 @@ export const CategoryReviewDialog = ({
       };
     }
     
-    // First, search through existing category hierarchy
+    // First, search through existing category hierarchy (2-tier)
     for (const groupArray of Object.values(categoryData)) {
       for (const group of groupArray) {
-        for (const bucket of group.buckets || []) {
-          for (const category of bucket.categories || []) {
-            if (category.name === categoryName) {
-              return {
-                group: group.name,
-                bucket: bucket.name,
-                category: category.name
-              };
-            }
+        for (const category of group.categories || []) {
+          if (category.name === categoryName) {
+            return {
+              group: group.name,
+              category: category.name
+            };
           }
         }
       }

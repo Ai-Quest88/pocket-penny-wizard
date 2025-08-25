@@ -4,7 +4,6 @@ import { Plus } from "lucide-react";
 import { CategoryGroupCard } from "./CategoryGroupCard";
 import { AddCategoryDialog } from "./AddCategoryDialog";
 import { useCategories } from "@/hooks/useCategories";
-import { CategoryGroupWithRelations } from "@/types/categories";
 
 const typeConfig = {
   income: { icon: '💰', color: 'bg-green-100 text-green-800', label: 'Income' },
@@ -15,7 +14,7 @@ const typeConfig = {
 };
 
 export const CategoryManager = () => {
-  const { categoryData, isLoading, addCategory, addBucket, addGroup, deleteCategory, deleteBucket } = useCategories();
+  const { categoryData, isLoading, addCategory, deleteCategory } = useCategories();
   
   // State for collapsible sections
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -28,7 +27,6 @@ export const CategoryManager = () => {
 
   // State for dialogs
   const [showAddCategoryDialog, setShowAddCategoryDialog] = useState(false);
-  const [showAddBucketDialog, setShowAddBucketDialog] = useState(false);
 
   const toggleSection = (type: string) => {
     setOpenSections(prev => ({ ...prev, [type]: !prev[type] }));
@@ -54,22 +52,12 @@ export const CategoryManager = () => {
     });
   };
 
-  const handleAddCategory = (category: any, bucketId: string) => {
-    addCategory({ category, bucketId });
+  const handleAddCategory = (category: any, groupId: string) => {
+    addCategory({ category, groupId });
   };
 
-  const handleAddBucket = (groupId: string) => {
-    console.log('Add bucket to group:', groupId);
-    // TODO: Implement add bucket functionality
-  };
-
-  const handleEditBucket = (bucketId: string) => {
-    console.log('Edit bucket:', bucketId);
-    // TODO: Implement edit bucket functionality
-  };
-
-  const handleDeleteBucket = (bucketId: string) => {
-    deleteBucket(bucketId);
+  const handleAddCategoryToGroup = (groupId: string) => {
+    setShowAddCategoryDialog(true);
   };
 
   const handleEditCategory = (categoryId: string) => {
@@ -103,10 +91,6 @@ export const CategoryManager = () => {
           <Button variant="outline" size="sm" onClick={collapseAll}>
             Collapse All
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setShowAddBucketDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Bucket
-          </Button>
           <Button variant="default" onClick={() => setShowAddCategoryDialog(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Add Category
@@ -128,10 +112,7 @@ export const CategoryManager = () => {
                     group={group}
                     isOpen={openSections[type]}
                     onToggle={() => toggleSection(type)}
-                    onAddBucket={handleAddBucket}
-                    onEditBucket={handleEditBucket}
-                    onDeleteBucket={handleDeleteBucket}
-                    onAddCategory={(bucketId) => setShowAddCategoryDialog(true)}
+                    onAddCategory={handleAddCategoryToGroup}
                     onEditCategory={handleEditCategory}
                     onDeleteCategory={handleDeleteCategory}
                   />
@@ -145,14 +126,14 @@ export const CategoryManager = () => {
                   </div>
                   <h3 className="text-lg font-medium mb-2">{config.label}</h3>
                   <p className="text-muted-foreground mb-4">
-                    No {config.label.toLowerCase()} buckets yet
+                    No {config.label.toLowerCase()} categories yet
                   </p>
                   <Button
                     variant="outline"
-                    onClick={() => setShowAddBucketDialog(true)}
+                    onClick={() => setShowAddCategoryDialog(true)}
                   >
                     <Plus className="h-4 w-4 mr-2" />
-                    Add First Bucket
+                    Add First Category
                   </Button>
                 </div>
               )}
@@ -168,9 +149,6 @@ export const CategoryManager = () => {
         onAddCategory={handleAddCategory}
         categoryGroups={categoryData ? Object.values(categoryData).flat() : []}
       />
-
-      {/* TODO: Add dialogs for bucket and group creation */}
     </div>
   );
 };
-
