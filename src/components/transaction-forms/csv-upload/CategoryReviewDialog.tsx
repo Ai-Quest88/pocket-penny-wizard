@@ -90,22 +90,24 @@ export const CategoryReviewDialog = ({
 
   // Note: Categories are now created by AI discovery during upload process
 
-  // Helper to get category hierarchy components from actual categorized data
+  // Helper to get category hierarchy components from transaction category name
   const getCategoryComponents = (transaction: Transaction) => {
-    if (!categoryData || !transaction.category_id) {
+    const categoryName = transaction.category || 'Uncategorized';
+    
+    if (!categoryData || categoryName === 'Uncategorized') {
       return {
-        group: 'N/A',
-        bucket: 'N/A', 
-        category: transaction.category || 'Uncategorized'
+        group: 'Uncategorized',
+        bucket: 'Uncategorized', 
+        category: categoryName
       };
     }
     
-    // Search through all categories to find the full hierarchy
+    // Search through all category groups to find the hierarchy for this category name
     for (const groupArray of Object.values(categoryData)) {
       for (const group of groupArray) {
         for (const bucket of group.buckets || []) {
           for (const category of bucket.categories || []) {
-            if (category.id === transaction.category_id) {
+            if (category.name === categoryName) {
               return {
                 group: group.name,
                 bucket: bucket.name,
@@ -117,10 +119,11 @@ export const CategoryReviewDialog = ({
       }
     }
     
+    // If category exists but not found in hierarchy, show category name with AI suggestion
     return {
-      group: 'N/A',
-      bucket: 'N/A',
-      category: transaction.category || 'Uncategorized'
+      group: 'Will be organized by AI',
+      bucket: 'Will be organized by AI',
+      category: categoryName
     };
   };
 
