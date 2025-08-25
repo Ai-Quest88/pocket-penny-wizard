@@ -69,52 +69,64 @@ export type Database = {
       }
       assets: {
         Row: {
+          account_number: string | null
+          address: string | null
           category: string | null
           created_at: string | null
           currency: string | null
-          current_value: number
           description: string | null
           entity_id: string
           id: string
           location: string | null
           name: string
+          opening_balance: number | null
+          opening_balance_date: string | null
           purchase_date: string | null
           purchase_price: number | null
           type: string
           updated_at: string | null
           user_id: string
+          value: number
         }
         Insert: {
+          account_number?: string | null
+          address?: string | null
           category?: string | null
           created_at?: string | null
           currency?: string | null
-          current_value: number
           description?: string | null
           entity_id: string
           id?: string
           location?: string | null
           name: string
+          opening_balance?: number | null
+          opening_balance_date?: string | null
           purchase_date?: string | null
           purchase_price?: number | null
           type: string
           updated_at?: string | null
           user_id: string
+          value: number
         }
         Update: {
+          account_number?: string | null
+          address?: string | null
           category?: string | null
           created_at?: string | null
           currency?: string | null
-          current_value?: number
           description?: string | null
           entity_id?: string
           id?: string
           location?: string | null
           name?: string
+          opening_balance?: number | null
+          opening_balance_date?: string | null
           purchase_date?: string | null
           purchase_price?: number | null
           type?: string
           updated_at?: string | null
           user_id?: string
+          value?: number
         }
         Relationships: [
           {
@@ -343,10 +355,15 @@ export type Database = {
       entities: {
         Row: {
           address: string | null
+          country_of_residence: string | null
           created_at: string | null
+          date_added: string | null
+          date_of_birth: string | null
+          description: string | null
           email: string | null
           household_id: string | null
           id: string
+          incorporation_date: string | null
           name: string
           phone: string | null
           registration_number: string | null
@@ -357,10 +374,15 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          country_of_residence?: string | null
           created_at?: string | null
+          date_added?: string | null
+          date_of_birth?: string | null
+          description?: string | null
           email?: string | null
           household_id?: string | null
           id?: string
+          incorporation_date?: string | null
           name: string
           phone?: string | null
           registration_number?: string | null
@@ -371,10 +393,15 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          country_of_residence?: string | null
           created_at?: string | null
+          date_added?: string | null
+          date_of_birth?: string | null
+          description?: string | null
           email?: string | null
           household_id?: string | null
           id?: string
+          incorporation_date?: string | null
           name?: string
           phone?: string | null
           registration_number?: string | null
@@ -422,15 +449,20 @@ export type Database = {
       }
       liabilities: {
         Row: {
+          account_number: string | null
+          amount: number
           category: string | null
           created_at: string | null
+          credit_limit: number | null
           currency: string | null
-          current_balance: number
           description: string | null
           entity_id: string
           id: string
           interest_rate: number | null
+          monthly_payment: number | null
           name: string
+          opening_balance: number | null
+          opening_balance_date: string | null
           original_amount: number | null
           start_date: string | null
           term_months: number | null
@@ -439,15 +471,20 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          account_number?: string | null
+          amount: number
           category?: string | null
           created_at?: string | null
+          credit_limit?: number | null
           currency?: string | null
-          current_balance: number
           description?: string | null
           entity_id: string
           id?: string
           interest_rate?: number | null
+          monthly_payment?: number | null
           name: string
+          opening_balance?: number | null
+          opening_balance_date?: string | null
           original_amount?: number | null
           start_date?: string | null
           term_months?: number | null
@@ -456,15 +493,20 @@ export type Database = {
           user_id: string
         }
         Update: {
+          account_number?: string | null
+          amount?: number
           category?: string | null
           created_at?: string | null
+          credit_limit?: number | null
           currency?: string | null
-          current_balance?: number
           description?: string | null
           entity_id?: string
           id?: string
           interest_rate?: number | null
+          monthly_payment?: number | null
           name?: string
+          opening_balance?: number | null
+          opening_balance_date?: string | null
           original_amount?: number | null
           start_date?: string | null
           term_months?: number | null
