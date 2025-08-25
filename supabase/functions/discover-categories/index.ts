@@ -287,39 +287,75 @@ async function storeDiscoveredCategories(
   let totalCategories = 0;
   let totalBuckets = 0;
 
-  // Store category groups
+  // Store category groups (check for existing first)
   for (const group of categories) {
-    const { data: groupData, error: groupError } = await supabase
+    // Check if group already exists
+    const { data: existingGroup, error: findError } = await supabase
       .from('category_groups')
-      .insert([{
-        user_id: userId,
-        name: group.name,
-        category_type: normalizeGroupType(group.type),
-        description: group.description,
-        color: group.color,
-        icon: group.icon,
+      .select('id')
+      .eq('user_id', userId)
+      .eq('name', group.name)
+      .eq('category_type', normalizeGroupType(group.type))
+      .single();
+
+    let groupId;
+    if (existingGroup) {
+      // Use existing group
+      groupId = existingGroup.id;
+      console.log(`Using existing group: ${group.name}`);
+    } else {
+      // Create new group
+      const { data: groupData, error: groupError } = await supabase
+        .from('category_groups')
+        .insert([{
+          user_id: userId,
+          name: group.name,
+          category_type: normalizeGroupType(group.type),
+          description: group.description,
+          color: group.color,
+          icon: group.icon,
         sort_order: 0,
         is_ai_generated: true
       }])
       .select('id')
       .single();
 
-    if (groupError) {
-      console.error('Failed to create category group:', groupError);
-      continue;
+      if (groupError) {
+        console.error('Failed to create category group:', groupError);
+        continue;
+      }
+      
+      groupId = groupData.id;
+      console.log(`Created new group: ${group.name}`);
     }
 
     // Store buckets within this group
     for (const bucket of group.buckets) {
-      const { data: bucketData, error: bucketError } = await supabase
+      // Check if bucket already exists
+      const { data: existingBucket, error: findBucketError } = await supabase
         .from('category_buckets')
-        .insert([{
-          user_id: userId,
-          group_id: groupData.id,
-          name: bucket.name,
-          description: bucket.description,
-          color: bucket.color,
-          icon: bucket.icon,
+        .select('id')
+        .eq('user_id', userId)
+        .eq('group_id', groupId)
+        .eq('name', bucket.name)
+        .single();
+
+      let bucketId;
+      if (existingBucket) {
+        // Use existing bucket
+        bucketId = existingBucket.id;
+        console.log(`Using existing bucket: ${bucket.name}`);
+      } else {
+        // Create new bucket
+        const { data: bucketData, error: bucketError } = await supabase
+          .from('category_buckets')
+          .insert([{
+            user_id: userId,
+            group_id: groupId,
+            name: bucket.name,
+            description: bucket.description,
+            color: bucket.color,
+            icon: bucket.icon,
           sort_order: 0,
           is_ai_generated: true
         }])
@@ -331,28 +367,46 @@ async function storeDiscoveredCategories(
         continue;
       }
 
-      totalBuckets++;
+        bucketId = bucketData.id;
+        console.log(`Created new bucket: ${bucket.name}`);
+        totalBuckets++;
+      }
 
       // Store categories within this bucket
       for (const category of bucket.categories) {
-        const { error: categoryError } = await supabase
+        // Check if category already exists
+        const { data: existingCategory, error: findCategoryError } = await supabase
           .from('categories')
-          .insert([{
-            user_id: userId,
-            bucket_id: bucketData.id,
-            name: category.name,
-            description: category.description,
-            merchant_patterns: category.merchant_patterns,
-            sort_order: 0,
-            is_ai_generated: true
-          }]);
+          .select('id')
+          .eq('user_id', userId)
+          .eq('bucket_id', bucketId)
+          .eq('name', category.name)
+          .single();
 
-        if (categoryError) {
-          console.error('Failed to create category:', categoryError);
-          continue;
+        if (!existingCategory) {
+          // Create new category only if it doesn't exist
+          const { error: categoryError } = await supabase
+            .from('categories')
+            .insert([{
+              user_id: userId,
+              bucket_id: bucketId,
+              name: category.name,
+              description: category.description,
+              merchant_patterns: category.merchant_patterns,
+              sort_order: 0,
+              is_ai_generated: true
+            }]);
+
+          if (categoryError) {
+            console.error('Failed to create category:', categoryError);
+            continue;
+          }
+
+          totalCategories++;
+          console.log(`Created new category: ${category.name}`);
+        } else {
+          console.log(`Using existing category: ${category.name}`);
         }
-
-        totalCategories++;
       }
     }
   }
