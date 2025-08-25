@@ -427,13 +427,11 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
       return;
     }
 
-    // Note: Categories will be discovered by AI during processing
-
     setIsProcessing(true);
     setUploadProgress({
       phase: 'categorizing',
       currentStep: 1,
-      totalSteps: 2,
+      totalSteps: 3,
       message: 'AI is categorizing your transactions...',
       processedTransactions: []
     });
@@ -463,56 +461,64 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
 
       console.log('Formatted transactions for AI categorization:', formattedTransactions.slice(0, 2));
 
-      // Use hierarchical AI categorization system
-      console.log('🚀 Starting AI-powered hierarchical categorization for', formattedTransactions.length, 'transactions');
+      // Call AI categorization first
+      console.log('🎯 Calling AI categorization for', formattedTransactions.length, 'transactions');
       
-      // Get the selected account details
-      const selectedAccount = selectedAccountId ? accounts.find(acc => acc.id === selectedAccountId) : null;
-      console.log('📊 Account details for transactions:', {
-        selectedAccountId,
-        selectedAccount,
-        accountType: selectedAccount?.accountType,
-      });
-
-      // Store transactions for AI discovery processing
-      setPendingTransactions(formattedTransactions);
-      
-      // Trigger AI discovery and upload process
-      console.log('🎯 Starting AI discovery process for', formattedTransactions.length, 'transactions');
-      continueUpload(undefined, formattedTransactions);
-
-    } catch (error) {
-      console.error('❌ DETAILED ERROR in transaction processing:', {
-        error,
-        errorMessage: error instanceof Error ? error.message : 'Unknown error',
-        errorStack: error instanceof Error ? error.stack : undefined,
-        transactionCount: parsedData?.length || 0,
-        selectedAccount: selectedAccountId,
-        mappings: mappings,
-        errorType: error?.constructor?.name || 'Unknown'
-      });
-      
-      // More specific error handling
-      let errorDescription = 'Unknown error occurred';
-      if (error instanceof Error) {
-        if (error.message.includes('AI categorization failed')) {
-          errorDescription = `AI categorization service error: ${error.message}`;
-        } else if (error.message.includes('Network')) {
-          errorDescription = `Network connectivity issue: ${error.message}`;
-        } else if (error.message.includes('fetch')) {
-          errorDescription = `API request failed: ${error.message}`;
-        } else {
-          errorDescription = error.message;
+      const { data, error } = await supabase.functions.invoke('discover-categories', {
+        body: { 
+          transactions: formattedTransactions.map(t => ({
+            description: t.description,
+            amount: t.amount,
+            date: t.date
+          }))
         }
+      });
+
+      if (error) {
+        console.error('AI categorization failed:', error);
+        toast({
+          title: "AI Categorization Failed",
+          description: "Using fallback categorization. You can still review and edit categories.",
+          variant: "destructive",
+        });
       }
 
-      toast({
-        title: "Processing Error",
-        description: `Failed to process transactions: ${errorDescription}. Check console for detailed logs.`,
-        variant: "destructive",
+      // Merge AI categorization results with formatted transactions
+      const categorizedTransactions = formattedTransactions.map((transaction, index) => {
+        if (data?.success && data?.categorized_transactions?.[index]) {
+          const aiResult = data.categorized_transactions[index];
+          return {
+            ...transaction,
+            category: aiResult.category_name || 'Uncategorized',
+            category_id: aiResult.category_id || null,
+            aiConfidence: aiResult.confidence || 0.5
+          };
+        }
+        return {
+          ...transaction,
+          category: 'Uncategorized',
+          category_id: null,
+          aiConfidence: 0.3
+        };
       });
+
+      console.log('AI categorized transactions preview:', categorizedTransactions.slice(0, 2));
+
+      // Store categorized transactions and show category review dialog
+      setPendingTransactions(categorizedTransactions);
       setUploadProgress(null);
       setIsProcessing(false);
+      setShowCategoryReview(true);
+
+    } catch (error) {
+      console.error('Error processing transactions:', error);
+      toast({
+        title: "Processing Error",
+        description: "Failed to process transactions. Please try again.",
+        variant: "destructive",
+      });
+      setIsProcessing(false);
+      setUploadProgress(null);
     }
   };
 
