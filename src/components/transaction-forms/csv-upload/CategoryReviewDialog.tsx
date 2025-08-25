@@ -296,33 +296,33 @@ export const CategoryReviewDialog = ({
                      <TableHead className="w-32">
                        <Tooltip>
                          <TooltipTrigger className="flex items-center gap-1 cursor-help">
-                           AI Group
+                           Group
                            <HelpCircle className="h-3 w-3 text-muted-foreground" />
                          </TooltipTrigger>
                          <TooltipContent>
-                           <p>AI-suggested category group (highest level)</p>
+                           <p>Category group (highest level)</p>
                          </TooltipContent>
                        </Tooltip>
                      </TableHead>
                      <TableHead className="w-32">
                        <Tooltip>
                          <TooltipTrigger className="flex items-center gap-1 cursor-help">
-                           AI Bucket
+                           Bucket
                            <HelpCircle className="h-3 w-3 text-muted-foreground" />
                          </TooltipTrigger>
                          <TooltipContent>
-                           <p>AI-suggested category bucket (middle level)</p>
+                           <p>Category bucket (middle level)</p>
                          </TooltipContent>
                        </Tooltip>
                      </TableHead>
                      <TableHead className="w-40">
                        <Tooltip>
                          <TooltipTrigger className="flex items-center gap-1 cursor-help">
-                           AI Category
+                           Category
                            <HelpCircle className="h-3 w-3 text-muted-foreground" />
                          </TooltipTrigger>
                          <TooltipContent>
-                           <p>AI-suggested category (lowest level)</p>
+                           <p>Specific category (lowest level)</p>
                          </TooltipContent>
                        </Tooltip>
                      </TableHead>
