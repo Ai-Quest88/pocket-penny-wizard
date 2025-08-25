@@ -219,7 +219,7 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
       }
 
       const updateData = {
-        category: data.category,
+        category_name: data.category, // Update category_name field in database
         comment: data.comment || null,
         updated_at: new Date().toISOString(),
       };

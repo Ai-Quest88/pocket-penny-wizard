@@ -103,9 +103,10 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
       if (error) throw error;
 
-      // Transform the data to include account names
+      // Transform the data to include account names and map category_name to category
       const transformedData = data?.map((transaction: any) => ({
         ...transaction,
+        category: transaction.category_name || 'Uncategorized', // Map category_name to category for UI
         asset_account_name: transaction.assets?.name,
         liability_account_name: transaction.liabilities?.name,
       })) || [];

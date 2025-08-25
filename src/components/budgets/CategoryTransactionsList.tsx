@@ -33,7 +33,7 @@ export function CategoryTransactionsList({ categoryName, timeRange }: CategoryTr
         .from("transactions")
         .select("*")
         .eq("user_id", session.user.id)
-        .eq("category", categoryName)
+        .eq("category_name", categoryName)
         .gte("date", timeRange.start)
         .lte("date", timeRange.end)
         .order("date", { ascending: false });

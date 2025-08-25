@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Brain, CheckCircle, AlertCircle, Clock, HelpCircle } from "lucide-react";
 import { addUserCategoryRule } from "@/utils/transactionCategories";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCategoryHierarchy } from "@/hooks/useCategoryHierarchy";
@@ -54,6 +54,7 @@ export const CategoryReviewDialog = ({
 }: CategoryReviewDialogProps) => {
   const { session } = useAuth();
   const { categoryData } = useCategories();
+  const queryClient = useQueryClient();
   const [reviewedTransactions, setReviewedTransactions] = useState<TransactionReview[]>(() => 
     transactions.map((transaction, index) => ({
       ...transaction,
@@ -71,21 +72,29 @@ export const CategoryReviewDialog = ({
 
       console.log('Fetching categories for user:', session.user.id);
       
-      const { data: cats, error } = await supabase
-        .from('categories')
-        .select('name')
-        .eq('user_id', session.user.id)
-        .order('sort_order', { ascending: true });
+      try {
+        const { data: cats, error } = await supabase
+          .from('categories')
+          .select('name')
+          .eq('user_id', session.user.id)
+          .order('sort_order', { ascending: true });
 
-      if (error) {
-        console.error('Error fetching categories:', error);
-        throw error;
+        if (error) {
+          console.error('Error fetching categories:', error);
+          // Return empty array instead of throwing to prevent component crash
+          return [];
+        }
+
+        console.log('Fetched categories:', cats);
+        return (cats || []).map((cat: any) => cat.name);
+      } catch (err) {
+        console.error('Unexpected error fetching categories:', err);
+        // Return empty array instead of throwing to prevent component crash
+        return [];
       }
-
-      console.log('Fetched categories:', cats);
-      return (cats || []).map((cat: any) => cat.name);
     },
     enabled: !!session?.user && open,
+    retry: false, // Don't retry on error to prevent infinite loops
   });
 
   // Note: Categories are now created by AI discovery during upload process
@@ -223,6 +232,40 @@ export const CategoryReviewDialog = ({
 
   // If no categories found and not loading, offer to seed
   const shouldOfferSeeding = !categoriesLoading && userCategories.length === 0 && !categoriesError;
+
+  const seedCategories = async () => {
+    if (!session?.user?.id) return;
+
+    const defaultCategories = [
+      'Food & Dining', 'Transportation', 'Shopping', 'Entertainment', 
+      'Bills & Utilities', 'Healthcare', 'Education', 'Travel', 
+      'Income', 'Investment', 'Other'
+    ];
+
+    try {
+      const categoriesToInsert = defaultCategories.map((name, index) => ({
+        user_id: session.user.id,
+        name,
+        sort_order: index + 1,
+      }));
+
+      const { error } = await supabase
+        .from('categories')
+        .insert(categoriesToInsert);
+
+      if (error) {
+        console.error('Error seeding categories:', error);
+        return;
+      }
+
+      // Refetch categories
+      queryClient.invalidateQueries({ queryKey: ['user-categories'] });
+      
+      console.log('Successfully seeded default categories');
+    } catch (error) {
+      console.error('Unexpected error seeding categories:', error);
+    }
+  };
 
   const handleCategoryChange = (index: number, category: string) => {
     setReviewedTransactions(prev => 

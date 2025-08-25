@@ -11,9 +11,9 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useNavigate, Link } from "react-router-dom"
 
 const Transactions = () => {
-  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false)
-  const [isManualDialogOpen, setIsManualDialogOpen] = useState(false)
-  const [showDuplicateDetector, setShowDuplicateDetector] = useState(false)
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const [isManualDialogOpen, setIsManualDialogOpen] = useState(false);
+  const [showDuplicateDetector, setShowDuplicateDetector] = useState(false);
   const { isAuthenticated, session } = useAuth();
   const navigate = useNavigate();
 

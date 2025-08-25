@@ -429,13 +429,25 @@ export class TransactionInsertionHelper {
             category_name: category.category || 'Uncategorized',
             comment: transaction.comment,
             currency: transaction.currency || 'AUD',
-            asset_account_id: transaction.asset_account_id,
-            liability_account_id: transaction.liability_account_id,
+            asset_account_id: transaction.asset_account_id || null,
+            liability_account_id: transaction.liability_account_id || null,
             user_id: this.userId
           });
 
         if (error) {
-          console.error('Transaction insertion failed:', error);
+          console.error('🚨 Transaction insertion failed:', {
+            error: error,
+            errorMessage: error.message,
+            errorCode: error.code,
+            errorDetails: error.details,
+            transaction: {
+              description: transaction.description,
+              amount: transaction.amount,
+              asset_account_id: transaction.asset_account_id,
+              liability_account_id: transaction.liability_account_id,
+              category: category.category
+            }
+          });
           failed++;
         } else {
           success++;
@@ -590,9 +602,8 @@ export class TransactionInsertionHelper {
     
     // Supermarkets and groceries
     if (lowerDesc.includes('woolworths') || lowerDesc.includes('coles') || lowerDesc.includes('iga') || 
-        lowerDesc.includes('supermarket') || lowerDesc.includes('groceries') || lowerDesc.includes('grocery') ||
-        lowerDesc.includes('grocery store')) {
-      return 'Groceries';
+        lowerDesc.includes('supermarket') || lowerDesc.includes('groceries') || lowerDesc.includes('grocery')) {
+      return 'Supermarket';
     }
     
     // Fuel and transport

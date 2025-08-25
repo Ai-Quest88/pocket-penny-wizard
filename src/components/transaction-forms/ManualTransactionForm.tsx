@@ -172,7 +172,7 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
         user_id: session.user.id,
         description,
         amount: parseFloat(amount),
-        category,
+        category_name: category,
         date: format(date, 'yyyy-MM-dd'),
         currency,
         comment: comment || null,
