@@ -102,7 +102,7 @@ export const CategoryReviewDialog = ({
       };
     }
     
-    // Search through all category groups to find the hierarchy for this category name
+    // First, search through existing category hierarchy
     for (const groupArray of Object.values(categoryData)) {
       for (const group of groupArray) {
         for (const bucket of group.buckets || []) {
@@ -119,10 +119,92 @@ export const CategoryReviewDialog = ({
       }
     }
     
-    // If category exists but not found in hierarchy, show category name with AI suggestion
+    // If not found in existing hierarchy, predict where it should be organized
+    const lowerCategoryName = categoryName.toLowerCase();
+    
+    // Predict expense categories
+    if (lowerCategoryName.includes('coffee') || lowerCategoryName.includes('cafe') || lowerCategoryName.includes('starbucks')) {
+      return {
+        group: 'Expenses',
+        bucket: 'Food & Dining',
+        category: categoryName
+      };
+    }
+    if (lowerCategoryName.includes('grocery') || lowerCategoryName.includes('supermarket') || 
+        lowerCategoryName.includes('food') || lowerCategoryName.includes('groceries')) {
+      return {
+        group: 'Expenses',
+        bucket: 'Food & Dining',
+        category: categoryName
+      };
+    }
+    if (lowerCategoryName.includes('restaurant') || lowerCategoryName.includes('dining') || 
+        lowerCategoryName.includes('takeaway') || lowerCategoryName.includes('fast food')) {
+      return {
+        group: 'Expenses',
+        bucket: 'Food & Dining',
+        category: categoryName
+      };
+    }
+    if (lowerCategoryName.includes('gas') || lowerCategoryName.includes('petrol') || 
+        lowerCategoryName.includes('fuel') || lowerCategoryName.includes('bp') || 
+        lowerCategoryName.includes('caltex') || lowerCategoryName.includes('shell')) {
+      return {
+        group: 'Expenses',
+        bucket: 'Transportation',
+        category: categoryName
+      };
+    }
+    if (lowerCategoryName.includes('transport') || lowerCategoryName.includes('taxi') || 
+        lowerCategoryName.includes('uber') || lowerCategoryName.includes('bus') || 
+        lowerCategoryName.includes('train') || lowerCategoryName.includes('parking')) {
+      return {
+        group: 'Expenses',
+        bucket: 'Transportation',
+        category: categoryName
+      };
+    }
+    if (lowerCategoryName.includes('entertainment') || lowerCategoryName.includes('movie') || 
+        lowerCategoryName.includes('cinema') || lowerCategoryName.includes('games') || 
+        lowerCategoryName.includes('subscription')) {
+      return {
+        group: 'Expenses',
+        bucket: 'Entertainment',
+        category: categoryName
+      };
+    }
+    if (lowerCategoryName.includes('shopping') || lowerCategoryName.includes('retail') || 
+        lowerCategoryName.includes('clothes') || lowerCategoryName.includes('clothing')) {
+      return {
+        group: 'Expenses',
+        bucket: 'Shopping',
+        category: categoryName
+      };
+    }
+    
+    // Predict income categories
+    if (lowerCategoryName.includes('salary') || lowerCategoryName.includes('wage') || 
+        lowerCategoryName.includes('pay') || lowerCategoryName.includes('employment')) {
+      return {
+        group: 'Income',
+        bucket: 'Employment Income',
+        category: categoryName
+      };
+    }
+    if (lowerCategoryName.includes('bonus') || lowerCategoryName.includes('commission') || 
+        lowerCategoryName.includes('overtime')) {
+      return {
+        group: 'Income',
+        bucket: 'Employment Income',
+        category: categoryName
+      };
+    }
+    
+    // Default for unrecognized categories - categorize based on amount
+    const isIncome = transaction.amount > 0;
     return {
-      group: 'Will be organized by AI',
-      bucket: 'Will be organized by AI',
+      group: isIncome ? 'Income' : 'Expenses',
+      bucket: isIncome ? 'Other Income' : 'Other Expenses',
       category: categoryName
     };
   };
