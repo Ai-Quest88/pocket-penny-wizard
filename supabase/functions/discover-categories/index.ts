@@ -87,12 +87,14 @@ CLASSIFICATION RULES:
 - TRANSFER: Movement between own accounts (no financial impact)
 
 CATEGORIZATION RULES:
-- Group similar spending patterns together
+- Group similar spending patterns together - do NOT create specific categories for individual payment recipients
 - Use clear, descriptive names
 - Consider merchant patterns for categorization
 - Australian context (Coles, Woolworths, Linkt, etc.)
 - Include confidence scores (0-1) for each category
 - Classify each group with proper type
+- For payments/transfers: Use generic categories like "Personal Transfers", "Bill Payments", not specific recipient names
+- Avoid creating categories for individual people or specific payment recipients
 
 OUTPUT FORMAT (JSON):
 {
