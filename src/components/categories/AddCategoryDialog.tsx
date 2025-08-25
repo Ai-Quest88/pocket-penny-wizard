@@ -85,9 +85,14 @@ export const AddCategoryDialog = ({
         name: categoryName.trim(),
         description: categoryDescription.trim() || null,
         merchant_patterns: null,
-        is_transfer: false,
         sort_order: 0,
-        is_ai_generated: false
+        is_ai_generated: false,
+        type: 'expense',
+        parent_id: null,
+        group_id: selectedGroupId,
+        is_system: false,
+        icon: null,
+        color: null
       }, selectedBucketId);
       
       setCategoryName("");

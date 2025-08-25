@@ -21,7 +21,7 @@ export const createHousehold = async (householdData: CreateHouseholdData): Promi
   const insertData = {
     name: householdData.name,
     description: householdData.description || null,
-    user_id: user.id,
+    owner_id: user.id,
   };
 
   const { data, error } = await supabase
@@ -108,7 +108,7 @@ export const getHouseholds = async (): Promise<Household[]> => {
   const { data, error } = await supabase
     .from('households')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('owner_id', user.id)
     .order('name');
 
   if (error) {
@@ -131,7 +131,7 @@ export const getHousehold = async (id: string): Promise<Household> => {
     .from('households')
     .select('*')
     .eq('id', id)
-    .eq('user_id', user.id)
+    .eq('owner_id', user.id)
     .single();
 
   if (error) {
