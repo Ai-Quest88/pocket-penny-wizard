@@ -15,7 +15,7 @@ const typeConfig = {
 };
 
 export const CategoryManager = () => {
-  const { categoryData, isLoading, addCategory, addBucket, addGroup } = useCategories();
+  const { categoryData, isLoading, addCategory, addBucket, addGroup, deleteCategory, deleteBucket } = useCategories();
   
   // State for collapsible sections
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -69,8 +69,7 @@ export const CategoryManager = () => {
   };
 
   const handleDeleteBucket = (bucketId: string) => {
-    console.log('Delete bucket:', bucketId);
-    // TODO: Implement delete bucket functionality
+    deleteBucket(bucketId);
   };
 
   const handleEditCategory = (categoryId: string) => {
@@ -79,8 +78,7 @@ export const CategoryManager = () => {
   };
 
   const handleDeleteCategory = (categoryId: string) => {
-    console.log('Delete category:', categoryId);
-    // TODO: Implement delete category functionality
+    deleteCategory(categoryId);
   };
 
   if (isLoading) {

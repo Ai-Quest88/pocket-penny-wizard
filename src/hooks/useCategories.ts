@@ -176,6 +176,76 @@ export const useCategories = () => {
     }
   });
 
+  // Delete category
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (categoryId: string) => {
+      if (!session?.user?.id) throw new Error('User not authenticated');
+
+      const { error } = await supabase
+        .from('categories')
+        .delete()
+        .eq('id', categoryId)
+        .eq('user_id', session.user.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories-with-relations'] });
+      toast({
+        title: "Category Deleted",
+        description: "The category has been deleted successfully.",
+      });
+    },
+    onError: (error) => {
+      console.error('Error deleting category:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete category. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Delete bucket
+  const deleteBucketMutation = useMutation({
+    mutationFn: async (bucketId: string) => {
+      if (!session?.user?.id) throw new Error('User not authenticated');
+
+      // First, delete all categories in this bucket
+      const { error: categoriesError } = await supabase
+        .from('categories')
+        .delete()
+        .eq('bucket_id', bucketId)
+        .eq('user_id', session.user.id);
+
+      if (categoriesError) throw categoriesError;
+
+      // Then delete the bucket
+      const { error: bucketError } = await supabase
+        .from('category_buckets')
+        .delete()
+        .eq('id', bucketId)
+        .eq('user_id', session.user.id);
+
+      if (bucketError) throw bucketError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories-with-relations'] });
+      toast({
+        title: "Bucket Deleted",
+        description: "The bucket and all its categories have been deleted successfully.",
+      });
+    },
+    onError: (error) => {
+      console.error('Error deleting bucket:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete bucket. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
   return {
     categoryData,
     isLoading,
@@ -184,9 +254,13 @@ export const useCategories = () => {
     addCategory: addCategoryMutation.mutate,
     addBucket: addBucketMutation.mutate,
     addGroup: addGroupMutation.mutate,
+    deleteCategory: deleteCategoryMutation.mutate,
+    deleteBucket: deleteBucketMutation.mutate,
     isAddingCategory: addCategoryMutation.isPending,
     isAddingBucket: addBucketMutation.isPending,
-    isAddingGroup: addGroupMutation.isPending
+    isAddingGroup: addGroupMutation.isPending,
+    isDeletingCategory: deleteCategoryMutation.isPending,
+    isDeletingBucket: deleteBucketMutation.isPending
   };
 };
 
