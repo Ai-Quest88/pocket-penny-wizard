@@ -69,6 +69,7 @@ export type Database = {
       }
       assets: {
         Row: {
+          category: string | null
           created_at: string | null
           currency: string | null
           current_value: number
@@ -84,6 +85,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          category?: string | null
           created_at?: string | null
           currency?: string | null
           current_value: number
@@ -99,6 +101,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          category?: string | null
           created_at?: string | null
           currency?: string | null
           current_value?: number
@@ -190,6 +193,7 @@ export type Database = {
           is_system: boolean | null
           name: string
           parent_id: string | null
+          sort_order: number | null
           type: string
           updated_at: string | null
           user_id: string
@@ -204,6 +208,7 @@ export type Database = {
           is_system?: boolean | null
           name: string
           parent_id?: string | null
+          sort_order?: number | null
           type: string
           updated_at?: string | null
           user_id: string
@@ -218,6 +223,7 @@ export type Database = {
           is_system?: boolean | null
           name?: string
           parent_id?: string | null
+          sort_order?: number | null
           type?: string
           updated_at?: string | null
           user_id?: string
@@ -395,6 +401,7 @@ export type Database = {
       }
       liabilities: {
         Row: {
+          category: string | null
           created_at: string | null
           currency: string | null
           current_balance: number
@@ -411,6 +418,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          category?: string | null
           created_at?: string | null
           currency?: string | null
           current_balance: number
@@ -427,6 +435,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          category?: string | null
           created_at?: string | null
           currency?: string | null
           current_balance?: number
@@ -489,6 +498,7 @@ export type Database = {
         Row: {
           account_id: string
           amount: number
+          asset_account_id: string | null
           category_id: string | null
           created_at: string | null
           currency: string | null
@@ -496,6 +506,7 @@ export type Database = {
           description: string | null
           id: string
           is_reconciled: boolean | null
+          liability_account_id: string | null
           notes: string | null
           reference: string | null
           type: string
@@ -505,6 +516,7 @@ export type Database = {
         Insert: {
           account_id: string
           amount: number
+          asset_account_id?: string | null
           category_id?: string | null
           created_at?: string | null
           currency?: string | null
@@ -512,6 +524,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_reconciled?: boolean | null
+          liability_account_id?: string | null
           notes?: string | null
           reference?: string | null
           type: string
@@ -521,6 +534,7 @@ export type Database = {
         Update: {
           account_id?: string
           amount?: number
+          asset_account_id?: string | null
           category_id?: string | null
           created_at?: string | null
           currency?: string | null
@@ -528,6 +542,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_reconciled?: boolean | null
+          liability_account_id?: string | null
           notes?: string | null
           reference?: string | null
           type?: string
@@ -535,6 +550,20 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_transactions_asset_account"
+            columns: ["asset_account_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_transactions_liability_account"
+            columns: ["liability_account_id"]
+            isOneToOne: false
+            referencedRelation: "liabilities"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transactions_account_id_fkey"
             columns: ["account_id"]
@@ -555,6 +584,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string | null
+          currency_preference: string | null
           display_name: string | null
           id: string
           updated_at: string | null
@@ -563,6 +593,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string | null
+          currency_preference?: string | null
           display_name?: string | null
           id?: string
           updated_at?: string | null
@@ -571,6 +602,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string | null
+          currency_preference?: string | null
           display_name?: string | null
           id?: string
           updated_at?: string | null
