@@ -1,5 +1,6 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useCategoryHierarchy } from "@/hooks/useCategoryHierarchy";
+import { useCategories } from "@/hooks/useCategories";
 
 interface PreviewTableProps {
   data: any[];
@@ -25,6 +26,32 @@ interface PreviewTableProps {
 export const PreviewTable = ({ data, mappings, defaultSettings, selectedAccount }: PreviewTableProps) => {
   const previewData = data.slice(0, 5);
   const { predictCategoryHierarchy } = useCategoryHierarchy();
+  const { categoryData } = useCategories();
+
+  // Helper to get category hierarchy from actual categorized data
+  const getCategoryHierarchy = (description: string) => {
+    if (!categoryData) return predictCategoryHierarchy(description);
+    
+    // Search through all categories to find matching merchant patterns
+    for (const groupArray of Object.values(categoryData)) {
+      for (const group of groupArray) {
+        for (const bucket of group.buckets || []) {
+          for (const category of bucket.categories || []) {
+            if (category.merchant_patterns) {
+              for (const pattern of category.merchant_patterns) {
+                if (description.toLowerCase().includes(pattern.toLowerCase()) || 
+                    pattern.toLowerCase().includes(description.toLowerCase())) {
+                  return `${group.name} → ${bucket.name} → ${category.name}`;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    return predictCategoryHierarchy(description);
+  };
 
   // Debug information
   console.log('PreviewTable RECEIVED DATA:', { 
@@ -83,7 +110,7 @@ export const PreviewTable = ({ data, mappings, defaultSettings, selectedAccount 
             <TableBody>
               {previewData.map((row, index) => {
                 const description = getValue(row, mappings.description, defaultSettings.description);
-                const predictedCategory = predictCategoryHierarchy(description);
+                const categoryHierarchy = getCategoryHierarchy(description);
                 
                 return (
                   <TableRow key={index}>
@@ -99,9 +126,9 @@ export const PreviewTable = ({ data, mappings, defaultSettings, selectedAccount 
                     <TableCell className="max-w-[80px] truncate">
                       {getValue(row, mappings.currency, defaultSettings.currency)}
                     </TableCell>
-                    <TableCell className="max-w-[250px] truncate" title={predictedCategory}>
+                    <TableCell className="max-w-[250px] truncate" title={categoryHierarchy}>
                       <span className="text-sm text-muted-foreground italic">
-                        {predictedCategory}
+                        {categoryHierarchy}
                       </span>
                     </TableCell>
                     <TableCell className="max-w-[150px] truncate">
