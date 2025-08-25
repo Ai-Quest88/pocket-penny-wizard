@@ -18,13 +18,15 @@ const allowedOrigins = new Set([
 const buildCorsHeaders = (origin: string | null) => {
   const isDev = (Deno.env.get('DENO_ENV') || Deno.env.get('ENV') || 'development') !== 'production';
   const isLocal = origin?.startsWith('http://localhost:') || origin?.startsWith('http://127.0.0.1:');
-  const allowOrigin = (origin && allowedOrigins.has(origin)) || (isDev && isLocal)
+  const isLovableSandbox = origin?.includes('.sandbox.lovable.dev');
+  const allowOrigin = (origin && allowedOrigins.has(origin)) || (isDev && isLocal) || isLovableSandbox
     ? (origin as string)
     : 'https://pocket-penny-wizard.lovable.app';
   return {
     'Access-Control-Allow-Origin': allowOrigin,
     'Vary': 'Origin',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   } as Record<string, string>;
 };
 
