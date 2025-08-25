@@ -417,6 +417,7 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
   };
 
   const processTransactions = async () => {
+    console.log('🚀 processTransactions called!');
     if (!session?.user?.id) {
       toast({
         title: "Authentication Error",
