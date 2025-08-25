@@ -171,21 +171,46 @@ export class TransactionInsertionHelper {
         return existingCategory.id;
       }
 
-      console.log(`Category not found: ${categoryName}, falling back to uncategorized`);
+      console.log(`Category not found: ${categoryName}, creating fallback category`);
       
-      // Fallback: create in "Uncategorized" bucket (should be rare since AI creates categories)
-      let uncategorizedGroupId = await this.ensureUncategorizedGroup();
-      let uncategorizedBucketId = await this.ensureUncategorizedBucket(uncategorizedGroupId);
+      // Create appropriate category based on the category name
+      let groupId, bucketId;
+      
+      if (categoryName === 'ATM & Cash Withdrawals') {
+        // Create Banking & ATM group and bucket
+        groupId = await this.ensureCategoryGroup('Banking & ATM', 'expense', 'ATM withdrawals and banking fees', 'bg-gray-100', '🏧');
+        bucketId = await this.ensureCategoryBucket(groupId, 'ATM & Cash', 'ATM withdrawals and cash handling', 'bg-gray-200', '💸');
+      } else if (categoryName === 'Groceries') {
+        // Create Food & Dining group and grocery bucket
+        groupId = await this.ensureCategoryGroup('Food & Dining', 'expense', 'Food and dining expenses', 'bg-green-100', '🍽️');
+        bucketId = await this.ensureCategoryBucket(groupId, 'Groceries', 'Supermarket and grocery shopping', 'bg-green-200', '🛒');
+      } else if (categoryName === 'Fuel & Transportation') {
+        // Create Transportation group and fuel bucket
+        groupId = await this.ensureCategoryGroup('Transportation', 'expense', 'Transportation and travel expenses', 'bg-blue-100', '🚗');
+        bucketId = await this.ensureCategoryBucket(groupId, 'Fuel', 'Petrol and fuel expenses', 'bg-blue-200', '⛽');
+      } else if (categoryName === 'Coffee & Cafes') {
+        // Add to Food & Dining group
+        groupId = await this.ensureCategoryGroup('Food & Dining', 'expense', 'Food and dining expenses', 'bg-green-100', '🍽️');
+        bucketId = await this.ensureCategoryBucket(groupId, 'Coffee & Cafes', 'Coffee shops and cafes', 'bg-amber-200', '☕');
+      } else if (categoryName === 'Pharmacy & Health') {
+        // Create Health group
+        groupId = await this.ensureCategoryGroup('Health & Medical', 'expense', 'Health and medical expenses', 'bg-red-100', '🏥');
+        bucketId = await this.ensureCategoryBucket(groupId, 'Pharmacy', 'Pharmacy and health products', 'bg-red-200', '💊');
+      } else {
+        // Fallback: create in "Uncategorized" bucket (should be rare since AI creates categories)
+        groupId = await this.ensureUncategorizedGroup();
+        bucketId = await this.ensureUncategorizedBucket(groupId);
+      }
 
       // Create the category
       const { data: newCategory, error: createError } = await this.supabase
         .from('categories')
         .insert({
           user_id: this.userId,
-          bucket_id: uncategorizedBucketId,
+          bucket_id: bucketId,
           name: categoryName,
-          description: `Fallback category for ${categoryName}`,
-          merchant_patterns: [],
+          description: `Auto-created category for ${categoryName}`,
+          merchant_patterns: this.getMerchantPatternsForCategory(categoryName),
           sort_order: 0,
           is_ai_generated: false
         })
@@ -202,6 +227,105 @@ export class TransactionInsertionHelper {
       console.error('Error finding category:', error);
       return null;
     }
+  }
+
+  /**
+   * Get merchant patterns for enhanced fallback categories
+   */
+  private getMerchantPatternsForCategory(categoryName: string): string[] {
+    switch (categoryName) {
+      case 'ATM & Cash Withdrawals':
+        return ['ATM', 'Wdl ATM', 'Withdrawal Fee', 'Cash Out'];
+      case 'Groceries':
+        return ['ALDI', 'Woolworths', 'Coles', 'IGA'];
+      case 'Fuel & Transportation':
+        return ['BP ', 'Shell', 'Caltex', 'Ampol', 'Petrol', 'Fuel'];
+      case 'Coffee & Cafes':
+        return ['Starbucks', 'Coffee', 'Cafe', 'McCafe'];
+      case 'Pharmacy & Health':
+        return ['Chemist', 'Pharmacy', 'Priceline', 'Terry White'];
+      default:
+        return [];
+    }
+  }
+
+  /**
+   * Ensure a category group exists or create it
+   */
+  async ensureCategoryGroup(name: string, type: string, description: string, color: string, icon: string): Promise<string> {
+    const { data: existing, error: findError } = await this.supabase
+      .from('category_groups')
+      .select('id')
+      .eq('user_id', this.userId)
+      .eq('name', name)
+      .limit(1)
+      .single();
+
+    if (!findError && existing) {
+      return existing.id;
+    }
+
+    // Create new group
+    const { data: newGroup, error: createError } = await this.supabase
+      .from('category_groups')
+      .insert({
+        user_id: this.userId,
+        name: name,
+        category_type: type,
+        description: description,
+        color: color,
+        icon: icon,
+        sort_order: 0,
+        is_ai_generated: false
+      })
+      .select('id')
+      .single();
+
+    if (createError || !newGroup) {
+      throw new Error(`Failed to create category group: ${name}`);
+    }
+
+    return newGroup.id;
+  }
+
+  /**
+   * Ensure a category bucket exists or create it
+   */
+  async ensureCategoryBucket(groupId: string, name: string, description: string, color: string, icon: string): Promise<string> {
+    const { data: existing, error: findError } = await this.supabase
+      .from('category_buckets')
+      .select('id')
+      .eq('user_id', this.userId)
+      .eq('group_id', groupId)
+      .eq('name', name)
+      .limit(1)
+      .single();
+
+    if (!findError && existing) {
+      return existing.id;
+    }
+
+    // Create new bucket
+    const { data: newBucket, error: createError } = await this.supabase
+      .from('category_buckets')
+      .insert({
+        user_id: this.userId,
+        group_id: groupId,
+        name: name,
+        description: description,
+        color: color,
+        icon: icon,
+        sort_order: 0,
+        is_ai_generated: false
+      })
+      .select('id')
+      .single();
+
+    if (createError || !newBucket) {
+      throw new Error(`Failed to create category bucket: ${name}`);
+    }
+
+    return newBucket.id;
   }
 
   /**

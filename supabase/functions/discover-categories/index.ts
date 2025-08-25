@@ -449,6 +449,44 @@ async function categorizeTransactions(
     }
   }
   
+  // Enhanced fallback categorization with common Australian patterns
+  const getEnhancedFallbackCategory = (description: string): { name: string; confidence: number } | null => {
+    const lowerDesc = description.toLowerCase();
+    
+    // ATM Withdrawals and Fees
+    if (lowerDesc.includes('atm') || lowerDesc.includes('withdrawal fee') || 
+        (lowerDesc.includes('wdl') && lowerDesc.includes('atm'))) {
+      return { name: 'ATM & Cash Withdrawals', confidence: 0.95 };
+    }
+    
+    // Major Australian Supermarkets
+    if (lowerDesc.includes('aldi') || lowerDesc.includes('woolworths') || 
+        lowerDesc.includes('coles') || lowerDesc.includes('iga')) {
+      return { name: 'Groceries', confidence: 0.95 };
+    }
+    
+    // Fuel stations
+    if (lowerDesc.includes('bp ') || lowerDesc.includes('shell') || 
+        lowerDesc.includes('caltex') || lowerDesc.includes('ampol') ||
+        lowerDesc.includes('petrol') || lowerDesc.includes('fuel')) {
+      return { name: 'Fuel & Transportation', confidence: 0.9 };
+    }
+    
+    // Coffee shops
+    if (lowerDesc.includes('starbucks') || lowerDesc.includes('coffee') || 
+        lowerDesc.includes('cafe') || lowerDesc.includes('mccafe')) {
+      return { name: 'Coffee & Cafes', confidence: 0.9 };
+    }
+    
+    // Pharmacies
+    if (lowerDesc.includes('chemist') || lowerDesc.includes('pharmacy') || 
+        lowerDesc.includes('priceline') || lowerDesc.includes('terry white')) {
+      return { name: 'Pharmacy & Health', confidence: 0.9 };
+    }
+    
+    return null;
+  };
+  
   // Categorize each transaction
   for (const transaction of transactions) {
     const description = transaction.description.toLowerCase();
@@ -467,7 +505,16 @@ async function categorizeTransactions(
       if (bestConfidence === 0.9) break;
     }
     
-    // Second priority: Try to match against AI category names with better logic
+    // Second priority: Try enhanced fallback categorization for common patterns
+    if (bestConfidence < 0.9) {
+      const fallbackResult = getEnhancedFallbackCategory(transaction.description);
+      if (fallbackResult) {
+        bestMatch = fallbackResult.name;
+        bestConfidence = fallbackResult.confidence;
+      }
+    }
+    
+    // Third priority: Try to match against AI category names with better logic
     if (bestConfidence < 0.9) {
       for (const category of allCategories) {
         const categoryName = category.name.toLowerCase();
@@ -494,7 +541,7 @@ async function categorizeTransactions(
       }
     }
     
-    // Third priority: Enhanced fallback categorization but prefer AI categories when available
+    // Fourth priority: Enhanced specific matching for salary and transfer transactions
     if (bestConfidence < 0.8) {
       const lowerDesc = description.toLowerCase();
       
