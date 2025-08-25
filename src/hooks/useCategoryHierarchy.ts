@@ -16,7 +16,7 @@ export const useCategoryHierarchy = () => {
         for (const bucket of group.buckets || []) {
           for (const category of bucket.categories || []) {
             if (category.name === categoryName) {
-              return `${group.name} → ${bucket.name} → ${category.name}`;
+              return `${category.name} → ${bucket.name} → ${group.name}`;
             }
           }
         }
