@@ -4,7 +4,7 @@ import { Plus } from "lucide-react";
 import { CategoryGroupCard } from "./CategoryGroupCard";
 import { AddCategoryDialog } from "./AddCategoryDialog";
 import { useCategories } from "@/hooks/useCategories";
-import { CategoryGroupWithRelations } from "@/integrations/supabase/types";
+import { CategoryGroupWithRelations } from "@/types/categories";
 
 const typeConfig = {
   income: { icon: '💰', color: 'bg-green-100 text-green-800', label: 'Income' },

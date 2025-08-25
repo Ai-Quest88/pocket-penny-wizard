@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Brain, Edit, Trash2, Move, Plus, ChevronDown, ChevronRight, Sparkles } from "lucide-react";
-import { CategoryGroupWithRelations } from "@/integrations/supabase/types";
+import { CategoryGroupWithRelations } from "@/types/categories";
 import { useState } from "react";
 
 interface CategoryGroupCardProps {

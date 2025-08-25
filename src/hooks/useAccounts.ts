@@ -25,7 +25,7 @@ export const useAccounts = () => {
     queryFn: async () => {
       if (!session?.user) return [];
 
-      // Fetch assets (cash accounts)
+      // Fetch assets
       const { data: assets, error: assetsError } = await supabase
         .from('assets')
         .select(`
@@ -44,7 +44,6 @@ export const useAccounts = () => {
           )
         `)
         .eq('user_id', session.user.id)
-        .eq('type', 'cash')
         .order('name');
 
       if (assetsError) {
