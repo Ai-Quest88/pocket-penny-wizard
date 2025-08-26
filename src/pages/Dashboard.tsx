@@ -137,16 +137,6 @@ const Dashboard = () => {
             </Card>
           )}
           
-          {/* Entities Info */}
-          {entities.length > 0 && (
-            <Card className="p-3 bg-green-50 border-green-200">
-              <div className="flex items-center gap-2 text-green-700">
-                <span className="text-sm">
-                  {entities.length} entit{entities.length !== 1 ? 'ies' : 'y'} available for filtering
-                </span>
-              </div>
-            </Card>
-          )}
         </header>
 
         <NetWorthWidget entityId={selectedEntityType === "all" ? undefined : selectedEntityType} />
