@@ -248,7 +248,7 @@ export type Database = {
           sort_order: number | null
           type: string
           updated_at: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           color?: string | null
@@ -264,7 +264,7 @@ export type Database = {
           sort_order?: number | null
           type: string
           updated_at?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           color?: string | null
@@ -280,7 +280,7 @@ export type Database = {
           sort_order?: number | null
           type?: string
           updated_at?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -331,9 +331,10 @@ export type Database = {
           icon: string | null
           id: string
           is_ai_generated: boolean | null
+          is_system: boolean | null
           name: string
           updated_at: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           category_type?: string | null
@@ -343,9 +344,10 @@ export type Database = {
           icon?: string | null
           id?: string
           is_ai_generated?: boolean | null
+          is_system?: boolean | null
           name: string
           updated_at?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           category_type?: string | null
@@ -355,9 +357,10 @@ export type Database = {
           icon?: string | null
           id?: string
           is_ai_generated?: boolean | null
+          is_system?: boolean | null
           name?: string
           updated_at?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
