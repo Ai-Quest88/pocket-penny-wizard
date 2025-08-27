@@ -33,18 +33,18 @@ export const useCategories = () => {
         }
       }
 
-      // Fetch all data in parallel
+      // Fetch all data in parallel - include both user and system categories
       const [groupsResult, categoriesResult] = await Promise.all([
         supabase
           .from('category_groups')
           .select('*')
-          .eq('user_id', session.user.id)
+          .or(`user_id.eq.${session.user.id},is_system.eq.true`)
           .order('created_at', { ascending: true }),
         
         supabase
           .from('categories')
           .select('*')
-          .eq('user_id', session.user.id)
+          .or(`user_id.eq.${session.user.id},is_system.eq.true`)
           .order('sort_order', { ascending: true })
       ]);
 
