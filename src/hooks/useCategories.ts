@@ -54,8 +54,20 @@ export const useCategories = () => {
       const groups = groupsResult.data || [];
       const categories = categoriesResult.data || [];
 
+      // Remove duplicate groups - prioritize system groups over user groups for same category_type
+      const uniqueGroups = groups.filter((group, index, array) => {
+        // If this is a user group, check if there's a system group with the same category_type
+        if (!group.is_system && group.user_id) {
+          const hasSystemGroup = array.some(g => 
+            g.is_system && g.category_type === group.category_type
+          );
+          return !hasSystemGroup;
+        }
+        return true;
+      });
+
       // Build nested structure - simplified 2-tier
-      const groupsWithCategories: CategoryGroupWithRelations[] = groups.map(group => ({
+      const groupsWithCategories: CategoryGroupWithRelations[] = uniqueGroups.map(group => ({
         ...group,
         categories: categories.filter(category => category.group_id === group.id)
       }));
