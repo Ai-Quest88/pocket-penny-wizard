@@ -6,64 +6,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 
 interface AddCategoryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddCategory: (category: string, bucket: string) => void;
+  onAddCategory: (categoryName: string, groupName: string) => void;
+  availableGroups: Array<{ id: string; name: string; type: string }>;
 }
 
-export const AddCategoryDialog = ({ open, onOpenChange, onAddCategory }: AddCategoryDialogProps) => {
+export const AddCategoryDialog = ({ open, onOpenChange, onAddCategory, availableGroups }: AddCategoryDialogProps) => {
   const [categoryName, setCategoryName] = useState("");
-  const [selectedBucket, setSelectedBucket] = useState("");
-  const { session } = useAuth();
-
-  // Fetch user's category buckets from database
-  const { data: userBuckets = [] } = useQuery({
-    queryKey: ['user-category-buckets', session?.user?.id],
-    queryFn: async () => {
-      if (!session?.user?.id) return [];
-
-      const { data: buckets } = await supabase
-        .from('category_buckets')
-        .select('name')
-        .eq('user_id', session.user.id)
-        .order('sort_order', { ascending: true });
-
-      // Filter out null/undefined names and ensure they're strings
-      return (buckets || [])
-        .map((bucket: any) => bucket.name)
-        .filter((name: any) => name && typeof name === 'string' && name.trim().length > 0);
-    },
-    enabled: !!session?.user && open,
-  });
-
-  // Use user's buckets if available, fallback to default buckets
-  const availableBuckets = userBuckets.length > 0 
-    ? userBuckets.map(name => ({ name }))
-    : [
-        { name: "Housing" },
-        { name: "Transport" }, 
-        { name: "Groceries" },
-        { name: "Utilities" },
-        { name: "Entertainment" },
-        { name: "Healthcare" },
-        { name: "Shopping" },
-        { name: "Dining" },
-        { name: "Education" },
-        { name: "Personal Care" },
-        { name: "Professional Services" }
-      ];
+  const [selectedGroup, setSelectedGroup] = useState("");
 
   const handleSubmit = () => {
-    if (!categoryName.trim() || !selectedBucket) return;
+    if (!categoryName.trim() || !selectedGroup) return;
 
-    onAddCategory(categoryName.trim(), selectedBucket);
+    const groupName = availableGroups.find(g => g.id === selectedGroup)?.name || selectedGroup;
+    onAddCategory(categoryName.trim(), groupName);
     setCategoryName("");
-    setSelectedBucket("");
+    setSelectedGroup("");
     onOpenChange(false);
   };
 
@@ -85,28 +46,17 @@ export const AddCategoryDialog = ({ open, onOpenChange, onAddCategory }: AddCate
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="bucket">Bucket</Label>
-            <Select value={selectedBucket} onValueChange={setSelectedBucket}>
+            <Label htmlFor="group">Group</Label>
+            <Select value={selectedGroup} onValueChange={setSelectedGroup}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a bucket" />
+                <SelectValue placeholder="Select a group" />
               </SelectTrigger>
-              <SelectContent
-                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-[70]"
-                position="popper"
-                sideOffset={4}
-              >
-                {availableBuckets
-                  .filter((bucket: any) => bucket && bucket.name && typeof bucket.name === 'string' && bucket.name.trim() !== "")
-                  .map((bucket: any) => (
-                    <SelectItem 
-                      key={bucket.name} 
-                      value={bucket.name}
-                      className="hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    >
-                      {bucket.name}
-                    </SelectItem>
-                  ))
-                }
+              <SelectContent>
+                {availableGroups.map((group) => (
+                  <SelectItem key={group.id} value={group.id}>
+                    {group.name} ({group.type})
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -122,7 +72,7 @@ export const AddCategoryDialog = ({ open, onOpenChange, onAddCategory }: AddCate
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={!categoryName.trim() || !selectedBucket}
+              disabled={!categoryName.trim() || !selectedGroup}
               className="flex-1"
             >
               <Plus className="h-4 w-4 mr-2" />

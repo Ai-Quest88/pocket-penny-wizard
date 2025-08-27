@@ -5,60 +5,43 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/comp
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { CategoryBucket } from "@/types/transaction-forms";
+import { useCategoryManagement } from "@/hooks/useCategoryManagement";
 import { AddCategoryDialog } from "./AddCategoryDialog";
 
 interface CategorySelectProps<T extends FieldValues> {
   control: Control<T>;
   name: FieldPath<T>;
-  availableBuckets: CategoryBucket[];
-  onAddCategory: (categoryName: string, bucketName: string) => void;
+  categoryType?: 'income' | 'expense' | 'asset' | 'liability' | 'transfer';
+  showHierarchy?: boolean;
 }
 
 export const CategorySelect = <T extends FieldValues>({ 
   control, 
   name, 
-  availableBuckets, 
-  onAddCategory 
+  categoryType,
+  showHierarchy = false
 }: CategorySelectProps<T>) => {
   const [addCategoryOpen, setAddCategoryOpen] = useState(false);
+  const { 
+    groupedCategories, 
+    flatCategories, 
+    getCategoriesByType, 
+    isLoading,
+    addCategoryToGroup
+  } = useCategoryManagement();
 
-  // Enhanced filtering with comprehensive validation
-  const validBuckets = availableBuckets
-    .filter(bucket => {
-      const isBucketValid = bucket && 
-        bucket.name && 
-        typeof bucket.name === 'string' && 
-        bucket.name.trim().length > 0;
-      
-      if (!isBucketValid) {
-        console.warn("Filtering out invalid bucket:", bucket);
-        return false;
-      }
-      
-      return true;
-    })
-    .map(bucket => ({
-      ...bucket,
-      name: bucket.name.trim(),
-      categories: bucket.categories
-        .filter(category => {
-          const isCategoryValid = category && 
-            typeof category === 'string' && 
-            category.trim().length > 0;
-          
-          if (!isCategoryValid) {
-            console.warn("Filtering out invalid category in bucket:", bucket.name, "category:", category);
-          }
-          
-          return isCategoryValid;
-        })
-        .map(category => category.trim())
-        .filter(category => category.length > 0)
-    }))
-    .filter(bucket => bucket.categories.length > 0);
+  // Get categories based on type filter or all categories
+  const availableCategories = categoryType 
+    ? getCategoriesByType(categoryType)
+    : flatCategories;
 
-  console.log("CategorySelect validBuckets:", validBuckets);
+  const handleAddCategory = async (categoryName: string, groupName: string) => {
+    // Find the group by name
+    const targetGroup = groupedCategories.find(group => group.name === groupName);
+    if (targetGroup) {
+      await addCategoryToGroup(categoryName, targetGroup.id);
+    }
+  };
 
   return (
     <>
@@ -91,23 +74,39 @@ export const CategorySelect = <T extends FieldValues>({
                 position="popper"
                 sideOffset={4}
               >
-                {validBuckets.map((bucket, bucketIndex) => (
-                  <div key={bucket.name}>
-                    {bucketIndex > 0 && <div className="h-px bg-gray-200 dark:bg-gray-600 my-1 mx-2" />}
-                    <div className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide bg-gray-50 dark:bg-gray-700/50 border-b border-gray-100 dark:border-gray-600">
-                      {bucket.name}
-                    </div>
-                    {bucket.categories.map((category) => (
-                      <SelectItem 
-                        key={category} 
-                        value={category} 
-                        className="pl-6 hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700"
-                      >
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </div>
-                ))}
+                {showHierarchy ? (
+                  // Show grouped structure with hierarchy
+                  groupedCategories
+                    .filter(group => !categoryType || group.type === categoryType)
+                    .map((group, groupIndex) => (
+                      <div key={group.id}>
+                        {groupIndex > 0 && <div className="h-px bg-border my-1 mx-2" />}
+                        <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide bg-muted/50 border-b border-border">
+                          {group.name}
+                        </div>
+                        {group.categories.map((category) => (
+                          <SelectItem 
+                            key={category.id} 
+                            value={category.name} 
+                            className="pl-6 hover:bg-accent focus:bg-accent"
+                          >
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </div>
+                    ))
+                ) : (
+                  // Show flat list
+                  availableCategories.map((category) => (
+                    <SelectItem 
+                      key={category.id} 
+                      value={category.name}
+                      className="hover:bg-accent focus:bg-accent"
+                    >
+                      {showHierarchy ? category.hierarchy : category.name}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
             <FormMessage />
@@ -118,7 +117,8 @@ export const CategorySelect = <T extends FieldValues>({
       <AddCategoryDialog
         open={addCategoryOpen}
         onOpenChange={setAddCategoryOpen}
-        onAddCategory={onAddCategory}
+        onAddCategory={handleAddCategory}
+        availableGroups={groupedCategories.filter(group => !categoryType || group.type === categoryType)}
       />
     </>
   );

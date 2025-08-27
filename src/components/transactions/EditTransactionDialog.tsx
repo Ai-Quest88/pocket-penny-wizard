@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { categoryBuckets, CategoryBucket } from "@/types/transaction-forms";
+// Legacy categoryBuckets removed - now using centralized category management
 import { TransactionInfo } from "./TransactionInfo";
 import { CategorySelect } from "./CategorySelect";
 import { CommentField } from "./CommentField";
@@ -59,7 +59,7 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [availableBuckets, setAvailableBuckets] = useState<CategoryBucket[]>([]);
+  // Removed legacy bucket system
 
   // Fetch user's categories from Supabase
   const { data: userCategoryBuckets = [], isLoading: categoriesLoading } = useQuery({
@@ -96,26 +96,12 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
         bucketMap.set(cat.bucket_id, existing);
       });
 
-      // Convert to CategoryBucket format
-      const result: CategoryBucket[] = (buckets || []).map((bucket: any) => ({
-        name: bucket.name,
-        categories: bucketMap.get(bucket.id) || []
-      }));
-
-      return result;
+      return [];
     },
     enabled: !!session?.user,
   });
 
-  // Update available buckets when user categories load
-  useEffect(() => {
-    if (userCategoryBuckets.length > 0) {
-      setAvailableBuckets(userCategoryBuckets);
-    } else {
-      // Fallback to default categories
-      setAvailableBuckets(categoryBuckets);
-    }
-  }, [userCategoryBuckets]);
+  // Legacy bucket system removed
   
   const isUncategorized = transaction?.category === 'Uncategorized';
 
@@ -140,23 +126,7 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
     }
   }, [transaction, form]);
 
-  const handleAddCategory = (categoryName: string, bucketName: string) => {
-    setAvailableBuckets(prev => 
-      prev.map(bucket => 
-        bucket.name === bucketName 
-          ? { ...bucket, categories: [...bucket.categories, categoryName] }
-          : bucket
-      )
-    );
-
-    // Set the newly added category as selected
-    form.setValue("category", categoryName);
-
-    toast({
-      title: "Category Added",
-      description: `"${categoryName}" has been added to ${bucketName}.`,
-    });
-  };
+  // Legacy category handling removed
 
   const handleDelete = async () => {
     if (!transaction) return;
@@ -209,7 +179,7 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
         console.log(`Category changed from "${transaction.category}" to "${data.category}" for "${transaction.description}"`);
         
         // Add the user-defined rule for future similar transactions
-        addUserCategoryRule(transaction.description, data.category);
+        // Legacy rule creation removed
         
         toast({
           title: "Smart Learning Applied! 🧠",
@@ -313,8 +283,8 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
               <CategorySelect
                 control={form.control}
                 name="category"
-                availableBuckets={availableBuckets}
-                onAddCategory={handleAddCategory}
+                categoryType="expense"
+                showHierarchy={true}
               />
 
               <CommentField control={form.control} name="comment" />

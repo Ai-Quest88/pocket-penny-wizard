@@ -15,6 +15,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/contexts/AuthContext"
 import { useToast } from "@/hooks/use-toast"
+import { useCategoryManagement } from "@/hooks/useCategoryManagement"
 
 interface ManualTransactionDialogProps {
   open: boolean
@@ -123,39 +124,8 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
     enabled: !!session?.user && open,
   });
 
-  // Fetch user's categories from Supabase
-  const { data: userCategories = [], isLoading: categoriesLoading } = useQuery({
-    queryKey: ['user-categories', session?.user?.id],
-    queryFn: async () => {
-      if (!session?.user?.id) return [];
-
-      const { data: groups } = await supabase
-        .from('category_groups')
-        .select('id,key,name,sort_order')
-        .order('sort_order', { ascending: true });
-
-      const { data: buckets } = await supabase
-        .from('category_buckets')
-        .select('id,name,group_id,sort_order')
-        .eq('user_id', session.user.id)
-        .order('sort_order', { ascending: true });
-
-      const { data: cats } = await supabase
-        .from('categories')
-        .select('id,name,bucket_id,is_transfer,sort_order')
-        .eq('user_id', session.user.id)
-        .order('sort_order', { ascending: true });
-
-      // Flatten all categories into a simple array
-      const allCategories: string[] = [];
-      (cats || []).forEach((cat: any) => {
-        allCategories.push(cat.name);
-      });
-
-      return allCategories;
-    },
-    enabled: !!session?.user && open,
-  });
+  // Use centralized category management
+  const { flatCategories, isLoading: categoriesLoading } = useCategoryManagement();
 
   const resetForm = () => {
     setAmount('')
@@ -236,9 +206,9 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
     }
   }
 
-  // Use user's categories if available, fallback to uncategorized
-  const validCategories = userCategories.length > 0 
-    ? userCategories
+  // Use categories from centralized management
+  const validCategories = flatCategories.length > 0 
+    ? flatCategories.map(cat => cat.name)
     : ['Uncategorized'];
 
   // Enhanced filtering with comprehensive validation for currencies
