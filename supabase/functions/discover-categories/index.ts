@@ -44,7 +44,6 @@ interface DiscoveredCategory {
   confidence: number;
   merchant_patterns: string[];
   suggested_group: string;
-  suggested_bucket: string;
 }
 
 interface CategoryGroup {
@@ -53,13 +52,7 @@ interface CategoryGroup {
   description: string;
   color: string;
   icon: string;
-  buckets: {
-    name: string;
-    description: string;
-    color: string;
-    icon: string;
-    categories: DiscoveredCategory[];
-  }[];
+  categories: DiscoveredCategory[];
 }
 
 const createCategoryDiscoveryPrompt = (transactions: Transaction[]): string => {
@@ -74,10 +67,9 @@ Analyze these transactions and create a logical category structure:
 TRANSACTIONS:
 ${sampleTransactions}
 
-TASK: Create a hierarchical category structure with:
+TASK: Create a simple category structure with:
 1. High-level groups classified by type (income, expense, asset, liability, transfer)
-2. Logical buckets within each group
-3. Specific categories with merchant patterns
+2. Specific categories within each group (no sub-buckets)
 
 CLASSIFICATION RULES:
 - INCOME: Salary, wages, dividends, interest, rental income, business income
@@ -105,22 +97,20 @@ OUTPUT FORMAT (JSON):
       "description": "All food-related spending",
       "color": "bg-red-100",
       "icon": "🍽️",
-      "buckets": [
+      "categories": [
         {
           "name": "Groceries",
-          "description": "Food and household items",
-          "color": "bg-green-100",
-          "icon": "🛒",
-          "categories": [
-            {
-              "name": "Supermarket",
-              "description": "Major grocery stores",
-              "confidence": 0.95,
-              "merchant_patterns": ["Coles", "Woolworths", "IGA"],
-              "suggested_group": "Expenses",
-              "suggested_bucket": "Groceries"
-            }
-          ]
+          "description": "Food and household items from supermarkets",
+          "confidence": 0.95,
+          "merchant_patterns": ["Coles", "Woolworths", "IGA"],
+          "suggested_group": "Food & Dining"
+        },
+        {
+          "name": "Restaurants",
+          "description": "Dining out and takeaway food",
+          "confidence": 0.90,
+          "merchant_patterns": ["McDonalds", "KFC", "Restaurant"],
+          "suggested_group": "Food & Dining"
         }
       ]
     }
@@ -237,7 +227,7 @@ serve(async (req) => {
       categories: discoveredCategories,
       categorized_transactions: categorizedTransactions,
       session_id: sessionId,
-      message: `Discovered ${discoveredCategories.length} category groups with ${discoveredCategories.reduce((sum, g) => sum + g.buckets.length, 0)} buckets and categorized ${categorizedTransactions.length} transactions`
+      message: `Discovered ${discoveredCategories.length} category groups with ${discoveredCategories.reduce((sum, g) => sum + g.categories.length, 0)} categories and categorized ${categorizedTransactions.length} transactions`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
@@ -276,11 +266,9 @@ async function storeDiscoveredCategories(
     .from('category_discovery_sessions')
     .insert([{
       user_id: userId,
-      session_type: 'initial',
-      transactions_processed: transactionsProcessed,
-      new_categories_created: 0,
-      categories_grouped: 0,
-      ai_confidence_score: 0.9
+      transaction_count: transactionsProcessed,
+      categories_created: 0,
+      groups_created: 0
     }])
     .select('id')
     .single();
@@ -291,9 +279,9 @@ async function storeDiscoveredCategories(
   }
 
   let totalCategories = 0;
-  let totalBuckets = 0;
+  let totalGroups = 0;
 
-  // Store category groups (check for existing first)
+  // Store category groups and categories (simplified 2-tier structure)
   for (const group of categories) {
     // Check if group already exists
     const { data: existingGroup, error: findError } = await supabase
@@ -320,11 +308,10 @@ async function storeDiscoveredCategories(
           description: group.description,
           color: group.color,
           icon: group.icon,
-        sort_order: 0,
-        is_ai_generated: true
-      }])
-      .select('id')
-      .single();
+          is_ai_generated: true
+        }])
+        .select('id')
+        .single();
 
       if (groupError) {
         console.error('Failed to create category group:', groupError);
@@ -333,86 +320,43 @@ async function storeDiscoveredCategories(
       
       groupId = groupData.id;
       console.log(`Created new group: ${group.name}`);
+      totalGroups++;
     }
 
-    // Store buckets within this group
-    for (const bucket of group.buckets) {
-      // Check if bucket already exists
-      const { data: existingBucket, error: findBucketError } = await supabase
-        .from('category_buckets')
+    // Store categories directly under the group (no buckets)
+    for (const category of group.categories) {
+      // Check if category already exists
+      const { data: existingCategory, error: findCategoryError } = await supabase
+        .from('categories')
         .select('id')
         .eq('user_id', userId)
         .eq('group_id', groupId)
-        .eq('name', bucket.name)
+        .eq('name', category.name)
         .single();
 
-      let bucketId;
-      if (existingBucket) {
-        // Use existing bucket
-        bucketId = existingBucket.id;
-        console.log(`Using existing bucket: ${bucket.name}`);
-      } else {
-        // Create new bucket
-        const { data: bucketData, error: bucketError } = await supabase
-          .from('category_buckets')
+      if (!existingCategory) {
+        // Create new category only if it doesn't exist
+        const { error: categoryError } = await supabase
+          .from('categories')
           .insert([{
             user_id: userId,
             group_id: groupId,
-            name: bucket.name,
-            description: bucket.description,
-            color: bucket.color,
-            icon: bucket.icon,
-          sort_order: 0,
-          is_ai_generated: true
-        }])
-        .select('id')
-        .single();
+            name: category.name,
+            description: category.description,
+            type: normalizeGroupType(group.type),
+            merchant_patterns: category.merchant_patterns,
+            is_ai_generated: true
+          }]);
 
-      if (bucketError) {
-        console.error('Failed to create category bucket:', bucketError);
-        continue;
-      }
-
-        bucketId = bucketData.id;
-        console.log(`Created new bucket: ${bucket.name}`);
-        totalBuckets++;
-      }
-
-      // Store categories within this bucket
-      for (const category of bucket.categories) {
-        // Check if category already exists
-        const { data: existingCategory, error: findCategoryError } = await supabase
-          .from('categories')
-          .select('id')
-          .eq('user_id', userId)
-          .eq('bucket_id', bucketId)
-          .eq('name', category.name)
-          .single();
-
-        if (!existingCategory) {
-          // Create new category only if it doesn't exist
-          const { error: categoryError } = await supabase
-            .from('categories')
-            .insert([{
-              user_id: userId,
-              bucket_id: bucketId,
-              name: category.name,
-              description: category.description,
-              merchant_patterns: category.merchant_patterns,
-              sort_order: 0,
-              is_ai_generated: true
-            }]);
-
-          if (categoryError) {
-            console.error('Failed to create category:', categoryError);
-            continue;
-          }
-
-          totalCategories++;
-          console.log(`Created new category: ${category.name}`);
-        } else {
-          console.log(`Using existing category: ${category.name}`);
+        if (categoryError) {
+          console.error('Failed to create category:', categoryError);
+          continue;
         }
+
+        totalCategories++;
+        console.log(`Created new category: ${category.name}`);
+      } else {
+        console.log(`Using existing category: ${category.name}`);
       }
     }
   }
@@ -421,8 +365,8 @@ async function storeDiscoveredCategories(
   await supabase
     .from('category_discovery_sessions')
     .update({
-      new_categories_created: totalCategories,
-      categories_grouped: totalBuckets
+      categories_created: totalCategories,
+      groups_created: totalGroups
     })
     .eq('id', session.id);
 
@@ -437,17 +381,15 @@ async function categorizeTransactions(
 ): Promise<{ transaction_description: string; category_name: string; confidence: number }[]> {
   const categorizedTransactions = [];
   
-  // Build a flat list of all categories from the hierarchical structure
+  // Build a flat list of all categories from the simplified structure
   const allCategories: { name: string; patterns: string[] }[] = [];
   
   for (const group of discoveredCategories) {
-    for (const bucket of group.buckets) {
-      for (const category of bucket.categories) {
-        allCategories.push({
-          name: category.name,
-          patterns: category.merchant_patterns || []
-        });
-      }
+    for (const category of group.categories) {
+      allCategories.push({
+        name: category.name,
+        patterns: category.merchant_patterns || []
+      });
     }
   }
   

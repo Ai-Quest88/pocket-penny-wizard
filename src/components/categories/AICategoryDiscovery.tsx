@@ -14,7 +14,6 @@ interface DiscoveredCategory {
   confidence: number;
   merchant_patterns: string[];
   suggested_group: string;
-  suggested_bucket: string;
 }
 
 interface CategoryGroup {
@@ -22,13 +21,7 @@ interface CategoryGroup {
   description: string;
   color: string;
   icon: string;
-  buckets: {
-    name: string;
-    description: string;
-    color: string;
-    icon: string;
-    categories: DiscoveredCategory[];
-  }[];
+  categories: DiscoveredCategory[];
 }
 
 interface AICategoryDiscoveryProps {
@@ -112,7 +105,7 @@ export const AICategoryDiscovery = ({
       
       toast({
         title: "Categories Discovered!",
-        description: `AI found ${discoveryData.categories.length} category groups with ${discoveryData.categories.reduce((sum, g) => sum + g.buckets.length, 0)} buckets.`,
+        description: `AI found ${discoveryData.categories.length} category groups with ${discoveryData.categories.reduce((sum, g) => sum + g.categories.length, 0)} categories.`,
       });
 
       onCategoriesDiscovered(discoveryData.categories);
@@ -169,16 +162,15 @@ export const AICategoryDiscovery = ({
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">{group.icon}</span>
                     <h4 className="font-semibold">{group.name}</h4>
-                    <Badge variant="secondary">{group.buckets.length} buckets</Badge>
+                    <Badge variant="secondary">{group.categories.length} categories</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">{group.description}</p>
                   <div className="space-y-1">
-                    {group.buckets.map((bucket, bucketIndex) => (
-                      <div key={bucketIndex} className="ml-4 text-sm">
-                        <span className="text-lg">{bucket.icon}</span>
-                        <span className="ml-1 font-medium">{bucket.name}</span>
+                    {group.categories.map((category, categoryIndex) => (
+                      <div key={categoryIndex} className="ml-4 text-sm">
+                        <span className="font-medium">{category.name}</span>
                         <span className="ml-2 text-muted-foreground">
-                          ({bucket.categories.length} categories)
+                          (confidence: {Math.round(category.confidence * 100)}%)
                         </span>
                       </div>
                     ))}
