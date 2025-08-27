@@ -37,7 +37,7 @@ import Login from "./pages/Login"
 import AuthCallback from "./pages/AuthCallback"
 import Entities from "./pages/Entities"
 import Households from "./pages/Households"
-import Categories from "./pages/Categories"
+
 
 
 const queryClient = new QueryClient()
@@ -189,7 +189,7 @@ const AppRoutes = () => {
                   <Route path="transactions/uncategorized" element={<UncategorizedTransactions />} />
                   <Route path="transactions/transfers" element={<TransferTransactions />} />
 
-                  <Route path="categories" element={<Categories />} />
+                  
                   <Route path="analytics" element={<Analytics />} />
                   <Route path="accounts" element={<Accounts />} />
                   <Route path="entities" element={<Entities />} />

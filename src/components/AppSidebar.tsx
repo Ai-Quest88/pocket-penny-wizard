@@ -1,5 +1,5 @@
 
-import { BarChart2, CreditCard, DollarSign, Home, Settings, Users, Wallet, List, Upload, FileText, TrendingUp, Calendar, Activity, PieChart, ArrowLeftRight, ChevronDown, Building2, Tags } from "lucide-react"
+import { BarChart2, CreditCard, DollarSign, Home, Settings, Users, Wallet, List, Upload, FileText, TrendingUp, Calendar, Activity, PieChart, ArrowLeftRight, ChevronDown, Building2 } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -178,18 +178,6 @@ export function AppSidebar() {
                 )}
               </SidebarMenuItem>
 
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link 
-                    to="/categories"
-                    className="flex items-center gap-2"
-                    data-active={location.pathname === "/categories"}
-                  >
-                    <Tags className="h-4 w-4" />
-                    <span>Categories</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
 
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
