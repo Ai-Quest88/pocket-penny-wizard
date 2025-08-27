@@ -106,7 +106,6 @@ export const CategoryReviewDialog = ({
     if (!categoryData || categoryName === 'Uncategorized') {
       return {
         group: 'Uncategorized',
-        bucket: 'Uncategorized', 
         category: categoryName
       };
     }
@@ -129,44 +128,24 @@ export const CategoryReviewDialog = ({
     const lowerCategoryName = categoryName.toLowerCase();
     
     // Predict expense categories
-    if (lowerCategoryName.includes('coffee') || lowerCategoryName.includes('cafe') || lowerCategoryName.includes('starbucks')) {
-      return {
-        group: 'Expenses',
-        bucket: 'Food & Dining',
-        category: categoryName
-      };
-    }
-    if (lowerCategoryName.includes('grocery') || lowerCategoryName.includes('supermarket') || 
-        lowerCategoryName.includes('food') || lowerCategoryName.includes('groceries')) {
-      return {
-        group: 'Expenses',
-        bucket: 'Food & Dining',
-        category: categoryName
-      };
-    }
-    if (lowerCategoryName.includes('restaurant') || lowerCategoryName.includes('dining') || 
+    if (lowerCategoryName.includes('coffee') || lowerCategoryName.includes('cafe') || lowerCategoryName.includes('starbucks') ||
+        lowerCategoryName.includes('grocery') || lowerCategoryName.includes('supermarket') || 
+        lowerCategoryName.includes('food') || lowerCategoryName.includes('groceries') ||
+        lowerCategoryName.includes('restaurant') || lowerCategoryName.includes('dining') || 
         lowerCategoryName.includes('takeaway') || lowerCategoryName.includes('fast food')) {
       return {
-        group: 'Expenses',
-        bucket: 'Food & Dining',
+        group: 'Food & Dining',
         category: categoryName
       };
     }
     if (lowerCategoryName.includes('gas') || lowerCategoryName.includes('petrol') || 
         lowerCategoryName.includes('fuel') || lowerCategoryName.includes('bp') || 
-        lowerCategoryName.includes('caltex') || lowerCategoryName.includes('shell')) {
-      return {
-        group: 'Expenses',
-        bucket: 'Transportation',
-        category: categoryName
-      };
-    }
-    if (lowerCategoryName.includes('transport') || lowerCategoryName.includes('taxi') || 
+        lowerCategoryName.includes('caltex') || lowerCategoryName.includes('shell') ||
+        lowerCategoryName.includes('transport') || lowerCategoryName.includes('taxi') || 
         lowerCategoryName.includes('uber') || lowerCategoryName.includes('bus') || 
         lowerCategoryName.includes('train') || lowerCategoryName.includes('parking')) {
       return {
-        group: 'Expenses',
-        bucket: 'Transportation',
+        group: 'Transportation',
         category: categoryName
       };
     }
@@ -174,34 +153,25 @@ export const CategoryReviewDialog = ({
         lowerCategoryName.includes('cinema') || lowerCategoryName.includes('games') || 
         lowerCategoryName.includes('subscription')) {
       return {
-        group: 'Expenses',
-        bucket: 'Entertainment',
+        group: 'Entertainment',
         category: categoryName
       };
     }
     if (lowerCategoryName.includes('shopping') || lowerCategoryName.includes('retail') || 
         lowerCategoryName.includes('clothes') || lowerCategoryName.includes('clothing')) {
       return {
-        group: 'Expenses',
-        bucket: 'Shopping',
+        group: 'Shopping',
         category: categoryName
       };
     }
     
     // Predict income categories
     if (lowerCategoryName.includes('salary') || lowerCategoryName.includes('wage') || 
-        lowerCategoryName.includes('pay') || lowerCategoryName.includes('employment')) {
-      return {
-        group: 'Income',
-        bucket: 'Employment Income',
-        category: categoryName
-      };
-    }
-    if (lowerCategoryName.includes('bonus') || lowerCategoryName.includes('commission') || 
+        lowerCategoryName.includes('pay') || lowerCategoryName.includes('employment') ||
+        lowerCategoryName.includes('bonus') || lowerCategoryName.includes('commission') || 
         lowerCategoryName.includes('overtime')) {
       return {
         group: 'Income',
-        bucket: 'Employment Income',
         category: categoryName
       };
     }
@@ -210,7 +180,6 @@ export const CategoryReviewDialog = ({
     const isIncome = transaction.amount > 0;
     return {
       group: isIncome ? 'Income' : 'Expenses',
-      bucket: isIncome ? 'Other Income' : 'Other Expenses',
       category: categoryName
     };
   };
@@ -415,25 +384,14 @@ export const CategoryReviewDialog = ({
                         </TooltipContent>
                       </Tooltip>
                     </TableHead>
-                     <TableHead className="w-32">
+                     <TableHead className="w-40">
                        <Tooltip>
                          <TooltipTrigger className="flex items-center gap-1 cursor-help">
                            Group
                            <HelpCircle className="h-3 w-3 text-muted-foreground" />
                          </TooltipTrigger>
                          <TooltipContent>
-                           <p>Category group (highest level)</p>
-                         </TooltipContent>
-                       </Tooltip>
-                     </TableHead>
-                     <TableHead className="w-32">
-                       <Tooltip>
-                         <TooltipTrigger className="flex items-center gap-1 cursor-help">
-                           Bucket
-                           <HelpCircle className="h-3 w-3 text-muted-foreground" />
-                         </TooltipTrigger>
-                         <TooltipContent>
-                           <p>Category bucket (middle level)</p>
+                           <p>Category group</p>
                          </TooltipContent>
                        </Tooltip>
                      </TableHead>
@@ -444,7 +402,7 @@ export const CategoryReviewDialog = ({
                            <HelpCircle className="h-3 w-3 text-muted-foreground" />
                          </TooltipTrigger>
                          <TooltipContent>
-                           <p>Specific category (lowest level)</p>
+                           <p>Specific category</p>
                          </TooltipContent>
                        </Tooltip>
                      </TableHead>
@@ -500,36 +458,29 @@ export const CategoryReviewDialog = ({
                          <TableCell className="text-sm">
                            {new Date(transaction.date).toLocaleDateString()}
                          </TableCell>
-                         <TableCell>
-                           <div className="flex items-center gap-2">
-                             <Brain className="h-4 w-4 text-blue-500" />
-                             <span className="text-sm font-medium text-blue-700">
-                               {categoryComponents.group}
-                             </span>
-                           </div>
-                         </TableCell>
-                         <TableCell>
-                           <div className="flex items-center gap-2">
-                             <span className="text-sm font-medium text-purple-700">
-                               {categoryComponents.bucket}
-                             </span>
-                           </div>
-                         </TableCell>
-                         <TableCell>
-                           <div className="flex items-center gap-2">
-                             <span className="text-sm font-medium text-green-700">
-                               {categoryComponents.category}
-                             </span>
-                             {transaction.aiConfidence && (
-                               <Badge 
-                                 variant={transaction.aiConfidence > 0.8 ? "default" : "secondary"}
-                                 className="text-xs ml-2"
-                               >
-                                 {Math.round(transaction.aiConfidence * 100)}%
-                               </Badge>
-                             )}
-                           </div>
-                         </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Brain className="h-4 w-4 text-blue-500" />
+                              <span className="text-sm font-medium text-blue-700">
+                                {categoryComponents.group}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-green-700">
+                                {categoryComponents.category}
+                              </span>
+                              {transaction.aiConfidence && (
+                                <Badge 
+                                  variant={transaction.aiConfidence > 0.8 ? "default" : "secondary"}
+                                  className="text-xs ml-2"
+                                >
+                                  {Math.round(transaction.aiConfidence * 100)}%
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
                          <TableCell>
                            <Select
                              value={validCategories.includes(transaction.userCategory || transaction.category) 
