@@ -127,54 +127,89 @@ const discoverCategoriesWithAI = async (transactions: Transaction[]): Promise<Ca
 
   const prompt = createCategoryDiscoveryPrompt(transactions);
   
-  const requestBody = {
-    contents: [{
-      parts: [{
-        text: prompt
-      }]
-    }],
-    generationConfig: {
-      temperature: 0.1,
-      topK: 1,
-      topP: 0.8,
-      maxOutputTokens: 4096,
+  // Retry logic for API calls
+  let lastError;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      console.log(`Attempting Gemini API call (attempt ${attempt}/3)`);
+      
+      const requestBody = {
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.1,
+          topK: 1,
+          topP: 0.8,
+          maxOutputTokens: 4096,
+        }
+      };
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        lastError = new Error(`Gemini API error: ${response.status} ${response.statusText} - ${errorText}`);
+        
+        // If it's a 503 (Service Unavailable) or 429 (Rate Limited), retry
+        if (response.status === 503 || response.status === 429) {
+          console.log(`API unavailable (${response.status}), retrying in ${attempt * 2} seconds...`);
+          await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+          continue;
+        }
+        
+        throw lastError;
+      }
+
+      const data = await response.json();
+      const content = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      
+      if (!content) {
+        lastError = new Error('No content in Gemini response');
+        continue;
+      }
+
+      try {
+        // Clean up the response
+        const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        const parsed = JSON.parse(cleanedContent);
+        
+        if (!parsed.groups || !Array.isArray(parsed.groups)) {
+          lastError = new Error('Invalid response format: missing groups array');
+          continue;
+        }
+        
+        console.log(`Successfully discovered ${parsed.groups.length} category groups`);
+        return parsed.groups;
+        
+      } catch (parseError) {
+        console.error('Failed to parse AI response:', parseError);
+        console.error('Raw content:', content);
+        lastError = new Error('Failed to parse AI category discovery response');
+        continue;
+      }
+      
+    } catch (error) {
+      lastError = error;
+      console.error(`Attempt ${attempt} failed:`, error.message);
+      
+      if (attempt < 3) {
+        console.log(`Retrying in ${attempt * 2} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+      }
     }
-  };
-
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(requestBody)
-  });
-
-  if (!response.ok) {
-    throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
   }
-
-  const data = await response.json();
-  const content = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
   
-  if (!content) {
-    throw new Error('No content in Gemini response');
-  }
-
-  try {
-    // Clean up the response
-    const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const parsed = JSON.parse(cleanedContent);
-    
-    if (!parsed.groups || !Array.isArray(parsed.groups)) {
-      throw new Error('Invalid response format: missing groups array');
-    }
-    
-    return parsed.groups;
-  } catch (parseError) {
-    console.error('Failed to parse AI response:', parseError);
-    console.error('Raw content:', content);
-    throw new Error('Failed to parse AI category discovery response');
-  }
+  // If all retries failed, throw the last error
+  throw lastError || new Error('Failed to discover categories after multiple attempts');
 };
 
 serve(async (req) => {
