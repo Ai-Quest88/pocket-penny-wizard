@@ -12,7 +12,7 @@ import { ProgressiveUpload } from "./ProgressiveUpload";
 import { useTransactionInsertion } from "./csv-upload/helpers/transactionInsertion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAccounts } from "@/hooks/useAccounts";
@@ -614,12 +614,10 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
         isProcessing={isProcessing}
       />
       
-      <div className="flex items-center justify-center">
-        <div className="flex items-center space-x-4">
-          <div className="h-px bg-border flex-1"></div>
-          <span className="text-sm text-muted-foreground">or</span>
-          <div className="h-px bg-border flex-1"></div>
-        </div>
+      <div className="flex items-center my-4">
+        <div className="flex-1 h-px bg-border"></div>
+        <span className="px-4 text-sm text-muted-foreground">or</span>
+        <div className="flex-1 h-px bg-border"></div>
       </div>
       
       <div className="text-center">
