@@ -432,6 +432,39 @@ export type Database = {
           },
         ]
       }
+      entity_audit_log: {
+        Row: {
+          accessed_fields: string[] | null
+          action: string
+          created_at: string | null
+          entity_id: string
+          id: string
+          ip_address: unknown | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          accessed_fields?: string[] | null
+          action: string
+          created_at?: string | null
+          entity_id: string
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          accessed_fields?: string[] | null
+          action?: string
+          created_at?: string | null
+          entity_id?: string
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       households: {
         Row: {
           created_at: string | null
@@ -735,6 +768,10 @@ export type Database = {
       create_default_categories_for_user: {
         Args: { target_user_id: string }
         Returns: undefined
+      }
+      validate_entity_access: {
+        Args: { entity_user_id: string }
+        Returns: boolean
       }
     }
     Enums: {
