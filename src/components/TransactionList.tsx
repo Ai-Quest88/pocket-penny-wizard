@@ -76,8 +76,9 @@ export const TransactionList: React.FC<TransactionListProps> = ({
         .from('transactions')
         .select(`
           *,
-          assets!asset_account_id(name),
-          liabilities!liability_account_id(name)
+          assets!transactions_asset_account_id_fkey(name),
+          liabilities!transactions_liability_account_id_fkey(name),
+          categories(name)
         `)
         .eq('user_id', session.user.id);
 
@@ -103,10 +104,10 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
       if (error) throw error;
 
-      // Transform the data to include account names and map category_name to category
+      // Transform the data to include account names and map category data
       const transformedData = data?.map((transaction: any) => ({
         ...transaction,
-        category: transaction.category_name || 'Uncategorized', // Map category_name to category for UI
+        category: transaction.categories?.name || 'Uncategorized', // Use category name from join
         asset_account_name: transaction.assets?.name,
         liability_account_name: transaction.liabilities?.name,
       })) || [];
