@@ -261,7 +261,7 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
     reviewedTransactions: any[], 
     shouldCreateRules: boolean = false
   ) => {
-    console.log('Category review completed, saving to database...', { count: reviewedTransactions.length, shouldCreateRules });
+    console.log('Category review completed, saving to database...', { count: reviewedTransactions.length });
     
     setShowCategoryReview(false);
     setIsProcessing(true);
@@ -275,36 +275,49 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
     });
 
     try {
-      // Process transactions with proper categorization and database schema
-      const categorizedTransactions = [];
+      // Process transactions with proper schema mapping
+      const processedTransactions = [];
       
       for (const transaction of reviewedTransactions) {
-        // For now, just use null for category_id to avoid creation issues
-        // This will save the transactions successfully and we can add categorization later
-        const categoryId = null;
+        // Get the final category (either user-selected or AI-suggested)
+        const finalCategory = transaction.userCategory || transaction.category || 'Uncategorized';
         
+        // Find the category ID from the database
+        let categoryId = null;
+        if (finalCategory && finalCategory !== 'Uncategorized') {
+          const { data: categoryData } = await supabase
+            .from('categories')
+            .select('id')
+            .eq('user_id', session?.user?.id)
+            .eq('name', finalCategory)
+            .single();
+          
+          categoryId = categoryData?.id || null;
+        }
+
+        // Create the properly formatted transaction for the database
         const processedTransaction = {
-          user_id: transaction.user_id,
+          user_id: session?.user?.id,
           description: transaction.description,
-          amount: transaction.amount,
+          amount: Number(transaction.amount),
           date: transaction.date,
-          currency: transaction.currency,
+          currency: transaction.currency || 'AUD',
+          account_id: transaction.asset_account_id || transaction.liability_account_id,
           asset_account_id: transaction.asset_account_id,
           liability_account_id: transaction.liability_account_id,
-          account_id: transaction.asset_account_id || transaction.liability_account_id,
           category_id: categoryId,
-          type: transaction.amount >= 0 ? 'income' : 'expense',
-          notes: transaction.comment || null,
+          type: Number(transaction.amount) >= 0 ? 'income' : 'expense',
+          notes: null,
         };
         
-        categorizedTransactions.push(processedTransaction);
+        processedTransactions.push(processedTransaction);
       }
 
-      console.log('Inserting transactions with proper schema:', categorizedTransactions.slice(0, 2));
+      console.log('Inserting transactions:', processedTransactions.slice(0, 2));
 
       const { data: insertedTransactions, error: insertError } = await supabase
         .from('transactions')
-        .insert(categorizedTransactions)
+        .insert(processedTransactions)
         .select();
 
       if (insertError) {
@@ -314,21 +327,17 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
 
       console.log('Transactions inserted successfully:', insertedTransactions?.length);
 
-      // Smart rules functionality has been moved to the new category management system
-      // Rules are now handled automatically through AI categorization
-
       setUploadProgress({
         phase: 'complete',
         currentStep: 2,
         totalSteps: 2,
-        message: `Successfully uploaded ${categorizedTransactions.length} transactions!`,
+        message: `Successfully uploaded ${processedTransactions.length} transactions!`,
         processedTransactions: insertedTransactions || []
       });
 
-      // Show success and cleanup
       toast({
         title: "Success! 🎉",
-        description: `${categorizedTransactions.length} transactions uploaded successfully${shouldCreateRules ? ' with smart rules created' : ''}.`,
+        description: `${processedTransactions.length} transactions uploaded successfully.`,
       });
 
       // Invalidate queries to refresh data
@@ -648,13 +657,11 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
             onMappingChange={handleMappingChange}
           />
           
-
           <AccountSelectionSection
             selectedAccountId={selectedAccountId}
             onAccountChange={setSelectedAccountId}
           />
           
-          {/* Add detailed debugging */}
           <div className="px-4 py-3 mb-4 bg-yellow-50 border border-yellow-200 rounded-md">
             <h4 className="text-sm font-medium text-yellow-800">Column Mapping Status</h4>
             <div className="mt-1 text-xs text-yellow-700 space-y-1">

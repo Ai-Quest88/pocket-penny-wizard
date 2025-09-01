@@ -1,3 +1,4 @@
+
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -54,10 +55,10 @@ export const CategoryConfirmationDialog = ({
     enabled: !!session?.user && open,
   });
 
-  // Use user's categories if available, fallback to uncategorized
+  // Use user's categories if available, fallback to basic categories
   const validCategories = userCategories.length > 0 
-    ? userCategories.filter(cat => cat !== 'Uncategorized')
-    : [];
+    ? [...userCategories, 'Uncategorized'].filter((cat, index, arr) => arr.indexOf(cat) === index)
+    : ['Food & Dining', 'Transportation', 'Shopping', 'Bills & Utilities', 'Entertainment', 'Healthcare', 'Income', 'Other Expenses', 'Uncategorized'];
 
   const handleCategoryChange = (transactionId: string, newCategory: string) => {
     setModifiedSuggestions(prev =>
@@ -73,8 +74,8 @@ export const CategoryConfirmationDialog = ({
     onConfirm(modifiedSuggestions)
   }
 
-  const categorizedCount = suggestions.filter(s => s.suggestedCategory !== 'Uncategorized').length
-  const uncategorizedCount = suggestions.filter(s => s.suggestedCategory === 'Uncategorized').length
+  const categorizedCount = suggestions.filter(s => s.suggestedCategory && s.suggestedCategory !== 'Uncategorized').length
+  const uncategorizedCount = suggestions.filter(s => !s.suggestedCategory || s.suggestedCategory === 'Uncategorized').length
   const successRate = suggestions.length > 0 ? Math.round((categorizedCount / suggestions.length) * 100) : 0
 
   return (
@@ -107,10 +108,10 @@ export const CategoryConfirmationDialog = ({
               <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
                 <div className="flex items-center gap-2 mb-1">
                   <AlertCircle className="h-4 w-4 text-amber-600" />
-                  <p className="text-sm font-medium text-amber-700 dark:text-amber-300">Rules Will Be Created</p>
+                  <p className="text-sm font-medium text-amber-700 dark:text-amber-300">Manual Review Needed</p>
                 </div>
                 <p className="text-xs text-amber-600 dark:text-amber-400">
-                  Manual categorizations will create automatic rules for future transactions
+                  Please categorize uncategorized transactions manually
                 </p>
               </div>
             )}
@@ -120,9 +121,9 @@ export const CategoryConfirmationDialog = ({
         <ScrollArea className="flex-1 px-6">
           <div className="space-y-3 py-4">
             {modifiedSuggestions.map((suggestion) => {
-              const finalCategory = suggestion.userCategory || suggestion.suggestedCategory
+              const finalCategory = suggestion.userCategory || suggestion.suggestedCategory || 'Uncategorized'
               const isModified = suggestion.userCategory && suggestion.userCategory !== suggestion.suggestedCategory
-              const isUncategorized = finalCategory === 'Uncategorized'
+              const isUncategorized = !suggestion.suggestedCategory || suggestion.suggestedCategory === 'Uncategorized' || suggestion.suggestedCategory === 'Other Expenses'
 
               return (
                 <Card key={suggestion.id} className="p-4">
@@ -136,7 +137,7 @@ export const CategoryConfirmationDialog = ({
                             ${Math.abs(suggestion.amount).toFixed(2)}
                           </Badge>
                           <Badge variant="secondary" className="text-xs">
-                            ID: {suggestion.id.slice(-8)}
+                            {suggestion.amount > 0 ? 'Income' : 'Expense'}
                           </Badge>
                         </div>
                       </div>
@@ -156,11 +157,11 @@ export const CategoryConfirmationDialog = ({
                               <div className="flex items-center gap-2">
                                 <AlertCircle className="h-4 w-4 text-amber-600" />
                                 <Badge variant="secondary" className="text-sm">
-                                  Could not categorize
+                                  Needs Manual Categorization
                                 </Badge>
                               </div>
                               <p className="text-xs text-amber-700 dark:text-amber-300">
-                                Transaction pattern not recognized - manual categorization will create a rule
+                                Transaction pattern not recognized - please select a category
                               </p>
                             </div>
                           ) : (
@@ -189,7 +190,7 @@ export const CategoryConfirmationDialog = ({
                               onValueChange={(value) => handleCategoryChange(suggestion.id, value)}
                             >
                               <SelectTrigger className="w-40">
-                                <SelectValue placeholder={isUncategorized ? "Choose category..." : "Change category..."} />
+                                <SelectValue placeholder="Choose category..." />
                               </SelectTrigger>
                               <SelectContent>
                                 {validCategories.map((category) => (
@@ -233,7 +234,7 @@ export const CategoryConfirmationDialog = ({
           
           <div className="flex items-center gap-3">
             <div className="text-sm text-muted-foreground">
-              {uncategorizedCount > 0 && `${uncategorizedCount} transaction${uncategorizedCount > 1 ? 's' : ''} will create new rules`}
+              {suggestions.length} transaction{suggestions.length > 1 ? 's' : ''} ready to save
             </div>
             <Button
               onClick={handleConfirm}
@@ -242,12 +243,12 @@ export const CategoryConfirmationDialog = ({
               {isApplying ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Applying Changes...
+                  Saving Transactions...
                 </>
               ) : (
                 <>
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  Apply Categories & Create Rules
+                  Save {suggestions.length} Transactions
                 </>
               )}
             </Button>
