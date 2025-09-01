@@ -295,6 +295,14 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
           categoryId = categoryData?.id || null;
         }
 
+        // Ensure we have a valid account_id (required field)
+        const accountId = transaction.asset_account_id || transaction.liability_account_id;
+        
+        if (!accountId) {
+          console.error('Skipping transaction without account_id:', transaction);
+          continue; // Skip transactions without proper account assignment
+        }
+
         // Create the properly formatted transaction for the database
         const processedTransaction = {
           user_id: session?.user?.id,
@@ -302,9 +310,9 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
           amount: Number(transaction.amount),
           date: transaction.date,
           currency: transaction.currency || 'AUD',
-          account_id: transaction.asset_account_id || transaction.liability_account_id,
-          asset_account_id: transaction.asset_account_id,
-          liability_account_id: transaction.liability_account_id,
+          account_id: accountId, // This is required (NOT NULL constraint)
+          asset_account_id: transaction.asset_account_id || null,
+          liability_account_id: transaction.liability_account_id || null,
           category_id: categoryId,
           type: Number(transaction.amount) >= 0 ? 'income' : 'expense',
           notes: null,
