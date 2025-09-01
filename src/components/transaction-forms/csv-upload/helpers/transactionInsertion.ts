@@ -419,18 +419,19 @@ export class TransactionInsertionHelper {
       const category = discoveredCategories[i];
 
       try {
-        // Use flat category system (same as existing transactions)
+        // Use the correct database schema for transactions
         const { error } = await this.supabase
           .from('transactions')
           .insert({
             date: transaction.date,
             description: transaction.description,
             amount: transaction.amount,
-            category: category.category || 'Uncategorized', // Use 'category' instead of 'category_name'
-            comment: transaction.comment,
-            currency: transaction.currency || 'AUD',
+            account_id: transaction.asset_account_id || transaction.liability_account_id,
             asset_account_id: transaction.asset_account_id || null,
             liability_account_id: transaction.liability_account_id || null,
+            type: transaction.amount >= 0 ? 'income' : 'expense', // Required field
+            currency: transaction.currency || 'AUD',
+            notes: transaction.comment,
             user_id: this.userId
           });
 
@@ -499,11 +500,12 @@ export class TransactionInsertionHelper {
             date: transaction.date,
             description: transaction.description,
             amount: transaction.amount,
-            category: transaction.category || 'Uncategorized', // Use 'category' instead of 'category_name'
-            comment: transaction.comment,
+            account_id: transaction.asset_account_id || transaction.liability_account_id,
+            asset_account_id: transaction.asset_account_id || null,
+            liability_account_id: transaction.liability_account_id || null,
+            type: transaction.amount >= 0 ? 'income' : 'expense', // Required field
             currency: transaction.currency || 'AUD',
-            asset_account_id: transaction.asset_account_id,
-            liability_account_id: transaction.liability_account_id,
+            notes: transaction.comment,
             user_id: this.userId
           });
 
