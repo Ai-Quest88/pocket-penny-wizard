@@ -572,6 +572,45 @@ export type Database = {
         }
         Relationships: []
       }
+      system_categorization_rules: {
+        Row: {
+          category: string
+          conditions: Json | null
+          confidence: number | null
+          country: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          mcc_codes: string[] | null
+          pattern: string
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          conditions?: Json | null
+          confidence?: number | null
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          mcc_codes?: string[] | null
+          pattern: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          conditions?: Json | null
+          confidence?: number | null
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          mcc_codes?: string[] | null
+          pattern?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           account_id: string
