@@ -426,7 +426,7 @@ export class TransactionInsertionHelper {
             date: transaction.date,
             description: transaction.description,
             amount: transaction.amount,
-            category_name: category.category || 'Uncategorized',
+            category: category.category || 'Uncategorized', // Use 'category' instead of 'category_name'
             comment: transaction.comment,
             currency: transaction.currency || 'AUD',
             asset_account_id: transaction.asset_account_id || null,
@@ -499,7 +499,7 @@ export class TransactionInsertionHelper {
             date: transaction.date,
             description: transaction.description,
             amount: transaction.amount,
-            category_name: transaction.category || 'Uncategorized',
+            category: transaction.category || 'Uncategorized', // Use 'category' instead of 'category_name'
             comment: transaction.comment,
             currency: transaction.currency || 'AUD',
             asset_account_id: transaction.asset_account_id,
