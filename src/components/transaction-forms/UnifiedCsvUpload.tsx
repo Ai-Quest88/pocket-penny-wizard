@@ -16,6 +16,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAccounts } from "@/hooks/useAccounts";
+import { TestTube } from "lucide-react";
 
 
 import { supabase } from "@/integrations/supabase/client";
@@ -132,6 +133,47 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
   console.log('UnifiedCsvUpload - Accounts:', accounts);
   console.log('UnifiedCsvUpload - Selected Account ID:', selectedAccountId);
   console.log('UnifiedCsvUpload - Found Account:', selectedAccountId ? accounts.find(acc => acc.id === selectedAccountId) : null);
+
+  const generateTestData = () => {
+    const testTransactions = [
+      { description: 'Groceries - Woolworths', amount: '-85.50', date: '15/01/2024' },
+      { description: 'Salary Payment', amount: '3500.00', date: '01/01/2024' },
+      { description: 'Coffee Shop', amount: '-4.80', date: '16/01/2024' },
+      { description: 'Gas Station', amount: '-67.20', date: '17/01/2024' },
+      { description: 'Restaurant Dinner', amount: '-125.00', date: '18/01/2024' },
+      { description: 'Online Shopping', amount: '-89.99', date: '19/01/2024' },
+      { description: 'Electricity Bill', amount: '-156.78', date: '20/01/2024' },
+      { description: 'Bank Interest', amount: '12.45', date: '21/01/2024' },
+      { description: 'Pharmacy', amount: '-23.60', date: '22/01/2024' },
+      { description: 'Netflix Subscription', amount: '-17.99', date: '23/01/2024' }
+    ];
+
+    const testHeaders = ['description', 'amount', 'date'];
+    
+    console.log('Generated test data:', { data: testTransactions, headers: testHeaders });
+    setParsedData(testTransactions);
+    setHeaders(testHeaders);
+    
+    // Auto-map the columns since we know the structure
+    const autoMappings = {
+      description: 'description',
+      amount: 'amount', 
+      date: 'date'
+    };
+    
+    setAutoMappedColumns(autoMappings);
+    setMappings({
+      ...mappings,
+      description: 'description',
+      amount: 'amount',
+      date: 'date'
+    });
+
+    toast({
+      title: "Test Data Generated",
+      description: "Sample transactions loaded successfully",
+    });
+  };
 
   const handleFileUpload = (data: CSVRow[], fileHeaders: string[]) => {
     console.log('handleFileUpload called with:', { data: data.slice(0, 2), fileHeaders });
@@ -571,6 +613,29 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
         onFileUpload={handleFileUpload}
         isProcessing={isProcessing}
       />
+      
+      <div className="flex items-center justify-center">
+        <div className="flex items-center space-x-4">
+          <div className="h-px bg-border flex-1"></div>
+          <span className="text-sm text-muted-foreground">or</span>
+          <div className="h-px bg-border flex-1"></div>
+        </div>
+      </div>
+      
+      <div className="text-center">
+        <Button
+          onClick={generateTestData}
+          variant="secondary"
+          disabled={isProcessing}
+          className="w-full max-w-sm"
+        >
+          <TestTube className="w-4 h-4 mr-2" />
+          Generate Test Data
+        </Button>
+        <p className="text-sm text-muted-foreground mt-2">
+          Load sample transactions to test the upload process
+        </p>
+      </div>
       
       {parsedData.length > 0 && (
         <>
