@@ -10,6 +10,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCurrencyForCountry } from "@/utils/financialYearUtils";
+import { 
+  getSecureEntityData, 
+  prepareEntityDataForStorage, 
+  logSensitiveDataAccess 
+} from "@/utils/dataProtection";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,20 +59,31 @@ export const EntityManager = () => {
         throw error;
       }
 
-      return data.map(entity => ({
-        id: entity.id,
-        name: entity.name,
-        type: entity.type,
-        description: entity.description || '',
-        taxIdentifier: entity.tax_identifier || '',
-        countryOfResidence: entity.country_of_residence,
-        primaryCountry: entity.country_of_residence,
-        primaryCurrency: getCurrencyForCountry(entity.country_of_residence),
-        dateAdded: entity.date_added,
-        dateOfBirth: entity.date_of_birth || '',
-        registrationNumber: entity.registration_number || '',
-        incorporationDate: entity.incorporation_date || '',
-      })) as (IndividualEntity | BusinessEntity)[];
+      return data.map(entity => {
+        // Decrypt sensitive data before returning
+        const secureEntity = getSecureEntityData(entity);
+        
+        // Log data access for audit trail
+        logSensitiveDataAccess('VIEW', entity.id, 'entity_data');
+        
+        return {
+          id: secureEntity.id,
+          name: secureEntity.name,
+          type: secureEntity.type,
+          description: secureEntity.description || '',
+          taxIdentifier: secureEntity.tax_identifier || '',
+          countryOfResidence: secureEntity.country_of_residence,
+          primaryCountry: secureEntity.country_of_residence,
+          primaryCurrency: getCurrencyForCountry(secureEntity.country_of_residence),
+          dateAdded: secureEntity.date_added,
+          dateOfBirth: secureEntity.date_of_birth || '',
+          registrationNumber: secureEntity.registration_number || '',
+          incorporationDate: secureEntity.incorporation_date || '',
+          email: secureEntity.email || '',
+          phone: secureEntity.phone || '',
+          address: secureEntity.address || '',
+        };
+      }) as (IndividualEntity | BusinessEntity)[];
     },
     enabled: !!session?.user?.id,
   });
@@ -105,15 +121,25 @@ export const EntityManager = () => {
         date_of_birth: newEntity.type === 'individual' ? (newEntity as IndividualEntity).dateOfBirth || null : null,
         registration_number: newEntity.type !== 'individual' ? (newEntity as BusinessEntity).registrationNumber || null : null,
         incorporation_date: newEntity.type !== 'individual' ? (newEntity as BusinessEntity).incorporationDate || null : null,
+        email: (newEntity as any).email || null,
+        phone: (newEntity as any).phone || null,
+        address: (newEntity as any).address || null,
       };
+
+      // Encrypt sensitive data before storage
+      const secureEntityData = prepareEntityDataForStorage(entityData);
 
       const { data, error } = await supabase
         .from('entities')
-        .insert([entityData])
+        .insert([secureEntityData])
         .select()
         .single();
 
       if (error) throw error;
+      
+      // Log entity creation for audit trail
+      logSensitiveDataAccess('CREATE', data.id, 'entity_data');
+      
       return data;
     },
     onSuccess: (data) => {
@@ -165,17 +191,27 @@ export const EntityManager = () => {
         date_of_birth: updatedEntity.type === 'individual' ? (updatedEntity as IndividualEntity).dateOfBirth || null : null,
         registration_number: updatedEntity.type !== 'individual' ? (updatedEntity as BusinessEntity).registrationNumber || null : null,
         incorporation_date: updatedEntity.type !== 'individual' ? (updatedEntity as BusinessEntity).incorporationDate || null : null,
+        email: (updatedEntity as any).email || null,
+        phone: (updatedEntity as any).phone || null,
+        address: (updatedEntity as any).address || null,
         updated_at: new Date().toISOString(),
       };
 
+      // Encrypt sensitive data before storage
+      const secureEntityData = prepareEntityDataForStorage(entityData);
+
       const { data, error } = await supabase
         .from('entities')
-        .update(entityData)
+        .update(secureEntityData)
         .eq('id', entityId)
         .select()
         .single();
 
       if (error) throw error;
+      
+      // Log entity update for audit trail
+      logSensitiveDataAccess('UPDATE', entityId, 'entity_data');
+      
       return data;
     },
     onSuccess: (data) => {
@@ -206,6 +242,9 @@ export const EntityManager = () => {
         .eq('id', entityId);
 
       if (error) throw error;
+      
+      // Log entity deletion for audit trail
+      logSensitiveDataAccess('DELETE', entityId, 'entity_data');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entities', session?.user?.id] });

@@ -25,6 +25,7 @@ import { Info } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { SecureEntityForm } from "./SecureEntityForm";
 
 
 interface AddEntityDialogProps {
@@ -70,6 +71,9 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
     registrationNumber: "",
     incorporationDate: "",
     taxIdentifier: "",
+    email: "",
+    phone: "",
+    address: "",
   });
 
   // Validate entity name in real-time
@@ -145,6 +149,9 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
       description: formData.description,
       countryOfResidence: formData.countryOfResidence,
       taxIdentifier: formData.taxIdentifier,
+      email: formData.email,
+      phone: formData.phone,
+      address: formData.address,
     };
 
     if (formData.type === "individual") {
@@ -173,6 +180,9 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
       registrationNumber: "",
       incorporationDate: "",
       taxIdentifier: "",
+      email: "",
+      phone: "",
+      address: "",
     });
     setNameValidation({
       isValid: true,
@@ -268,14 +278,17 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
 
 
 
-          <div className="space-y-2">
-            <Label>Tax Identification Number</Label>
-            <Input
-              value={formData.taxIdentifier}
-              onChange={(e) => setFormData({ ...formData, taxIdentifier: e.target.value })}
-              placeholder={entityType === "individual" ? "Tax File Number (TFN)" : "Australian Business Number (ABN) / Australian Company Number (ACN)"}
-            />
-          </div>
+          <SecureEntityForm
+            formData={{
+              email: formData.email,
+              phone: formData.phone,
+              address: formData.address,
+              taxIdentifier: formData.taxIdentifier,
+              countryOfResidence: formData.countryOfResidence,
+            }}
+            onFormDataChange={(data) => setFormData({ ...formData, ...data })}
+            showSensitiveData={true}
+          />
 
           <div className="space-y-2">
             <Label>Description</Label>

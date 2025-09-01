@@ -9,6 +9,9 @@ export interface Entity {
   countryOfResidence: string;
   dateAdded: string;
   householdId?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
 }
 
 export interface IndividualEntity extends Entity {
