@@ -419,6 +419,14 @@ export class TransactionInsertionHelper {
       const category = discoveredCategories[i];
 
       try {
+        console.log(`Inserting transaction ${i + 1}/${transactions.length}:`, {
+          description: transaction.description,
+          amount: transaction.amount,
+          date: transaction.date,
+          account_id: transaction.asset_account_id || transaction.liability_account_id,
+          type: transaction.amount >= 0 ? 'income' : 'expense'
+        });
+
         // Use the correct database schema for transactions
         const { error } = await this.supabase
           .from('transactions')
