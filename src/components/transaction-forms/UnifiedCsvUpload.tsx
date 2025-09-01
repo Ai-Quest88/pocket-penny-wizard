@@ -295,11 +295,12 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
           categoryId = categoryData?.id || null;
         }
 
-        // Ensure we have a valid account_id (required field)
-        const accountId = transaction.asset_account_id || transaction.liability_account_id;
+        // Ensure we have a valid account reference (asset or liability)
+        const hasAssetAccount = !!transaction.asset_account_id;
+        const hasLiabilityAccount = !!transaction.liability_account_id;
         
-        if (!accountId) {
-          console.error('Skipping transaction without account_id:', transaction);
+        if (!hasAssetAccount && !hasLiabilityAccount) {
+          console.error('Skipping transaction without any account assignment:', transaction);
           continue; // Skip transactions without proper account assignment
         }
 
@@ -310,7 +311,7 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
           amount: Number(transaction.amount),
           date: transaction.date,
           currency: transaction.currency || 'AUD',
-          account_id: accountId, // This is required (NOT NULL constraint)
+          account_id: null, // No longer required - we use asset_account_id or liability_account_id
           asset_account_id: transaction.asset_account_id || null,
           liability_account_id: transaction.liability_account_id || null,
           category_id: categoryId,

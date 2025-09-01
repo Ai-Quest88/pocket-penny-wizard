@@ -646,7 +646,7 @@ export type Database = {
       }
       transactions: {
         Row: {
-          account_id: string
+          account_id: string | null
           amount: number
           asset_account_id: string | null
           category_id: string | null
@@ -664,7 +664,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          account_id: string
+          account_id?: string | null
           amount: number
           asset_account_id?: string | null
           category_id?: string | null
@@ -682,7 +682,7 @@ export type Database = {
           user_id: string
         }
         Update: {
-          account_id?: string
+          account_id?: string | null
           amount?: number
           asset_account_id?: string | null
           category_id?: string | null
@@ -715,10 +715,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "transactions_account_id_fkey"
-            columns: ["account_id"]
+            foreignKeyName: "transactions_asset_account_id_fkey"
+            columns: ["asset_account_id"]
             isOneToOne: false
-            referencedRelation: "accounts"
+            referencedRelation: "assets"
             referencedColumns: ["id"]
           },
           {
@@ -726,6 +726,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_liability_account_id_fkey"
+            columns: ["liability_account_id"]
+            isOneToOne: false
+            referencedRelation: "liabilities"
             referencedColumns: ["id"]
           },
         ]

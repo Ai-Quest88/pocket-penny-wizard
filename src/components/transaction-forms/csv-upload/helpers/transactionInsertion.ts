@@ -273,11 +273,12 @@ export class TransactionInsertionHelper {
           type: transaction.amount >= 0 ? 'income' : 'expense'
         });
 
-        // Determine the correct account_id - this is required and cannot be null
-        const accountId = transaction.asset_account_id || transaction.liability_account_id;
+        // Determine the correct account references - no longer need account_id as it's nullable
+        const hasAssetAccount = !!transaction.asset_account_id;
+        const hasLiabilityAccount = !!transaction.liability_account_id;
         
-        if (!accountId) {
-          console.error('❌ No account_id provided for transaction:', transaction);
+        if (!hasAssetAccount && !hasLiabilityAccount) {
+          console.error('❌ No account reference provided for transaction:', transaction);
           failed++;
           continue;
         }
@@ -289,7 +290,7 @@ export class TransactionInsertionHelper {
             date: transaction.date,
             description: transaction.description,
             amount: transaction.amount,
-            account_id: accountId, // This field is required (NOT NULL)
+            account_id: null, // No longer required - nullable field
             asset_account_id: transaction.asset_account_id || null,
             liability_account_id: transaction.liability_account_id || null,
             category_id: categoryId,
@@ -362,11 +363,12 @@ export class TransactionInsertionHelper {
         // Find or create a default category
         const categoryId = await this.findCategoryByName('Uncategorized');
         
-        // Determine the correct account_id - this is required and cannot be null
-        const accountId = transaction.asset_account_id || transaction.liability_account_id;
+        // Determine the correct account references - no longer need account_id as it's nullable
+        const hasAssetAccount = !!transaction.asset_account_id;
+        const hasLiabilityAccount = !!transaction.liability_account_id;
         
-        if (!accountId) {
-          console.error('❌ No account_id provided for transaction:', transaction);
+        if (!hasAssetAccount && !hasLiabilityAccount) {
+          console.error('❌ No account reference provided for transaction:', transaction);
           failed++;
           continue;
         }
@@ -378,7 +380,7 @@ export class TransactionInsertionHelper {
             date: transaction.date,
             description: transaction.description,
             amount: transaction.amount,
-            account_id: accountId, // This field is required (NOT NULL)
+            account_id: null, // No longer required - nullable field
             asset_account_id: transaction.asset_account_id || null,
             liability_account_id: transaction.liability_account_id || null,
             category_id: categoryId,
