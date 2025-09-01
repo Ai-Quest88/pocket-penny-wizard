@@ -157,49 +157,45 @@ export class TransactionInsertionHelper {
    */
   async findCategoryByName(categoryName: string): Promise<string | null> {
     try {
-      // Find existing category by name - categories should already be created by AI discovery
+      // Find existing category by name
       const { data: existingCategory, error: findError } = await this.supabase
         .from('categories')
         .select('id')
         .eq('user_id', this.userId)
         .eq('name', categoryName)
-        .limit(1)
-        .single();
+        .maybeSingle();
 
       if (!findError && existingCategory) {
-        console.log(`Found AI-created category: ${categoryName} -> ${existingCategory.id}`);
+        console.log(`Found category: ${categoryName} -> ${existingCategory.id}`);
         return existingCategory.id;
       }
 
-      console.log(`Category not found: ${categoryName}, creating fallback category`);
+      console.log(`Category not found: ${categoryName}, creating new category`);
       
       // Create appropriate category based on the category name
-      let groupId, bucketId;
+      let groupId;
+      let categoryType = 'expense'; // Default type
       
-      if (categoryName === 'ATM & Cash Withdrawals') {
-        // Create Banking & ATM group and bucket
-        groupId = await this.ensureCategoryGroup('Banking & ATM', 'expense', 'ATM withdrawals and banking fees', 'bg-gray-100', '🏧');
-        bucketId = await this.ensureCategoryBucket(groupId, 'ATM & Cash', 'ATM withdrawals and cash handling', 'bg-gray-200', '💸');
-      } else if (categoryName === 'Groceries') {
-        // Create Food & Dining group and grocery bucket
-        groupId = await this.ensureCategoryGroup('Food & Dining', 'expense', 'Food and dining expenses', 'bg-green-100', '🍽️');
-        bucketId = await this.ensureCategoryBucket(groupId, 'Groceries', 'Supermarket and grocery shopping', 'bg-green-200', '🛒');
-      } else if (categoryName === 'Fuel & Transportation') {
-        // Create Transportation group and fuel bucket
-        groupId = await this.ensureCategoryGroup('Transportation', 'expense', 'Transportation and travel expenses', 'bg-blue-100', '🚗');
-        bucketId = await this.ensureCategoryBucket(groupId, 'Fuel', 'Petrol and fuel expenses', 'bg-blue-200', '⛽');
-      } else if (categoryName === 'Coffee & Cafes') {
-        // Add to Food & Dining group
-        groupId = await this.ensureCategoryGroup('Food & Dining', 'expense', 'Food and dining expenses', 'bg-green-100', '🍽️');
-        bucketId = await this.ensureCategoryBucket(groupId, 'Coffee & Cafes', 'Coffee shops and cafes', 'bg-amber-200', '☕');
-      } else if (categoryName === 'Pharmacy & Health') {
-        // Create Health group
-        groupId = await this.ensureCategoryGroup('Health & Medical', 'expense', 'Health and medical expenses', 'bg-red-100', '🏥');
-        bucketId = await this.ensureCategoryBucket(groupId, 'Pharmacy', 'Pharmacy and health products', 'bg-red-200', '💊');
+      if (categoryName === 'Salary' || categoryName.toLowerCase().includes('income')) {
+        categoryType = 'income';
+        groupId = await this.ensureCategoryGroup('Income', 'income', 'All income sources', '#10B981', '💰');
+      } else if (categoryName === 'Account Transfer' || categoryName.toLowerCase().includes('transfer')) {
+        categoryType = 'transfer';
+        groupId = await this.ensureCategoryGroup('Transfers', 'transfer', 'Account transfers', '#6B7280', '🔄');
       } else {
-        // Fallback: create in "Uncategorized" bucket (should be rare since AI creates categories)
-        groupId = await this.ensureUncategorizedGroup();
-        bucketId = await this.ensureUncategorizedBucket(groupId);
+        // Default to expense category
+        if (categoryName.toLowerCase().includes('food') || categoryName.toLowerCase().includes('dining') || 
+            categoryName.toLowerCase().includes('groceries') || categoryName.toLowerCase().includes('coffee')) {
+          groupId = await this.ensureCategoryGroup('Food & Dining', 'expense', 'Food and dining expenses', '#F59E0B', '🍽️');
+        } else if (categoryName.toLowerCase().includes('transport') || categoryName.toLowerCase().includes('fuel') || 
+                   categoryName.toLowerCase().includes('gas')) {
+          groupId = await this.ensureCategoryGroup('Transportation', 'expense', 'Transportation and travel expenses', '#3B82F6', '🚗');
+        } else if (categoryName.toLowerCase().includes('health') || categoryName.toLowerCase().includes('medical') || 
+                   categoryName.toLowerCase().includes('pharmacy')) {
+          groupId = await this.ensureCategoryGroup('Health & Medical', 'expense', 'Health and medical expenses', '#EF4444', '🏥');
+        } else {
+          groupId = await this.ensureCategoryGroup('Other Expenses', 'expense', 'Miscellaneous expenses', '#6B7280', '📦');
+        }
       }
 
       // Create the category
@@ -207,9 +203,10 @@ export class TransactionInsertionHelper {
         .from('categories')
         .insert({
           user_id: this.userId,
-          bucket_id: bucketId,
+          group_id: groupId,
           name: categoryName,
           description: `Auto-created category for ${categoryName}`,
+          type: categoryType,
           merchant_patterns: this.getMerchantPatternsForCategory(categoryName),
           sort_order: 0,
           is_ai_generated: false
@@ -218,13 +215,14 @@ export class TransactionInsertionHelper {
         .single();
 
       if (createError || !newCategory) {
-        console.error('Failed to create fallback category:', createError);
+        console.error('Failed to create category:', createError);
         return null;
       }
 
+      console.log(`Created new category: ${categoryName} -> ${newCategory.id}`);
       return newCategory.id;
     } catch (error) {
-      console.error('Error finding category:', error);
+      console.error('Error finding/creating category:', error);
       return null;
     }
   }
@@ -258,8 +256,7 @@ export class TransactionInsertionHelper {
       .select('id')
       .eq('user_id', this.userId)
       .eq('name', name)
-      .limit(1)
-      .single();
+      .maybeSingle();
 
     if (!findError && existing) {
       return existing.id;
@@ -289,125 +286,6 @@ export class TransactionInsertionHelper {
   }
 
   /**
-   * Ensure a category bucket exists or create it
-   */
-  async ensureCategoryBucket(groupId: string, name: string, description: string, color: string, icon: string): Promise<string> {
-    const { data: existing, error: findError } = await this.supabase
-      .from('category_buckets')
-      .select('id')
-      .eq('user_id', this.userId)
-      .eq('group_id', groupId)
-      .eq('name', name)
-      .limit(1)
-      .single();
-
-    if (!findError && existing) {
-      return existing.id;
-    }
-
-    // Create new bucket
-    const { data: newBucket, error: createError } = await this.supabase
-      .from('category_buckets')
-      .insert({
-        user_id: this.userId,
-        group_id: groupId,
-        name: name,
-        description: description,
-        color: color,
-        icon: icon,
-        sort_order: 0,
-        is_ai_generated: false
-      })
-      .select('id')
-      .single();
-
-    if (createError || !newBucket) {
-      throw new Error(`Failed to create category bucket: ${name}`);
-    }
-
-    return newBucket.id;
-  }
-
-  /**
-   * Ensure "Uncategorized" group exists
-   */
-  async ensureUncategorizedGroup(): Promise<string> {
-    const { data: existing, error: findError } = await this.supabase
-      .from('category_groups')
-      .select('id')
-      .eq('user_id', this.userId)
-      .eq('name', 'Uncategorized')
-      .limit(1)
-      .single();
-
-    if (!findError && existing) {
-      return existing.id;
-    }
-
-    // Create uncategorized group
-    const { data: newGroup, error: createError } = await this.supabase
-      .from('category_groups')
-      .insert({
-        user_id: this.userId,
-        name: 'Uncategorized',
-        category_type: 'expense', // Default to expense
-        description: 'Transactions that need manual categorization',
-        color: 'bg-gray-100',
-        icon: '❓',
-        sort_order: 999,
-        is_ai_generated: false
-      })
-      .select('id')
-      .single();
-
-    if (createError || !newGroup) {
-      throw new Error('Failed to create uncategorized group');
-    }
-
-    return newGroup.id;
-  }
-
-  /**
-   * Ensure "Uncategorized" bucket exists within a group
-   */
-  async ensureUncategorizedBucket(groupId: string): Promise<string> {
-    const { data: existing, error: findError } = await this.supabase
-      .from('category_buckets')
-      .select('id')
-      .eq('user_id', this.userId)
-      .eq('group_id', groupId)
-      .eq('name', 'Uncategorized')
-      .limit(1)
-      .single();
-
-    if (!findError && existing) {
-      return existing.id;
-    }
-
-    // Create uncategorized bucket
-    const { data: newBucket, error: createError } = await this.supabase
-      .from('category_buckets')
-      .insert({
-        user_id: this.userId,
-        group_id: groupId,
-        name: 'Uncategorized',
-        description: 'Transactions that need manual categorization',
-        color: 'bg-gray-100',
-        icon: '❓',
-        sort_order: 999,
-        is_ai_generated: false
-      })
-      .select('id')
-      .single();
-
-    if (createError || !newBucket) {
-      throw new Error('Failed to create uncategorized bucket');
-    }
-
-    return newBucket.id;
-  }
-
-  /**
    * Insert transactions with discovered categories
    */
   async insertTransactions(transactions: TransactionData[], discoveredCategories: CategoryDiscoveryResult[]): Promise<{ success: number; failed: number }> {
@@ -419,11 +297,15 @@ export class TransactionInsertionHelper {
       const category = discoveredCategories[i];
 
       try {
+        // Find or create the category
+        const categoryId = await this.findCategoryByName(category.category);
+        
         console.log(`Inserting transaction ${i + 1}/${transactions.length}:`, {
           description: transaction.description,
           amount: transaction.amount,
           date: transaction.date,
           account_id: transaction.asset_account_id || transaction.liability_account_id,
+          category_id: categoryId,
           type: transaction.amount >= 0 ? 'income' : 'expense'
         });
 
@@ -437,7 +319,8 @@ export class TransactionInsertionHelper {
             account_id: transaction.asset_account_id || transaction.liability_account_id,
             asset_account_id: transaction.asset_account_id || null,
             liability_account_id: transaction.liability_account_id || null,
-            type: transaction.amount >= 0 ? 'income' : 'expense', // Required field
+            category_id: categoryId,
+            type: transaction.amount >= 0 ? 'income' : 'expense',
             currency: transaction.currency || 'AUD',
             notes: transaction.comment,
             user_id: this.userId
@@ -454,11 +337,13 @@ export class TransactionInsertionHelper {
               amount: transaction.amount,
               asset_account_id: transaction.asset_account_id,
               liability_account_id: transaction.liability_account_id,
-              category: category.category
+              category: category.category,
+              category_id: categoryId
             }
           });
           failed++;
         } else {
+          console.log(`✅ Successfully inserted transaction: ${transaction.description}`);
           success++;
         }
       } catch (error) {
@@ -501,6 +386,9 @@ export class TransactionInsertionHelper {
           continue;
         }
 
+        // Find or create a default category
+        const categoryId = await this.findCategoryByName('Uncategorized');
+
         // Insert if not duplicate
         const { error } = await this.supabase
           .from('transactions')
@@ -511,7 +399,8 @@ export class TransactionInsertionHelper {
             account_id: transaction.asset_account_id || transaction.liability_account_id,
             asset_account_id: transaction.asset_account_id || null,
             liability_account_id: transaction.liability_account_id || null,
-            type: transaction.amount >= 0 ? 'income' : 'expense', // Required field
+            category_id: categoryId,
+            type: transaction.amount >= 0 ? 'income' : 'expense',
             currency: transaction.currency || 'AUD',
             notes: transaction.comment,
             user_id: this.userId
