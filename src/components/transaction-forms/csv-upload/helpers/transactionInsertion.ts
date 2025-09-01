@@ -290,7 +290,6 @@ export class TransactionInsertionHelper {
             date: transaction.date,
             description: transaction.description,
             amount: transaction.amount,
-            account_id: null, // No longer required - nullable field
             asset_account_id: transaction.asset_account_id || null,
             liability_account_id: transaction.liability_account_id || null,
             category_id: categoryId,
@@ -380,7 +379,6 @@ export class TransactionInsertionHelper {
             date: transaction.date,
             description: transaction.description,
             amount: transaction.amount,
-            account_id: null, // No longer required - nullable field
             asset_account_id: transaction.asset_account_id || null,
             liability_account_id: transaction.liability_account_id || null,
             category_id: categoryId,

@@ -311,7 +311,6 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
           amount: Number(transaction.amount),
           date: transaction.date,
           currency: transaction.currency || 'AUD',
-          account_id: null, // No longer required - we use asset_account_id or liability_account_id
           asset_account_id: transaction.asset_account_id || null,
           liability_account_id: transaction.liability_account_id || null,
           category_id: categoryId,
