@@ -248,15 +248,8 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
 
       console.log('Transactions inserted successfully:', insertedTransactions?.length);
 
-      // Create smart rules if requested
-      if (shouldCreateRules) {
-        console.log('Creating smart categorization rules...');
-        for (const transaction of reviewedTransactions) {
-          if (transaction.userCategory && transaction.userCategory !== transaction.category) {
-            addUserCategoryRule(transaction.description, transaction.userCategory);
-          }
-        }
-      }
+      // Smart rules functionality has been moved to the new category management system
+      // Rules are now handled automatically through AI categorization
 
       setUploadProgress({
         phase: 'complete',
