@@ -170,57 +170,11 @@ export class TransactionInsertionHelper {
         return existingCategory.id;
       }
 
-      console.log(`Category not found: ${categoryName}, creating new category`);
+      console.log(`Category not found: ${categoryName}, using Uncategorized instead`);
       
-      // Create appropriate category based on the category name
-      let groupId;
-      let categoryType = 'expense'; // Default type
-      
-      if (categoryName === 'Salary' || categoryName.toLowerCase().includes('income')) {
-        categoryType = 'income';
-        groupId = await this.ensureCategoryGroup('Income', 'income', 'All income sources', '#10B981', '💰');
-      } else if (categoryName === 'Account Transfer' || categoryName.toLowerCase().includes('transfer')) {
-        categoryType = 'transfer';
-        groupId = await this.ensureCategoryGroup('Transfers', 'transfer', 'Account transfers', '#6B7280', '🔄');
-      } else {
-        // Default to expense category
-        if (categoryName.toLowerCase().includes('food') || categoryName.toLowerCase().includes('dining') || 
-            categoryName.toLowerCase().includes('groceries') || categoryName.toLowerCase().includes('coffee')) {
-          groupId = await this.ensureCategoryGroup('Food & Dining', 'expense', 'Food and dining expenses', '#F59E0B', '🍽️');
-        } else if (categoryName.toLowerCase().includes('transport') || categoryName.toLowerCase().includes('fuel') || 
-                   categoryName.toLowerCase().includes('gas')) {
-          groupId = await this.ensureCategoryGroup('Transportation', 'expense', 'Transportation and travel expenses', '#3B82F6', '🚗');
-        } else if (categoryName.toLowerCase().includes('health') || categoryName.toLowerCase().includes('medical') || 
-                   categoryName.toLowerCase().includes('pharmacy')) {
-          groupId = await this.ensureCategoryGroup('Health & Medical', 'expense', 'Health and medical expenses', '#EF4444', '🏥');
-        } else {
-          groupId = await this.ensureCategoryGroup('Other Expenses', 'expense', 'Miscellaneous expenses', '#6B7280', '📦');
-        }
-      }
-
-      // Create the category
-      const { data: newCategory, error: createError } = await this.supabase
-        .from('categories')
-        .insert({
-          user_id: this.userId,
-          group_id: groupId,
-          name: categoryName,
-          description: `Auto-created category for ${categoryName}`,
-          type: categoryType,
-          merchant_patterns: this.getMerchantPatternsForCategory(categoryName),
-          sort_order: 0,
-          is_ai_generated: false
-        })
-        .select('id')
-        .single();
-
-      if (createError || !newCategory) {
-        console.error('Failed to create category:', createError);
-        return null;
-      }
-
-      console.log(`Created new category: ${categoryName} -> ${newCategory.id}`);
-      return newCategory.id;
+      // Instead of creating complex categories, just return null for now
+      // This will let transactions be saved without categories
+      return null;
     } catch (error) {
       console.error('Error finding/creating category:', error);
       return null;
@@ -251,38 +205,48 @@ export class TransactionInsertionHelper {
    * Ensure a category group exists or create it
    */
   async ensureCategoryGroup(name: string, type: string, description: string, color: string, icon: string): Promise<string> {
-    const { data: existing, error: findError } = await this.supabase
-      .from('category_groups')
-      .select('id')
-      .eq('user_id', this.userId)
-      .eq('name', name)
-      .maybeSingle();
+    try {
+      const { data: existing, error: findError } = await this.supabase
+        .from('category_groups')
+        .select('id')
+        .eq('user_id', this.userId)
+        .eq('name', name)
+        .maybeSingle();
 
-    if (!findError && existing) {
-      return existing.id;
+      if (!findError && existing) {
+        return existing.id;
+      }
+
+      // Create new group
+      const { data: newGroup, error: createError } = await this.supabase
+        .from('category_groups')
+        .insert({
+          user_id: this.userId,
+          name: name,
+          category_type: type,
+          description: description,
+          color: color,
+          icon: icon,
+          sort_order: 0,
+          is_ai_generated: false
+        })
+        .select('id')
+        .single();
+
+      if (createError) {
+        console.error('Category group creation error:', createError);
+        throw new Error(`Failed to create category group: ${name} - ${createError.message}`);
+      }
+
+      if (!newGroup) {
+        throw new Error(`Failed to create category group: ${name} - No data returned`);
+      }
+
+      return newGroup.id;
+    } catch (error) {
+      console.error('Error in ensureCategoryGroup:', error);
+      throw error;
     }
-
-    // Create new group
-    const { data: newGroup, error: createError } = await this.supabase
-      .from('category_groups')
-      .insert({
-        user_id: this.userId,
-        name: name,
-        category_type: type,
-        description: description,
-        color: color,
-        icon: icon,
-        sort_order: 0,
-        is_ai_generated: false
-      })
-      .select('id')
-      .single();
-
-    if (createError || !newGroup) {
-      throw new Error(`Failed to create category group: ${name}`);
-    }
-
-    return newGroup.id;
   }
 
   /**
