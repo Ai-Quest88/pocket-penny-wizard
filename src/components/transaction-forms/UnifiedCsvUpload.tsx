@@ -233,27 +233,41 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
     });
 
     try {
-      // Save transactions directly to database
-      const transactionsToInsert = reviewedTransactions.map(transaction => ({
-        user_id: transaction.user_id,
-        description: transaction.description,
-        amount: transaction.amount,
-        date: transaction.date,
-        currency: transaction.currency,
-        category_name: transaction.userCategory || transaction.category,
-        asset_account_id: transaction.asset_account_id,
-        liability_account_id: transaction.liability_account_id,
-        comment: transaction.comment || null,
-      }));
+      // Process transactions with proper categorization and database schema
+      const categorizedTransactions = [];
+      
+      for (const transaction of reviewedTransactions) {
+        // Find or create the category using the existing helper
+        const categoryId = await transactionHelper.findCategoryByName(
+          transaction.userCategory || transaction.category || 'Uncategorized'
+        );
+        
+        const processedTransaction = {
+          user_id: transaction.user_id,
+          description: transaction.description,
+          amount: transaction.amount,
+          date: transaction.date,
+          currency: transaction.currency,
+          asset_account_id: transaction.asset_account_id,
+          liability_account_id: transaction.liability_account_id,
+          account_id: transaction.asset_account_id || transaction.liability_account_id,
+          category_id: categoryId,
+          type: transaction.amount >= 0 ? 'income' : 'expense',
+          notes: transaction.comment || null,
+        };
+        
+        categorizedTransactions.push(processedTransaction);
+      }
 
-      console.log('Inserting transactions:', transactionsToInsert.slice(0, 2));
+      console.log('Inserting transactions with proper schema:', categorizedTransactions.slice(0, 2));
 
       const { data: insertedTransactions, error: insertError } = await supabase
         .from('transactions')
-        .insert(transactionsToInsert)
+        .insert(categorizedTransactions)
         .select();
 
       if (insertError) {
+        console.error('Database insertion error:', insertError);
         throw insertError;
       }
 
@@ -266,14 +280,14 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
         phase: 'complete',
         currentStep: 2,
         totalSteps: 2,
-        message: `Successfully uploaded ${transactionsToInsert.length} transactions!`,
+        message: `Successfully uploaded ${categorizedTransactions.length} transactions!`,
         processedTransactions: insertedTransactions || []
       });
 
       // Show success and cleanup
       toast({
         title: "Success! 🎉",
-        description: `${transactionsToInsert.length} transactions uploaded successfully${shouldCreateRules ? ' with smart rules created' : ''}.`,
+        description: `${categorizedTransactions.length} transactions uploaded successfully${shouldCreateRules ? ' with smart rules created' : ''}.`,
       });
 
       // Invalidate queries to refresh data
