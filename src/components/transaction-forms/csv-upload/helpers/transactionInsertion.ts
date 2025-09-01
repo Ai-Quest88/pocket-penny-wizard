@@ -309,6 +309,15 @@ export class TransactionInsertionHelper {
           type: transaction.amount >= 0 ? 'income' : 'expense'
         });
 
+        // Determine the correct account_id - this is required and cannot be null
+        const accountId = transaction.asset_account_id || transaction.liability_account_id;
+        
+        if (!accountId) {
+          console.error('❌ No account_id provided for transaction:', transaction);
+          failed++;
+          continue;
+        }
+
         // Use the correct database schema for transactions
         const { error } = await this.supabase
           .from('transactions')
@@ -316,7 +325,7 @@ export class TransactionInsertionHelper {
             date: transaction.date,
             description: transaction.description,
             amount: transaction.amount,
-            account_id: transaction.asset_account_id || transaction.liability_account_id,
+            account_id: accountId, // This field is required (NOT NULL)
             asset_account_id: transaction.asset_account_id || null,
             liability_account_id: transaction.liability_account_id || null,
             category_id: categoryId,
@@ -388,6 +397,15 @@ export class TransactionInsertionHelper {
 
         // Find or create a default category
         const categoryId = await this.findCategoryByName('Uncategorized');
+        
+        // Determine the correct account_id - this is required and cannot be null
+        const accountId = transaction.asset_account_id || transaction.liability_account_id;
+        
+        if (!accountId) {
+          console.error('❌ No account_id provided for transaction:', transaction);
+          failed++;
+          continue;
+        }
 
         // Insert if not duplicate
         const { error } = await this.supabase
@@ -396,7 +414,7 @@ export class TransactionInsertionHelper {
             date: transaction.date,
             description: transaction.description,
             amount: transaction.amount,
-            account_id: transaction.asset_account_id || transaction.liability_account_id,
+            account_id: accountId, // This field is required (NOT NULL)
             asset_account_id: transaction.asset_account_id || null,
             liability_account_id: transaction.liability_account_id || null,
             category_id: categoryId,
