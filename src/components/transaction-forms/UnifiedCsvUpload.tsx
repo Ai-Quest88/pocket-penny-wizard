@@ -16,7 +16,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAccounts } from "@/hooks/useAccounts";
-import { addUserCategoryRule } from "@/utils/transactionCategories";
 
 
 import { supabase } from "@/integrations/supabase/client";
@@ -189,12 +188,24 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
   };
 
   const isValidConfiguration = (): boolean => {
+    console.log('🔍 Validation check:', {
+      mappings,
+      selectedAccountId,
+      hasDescription: !!mappings.description,
+      hasAmount: !!mappings.amount,
+      hasDate: !!mappings.date,
+      hasAccount: !!selectedAccountId
+    });
+    
     if (!mappings.description || !mappings.amount || !mappings.date) {
+      console.log('❌ Missing required column mappings');
       return false;
     }
     if (!selectedAccountId) {
+      console.log('❌ No account selected');
       return false;
     }
+    console.log('✅ Configuration is valid');
     return true;
   };
 
