@@ -112,7 +112,7 @@ export const TransactionTableRow: React.FC<TransactionTableRowProps> = ({
         {(() => {
           // Use category_name field (from database) or category field (fallback)
           const categoryName = transaction.category_name || transaction.category || 'Uncategorized';
-          const categoryHierarchy = getCategoryHierarchy(categoryName);
+          const categoryHierarchy = getCategoryHierarchy(categoryName, transaction.type);
           
           return (
             <Badge 

@@ -26,6 +26,7 @@ export interface Transaction {
   user_id: string;
   asset_account_name?: string;
   liability_account_name?: string;
+  type?: string; // Transaction type from database
 }
 
 interface SearchFilters {
@@ -104,12 +105,13 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
       if (error) throw error;
 
-      // Transform the data to include account names and map category data
+       // Transform the data to include account names and map category data
       const transformedData = data?.map((transaction: any) => ({
         ...transaction,
         category: transaction.categories?.name || 'Uncategorized', // Use category name from join
         asset_account_name: transaction.assets?.name,
         liability_account_name: transaction.liabilities?.name,
+        // The type field should already be included in the transaction data from the database
       })) || [];
 
       console.log(`Fetched ${transformedData.length} transactions`);
