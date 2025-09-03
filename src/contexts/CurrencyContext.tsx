@@ -43,8 +43,8 @@ export function CurrencyProvider({ children }: CurrencyProviderProps) {
       const { data, error } = await supabase
         .from('user_profiles')
         .select('currency_preference')
-        .eq('id', session.user.id)
-        .single();
+        .eq('user_id', session.user.id)
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
         console.error('Error fetching user profile:', error);
