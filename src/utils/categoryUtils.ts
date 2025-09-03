@@ -14,8 +14,11 @@ export interface CategoryRule {
  * Built-in categorization rules for common transaction patterns
  */
 export const builtInCategoryRules = [
-  // Transfer patterns (check first to catch ATM/withdrawal before other patterns)
-  { pattern: /atm|withdrawal|deposit|transfer/i, category: 'Account Transfer' },
+  // Cash withdrawal patterns (check first)
+  { pattern: /atm|withdrawal/i, category: 'Cash Withdrawal' },
+  
+  // Transfer patterns
+  { pattern: /deposit|transfer/i, category: 'Account Transfer' },
   
   // Income patterns
   { pattern: /salary|wage|payroll|employment/i, category: 'Salary' },
