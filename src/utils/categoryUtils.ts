@@ -14,6 +14,9 @@ export interface CategoryRule {
  * Built-in categorization rules for common transaction patterns
  */
 export const builtInCategoryRules = [
+  // Transfer patterns (check first to catch ATM/withdrawal before other patterns)
+  { pattern: /atm|withdrawal|deposit|transfer/i, category: 'Account Transfer' },
+  
   // Income patterns
   { pattern: /salary|wage|payroll|employment/i, category: 'Salary' },
   { pattern: /dividend|interest|investment/i, category: 'Investment Income' },
@@ -29,9 +32,6 @@ export const builtInCategoryRules = [
   { pattern: /medical|doctor|pharmacy|health/i, category: 'Healthcare' },
   { pattern: /shopping|retail|amazon|ebay/i, category: 'Shopping' },
   { pattern: /entertainment|movie|netflix|spotify/i, category: 'Entertainment' },
-  
-  // Transfer patterns
-  { pattern: /transfer|atm|deposit|withdrawal/i, category: 'Account Transfer' },
 ];
 
 /**
