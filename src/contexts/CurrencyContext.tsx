@@ -56,15 +56,17 @@ export function CurrencyProvider({ children }: CurrencyProviderProps) {
     enabled: !!session?.user?.id,
   });
 
-  // Set display currency from user preference or localStorage
+  // Set display currency from user preference or localStorage, defaulting to AUD
   useEffect(() => {
     if (userProfile?.currency_preference) {
       setDisplayCurrencyState(userProfile.currency_preference);
     } else {
-      // Fallback to localStorage or default
+      // Fallback to localStorage or default to AUD
       const savedCurrency = localStorage.getItem('displayCurrency');
       if (savedCurrency && currencies.find(c => c.code === savedCurrency)) {
         setDisplayCurrencyState(savedCurrency);
+      } else {
+        setDisplayCurrencyState('AUD'); // Ensure AUD is the default
       }
     }
   }, [userProfile]);
