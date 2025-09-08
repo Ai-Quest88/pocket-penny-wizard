@@ -58,18 +58,22 @@ export function CurrencyProvider({ children }: CurrencyProviderProps) {
 
   // Set display currency from user preference or localStorage, defaulting to AUD
   useEffect(() => {
-    if (userProfile?.currency_preference) {
+    // Clear any existing USD preference and force AUD
+    localStorage.removeItem('displayCurrency');
+    localStorage.setItem('displayCurrency', 'AUD');
+    
+    if (userProfile?.currency_preference && userProfile.currency_preference !== 'USD') {
       setDisplayCurrencyState(userProfile.currency_preference);
     } else {
-      // Fallback to localStorage or default to AUD
-      const savedCurrency = localStorage.getItem('displayCurrency');
-      if (savedCurrency && currencies.find(c => c.code === savedCurrency)) {
-        setDisplayCurrencyState(savedCurrency);
-      } else {
-        setDisplayCurrencyState('AUD'); // Ensure AUD is the default
+      // Force AUD and update user preference
+      setDisplayCurrencyState('AUD');
+      if (session?.user?.id) {
+        updateUserCurrencyPreference('AUD').catch(error => {
+          console.error('Failed to update currency to AUD:', error);
+        });
       }
     }
-  }, [userProfile]);
+  }, [userProfile, session]);
 
   // Fetch exchange rates
   const { data: exchangeRates, isLoading: isRatesLoading } = useQuery({
