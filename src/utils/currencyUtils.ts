@@ -62,7 +62,7 @@ const fallbackRates: ExchangeRates = {
   THB: 33.0,
 };
 
-export const fetchExchangeRates = async (baseCurrency: string = "USD"): Promise<ExchangeRates> => {
+export const fetchExchangeRates = async (baseCurrency: string = "AUD"): Promise<ExchangeRates> => {
   try {
     const response = await fetch(
       `https://open.er-api.com/v6/latest/${baseCurrency}`
