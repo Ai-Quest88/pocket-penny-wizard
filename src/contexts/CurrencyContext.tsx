@@ -99,7 +99,7 @@ export function CurrencyProvider({ children }: CurrencyProviderProps) {
       const { error } = await supabase
         .from('user_profiles')
         .upsert({
-          id: session.user.id,
+          user_id: session.user.id,
           email: session.user.email || '',
           currency_preference: currency,
         });
