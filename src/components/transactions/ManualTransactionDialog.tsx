@@ -126,6 +126,9 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
 
   // Use centralized category management
   const { getCategoriesByType, isLoading: categoriesLoading } = useCategoryManagement();
+  
+  console.log('=== HOOK DATA ===');
+  console.log('categoriesLoading:', categoriesLoading);
 
   const resetForm = () => {
     setAmount('')
