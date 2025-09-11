@@ -330,22 +330,22 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="category">Category {categoriesLoading && '(Loading...)'}</Label>
+              <Label htmlFor="category">Category {categoriesLoading && '(Loading...)'}  All Types v2</Label>
               <Select value={category} onValueChange={setCategory} disabled={categoriesLoading} required>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
+                  <SelectValue placeholder="Select category - All Types" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(() => {
-                    console.log('=== RENDERING CATEGORIES ===');
-                    console.log('validCategories:', validCategories);
-                    console.log('validCategories length:', validCategories.length);
-                    return validCategories.map((cat) => (
+                  {validCategories.map((cat, index) => {
+                    if (index === 0) {
+                      console.log('First category render - validCategories:', validCategories);
+                    }
+                    return (
                       <SelectItem key={cat} value={cat}>
                         {cat}
                       </SelectItem>
-                    ));
-                  })()}
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
