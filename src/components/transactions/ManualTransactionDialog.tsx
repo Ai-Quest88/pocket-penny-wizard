@@ -213,6 +213,19 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
   const liabilityCategories = getCategoriesByType('liability');
   const transferCategories = getCategoriesByType('transfer');
   
+  console.log('Category debugging:', {
+    incomeCategories: incomeCategories.length,
+    expenseCategories: expenseCategories.length,
+    assetCategories: assetCategories.length,
+    liabilityCategories: liabilityCategories.length,
+    transferCategories: transferCategories.length,
+    incomeItems: incomeCategories.map(c => c.name),
+    expenseItems: expenseCategories.map(c => c.name),
+    assetItems: assetCategories.map(c => c.name),
+    liabilityItems: liabilityCategories.map(c => c.name),
+    transferItems: transferCategories.map(c => c.name)
+  });
+  
   const allTransactionCategories = [
     ...incomeCategories, 
     ...expenseCategories, 
@@ -224,6 +237,8 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
   const validCategories = allTransactionCategories.length > 0 
     ? allTransactionCategories.map(cat => cat.name)
     : ['Uncategorized'];
+    
+  console.log('Final validCategories:', validCategories);
 
   // Enhanced filtering with comprehensive validation for currencies
   const validCurrencies = currencies
