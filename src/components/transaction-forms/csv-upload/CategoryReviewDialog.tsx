@@ -506,7 +506,7 @@ export const CategoryReviewDialog = ({
                                       }, {} as Record<string, typeof flatCategories>)
                                     ).map(([groupName, categories]) => (
                                       <div key={groupName}>
-                                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/50 sticky top-0">
+                                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-background border-b sticky top-0 z-10">
                                           {groupName}
                                         </div>
                                         {categories.map((category) => (
