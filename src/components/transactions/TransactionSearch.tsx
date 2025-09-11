@@ -93,7 +93,7 @@ export const TransactionSearch = ({ onFiltersChange, totalResults, initialFilter
                     value={category.name}
                     className="pl-8 hover:bg-accent focus:bg-accent"
                   >
-                    <span className="text-sm">└ {category.name}</span>
+                    {category.name}
                   </SelectItem>
                 ))}
               </div>
