@@ -2,7 +2,7 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -81,31 +81,22 @@ export const TransactionSearch = ({ onFiltersChange, totalResults, initialFilter
           </SelectTrigger>
           <SelectContent className="max-h-80 bg-background border shadow-lg z-[100]">
             <SelectItem value="all">All Categories</SelectItem>
-            {(() => {
-              console.log('TransactionSearch - groupedCategories:', groupedCategories?.length || 0, groupedCategories);
-              console.log('TransactionSearch - categoriesLoading:', categoriesLoading);
-              if (!groupedCategories || groupedCategories.length === 0) {
-                console.log('No grouped categories available');
-                return null;
-              }
-              return groupedCategories.map((group, groupIndex) => (
-                <div key={group.id}>
-                  {groupIndex > 0 && <div className="h-px bg-border my-1 mx-2" />}
-                  <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide bg-muted/50 border-b border-border">
-                    {group.name} ({group.type})
-                  </div>
-                  {group.categories.map((category) => (
-                    <SelectItem 
-                      key={category.id} 
-                      value={category.name}
-                      className="pl-6 hover:bg-accent focus:bg-accent"
-                    >
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </div>
-              ));
-            })()}
+            {groupedCategories?.map((group) => (
+              <SelectGroup key={group.id}>
+                <SelectLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  {group.name} ({group.type})
+                </SelectLabel>
+                {group.categories.map((category) => (
+                  <SelectItem 
+                    key={category.id} 
+                    value={category.name}
+                    className="pl-6"
+                  >
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            ))}
           </SelectContent>
         </Select>
 
