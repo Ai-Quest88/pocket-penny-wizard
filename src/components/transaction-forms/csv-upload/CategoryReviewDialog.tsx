@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCategoryHierarchy } from "@/hooks/useCategoryHierarchy";
 import { useCategories } from "@/hooks/useCategories";
+import { useCategoryManagement } from "@/hooks/useCategoryManagement";
 
 interface Transaction {
   description: string;
@@ -54,6 +55,7 @@ export const CategoryReviewDialog = ({
 }: CategoryReviewDialogProps) => {
   const { session } = useAuth();
   const { categoryData } = useCategories();
+  const { flatCategories } = useCategoryManagement();
   const queryClient = useQueryClient();
   const [reviewedTransactions, setReviewedTransactions] = useState<TransactionReview[]>(() => 
     transactions.map((transaction, index) => ({
@@ -184,9 +186,9 @@ export const CategoryReviewDialog = ({
     };
   };
 
-  // Use user's categories if available, include uncategorized
-  const validCategories = userCategories.length > 0 
-    ? [...userCategories, 'Uncategorized']
+  // Get categories from category management hook for hierarchical display
+  const validCategories = flatCategories.length > 0 
+    ? [...flatCategories.map((cat: any) => cat.name), 'Uncategorized']
     : ['Uncategorized'];
 
   console.log('User categories:', userCategories);
@@ -492,13 +494,40 @@ export const CategoryReviewDialog = ({
                              <SelectTrigger className="w-full h-8 bg-background border border-input">
                                <SelectValue placeholder="Override category" />
                              </SelectTrigger>
-                             <SelectContent className="max-h-48 overflow-y-auto z-[100] bg-background border border-input">
-                               {validCategories.map((category) => (
-                                 <SelectItem key={category} value={category}>
-                                   {category}
-                                 </SelectItem>
-                               ))}
-                             </SelectContent>
+                              <SelectContent className="max-h-48 overflow-y-auto z-[100] bg-background border border-input">
+                                {flatCategories.length > 0 ? (
+                                  <>
+                                    {/* Group categories by their groups */}
+                                    {Object.entries(
+                                      flatCategories.reduce((acc, cat) => {
+                                        if (!acc[cat.groupName]) acc[cat.groupName] = [];
+                                        acc[cat.groupName].push(cat);
+                                        return acc;
+                                      }, {} as Record<string, typeof flatCategories>)
+                                    ).map(([groupName, categories]) => (
+                                      <div key={groupName}>
+                                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/50 sticky top-0">
+                                          {groupName}
+                                        </div>
+                                        {categories.map((category) => (
+                                          <SelectItem key={category.name} value={category.name} className="pl-6">
+                                            {category.name}
+                                          </SelectItem>
+                                        ))}
+                                      </div>
+                                    ))}
+                                    <div className="border-t">
+                                      <SelectItem value="Uncategorized" className="pl-2">
+                                        Uncategorized
+                                      </SelectItem>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <SelectItem value="Uncategorized">
+                                    Uncategorized
+                                  </SelectItem>
+                                )}
+                              </SelectContent>
                            </Select>
                          </TableCell>
                         <TableCell>
