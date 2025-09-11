@@ -101,7 +101,7 @@ export const PreviewTable = ({ data, mappings, defaultSettings, selectedAccount 
                 <TableHead className="min-w-[80px]">Amount</TableHead>
                 <TableHead className="min-w-[100px]">Date</TableHead>
                 <TableHead className="min-w-[80px]">Currency</TableHead>
-                <TableHead className="min-w-[200px]">Predicted Category</TableHead>
+                
                 <TableHead className="min-w-[120px]">Account</TableHead>
               </TableRow>
             </TableHeader>
@@ -123,11 +123,6 @@ export const PreviewTable = ({ data, mappings, defaultSettings, selectedAccount 
                     </TableCell>
                     <TableCell className="max-w-[80px] truncate">
                       {getValue(row, mappings.currency, defaultSettings.currency)}
-                    </TableCell>
-                    <TableCell className="max-w-[250px] truncate" title={categoryHierarchy}>
-                      <span className="text-sm text-muted-foreground italic">
-                        {categoryHierarchy}
-                      </span>
                     </TableCell>
                     <TableCell className="max-w-[150px] truncate">
                       {selectedAccount ? (
