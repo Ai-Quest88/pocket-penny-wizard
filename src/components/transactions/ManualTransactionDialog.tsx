@@ -336,11 +336,16 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {validCategories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
-                  ))}
+                  {(() => {
+                    console.log('=== RENDERING CATEGORIES ===');
+                    console.log('validCategories:', validCategories);
+                    console.log('validCategories length:', validCategories.length);
+                    return validCategories.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat}
+                      </SelectItem>
+                    ));
+                  })()}
                 </SelectContent>
               </Select>
             </div>
