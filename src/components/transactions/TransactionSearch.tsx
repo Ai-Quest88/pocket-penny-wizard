@@ -82,7 +82,12 @@ export const TransactionSearch = ({ onFiltersChange, totalResults, initialFilter
           <SelectContent className="max-h-80 bg-background border shadow-lg z-[100]">
             <SelectItem value="all">All Categories</SelectItem>
             {(() => {
-              console.log('TransactionSearch - groupedCategories:', groupedCategories.length, groupedCategories);
+              console.log('TransactionSearch - groupedCategories:', groupedCategories?.length || 0, groupedCategories);
+              console.log('TransactionSearch - categoriesLoading:', categoriesLoading);
+              if (!groupedCategories || groupedCategories.length === 0) {
+                console.log('No grouped categories available');
+                return null;
+              }
               return groupedCategories.map((group, groupIndex) => (
                 <div key={group.id}>
                   {groupIndex > 0 && <div className="h-px bg-border my-1 mx-2" />}
