@@ -79,23 +79,26 @@ export const TransactionSearch = ({ onFiltersChange, totalResults, initialFilter
           </SelectTrigger>
           <SelectContent className="max-h-80 bg-background border shadow-lg z-[100]">
             <SelectItem value="all">All Categories</SelectItem>
-            {groupedCategories.map((group, groupIndex) => (
-              <div key={group.id}>
-                {groupIndex > 0 && <div className="h-px bg-border my-1 mx-2" />}
-                <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide bg-muted/50 border-b border-border">
-                  {group.name} ({group.type})
+            {(() => {
+              console.log('TransactionSearch - groupedCategories:', groupedCategories.length, groupedCategories);
+              return groupedCategories.map((group, groupIndex) => (
+                <div key={group.id}>
+                  {groupIndex > 0 && <div className="h-px bg-border my-1 mx-2" />}
+                  <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide bg-muted/50 border-b border-border">
+                    {group.name} ({group.type})
+                  </div>
+                  {group.categories.map((category) => (
+                    <SelectItem 
+                      key={category.id} 
+                      value={category.name}
+                      className="pl-6 hover:bg-accent focus:bg-accent"
+                    >
+                      {category.name}
+                    </SelectItem>
+                  ))}
                 </div>
-                {group.categories.map((category) => (
-                  <SelectItem 
-                    key={category.id} 
-                    value={category.name}
-                    className="pl-6 hover:bg-accent focus:bg-accent"
-                  >
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </div>
-            ))}
+              ));
+            })()}
           </SelectContent>
         </Select>
 
