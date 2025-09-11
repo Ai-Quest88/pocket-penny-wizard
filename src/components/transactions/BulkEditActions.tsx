@@ -120,9 +120,36 @@ export const BulkEditActions = ({
     try {
       const transactionIds = selectedTransactions.map(t => t.id);
       
+      // Find the category ID by name
+      const { data: categoryResult, error: categoryError } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('name', newCategory)
+        .eq('user_id', session?.user?.id)
+        .maybeSingle();
+
+      if (categoryError) {
+        console.error('Error finding category:', categoryError);
+        toast({
+          title: "Error",
+          description: "Failed to find category. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!categoryResult) {
+        toast({
+          title: "Error",
+          description: "Category not found. Please select a valid category.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       const { error } = await supabase
         .from('transactions')
-        .update({ category: newCategory })
+        .update({ category_id: categoryResult.id })
         .in('id', transactionIds);
 
       if (error) {
