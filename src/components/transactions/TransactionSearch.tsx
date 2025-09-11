@@ -25,7 +25,9 @@ interface TransactionSearchProps {
 
 export const TransactionSearch = ({ onFiltersChange, totalResults, initialFilters }: TransactionSearchProps) => {
   const { session } = useAuth();
-  const { groupedCategories } = useCategoryManagement();
+  const { groupedCategories, isLoading: categoriesLoading } = useCategoryManagement();
+  
+  console.log('TransactionSearch render - categoriesLoading:', categoriesLoading, 'groupedCategories:', groupedCategories?.length);
   
   const [filters, setFilters] = useState<SearchFilters>(initialFilters || {
     searchTerm: "",
