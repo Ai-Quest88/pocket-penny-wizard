@@ -283,7 +283,6 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
               <CategorySelect
                 control={form.control}
                 name="category"
-                categoryType="expense"
                 showHierarchy={true}
               />
 
