@@ -125,7 +125,7 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
   });
 
   // Use centralized category management
-  const { getCategoriesByType, isLoading: categoriesLoading } = useCategoryManagement();
+  const { groupedCategories, isLoading: categoriesLoading } = useCategoryManagement();
   
   console.log('=== HOOK DATA ===');
   console.log('categoriesLoading:', categoriesLoading);
@@ -209,39 +209,6 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
     }
   }
 
-  // Get all category types for transaction selection
-  const incomeCategories = getCategoriesByType('income');
-  const expenseCategories = getCategoriesByType('expense');
-  const assetCategories = getCategoriesByType('asset');
-  const liabilityCategories = getCategoriesByType('liability');
-  const transferCategories = getCategoriesByType('transfer');
-  
-  console.log('Category debugging:', {
-    incomeCategories: incomeCategories.length,
-    expenseCategories: expenseCategories.length,
-    assetCategories: assetCategories.length,
-    liabilityCategories: liabilityCategories.length,
-    transferCategories: transferCategories.length,
-    incomeItems: incomeCategories.map(c => c.name),
-    expenseItems: expenseCategories.map(c => c.name),
-    assetItems: assetCategories.map(c => c.name),
-    liabilityItems: liabilityCategories.map(c => c.name),
-    transferItems: transferCategories.map(c => c.name)
-  });
-  
-  const allTransactionCategories = [
-    ...incomeCategories, 
-    ...expenseCategories, 
-    ...assetCategories, 
-    ...liabilityCategories, 
-    ...transferCategories
-  ];
-  
-  const validCategories = allTransactionCategories.length > 0 
-    ? allTransactionCategories.map(cat => cat.name)
-    : ['Uncategorized'];
-    
-  console.log('Final validCategories:', validCategories);
 
   // Enhanced filtering with comprehensive validation for currencies
   const validCurrencies = currencies
@@ -338,17 +305,24 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
                 <SelectTrigger>
                   <SelectValue placeholder="Select category - All Types" />
                 </SelectTrigger>
-                <SelectContent>
-                  {validCategories.map((cat, index) => {
-                    if (index === 0) {
-                      console.log('First category render - validCategories:', validCategories);
-                    }
-                    return (
-                      <SelectItem key={cat} value={cat}>
-                        {cat}
-                      </SelectItem>
-                    );
-                  })}
+                <SelectContent className="max-h-80 bg-background border shadow-lg z-[100]">
+                  {groupedCategories?.map((group, groupIndex) => (
+                    <div key={group.id}>
+                      {groupIndex > 0 && <div className="h-px bg-border my-1 mx-2" />}
+                      <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide bg-muted/50 border-b border-border">
+                        {group.name} ({group.type})
+                      </div>
+                      {group.categories.map((category) => (
+                        <SelectItem 
+                          key={category.id} 
+                          value={category.name}
+                          className="pl-8 hover:bg-accent focus:bg-accent"
+                        >
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </div>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
