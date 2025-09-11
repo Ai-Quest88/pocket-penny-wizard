@@ -77,7 +77,7 @@ export const TransactionSearch = ({ onFiltersChange, totalResults, initialFilter
         
         <Select value={filters.category || "all"} onValueChange={(value) => updateFilters({ category: value === "all" ? "" : value })}>
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Category" />
+            <SelectValue placeholder="All Categories - GROUPED v2" />
           </SelectTrigger>
           <SelectContent className="max-h-80 bg-background border shadow-lg z-[100]">
             <SelectItem value="all">All Categories</SelectItem>
