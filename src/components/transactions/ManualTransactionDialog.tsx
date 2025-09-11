@@ -125,7 +125,7 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
   });
 
   // Use centralized category management
-  const { flatCategories, isLoading: categoriesLoading } = useCategoryManagement();
+  const { getCategoriesByType, isLoading: categoriesLoading } = useCategoryManagement();
 
   const resetForm = () => {
     setAmount('')
@@ -206,9 +206,13 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
     }
   }
 
-  // Use categories from centralized management
-  const validCategories = flatCategories.length > 0 
-    ? flatCategories.map(cat => cat.name)
+  // Get both income and expense categories for transaction selection
+  const incomeCategories = getCategoriesByType('income');
+  const expenseCategories = getCategoriesByType('expense');
+  const allTransactionCategories = [...incomeCategories, ...expenseCategories];
+  
+  const validCategories = allTransactionCategories.length > 0 
+    ? allTransactionCategories.map(cat => cat.name)
     : ['Uncategorized'];
 
   // Enhanced filtering with comprehensive validation for currencies
