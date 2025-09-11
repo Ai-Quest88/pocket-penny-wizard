@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { initializeSystemRules } from '@/utils/systemRulesInitializer';
 
 export interface TransactionData {
   date: string;
@@ -29,69 +30,132 @@ export class TransactionInsertionHelper {
     this.supabase = supabase;
     this.userId = userId;
     this.accessToken = accessToken;
+    
+    // Initialize system rules if needed
+    initializeSystemRules(userId).catch(console.error);
   }
 
   /**
-   * Discover categories for transactions using AI
+   * Funnel-based categorization: User Rules → System Rules → AI
    */
   async discoverCategories(transactions: TransactionData[]): Promise<CategoryDiscoveryResult[]> {
     try {
-      console.log('Calling AI category discovery for', transactions.length, 'transactions');
+      console.log('Starting funnel categorization for', transactions.length, 'transactions');
       
-      // Call the discover-categories edge function for AI-powered categorization
-      const { data, error } = await this.supabase.functions.invoke('discover-categories', {
-        body: { 
-          transactions: transactions.map(t => ({
-            description: t.description,
-            amount: t.amount,
-            date: t.date
-          }))
+      const results: CategoryDiscoveryResult[] = [];
+      let uncategorizedTransactions: TransactionData[] = [];
+      
+      // Step 1: Try User-defined rules first
+      console.log('Step 1: Applying user-defined rules...');
+      for (const transaction of transactions) {
+        const userCategory = await this.categorizeWithUserRules(transaction);
+        if (userCategory) {
+          results.push({
+            category: userCategory,
+            confidence: 0.95,
+            is_new_category: false
+          });
+        } else {
+          uncategorizedTransactions.push(transaction);
+          results.push(null as any); // Placeholder
         }
-      });
-
-      if (error) {
-        console.error('AI discovery failed:', error);
-        // Fall back to rule-based categorization
-        const results = transactions.map(transaction => {
-          const category = this.getFallbackCategory(transaction.description);
-          return {
-            category,
-            confidence: 0.8,
-            is_new_category: false
-          };
-        });
-
-        console.log('Rule-based categorization results:', results);
-        return results;
       }
-
-      // If AI discovery succeeded, process the results
-      console.log('AI discovery succeeded:', data);
       
-      if (data?.success && data?.categorized_transactions) {
-        // Use the actual AI categorization results
-        const results = data.categorized_transactions.map((categorizedTransaction: any, index: number) => ({
-          category: categorizedTransaction.category_name || 'Uncategorized',
-          confidence: categorizedTransaction.confidence || 0.9,
-          is_new_category: true
-        }));
-        
-        console.log('AI categorization results:', results);
-        return results;
-      } else {
-        // Fall back to rule-based categorization if AI didn't return expected format
-        const results = transactions.map(transaction => {
-          const category = this.getFallbackCategory(transaction.description);
-          return {
-            category,
-            confidence: 0.8,
-            is_new_category: false
-          };
+      console.log(`User rules categorized: ${transactions.length - uncategorizedTransactions.length} transactions`);
+      
+      // Step 2: Try System rules for remaining transactions
+      console.log('Step 2: Applying system rules...');
+      const systemCategorized: TransactionData[] = [];
+      let resultIndex = 0;
+      
+      for (const transaction of transactions) {
+        if (results[resultIndex] === null) {
+          const systemCategory = await this.categorizeWithSystemRules(transaction);
+          if (systemCategory) {
+            results[resultIndex] = {
+              category: systemCategory,
+              confidence: 0.9,
+              is_new_category: false
+            };
+            systemCategorized.push(transaction);
+          }
+        }
+        resultIndex++;
+      }
+      
+      // Update uncategorized list
+      uncategorizedTransactions = uncategorizedTransactions.filter((_, index) => {
+        const originalIndex = transactions.findIndex(t => 
+          t.description === uncategorizedTransactions[index].description &&
+          t.amount === uncategorizedTransactions[index].amount &&
+          t.date === uncategorizedTransactions[index].date
+        );
+        return results[originalIndex] === null;
+      });
+      
+      console.log(`System rules categorized: ${systemCategorized.length} transactions`);
+      console.log(`Remaining uncategorized: ${uncategorizedTransactions.length} transactions`);
+      
+      // Step 3: Use AI for remaining uncategorized transactions
+      if (uncategorizedTransactions.length > 0) {
+        console.log('Step 3: Applying AI categorization...');
+        const { data, error } = await this.supabase.functions.invoke('discover-categories', {
+          body: { 
+            transactions: uncategorizedTransactions.map(t => ({
+              description: t.description,
+              amount: t.amount,
+              date: t.date
+            }))
+          }
         });
 
-        console.log('Fallback categorization results:', results);
-        return results;
+        if (!error && data?.success && data?.categorized_transactions) {
+          console.log('AI categorization succeeded');
+          let aiResultIndex = 0;
+          resultIndex = 0;
+          
+          for (const transaction of transactions) {
+            if (results[resultIndex] === null) {
+              const aiResult = data.categorized_transactions[aiResultIndex];
+              results[resultIndex] = {
+                category: aiResult?.category_name || 'Uncategorized',
+                confidence: aiResult?.confidence || 0.8,
+                is_new_category: true
+              };
+              aiResultIndex++;
+            }
+            resultIndex++;
+          }
+        } else {
+          console.log('AI categorization failed, using fallback rules');
+          // Use fallback categorization for remaining uncategorized
+          resultIndex = 0;
+          for (const transaction of transactions) {
+            if (results[resultIndex] === null) {
+              results[resultIndex] = {
+                category: this.getFallbackCategory(transaction.description),
+                confidence: 0.6,
+                is_new_category: false
+              };
+            }
+            resultIndex++;
+          }
+        }
       }
+      
+      // Fill any remaining nulls with 'Uncategorized'
+      for (let i = 0; i < results.length; i++) {
+        if (results[i] === null) {
+          results[i] = {
+            category: 'Uncategorized',
+            confidence: 0.5,
+            is_new_category: false
+          };
+        }
+      }
+      
+      console.log('Funnel categorization completed:', results);
+      return results;
 
       /* TODO: Re-enable AI discovery once hierarchical system is working
       const { data, error } = await this.supabase.functions.invoke('discover-categories', {
@@ -433,6 +497,70 @@ export class TransactionInsertionHelper {
     } catch (error) {
       console.error('CSV upload processing failed:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Categorize using user-defined rules
+   */
+  private async categorizeWithUserRules(transaction: TransactionData): Promise<string | null> {
+    try {
+      const { data: userRules, error } = await this.supabase
+        .from('user_categorization_rules')
+        .select('pattern, category, confidence')
+        .eq('user_id', this.userId)
+        .order('confidence', { ascending: false });
+
+      if (error || !userRules) {
+        console.log('No user rules found');
+        return null;
+      }
+
+      const description = transaction.description.toLowerCase();
+      
+      for (const rule of userRules) {
+        if (description.includes(rule.pattern.toLowerCase())) {
+          console.log(`User rule matched: ${rule.pattern} -> ${rule.category}`);
+          return rule.category;
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error applying user rules:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Categorize using system-defined rules
+   */
+  private async categorizeWithSystemRules(transaction: TransactionData): Promise<string | null> {
+    try {
+      const { data: systemRules, error } = await this.supabase
+        .from('system_categorization_rules')
+        .select('pattern, category, confidence')
+        .eq('is_active', true)
+        .order('confidence', { ascending: false });
+
+      if (error || !systemRules) {
+        console.log('No system rules found');
+        return null;
+      }
+
+      const description = transaction.description.toLowerCase();
+      
+      for (const rule of systemRules) {
+        if (description.includes(rule.pattern.toLowerCase())) {
+          console.log(`System rule matched: ${rule.pattern} -> ${rule.category}`);
+          return rule.category;
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error applying system rules:', error);
+      return null;
     }
   }
 
