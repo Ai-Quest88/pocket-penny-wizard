@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCategoryManagement } from "@/hooks/useCategoryManagement";
 
 interface SearchFilters {
   searchTerm: string;
@@ -24,28 +25,13 @@ interface TransactionSearchProps {
 
 export const TransactionSearch = ({ onFiltersChange, totalResults, initialFilters }: TransactionSearchProps) => {
   const { session } = useAuth();
+  const { groupedCategories } = useCategoryManagement();
+  
   const [filters, setFilters] = useState<SearchFilters>(initialFilters || {
     searchTerm: "",
     category: "",
     dateRange: "",
     amountRange: ""
-  });
-
-  // Fetch user's custom categories
-  const { data: userCategories = [] } = useQuery({
-    queryKey: ['user-categories', session?.user?.id],
-    queryFn: async () => {
-      if (!session?.user?.id) return [];
-
-      const { data } = await supabase
-        .from('categories')
-        .select('name')
-        .eq('user_id', session.user.id)
-        .order('sort_order', { ascending: true });
-
-      return data?.map(cat => cat.name) || [];
-    },
-    enabled: !!session?.user?.id,
   });
 
   // Sync with initialFilters changes
@@ -91,12 +77,24 @@ export const TransactionSearch = ({ onFiltersChange, totalResults, initialFilter
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Category" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="max-h-80 bg-background border shadow-lg z-[100]">
             <SelectItem value="all">All Categories</SelectItem>
-            {userCategories.map((category) => (
-              <SelectItem key={category} value={category}>
-                {category}
-              </SelectItem>
+            {groupedCategories.map((group, groupIndex) => (
+              <div key={group.id}>
+                {groupIndex > 0 && <div className="h-px bg-border my-1 mx-2" />}
+                <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide bg-muted/50 border-b border-border">
+                  {group.name} ({group.type})
+                </div>
+                {group.categories.map((category) => (
+                  <SelectItem 
+                    key={category.id} 
+                    value={category.name}
+                    className="pl-6 hover:bg-accent focus:bg-accent"
+                  >
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </div>
             ))}
           </SelectContent>
         </Select>
