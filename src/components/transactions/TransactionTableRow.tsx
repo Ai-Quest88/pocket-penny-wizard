@@ -117,8 +117,12 @@ export const TransactionTableRow: React.FC<TransactionTableRowProps> = ({
           return (
             <Badge 
               variant="secondary" 
-              className={getCategoryColor(categoryName)}
-              title={categoryHierarchy}
+              className={`${getCategoryColor(categoryName)} cursor-pointer hover:opacity-80 transition-opacity`}
+              title={`${categoryHierarchy} - Click to edit`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditDialogOpen(true);
+              }}
             >
               <span className="max-w-[200px] truncate">
                 {categoryHierarchy}
