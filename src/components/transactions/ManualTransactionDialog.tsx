@@ -206,10 +206,20 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
     }
   }
 
-  // Get both income and expense categories for transaction selection
+  // Get all category types for transaction selection
   const incomeCategories = getCategoriesByType('income');
   const expenseCategories = getCategoriesByType('expense');
-  const allTransactionCategories = [...incomeCategories, ...expenseCategories];
+  const assetCategories = getCategoriesByType('asset');
+  const liabilityCategories = getCategoriesByType('liability');
+  const transferCategories = getCategoriesByType('transfer');
+  
+  const allTransactionCategories = [
+    ...incomeCategories, 
+    ...expenseCategories, 
+    ...assetCategories, 
+    ...liabilityCategories, 
+    ...transferCategories
+  ];
   
   const validCategories = allTransactionCategories.length > 0 
     ? allTransactionCategories.map(cat => cat.name)
