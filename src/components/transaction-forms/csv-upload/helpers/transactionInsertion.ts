@@ -40,6 +40,8 @@ export class TransactionInsertionHelper {
     this.userRulesCache = null;
     this.systemCategoriesCache = null;
     
+    console.log('🔄 TransactionInsertionHelper created with fresh cache');
+    
     // Initialize system rules if needed
     initializeSystemRules(userId).catch(console.error);
   }
@@ -69,6 +71,11 @@ export class TransactionInsertionHelper {
       // Step 1: Try User-defined rules first
       console.log('📋 Step 1: Applying cached user-defined rules...');
       for (const transaction of transactions) {
+        // Special logging for the problematic transaction
+        if (transaction.description.toLowerCase().includes('devesh salary')) {
+          console.log('🔍 SPECIAL DEBUG - Processing salary transaction:', transaction.description);
+        }
+        
         const userCategory = this.categorizeWithCachedUserRules(transaction);
         if (userCategory) {
           results.push({
@@ -94,6 +101,11 @@ export class TransactionInsertionHelper {
       
       for (const transaction of transactions) {
         if (results[resultIndex] === null) {
+          // Special logging for the problematic transaction
+          if (transaction.description.toLowerCase().includes('devesh salary')) {
+            console.log('🔍 SPECIAL DEBUG - System rules phase for salary transaction:', transaction.description);
+          }
+          
           const systemCategory = this.categorizeWithCachedSystemRules(transaction);
           if (systemCategory) {
             results[resultIndex] = {
