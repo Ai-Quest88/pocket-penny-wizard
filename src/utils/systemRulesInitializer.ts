@@ -50,6 +50,13 @@ export const defaultSystemRules: SystemRule[] = [
   { pattern: 'restaurant', category: 'Food & Dining', confidence: 0.8 },
   { pattern: 'cafe', category: 'Food & Dining', confidence: 0.8 },
   
+  // Food delivery services (must come before general transportation)
+  { pattern: 'uber eats', category: 'Food & Dining', confidence: 0.95 },
+  { pattern: 'ubereats', category: 'Food & Dining', confidence: 0.95 },
+  { pattern: 'deliveroo', category: 'Food & Dining', confidence: 0.95 },
+  { pattern: 'menulog', category: 'Food & Dining', confidence: 0.95 },
+  { pattern: 'doordash', category: 'Food & Dining', confidence: 0.95 },
+  
   // Fuel & Transportation
   { pattern: 'bp ', category: 'Transportation', confidence: 0.95 },
   { pattern: 'shell', category: 'Transportation', confidence: 0.95 },
