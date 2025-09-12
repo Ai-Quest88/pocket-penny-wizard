@@ -535,46 +535,23 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
         };
       });
 
-      console.log('Formatted transactions for AI categorization:', formattedTransactions.slice(0, 2));
+      console.log('Formatted transactions for categorization:', formattedTransactions.slice(0, 2));
 
-      // Call AI categorization first
-      console.log('🎯 Calling AI categorization for', formattedTransactions.length, 'transactions');
+      // Use funnel categorization: User Rules → System Rules → AI
+      console.log('🎯 Starting funnel categorization for', formattedTransactions.length, 'transactions');
       
-      const { data, error } = await supabase.functions.invoke('discover-categories', {
-        body: { 
-          transactions: formattedTransactions.map(t => ({
-            description: t.description,
-            amount: t.amount,
-            date: t.date
-          }))
-        }
-      });
+      const helper = useTransactionInsertion();
+      const discoveredCategories = await helper.discoverCategories(formattedTransactions);
 
-      if (error) {
-        console.error('AI categorization failed:', error);
-        toast({
-          title: "AI Categorization Failed",
-          description: "Using fallback categorization. You can still review and edit categories.",
-          variant: "destructive",
-        });
-      }
-
-      // Merge AI categorization results with formatted transactions
+      // Merge categorization results with formatted transactions
       const categorizedTransactions = formattedTransactions.map((transaction, index) => {
-        if (data?.success && data?.categorized_transactions?.[index]) {
-          const aiResult = data.categorized_transactions[index];
-          return {
-            ...transaction,
-            category: aiResult.category_name || 'Uncategorized',
-            category_id: aiResult.category_id || null,
-            aiConfidence: aiResult.confidence || 0.5
-          };
-        }
+        const categoryResult = discoveredCategories[index];
         return {
           ...transaction,
-          category: 'Uncategorized',
-          category_id: null,
-          aiConfidence: 0.3
+          category: categoryResult.category || 'Uncategorized',
+          category_id: null, // Will be resolved during insertion
+          aiConfidence: categoryResult.confidence || 0.5,
+          categorization_source: categoryResult.source
         };
       });
 
