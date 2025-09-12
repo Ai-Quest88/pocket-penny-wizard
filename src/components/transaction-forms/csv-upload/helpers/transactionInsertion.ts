@@ -22,6 +22,35 @@ export interface CategoryDiscoveryResult {
   source: 'user_rule' | 'system_rule' | 'ai' | 'fallback' | 'uncategorized';
 }
 
+// Mapping of subcategories to their parent groups
+const CATEGORY_TO_GROUP_MAPPING: Record<string, string> = {
+  // Expense subcategories
+  'Transportation': 'Expense',
+  'Food & Dining': 'Expense',
+  'Shopping': 'Expense',
+  'Entertainment': 'Expense',
+  'Healthcare': 'Expense',
+  'Housing': 'Expense',
+  'Government & Tax': 'Expense',
+  'Cash Withdrawal': 'Expense',
+  
+  // Income subcategories
+  'Salary': 'Income',
+  'Investment Income': 'Income',
+  
+  // Transfer subcategories
+  'Account Transfer': 'Transfer',
+  
+  // Default to Expense for unknown categories
+};
+
+/**
+ * Maps a category to its parent group
+ */
+function getCategoryGroup(category: string): string {
+  return CATEGORY_TO_GROUP_MAPPING[category] || 'Expense';
+}
+
 export class TransactionInsertionHelper {
   private supabase;
   private userId: string;
@@ -69,7 +98,8 @@ export class TransactionInsertionHelper {
             category: userCategory,
             confidence: 0.95,
             is_new_category: false,
-            source: 'user_rule'
+            source: 'user_rule',
+            group_name: getCategoryGroup(userCategory)
           });
           stats.userRules++;
         } else {
@@ -93,7 +123,8 @@ export class TransactionInsertionHelper {
               category: systemCategory,
               confidence: 0.9,
               is_new_category: false,
-              source: 'system_rule'
+              source: 'system_rule',
+              group_name: getCategoryGroup(systemCategory)
             };
             systemCategorized.push(transaction);
             stats.systemRules++;
