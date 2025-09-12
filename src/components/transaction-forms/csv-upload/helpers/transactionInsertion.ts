@@ -305,16 +305,19 @@ export class TransactionInsertionHelper {
     if (!this.systemRulesCache?.length) return null;
 
     const description = transaction.description.toLowerCase();
+    console.log(`🔍 Checking system rules for: "${transaction.description}"`);
     
+    // Rules are already sorted by confidence DESC, so first match wins
     for (const rule of this.systemRulesCache) {
       const pattern = rule.pattern.toLowerCase();
       
       if (this.matchesPattern(description, pattern)) {
-        console.log(`✅ System rule matched: "${pattern}" -> "${rule.category}"`);
+        console.log(`✅ System rule matched: "${pattern}" -> "${rule.category}" (confidence: ${rule.confidence})`);
         return rule.category;
       }
     }
     
+    console.log(`❌ No system rule matched for: "${transaction.description}"`);
     return null;
   }
 
@@ -324,6 +327,7 @@ export class TransactionInsertionHelper {
   private matchesPattern(description: string, pattern: string): boolean {
     // Strategy 1: Exact substring match
     if (description.includes(pattern)) {
+      console.log(`  🎯 Pattern "${pattern}" matched via exact substring`);
       return true;
     }
 
@@ -331,6 +335,7 @@ export class TransactionInsertionHelper {
     const words = description.split(/\s+/);
     for (const word of words) {
       if (word.includes(pattern) || pattern.includes(word)) {
+        console.log(`  🎯 Pattern "${pattern}" matched via word boundary (word: "${word}")`);
         return true;
       }
     }
@@ -351,6 +356,7 @@ export class TransactionInsertionHelper {
       .trim();
 
     if (cleanDescription.includes(cleanPattern)) {
+      console.log(`  🎯 Pattern "${pattern}" matched via cleaned text ("${cleanPattern}" in "${cleanDescription}")`);
       return true;
     }
 
@@ -362,6 +368,7 @@ export class TransactionInsertionHelper {
       if (patternWord.length >= 3) {
         for (const descWord of descWords) {
           if (descWord.includes(patternWord) || patternWord.includes(descWord)) {
+            console.log(`  🎯 Pattern "${pattern}" matched via word similarity ("${patternWord}" ~ "${descWord}")`);
             return true;
           }
         }
