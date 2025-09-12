@@ -501,7 +501,7 @@ export class TransactionInsertionHelper {
   }
 
   /**
-   * Categorize using user-defined rules
+   * Categorize using user-defined rules with improved pattern matching
    */
   private async categorizeWithUserRules(transaction: TransactionData): Promise<string | null> {
     try {
@@ -512,19 +512,23 @@ export class TransactionInsertionHelper {
         .order('confidence', { ascending: false });
 
       if (error || !userRules) {
-        console.log('No user rules found');
+        console.log('No user rules found:', error);
         return null;
       }
 
       const description = transaction.description.toLowerCase();
+      console.log(`Checking user rules for: "${description}"`);
       
       for (const rule of userRules) {
-        if (description.includes(rule.pattern.toLowerCase())) {
-          console.log(`User rule matched: ${rule.pattern} -> ${rule.category}`);
+        const pattern = rule.pattern.toLowerCase();
+        
+        if (this.matchesPattern(description, pattern)) {
+          console.log(`✅ User rule matched: "${pattern}" -> "${rule.category}" for "${description}"`);
           return rule.category;
         }
       }
       
+      console.log(`❌ No user rules matched for: "${description}"`);
       return null;
     } catch (error) {
       console.error('Error applying user rules:', error);
@@ -533,7 +537,7 @@ export class TransactionInsertionHelper {
   }
 
   /**
-   * Categorize using system-defined rules
+   * Categorize using system-defined rules with improved pattern matching
    */
   private async categorizeWithSystemRules(transaction: TransactionData): Promise<string | null> {
     try {
@@ -544,24 +548,83 @@ export class TransactionInsertionHelper {
         .order('confidence', { ascending: false });
 
       if (error || !systemRules) {
-        console.log('No system rules found');
+        console.log('No system rules found:', error);
         return null;
       }
 
       const description = transaction.description.toLowerCase();
+      console.log(`Checking system rules for: "${description}"`);
       
       for (const rule of systemRules) {
-        if (description.includes(rule.pattern.toLowerCase())) {
-          console.log(`System rule matched: ${rule.pattern} -> ${rule.category}`);
+        const pattern = rule.pattern.toLowerCase();
+        
+        // Try multiple matching strategies
+        if (this.matchesPattern(description, pattern)) {
+          console.log(`✅ System rule matched: "${pattern}" -> "${rule.category}" for "${description}"`);
           return rule.category;
         }
       }
       
+      console.log(`❌ No system rules matched for: "${description}"`);
       return null;
     } catch (error) {
       console.error('Error applying system rules:', error);
       return null;
     }
+  }
+
+  /**
+   * Improved pattern matching with multiple strategies
+   */
+  private matchesPattern(description: string, pattern: string): boolean {
+    // Strategy 1: Exact substring match
+    if (description.includes(pattern)) {
+      return true;
+    }
+
+    // Strategy 2: Word boundary matching (e.g., "woolworths" matches "woolworths chatswood")
+    const words = description.split(/\s+/);
+    for (const word of words) {
+      if (word.includes(pattern) || pattern.includes(word)) {
+        return true;
+      }
+    }
+
+    // Strategy 3: Partial matches for common variations
+    // Remove common suffixes/prefixes that might interfere
+    const cleanDescription = description
+      .replace(/\b(pty ltd|ltd|inc|corp|group|store|shop)\b/g, '')
+      .replace(/\d+/g, '') // Remove numbers
+      .replace(/[^\w\s]/g, ' ') // Replace special chars with spaces
+      .replace(/\s+/g, ' ') // Normalize spaces
+      .trim();
+
+    const cleanPattern = pattern
+      .replace(/\b(pty ltd|ltd|inc|corp|group|store|shop)\b/g, '')
+      .replace(/\d+/g, '')
+      .replace(/[^\w\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (cleanDescription.includes(cleanPattern)) {
+      return true;
+    }
+
+    // Strategy 4: Check if any word in pattern appears in description
+    const patternWords = cleanPattern.split(/\s+/);
+    const descWords = cleanDescription.split(/\s+/);
+    
+    for (const patternWord of patternWords) {
+      if (patternWord.length >= 3) { // Only check words with 3+ chars
+        for (const descWord of descWords) {
+          if (descWord.includes(patternWord) || patternWord.includes(descWord)) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
   }
 
   /**
