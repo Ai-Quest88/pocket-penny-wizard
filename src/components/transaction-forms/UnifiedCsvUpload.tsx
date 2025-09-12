@@ -9,7 +9,7 @@ import { AccountSelectionSection } from "./csv-upload/AccountSelectionSection";
 import { DuplicateReviewDialog } from "./csv-upload/DuplicateReviewDialog";
 import { CategoryReviewDialog } from "./csv-upload/CategoryReviewDialog";
 import { ProgressiveUpload } from "./ProgressiveUpload";
-import { useTransactionInsertion } from "./csv-upload/helpers/transactionInsertion";
+import { useTransactionProcessor } from "@/services/categorization";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -127,7 +127,7 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
   const { toast } = useToast();
   const { session } = useAuth();
   const queryClient = useQueryClient();
-  const transactionHelper = useTransactionInsertion();
+  const transactionProcessor = useTransactionProcessor();
 
   // Debug account selection
   console.log('UnifiedCsvUpload - Accounts:', accounts);
@@ -416,8 +416,8 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
         processedTransactions: transactionsForProcessing
       });
 
-      // Use hierarchical AI categorization system
-      const result = await transactionHelper.processCsvUpload(transactionsForProcessing);
+      // Use clean categorization system
+      const result = await transactionProcessor.processCsvUpload(transactionsForProcessing);
       
       // Count categorization results
       const categories = transactionsForProcessing.map(t => t.category);
@@ -537,13 +537,9 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
 
       console.log('Formatted transactions for categorization:', formattedTransactions.slice(0, 2));
 
-      // Use funnel categorization: User Rules → System Rules → AI
-      console.log('🎯 Starting funnel categorization for', formattedTransactions.length, 'transactions');
-      console.log('🔍 DEBUG: Sample transaction for categorization:', formattedTransactions[0]);
-      console.log('🔍 DEBUG: TransactionHelper instance:', transactionHelper);
-      
-      const discoveredCategories = await transactionHelper.discoverCategories(formattedTransactions);
-      console.log('🔍 DEBUG: Discovered categories result:', discoveredCategories.slice(0, 2));
+      // Use clean categorization flow: User Rules → System Rules → AI → Fallback
+      const categorizer = transactionProcessor['categorizer'];
+      const discoveredCategories = await categorizer.categorizeTransactions(formattedTransactions);
 
       // Merge categorization results with formatted transactions
       const categorizedTransactions = formattedTransactions.map((transaction, index) => {
