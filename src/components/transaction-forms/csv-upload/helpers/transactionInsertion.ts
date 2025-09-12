@@ -52,9 +52,12 @@ export class TransactionInsertionHelper {
   async discoverCategories(transactions: TransactionData[]): Promise<CategoryDiscoveryResult[]> {
     try {
       console.log('🚀 Starting optimized funnel categorization for', transactions.length, 'transactions');
+      console.log('🔍 DEBUG: First transaction sample:', JSON.stringify(transactions[0], null, 2));
       
       // Load rules once at the beginning
+      console.log('📚 Loading rules cache...');
       await this.loadRulesCache();
+      console.log('✅ Rules cache loaded successfully');
       
       const results: CategoryDiscoveryResult[] = [];
       let uncategorizedTransactions: TransactionData[] = [];
