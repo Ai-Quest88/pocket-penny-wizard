@@ -27,6 +27,7 @@ export interface Transaction {
   asset_account_name?: string;
   liability_account_name?: string;
   type?: string; // Transaction type from database
+  categorization_source?: 'user_rule' | 'system_rule' | 'ai' | 'fallback' | 'manual' | 'uncategorized';
 }
 
 interface SearchFilters {

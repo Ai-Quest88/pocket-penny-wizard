@@ -131,6 +131,28 @@ export const TransactionTableRow: React.FC<TransactionTableRowProps> = ({
           );
         })()}
       </TableCell>
+      <TableCell>
+        {(() => {
+          const source = transaction.categorization_source || 'manual';
+          const sourceConfig = {
+            user_rule: { label: 'User Rule', color: 'bg-green-100 text-green-800', icon: '👤' },
+            system_rule: { label: 'System Rule', color: 'bg-blue-100 text-blue-800', icon: '🔧' },
+            ai: { label: 'AI', color: 'bg-purple-100 text-purple-800', icon: '🤖' },
+            fallback: { label: 'Fallback', color: 'bg-orange-100 text-orange-800', icon: '📝' },
+            manual: { label: 'Manual', color: 'bg-gray-100 text-gray-800', icon: '✋' },
+            uncategorized: { label: 'Uncategorized', color: 'bg-red-100 text-red-800', icon: '❓' }
+          };
+          
+          const config = sourceConfig[source] || sourceConfig.manual;
+          
+          return (
+            <Badge variant="outline" className={`${config.color} text-xs`} title={`Categorized by: ${config.label}`}>
+              <span className="mr-1">{config.icon}</span>
+              {config.label}
+            </Badge>
+          );
+        })()}
+      </TableCell>
       <TableCell className="text-right font-medium">
         <div className="flex flex-col items-end gap-1">
           <div className="flex items-center gap-2">

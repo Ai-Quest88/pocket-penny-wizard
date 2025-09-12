@@ -66,6 +66,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
             <TableHead>Date</TableHead>
             <TableHead>Description</TableHead>
             <TableHead>Category</TableHead>
+            <TableHead>Source</TableHead>
             <TableHead className="text-right">Amount</TableHead>
             <TableHead>Account</TableHead>
             {!readOnly && <TableHead className="w-12"></TableHead>}

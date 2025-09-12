@@ -19,6 +19,7 @@ export interface CategoryDiscoveryResult {
   is_new_category: boolean;
   group_name?: string;
   bucket_name?: string;
+  source: 'user_rule' | 'system_rule' | 'ai' | 'fallback' | 'uncategorized';
 }
 
 export class TransactionInsertionHelper {
@@ -62,7 +63,8 @@ export class TransactionInsertionHelper {
           results.push({
             category: userCategory,
             confidence: 0.95,
-            is_new_category: false
+            is_new_category: false,
+            source: 'user_rule'
           });
           stats.userRules++;
         } else {
@@ -85,7 +87,8 @@ export class TransactionInsertionHelper {
             results[resultIndex] = {
               category: systemCategory,
               confidence: 0.9,
-              is_new_category: false
+              is_new_category: false,
+              source: 'system_rule'
             };
             systemCategorized.push(transaction);
             stats.systemRules++;
@@ -131,7 +134,8 @@ export class TransactionInsertionHelper {
               results[resultIndex] = {
                 category: aiResult?.category_name || 'Uncategorized',
                 confidence: aiResult?.confidence || 0.8,
-                is_new_category: true
+                is_new_category: true,
+                source: 'ai'
               };
               stats.aiCategorized++;
               aiResultIndex++;
@@ -147,7 +151,8 @@ export class TransactionInsertionHelper {
               results[resultIndex] = {
                 category: this.getFallbackCategory(transaction.description),
                 confidence: 0.6,
-                is_new_category: false
+                is_new_category: false,
+                source: 'fallback'
               };
               stats.fallback++;
             }
@@ -162,7 +167,8 @@ export class TransactionInsertionHelper {
           results[i] = {
             category: 'Uncategorized',
             confidence: 0.1,
-            is_new_category: false
+            is_new_category: false,
+            source: 'uncategorized'
           };
           stats.fallback++;
         }
@@ -233,7 +239,8 @@ export class TransactionInsertionHelper {
       return transactions.map(t => ({
         category: this.getFallbackCategory(t.description),
         confidence: 0.5,
-        is_new_category: false
+        is_new_category: false,
+        source: 'fallback' as const
       }));
     }
   }
