@@ -40,13 +40,22 @@ export class TransactionInsertionHelper {
    */
   async discoverCategories(transactions: TransactionData[]): Promise<CategoryDiscoveryResult[]> {
     try {
-      console.log('Starting funnel categorization for', transactions.length, 'transactions');
+      console.log('🚀 Starting funnel categorization for', transactions.length, 'transactions');
       
       const results: CategoryDiscoveryResult[] = [];
       let uncategorizedTransactions: TransactionData[] = [];
       
+      // Track statistics
+      const stats = {
+        userRules: 0,
+        systemRules: 0,
+        aiCategorized: 0,
+        fallback: 0,
+        total: transactions.length
+      };
+      
       // Step 1: Try User-defined rules first
-      console.log('Step 1: Applying user-defined rules...');
+      console.log('📋 Step 1: Applying user-defined rules...');
       for (const transaction of transactions) {
         const userCategory = await this.categorizeWithUserRules(transaction);
         if (userCategory) {
@@ -55,16 +64,17 @@ export class TransactionInsertionHelper {
             confidence: 0.95,
             is_new_category: false
           });
+          stats.userRules++;
         } else {
           uncategorizedTransactions.push(transaction);
           results.push(null as any); // Placeholder
         }
       }
       
-      console.log(`User rules categorized: ${transactions.length - uncategorizedTransactions.length} transactions`);
+      console.log(`✅ User rules categorized: ${stats.userRules}/${transactions.length} transactions`);
       
       // Step 2: Try System rules for remaining transactions
-      console.log('Step 2: Applying system rules...');
+      console.log('🔧 Step 2: Applying system rules...');
       const systemCategorized: TransactionData[] = [];
       let resultIndex = 0;
       
@@ -78,6 +88,7 @@ export class TransactionInsertionHelper {
               is_new_category: false
             };
             systemCategorized.push(transaction);
+            stats.systemRules++;
           }
         }
         resultIndex++;
@@ -93,8 +104,8 @@ export class TransactionInsertionHelper {
         return results[originalIndex] === null;
       });
       
-      console.log(`System rules categorized: ${systemCategorized.length} transactions`);
-      console.log(`Remaining uncategorized: ${uncategorizedTransactions.length} transactions`);
+      console.log(`✅ System rules categorized: ${stats.systemRules}/${transactions.length} transactions`);
+      console.log(`⏳ Remaining uncategorized: ${uncategorizedTransactions.length} transactions`);
       
       // Step 3: Use AI for remaining uncategorized transactions
       if (uncategorizedTransactions.length > 0) {
@@ -110,7 +121,7 @@ export class TransactionInsertionHelper {
         });
 
         if (!error && data?.success && data?.categorized_transactions) {
-          console.log('AI categorization succeeded');
+          console.log('✅ AI categorization succeeded');
           let aiResultIndex = 0;
           resultIndex = 0;
           
@@ -122,12 +133,13 @@ export class TransactionInsertionHelper {
                 confidence: aiResult?.confidence || 0.8,
                 is_new_category: true
               };
+              stats.aiCategorized++;
               aiResultIndex++;
             }
             resultIndex++;
           }
         } else {
-          console.log('AI categorization failed, using fallback rules');
+          console.log('❌ AI categorization failed, using fallback rules');
           // Use fallback categorization for remaining uncategorized
           resultIndex = 0;
           for (const transaction of transactions) {
@@ -137,6 +149,7 @@ export class TransactionInsertionHelper {
                 confidence: 0.6,
                 is_new_category: false
               };
+              stats.fallback++;
             }
             resultIndex++;
           }
@@ -148,13 +161,22 @@ export class TransactionInsertionHelper {
         if (results[i] === null) {
           results[i] = {
             category: 'Uncategorized',
-            confidence: 0.5,
+            confidence: 0.1,
             is_new_category: false
           };
+          stats.fallback++;
         }
       }
+
+      // Log final statistics
+      console.log('📊 CATEGORIZATION SUMMARY:');
+      console.log(`   👤 User Rules:     ${stats.userRules} transactions (${(stats.userRules/stats.total*100).toFixed(1)}%)`);
+      console.log(`   🔧 System Rules:   ${stats.systemRules} transactions (${(stats.systemRules/stats.total*100).toFixed(1)}%)`);
+      console.log(`   🤖 AI Categorized: ${stats.aiCategorized} transactions (${(stats.aiCategorized/stats.total*100).toFixed(1)}%)`);
+      console.log(`   📝 Fallback:       ${stats.fallback} transactions (${(stats.fallback/stats.total*100).toFixed(1)}%)`);
+      console.log(`   📈 Total:          ${stats.total} transactions`);
       
-      console.log('Funnel categorization completed:', results);
+      console.log('🎉 Funnel categorization completed!');
       return results;
 
       /* TODO: Re-enable AI discovery once hierarchical system is working
