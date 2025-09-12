@@ -22,41 +22,13 @@ export interface CategoryDiscoveryResult {
   source: 'user_rule' | 'system_rule' | 'ai' | 'fallback' | 'uncategorized';
 }
 
-// Mapping of subcategories to their parent groups
-const CATEGORY_TO_GROUP_MAPPING: Record<string, string> = {
-  // Expense subcategories
-  'Transportation': 'Expense',
-  'Food & Dining': 'Expense',
-  'Shopping': 'Expense',
-  'Entertainment': 'Expense',
-  'Healthcare': 'Expense',
-  'Housing': 'Expense',
-  'Government & Tax': 'Expense',
-  'Cash Withdrawal': 'Expense',
-  
-  // Income subcategories
-  'Salary': 'Income',
-  'Investment Income': 'Income',
-  
-  // Transfer subcategories
-  'Account Transfer': 'Transfer',
-  
-  // Default to Expense for unknown categories
-};
-
-/**
- * Maps a category to its parent group
- */
-function getCategoryGroup(category: string): string {
-  return CATEGORY_TO_GROUP_MAPPING[category] || 'Expense';
-}
-
 export class TransactionInsertionHelper {
   private supabase;
   private userId: string;
   private accessToken: string;
   private systemRulesCache: any[] | null = null;
   private userRulesCache: any[] | null = null;
+  private systemCategoriesCache: Map<string, string> | null = null;
 
   constructor(userId: string, accessToken: string) {
     this.supabase = supabase;
@@ -99,7 +71,7 @@ export class TransactionInsertionHelper {
             confidence: 0.95,
             is_new_category: false,
             source: 'user_rule',
-            group_name: getCategoryGroup(userCategory)
+            group_name: this.getCategoryGroup(userCategory)
           });
           stats.userRules++;
         } else {
@@ -124,7 +96,7 @@ export class TransactionInsertionHelper {
               confidence: 0.9,
               is_new_category: false,
               source: 'system_rule',
-              group_name: getCategoryGroup(systemCategory)
+              group_name: this.getCategoryGroup(systemCategory)
             };
             systemCategorized.push(transaction);
             stats.systemRules++;
@@ -257,6 +229,48 @@ export class TransactionInsertionHelper {
       this.systemRulesCache = systemError ? [] : (systemRules || []);
       console.log(`🔧 Loaded ${this.systemRulesCache.length} system rules`);
     }
+
+    if (!this.systemCategoriesCache) {
+      const { data: systemCategories, error: catError } = await this.supabase
+        .from('categories')
+        .select('name, group_id, category_groups(name)')
+        .eq('is_system', true);
+
+      this.systemCategoriesCache = new Map();
+      if (!catError && systemCategories) {
+        for (const cat of systemCategories) {
+          const groupName = cat.category_groups?.name || 'Expense';
+          this.systemCategoriesCache.set(cat.name, groupName);
+        }
+      }
+      console.log(`📂 Loaded ${this.systemCategoriesCache.size} system category mappings`);
+    }
+  }
+
+  /**
+   * Get category group from system categories or fallback to type-based mapping
+   */
+  private getCategoryGroup(categoryName: string): string {
+    if (this.systemCategoriesCache?.has(categoryName)) {
+      return this.systemCategoriesCache.get(categoryName)!;
+    }
+    
+    // Fallback mapping for common categories
+    const typeMap: Record<string, string> = {
+      'Salary': 'Income',
+      'Investment Income': 'Income',
+      'Account Transfer': 'Transfer',
+      'Transportation': 'Expense',
+      'Food & Dining': 'Expense',
+      'Housing': 'Expense',
+      'Healthcare': 'Expense',
+      'Entertainment': 'Expense',
+      'Shopping': 'Expense',
+      'Cash Withdrawal': 'Expense',
+      'Government & Tax': 'Expense'
+    };
+    
+    return typeMap[categoryName] || 'Expense';
   }
 
   /**
