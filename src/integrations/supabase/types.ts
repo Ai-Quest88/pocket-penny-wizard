@@ -734,6 +734,7 @@ export type Database = {
         Row: {
           amount: number
           asset_account_id: string | null
+          categorization_source: string | null
           category_id: string | null
           created_at: string | null
           currency: string | null
@@ -751,6 +752,7 @@ export type Database = {
         Insert: {
           amount: number
           asset_account_id?: string | null
+          categorization_source?: string | null
           category_id?: string | null
           created_at?: string | null
           currency?: string | null
@@ -768,6 +770,7 @@ export type Database = {
         Update: {
           amount?: number
           asset_account_id?: string | null
+          categorization_source?: string | null
           category_id?: string | null
           created_at?: string | null
           currency?: string | null

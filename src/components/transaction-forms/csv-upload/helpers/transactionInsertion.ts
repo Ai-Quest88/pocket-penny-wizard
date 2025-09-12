@@ -389,7 +389,8 @@ export class TransactionInsertionHelper {
             type: transaction.amount >= 0 ? 'income' : 'expense',
             currency: transaction.currency || 'AUD',
             notes: transaction.comment,
-            user_id: this.userId
+            user_id: this.userId,
+            categorization_source: category.source
           });
 
         if (error) {
