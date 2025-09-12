@@ -35,6 +35,11 @@ export class TransactionInsertionHelper {
     this.userId = userId;
     this.accessToken = accessToken;
     
+    // Clear caches to ensure fresh data is loaded
+    this.systemRulesCache = null;
+    this.userRulesCache = null;
+    this.systemCategoriesCache = null;
+    
     // Initialize system rules if needed
     initializeSystemRules(userId).catch(console.error);
   }
