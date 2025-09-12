@@ -35,7 +35,7 @@ export class TransactionInsertionHelper {
     this.userId = userId;
     this.accessToken = accessToken;
     
-    // Clear caches to ensure fresh data is loaded
+    // Force clear all caches to ensure fresh categorization rules are loaded
     this.systemRulesCache = null;
     this.userRulesCache = null;
     this.systemCategoriesCache = null;
