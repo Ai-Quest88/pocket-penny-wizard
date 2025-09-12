@@ -540,8 +540,7 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
       // Use funnel categorization: User Rules → System Rules → AI
       console.log('🎯 Starting funnel categorization for', formattedTransactions.length, 'transactions');
       
-      const helper = useTransactionInsertion();
-      const discoveredCategories = await helper.discoverCategories(formattedTransactions);
+      const discoveredCategories = await transactionHelper.discoverCategories(formattedTransactions);
 
       // Merge categorization results with formatted transactions
       const categorizedTransactions = formattedTransactions.map((transaction, index) => {
