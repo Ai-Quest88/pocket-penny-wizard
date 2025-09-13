@@ -83,6 +83,18 @@ export class TransactionProcessor {
           continue;
         }
 
+        // Determine transaction type based on category group, not just amount
+        let transactionType = 'expense'; // default
+        if (category.group_name === 'Income') {
+          transactionType = 'income';
+        } else if (category.group_name === 'Assets') {
+          transactionType = 'asset';
+        } else if (category.group_name === 'Liabilities') {
+          transactionType = 'liability';
+        } else if (category.group_name === 'Transfers') {
+          transactionType = 'transfer';
+        }
+
         const { error } = await supabase
           .from('transactions')
           .insert({
@@ -92,7 +104,7 @@ export class TransactionProcessor {
             asset_account_id: transaction.asset_account_id || null,
             liability_account_id: transaction.liability_account_id || null,
             category_id: categoryId,
-            type: transaction.amount >= 0 ? 'income' : 'expense',
+            type: transactionType,
             currency: transaction.currency || 'AUD',
             notes: transaction.comment,
             user_id: this.userId,
