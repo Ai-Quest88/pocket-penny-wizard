@@ -98,7 +98,7 @@ export class TransactionCategorizer {
       try {
         const aiCategorizer = new AICategorizer();
         const uncategorizedTransactions = uncategorizedAfterSystemRules.map(item => item.transaction);
-        const aiResults = await aiCategorizer.categorize(uncategorizedTransactions);
+        const aiResults = await aiCategorizer.categorize(uncategorizedTransactions, this.userId);
         
         uncategorizedAfterSystemRules.forEach(({ index }, aiIndex) => {
           const aiResult = aiResults[aiIndex];
