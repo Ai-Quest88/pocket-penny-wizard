@@ -1,10 +1,12 @@
 export class PatternMatcher {
   static matchesPattern(description: string, pattern: string): boolean {
+    console.log(`🔍 PatternMatcher: Testing "${description}" against pattern "${pattern}"`);
     const lowerDescription = description.toLowerCase();
     const lowerPattern = pattern.toLowerCase();
 
     // Strategy 1: Exact substring match
     if (lowerDescription.includes(lowerPattern)) {
+      console.log('✅ Matched using exact substring');
       return true;
     }
 
