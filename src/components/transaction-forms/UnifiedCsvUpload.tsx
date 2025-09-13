@@ -417,22 +417,10 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
       });
 
       // Use clean categorization system
+      console.log('🔄 About to call transactionProcessor.processCsvUpload with', transactionsForProcessing.length, 'transactions');
+      console.log('📝 Sample transaction:', transactionsForProcessing[0]);
       const result = await transactionProcessor.processCsvUpload(transactionsForProcessing);
-      
-      // Count categorization results
-      const categories = transactionsForProcessing.map(t => t.category);
-      const categoryCounts = categories.reduce((acc, category) => {
-        acc[category] = (acc[category] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-      
-      const miscellaneousCount = categoryCounts['Uncategorized'] || 0;
-      const successfullyCategorizeed = categories.length - miscellaneousCount;
-      
-      console.log('📊 Categorization Summary:');
-      console.log(`  Successfully categorized: ${successfullyCategorizeed}/${categories.length}`);
-      console.log(`  Uncategorized: ${miscellaneousCount}/${categories.length}`);
-      console.log('  Category breakdown:', categoryCounts);
+      console.log('✅ processCsvUpload completed with result:', result);
       
       const uploadMessage = `${result.success} transactions processed, ${result.failed} failed`;
       const categorizationMessage = result.new_categories_created > 0 
@@ -537,19 +525,17 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
 
       console.log('Formatted transactions for categorization:', formattedTransactions.slice(0, 2));
 
-      // Use clean categorization flow: User Rules → System Rules → AI → Fallback
-      const categorizer = transactionProcessor['categorizer'];
-      const discoveredCategories = await categorizer.categorizeTransactions(formattedTransactions);
+      // Skip categorization here - let the continueUpload handle everything
+      console.log('📝 Skipping preview categorization - will be done in upload phase');
 
-      // Merge categorization results with formatted transactions
-      const categorizedTransactions = formattedTransactions.map((transaction, index) => {
-        const categoryResult = discoveredCategories[index];
+      // Store transactions without categories for now
+      const categorizedTransactions = formattedTransactions.map((transaction) => {
         return {
           ...transaction,
-          category: categoryResult.category || 'Uncategorized',
-          category_id: null, // Will be resolved during insertion
-          aiConfidence: categoryResult.confidence || 0.5,
-          categorization_source: categoryResult.source
+          category: 'Pending', // Temporary placeholder
+          category_id: null,
+          aiConfidence: 0,
+          categorization_source: 'pending'
         };
       });
 
