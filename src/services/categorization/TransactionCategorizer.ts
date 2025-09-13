@@ -74,8 +74,10 @@ export class TransactionCategorizer {
     const systemCategorizer = new SystemRulesCategorizer(systemRules);
     
     uncategorizedAfterUserRules.forEach(({ transaction, index }) => {
+      console.log(`🔧 System rules processing: "${transaction.description}"`);
       const category = systemCategorizer.categorize(transaction);
       if (category) {
+        console.log(`✅ System rule matched: "${transaction.description}" -> "${category}"`);
         results[index] = {
           category,
           confidence: 0.9,
@@ -85,6 +87,7 @@ export class TransactionCategorizer {
         };
         stats.systemRules++;
       } else {
+        console.log(`❌ No system rule matched for: "${transaction.description}"`);
         uncategorizedAfterSystemRules.push({ transaction, index });
       }
     });

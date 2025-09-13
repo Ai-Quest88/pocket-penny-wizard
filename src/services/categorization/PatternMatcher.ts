@@ -4,6 +4,17 @@ export class PatternMatcher {
     const lowerDescription = description.toLowerCase();
     const lowerPattern = pattern.toLowerCase();
 
+    // TEST: Special debugging for salary pattern
+    if (pattern.toLowerCase() === 'salary') {
+      console.log('🎯 SPECIAL DEBUG FOR SALARY PATTERN:');
+      console.log(`   Description: "${description}"`);
+      console.log(`   Lower description: "${lowerDescription}"`);
+      console.log(`   Pattern: "${pattern}"`);
+      console.log(`   Lower pattern: "${lowerPattern}"`);
+      console.log(`   Contains salary? ${lowerDescription.includes('salary')}`);
+      console.log(`   Ends with salary? ${lowerDescription.endsWith('salary')}`);
+    }
+
     // Strategy 1: Exact substring match
     if (lowerDescription.includes(lowerPattern)) {
       console.log('✅ Matched using exact substring');
