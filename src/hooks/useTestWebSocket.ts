@@ -124,7 +124,7 @@ export function useTestWebSocket() {
         status: passed ? 'passed' : 'failed',
         duration: Math.round(duration),
         error: passed ? undefined : 'Assertion failed: Expected element to be visible',
-        videoPath: `/test-results/videos/${test.title.replace(/\s+/g, '-').toLowerCase()}.webm`,
+        videoPath: passed ? `https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4` : undefined,
         progress: Math.round(((i + 1) / filteredTests.length) * 100)
       }));
     }

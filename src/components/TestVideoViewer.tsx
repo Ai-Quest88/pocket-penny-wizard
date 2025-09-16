@@ -15,8 +15,9 @@ export function TestVideoViewer({ videoPath, testTitle, status }: TestVideoViewe
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
-  // Mock video path for demonstration
-  const mockVideoPath = `/test-results/videos/${testTitle.replace(/\s+/g, '-').toLowerCase()}.webm`;
+  // Use a sample video for demonstration
+  const sampleVideoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+  const videoSrc = videoPath || sampleVideoUrl;
 
   const handlePlayPause = () => {
     setIsPlaying(!isPlaying);
@@ -51,20 +52,24 @@ export function TestVideoViewer({ videoPath, testTitle, status }: TestVideoViewe
         <div className="space-y-4">
           {/* Video Player */}
           <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
-            {videoPath || status === 'running' ? (
+            {status !== 'pending' ? (
               <video 
                 className="w-full h-full object-contain"
+                controls
                 onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
                 onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
               >
-                <source src={videoPath || mockVideoPath} type="video/webm" />
+                <source src={videoSrc} type="video/mp4" />
+                <source src={videoSrc} type="video/webm" />
                 Your browser does not support the video tag.
               </video>
             ) : (
               <div className="flex items-center justify-center h-full text-white/70">
                 <div className="text-center">
                   <Play className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                  <p>No video recording available</p>
+                  <p>Run test to generate video recording</p>
                 </div>
               </div>
             )}
@@ -99,7 +104,7 @@ export function TestVideoViewer({ videoPath, testTitle, status }: TestVideoViewe
                   variant="outline" 
                   size="sm"
                   onClick={handlePlayPause}
-                  disabled={!videoPath && status !== 'running'}
+                  disabled={status === 'pending'}
                 >
                   {isPlaying ? (
                     <Pause className="h-4 w-4" />
@@ -112,7 +117,7 @@ export function TestVideoViewer({ videoPath, testTitle, status }: TestVideoViewe
                   variant="outline" 
                   size="sm"
                   onClick={handleRestart}
-                  disabled={!videoPath && status !== 'running'}
+                  disabled={status === 'pending'}
                 >
                   <RotateCcw className="h-4 w-4" />
                 </Button>
@@ -131,7 +136,8 @@ export function TestVideoViewer({ videoPath, testTitle, status }: TestVideoViewe
                     </DialogHeader>
                     <div className="aspect-video bg-black rounded-lg overflow-hidden">
                       <video className="w-full h-full object-contain" controls>
-                        <source src={videoPath || mockVideoPath} type="video/webm" />
+                        <source src={videoSrc} type="video/mp4" />
+                        <source src={videoSrc} type="video/webm" />
                       </video>
                     </div>
                   </DialogContent>
@@ -140,7 +146,7 @@ export function TestVideoViewer({ videoPath, testTitle, status }: TestVideoViewe
                 <Button 
                   variant="outline" 
                   size="sm"
-                  disabled={!videoPath}
+                  disabled={status === 'pending'}
                 >
                   <Download className="h-4 w-4" />
                 </Button>

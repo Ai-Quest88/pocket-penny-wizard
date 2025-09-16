@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { TestVideoViewer } from '@/components/TestVideoViewer';
+import { TestLogsViewer } from '@/components/TestLogsViewer';
 import { useTestWebSocket } from '@/hooks/useTestWebSocket';
 
 interface TestResult {
@@ -443,6 +444,7 @@ export default function TestDashboard() {
       <Tabs defaultValue="results" className="space-y-4">
         <TabsList>
           <TabsTrigger value="results">Test Results</TabsTrigger>
+          <TabsTrigger value="logs">Live Logs</TabsTrigger>
           <TabsTrigger value="videos">Test Videos</TabsTrigger>
           <TabsTrigger value="coverage">Coverage</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
@@ -488,6 +490,13 @@ export default function TestDashboard() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+        
+        <TabsContent value="logs" className="space-y-4">
+          <TestLogsViewer 
+            isRunning={isRunning} 
+            currentTest={runningTest} 
+          />
         </TabsContent>
         
         <TabsContent value="videos" className="space-y-4">
