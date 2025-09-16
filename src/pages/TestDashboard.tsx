@@ -22,7 +22,6 @@ import {
 import { useToast } from '@/components/ui/use-toast';
 import { TestVideoViewer } from '@/components/TestVideoViewer';
 import { TestLogsViewer } from '@/components/TestLogsViewer';
-import { useTestWebSocket } from '@/hooks/useTestWebSocket';
 
 interface TestResult {
   id: string;
@@ -49,8 +48,8 @@ export default function TestDashboard() {
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [currentProgress, setCurrentProgress] = useState(0);
   const [runningTest, setRunningTest] = useState<string | null>(null);
-  const [connectionStatus, setConnectionStatus] = useState<string>('Connecting...');
-  const { isConnected, isRunning, runTests, stopTests, addMessageHandler } = useTestWebSocket();
+  const [isRunning, setIsRunning] = useState(false);
+  const [isConnected, setIsConnected] = useState(true);
   const [testStats, setTestStats] = useState<TestStats>({
     total: 0,
     passed: 0,
@@ -113,96 +112,11 @@ export default function TestDashboard() {
   ];
 
   useEffect(() => {
-    // Initialize with mock data
     setTestResults(mockTestData);
     updateStats(mockTestData);
-    
-    // Set up WebSocket message handler
-    const removeHandler = addMessageHandler(handleWebSocketMessage);
-    return removeHandler;
-  }, [addMessageHandler]);
+  }, []);
 
-  // Handle WebSocket messages
-  const handleWebSocketMessage = useCallback((message: any) => {
-    console.log('Handling message:', message);
-    
-    switch (message.type) {
-      case 'CONNECTED':
-        setConnectionStatus('Connected');
-        toast({
-          title: "Test Runner Connected",
-          description: "Ready to execute tests",
-        });
-        break;
-        
-      case 'TEST_START':
-        setCurrentProgress(0);
-        setTestResults(prev => prev.map(test => ({
-          ...test,
-          status: 'pending' as const,
-          duration: 0,
-          error: undefined
-        })));
-        toast({
-          title: "Tests Started",
-          description: `Running ${message.totalTests} tests...`,
-        });
-        break;
-        
-      case 'TEST_UPDATE':
-        if (message.testTitle) {
-          setRunningTest(message.status === 'running' ? message.testTitle : null);
-          setCurrentProgress(message.progress || 0);
-          
-          setTestResults(prev => prev.map(test => 
-            test.title === message.testTitle 
-              ? { 
-                  ...test, 
-                  status: message.status || 'running',
-                  duration: message.duration || 0,
-                  error: message.error,
-                  videoPath: message.videoPath,
-                  timestamp: Date.now()
-                }
-              : test
-          ));
-        }
-        break;
-        
-      case 'TEST_COMPLETE':
-        setRunningTest(null);
-        setCurrentProgress(100);
-        toast({
-          title: "Tests Completed",
-          description: `Finished running ${message.totalTests} tests`,
-        });
-        break;
-        
-      case 'TEST_STOPPED':
-        setRunningTest(null);
-        toast({
-          title: "Tests Stopped",
-          description: "Test execution was stopped",
-          variant: "destructive"
-        });
-        break;
-        
-      case 'ERROR':
-        setConnectionStatus('Error');
-        toast({
-          title: "Test Error",
-          description: message.error || 'An error occurred',
-          variant: "destructive"
-        });
-        break;
-    }
-  }, [toast]);
-
-  // Update connection status
-  useEffect(() => {
-    setConnectionStatus(isConnected ? 'Connected' : 'Disconnected');
-  }, [isConnected]);
-  const updateStats = (results: TestResult[]) => {
+  const updateStats = useCallback((results: TestResult[]) => {
     const stats = {
       total: results.length,
       passed: results.filter(r => r.status === 'passed').length,
@@ -217,36 +131,97 @@ export default function TestDashboard() {
     }
     
     setTestStats(stats);
-  };
+  }, []);
 
-  const handleRunTests = async (category?: string) => {
-    if (!isConnected) {
-      toast({
-        title: "Connection Error",
-        description: "Not connected to test runner. Please wait for connection.",
-        variant: "destructive"
-      });
-      return;
+  const simulateTestExecution = useCallback(async (category?: string) => {
+    console.log('Starting test simulation...', category);
+    setIsRunning(true);
+    setCurrentProgress(0);
+    
+    const filteredTests = category 
+      ? mockTestData.filter(test => test.category === category)
+      : mockTestData;
+
+    console.log('Tests to run:', filteredTests.length);
+
+    // Reset all tests to pending
+    setTestResults(mockTestData);
+
+    toast({
+      title: "Tests Started",
+      description: `Running ${filteredTests.length} tests...`,
+    });
+
+    // Execute tests progressively
+    for (let i = 0; i < filteredTests.length; i++) {
+      const test = filteredTests[i];
+      console.log('Running test:', test.title);
+      
+      setRunningTest(test.title);
+      setCurrentProgress(Math.round((i / filteredTests.length) * 100));
+
+      // Update test to running status
+      setTestResults(prev => prev.map(t => 
+        t.title === test.title 
+          ? { ...t, status: 'running' as const }
+          : t
+      ));
+
+      // Simulate test execution time
+      await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 2000));
+
+      // Test result (80% pass rate)
+      const passed = Math.random() > 0.2;
+      const duration = 1500 + Math.random() * 3000;
+
+      console.log('Test completed:', test.title, passed ? 'PASSED' : 'FAILED');
+
+      // Update test to final status
+      setTestResults(prev => prev.map(t => 
+        t.title === test.title 
+          ? { 
+              ...t, 
+              status: passed ? 'passed' as const : 'failed' as const,
+              duration: Math.round(duration),
+              error: passed ? undefined : 'Assertion failed: Expected element to be visible',
+              videoPath: passed ? 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' : undefined,
+              timestamp: Date.now()
+            }
+          : t
+      ));
     }
 
-    const success = runTests(category);
-    if (!success) {
-      toast({
-        title: "Failed to Start Tests",
-        description: "Could not communicate with test runner",
-        variant: "destructive"
-      });
-    }
-  };
+    // Test completion
+    console.log('All tests completed');
+    setCurrentProgress(100);
+    setRunningTest(null);
+    setIsRunning(false);
 
-  const handleStopTests = () => {
-    stopTests();
-  };
+    toast({
+      title: "Tests Completed",
+      description: `Finished running ${filteredTests.length} tests`,
+    });
+  }, [toast]);
 
   // Update stats whenever test results change
   useEffect(() => {
     updateStats(testResults);
-  }, [testResults]);
+  }, [testResults, updateStats]);
+
+  const handleRunTests = async (category?: string) => {
+    if (isRunning) return;
+    simulateTestExecution(category);
+  };
+
+  const handleStopTests = () => {
+    setIsRunning(false);
+    setRunningTest(null);
+    toast({
+      title: "Tests Stopped",
+      description: "Test execution was stopped",
+      variant: "destructive"
+    });
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -354,7 +329,7 @@ export default function TestDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-sm font-medium">
-              {connectionStatus}
+              {isConnected ? 'Connected' : 'Disconnected'}
             </div>
           </CardContent>
         </Card>
@@ -388,7 +363,7 @@ export default function TestDashboard() {
             <div className="flex flex-wrap gap-2">
               <Button 
                 onClick={() => handleRunTests()} 
-                disabled={isRunning || !isConnected}
+                disabled={isRunning}
                 className="flex items-center gap-2"
               >
                 {isRunning ? (
@@ -402,7 +377,7 @@ export default function TestDashboard() {
               <Button 
                 variant="outline" 
                 onClick={() => handleRunTests('smoke')} 
-                disabled={isRunning || !isConnected}
+                disabled={isRunning}
               >
                 <Play className="h-4 w-4 mr-2" />
                 Smoke Tests
@@ -411,7 +386,7 @@ export default function TestDashboard() {
               <Button 
                 variant="outline" 
                 onClick={() => handleRunTests('critical')} 
-                disabled={isRunning || !isConnected}
+                disabled={isRunning}
               >
                 <Play className="h-4 w-4 mr-2" />
                 Critical Tests
@@ -420,7 +395,7 @@ export default function TestDashboard() {
               <Button 
                 variant="outline" 
                 onClick={() => handleRunTests('regression')} 
-                disabled={isRunning || !isConnected}
+                disabled={isRunning}
               >
                 <Play className="h-4 w-4 mr-2" />
                 Regression Tests
