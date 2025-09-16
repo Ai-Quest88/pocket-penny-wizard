@@ -18,66 +18,17 @@ export interface TestWebSocketMessage {
 export function useTestWebSocket() {
   const [isConnected, setIsConnected] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
-  const wsRef = useRef<WebSocket | null>(null);
-  const [messageHandlers, setMessageHandlers] = useState<((message: TestWebSocketMessage) => void)[]>([]);
+  const messageHandlersRef = useRef<((message: TestWebSocketMessage) => void)[]>([]);
   
   const addMessageHandler = useCallback((handler: (message: TestWebSocketMessage) => void) => {
-    setMessageHandlers(prev => [...prev, handler]);
+    messageHandlersRef.current.push(handler);
     return () => {
-      setMessageHandlers(prev => prev.filter(h => h !== handler));
+      messageHandlersRef.current = messageHandlersRef.current.filter(h => h !== handler);
     };
   }, []);
 
-  useEffect(() => {
-    console.log('Setting up WebSocket connection...');
-    
-    const connect = () => {
-      try {
-        // For now, let's simulate the connection since WebSocket to Supabase Edge Functions 
-        // requires additional setup. We'll use a mock connection.
-        console.log('Simulating WebSocket connection...');
-        setIsConnected(true);
-        
-        // Simulate connection established
-        setTimeout(() => {
-          messageHandlers.forEach(handler => handler({
-            type: 'CONNECTED',
-            message: 'Simulated connection established'
-          }));
-        }, 1000);
-        
-      } catch (error) {
-        console.error('Failed to connect:', error);
-        setIsConnected(false);
-      }
-    };
-    connect();
-    
-    return () => {
-      // Cleanup if needed
-    };
-  }, [messageHandlers]);
-  
-  const runTests = useCallback((category?: string) => {
-    console.log('Running tests...', category);
-    
-    // Simulate test execution
-    simulateTestExecution(category);
-    return true;
-  }, [messageHandlers]);
-  
-  const stopTests = useCallback(() => {
-    console.log('Stopping tests...');
-    setIsRunning(false);
-    
-    messageHandlers.forEach(handler => handler({
-      type: 'TEST_STOPPED',
-      message: 'Tests stopped by user'
-    }));
-    return true;
-  }, [messageHandlers]);
-
   const simulateTestExecution = useCallback(async (category?: string) => {
+    console.log('Starting test simulation...', category);
     setIsRunning(true);
     
     const mockTests = [
@@ -93,8 +44,10 @@ export function useTestWebSocket() {
       ? mockTests.filter(test => test.category === category)
       : mockTests;
 
+    console.log('Tests to run:', filteredTests.length);
+
     // Notify test start
-    messageHandlers.forEach(handler => handler({
+    messageHandlersRef.current.forEach(handler => handler({
       type: 'TEST_START',
       totalTests: filteredTests.length
     }));
@@ -102,9 +55,10 @@ export function useTestWebSocket() {
     // Execute tests progressively
     for (let i = 0; i < filteredTests.length; i++) {
       const test = filteredTests[i];
+      console.log('Running test:', test.title);
       
       // Test running
-      messageHandlers.forEach(handler => handler({
+      messageHandlersRef.current.forEach(handler => handler({
         type: 'TEST_UPDATE',
         testTitle: test.title,
         status: 'running',
@@ -118,7 +72,9 @@ export function useTestWebSocket() {
       const passed = Math.random() > 0.2;
       const duration = 1500 + Math.random() * 3000;
 
-      messageHandlers.forEach(handler => handler({
+      console.log('Test completed:', test.title, passed ? 'PASSED' : 'FAILED');
+
+      messageHandlersRef.current.forEach(handler => handler({
         type: 'TEST_UPDATE',
         testTitle: test.title,
         status: passed ? 'passed' : 'failed',
@@ -130,14 +86,56 @@ export function useTestWebSocket() {
     }
 
     // Test completion
-    messageHandlers.forEach(handler => handler({
+    console.log('All tests completed');
+    messageHandlersRef.current.forEach(handler => handler({
       type: 'TEST_COMPLETE',
       totalTests: filteredTests.length
     }));
 
     setIsRunning(false);
-  }, [messageHandlers]);
+  }, []);
+
+  useEffect(() => {
+    console.log('Setting up WebSocket connection...');
+    
+    const connect = () => {
+      try {
+        console.log('Simulating WebSocket connection...');
+        setIsConnected(true);
+        
+        // Simulate connection established
+        setTimeout(() => {
+          messageHandlersRef.current.forEach(handler => handler({
+            type: 'CONNECTED',
+            message: 'Simulated connection established'
+          }));
+        }, 1000);
+        
+      } catch (error) {
+        console.error('Failed to connect:', error);
+        setIsConnected(false);
+      }
+    };
+    connect();
+  }, []);
   
+  const runTests = useCallback((category?: string) => {
+    console.log('Running tests...', category);
+    simulateTestExecution(category);
+    return true;
+  }, [simulateTestExecution]);
+  
+  const stopTests = useCallback(() => {
+    console.log('Stopping tests...');
+    setIsRunning(false);
+    
+    messageHandlersRef.current.forEach(handler => handler({
+      type: 'TEST_STOPPED',
+      message: 'Tests stopped by user'
+    }));
+    return true;
+  }, []);
+
   return {
     isConnected,
     isRunning,
