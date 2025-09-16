@@ -905,6 +905,10 @@ export type Database = {
         Args: { entity_user_id: string }
         Returns: boolean
       }
+      validate_entity_access_enhanced: {
+        Args: { entity_user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
