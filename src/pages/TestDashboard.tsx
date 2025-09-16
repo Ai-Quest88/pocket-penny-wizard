@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,9 +15,12 @@ import {
   FileText,
   BarChart3,
   Settings,
-  Download
+  Download,
+  Video,
+  Monitor
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { TestVideoViewer } from '@/components/TestVideoViewer';
 
 interface TestResult {
   id: string;
@@ -27,6 +30,8 @@ interface TestResult {
   category: string;
   error?: string;
   screenshot?: string;
+  videoPath?: string;
+  timestamp?: number;
 }
 
 interface TestStats {
@@ -41,6 +46,8 @@ interface TestStats {
 export default function TestDashboard() {
   const [isRunning, setIsRunning] = useState(false);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
+  const [currentProgress, setCurrentProgress] = useState(0);
+  const [runningTest, setRunningTest] = useState<string | null>(null);
   const [testStats, setTestStats] = useState<TestStats>({
     total: 0,
     passed: 0,
@@ -55,46 +62,50 @@ export default function TestDashboard() {
     {
       id: '1',
       title: 'User Authentication Flow',
-      status: 'passed',
-      duration: 2340,
-      category: 'smoke'
+      status: 'pending',
+      duration: 0,
+      category: 'smoke',
+      timestamp: Date.now()
     },
     {
       id: '2',
       title: 'Dashboard Load Performance',
-      status: 'passed',
-      duration: 1850,
-      category: 'critical'
+      status: 'pending',
+      duration: 0,
+      category: 'critical',
+      timestamp: Date.now()
     },
     {
       id: '3',
       title: 'Transaction Creation',
-      status: 'failed',
-      duration: 3200,
+      status: 'pending',
+      duration: 0,
       category: 'critical',
-      error: 'Element not found: [data-testid="submit-transaction"]'
+      timestamp: Date.now()
     },
     {
       id: '4',
       title: 'CSV Upload Functionality',
-      status: 'passed',
-      duration: 5670,
-      category: 'regression'
+      status: 'pending',
+      duration: 0,
+      category: 'regression',
+      timestamp: Date.now()
     },
     {
       id: '5',
       title: 'Budget Management',
-      status: 'passed',
-      duration: 2890,
-      category: 'critical'
+      status: 'pending',
+      duration: 0,
+      category: 'critical',
+      timestamp: Date.now()
     },
     {
       id: '6',
       title: 'Asset Calculations',
-      status: 'failed',
-      duration: 1920,
+      status: 'pending',
+      duration: 0,
       category: 'regression',
-      error: 'Expected: 15000, Received: 14999.99'
+      timestamp: Date.now()
     }
   ];
 
@@ -123,16 +134,18 @@ export default function TestDashboard() {
 
   const runTests = async (category?: string) => {
     setIsRunning(true);
+    setCurrentProgress(0);
     
     toast({
       title: "Tests Started",
-      description: `Running ${category || 'all'} tests...`,
+      description: `Running ${category || 'all'} tests with video recording...`,
     });
 
-    // Simulate test execution
+    // Simulate test execution with video recording
     const updatedResults: TestResult[] = testResults.map(result => ({
       ...result,
-      status: 'running'
+      status: 'running',
+      videoPath: `/test-results/videos/${result.title.replace(/\s+/g, '-').toLowerCase()}.webm`
     }));
     
     setTestResults(updatedResults);
@@ -140,13 +153,20 @@ export default function TestDashboard() {
 
     // Simulate progressive test completion
     for (let i = 0; i < testResults.length; i++) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      setRunningTest(mockTestData[i].title);
+      setCurrentProgress(Math.round(((i + 1) / testResults.length) * 100));
       
       const newResults: TestResult[] = [...updatedResults];
+      const finalStatus = Math.random() > 0.3 ? 'passed' : 'failed';
+      
       newResults[i] = {
         ...newResults[i],
-        status: mockTestData[i].status,
-        duration: mockTestData[i].duration + Math.random() * 500
+        status: finalStatus,
+        duration: 1500 + Math.random() * 3000,
+        error: finalStatus === 'failed' ? 'Element not found or assertion failed' : undefined,
+        timestamp: Date.now()
       };
       
       setTestResults(newResults);
@@ -154,13 +174,31 @@ export default function TestDashboard() {
     }
 
     setIsRunning(false);
+    setRunningTest(null);
+    setCurrentProgress(100);
     
+    const finalStats = testStats;
     toast({
       title: "Tests Completed",
-      description: `${testStats.passed} passed, ${testStats.failed} failed`,
-      variant: testStats.failed > 0 ? "destructive" : "default"
+      description: `${finalStats.passed} passed, ${finalStats.failed} failed`,
+      variant: finalStats.failed > 0 ? "destructive" : "default"
     });
   };
+
+  const stopTests = () => {
+    setIsRunning(false);
+    setRunningTest(null);
+    toast({
+      title: "Tests Stopped",
+      description: "Test execution has been stopped",
+      variant: "destructive"
+    });
+  };
+
+  // Update stats whenever test results change
+  useEffect(() => {
+    updateStats(testResults);
+  }, [testResults]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -198,7 +236,7 @@ export default function TestDashboard() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Test Dashboard</h1>
           <p className="text-muted-foreground">
-            Monitor and execute your application's test suite
+            Monitor and execute your application's test suite with video recording
           </p>
         </div>
         
@@ -279,60 +317,77 @@ export default function TestDashboard() {
         <CardHeader>
           <CardTitle>Test Controls</CardTitle>
           <CardDescription>
-            Run tests by category or execute the full test suite
+            Run tests by category or execute the full test suite with video recording
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-2">
-            <Button 
-              onClick={() => runTests()} 
-              disabled={isRunning}
-              className="flex items-center gap-2"
-            >
-              {isRunning ? (
-                <RefreshCw className="h-4 w-4 animate-spin" />
-              ) : (
-                <Play className="h-4 w-4" />
-              )}
-              Run All Tests
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              onClick={() => runTests('smoke')} 
-              disabled={isRunning}
-            >
-              <Play className="h-4 w-4 mr-2" />
-              Smoke Tests
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              onClick={() => runTests('critical')} 
-              disabled={isRunning}
-            >
-              <Play className="h-4 w-4 mr-2" />
-              Critical Tests
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              onClick={() => runTests('regression')} 
-              disabled={isRunning}
-            >
-              <Play className="h-4 w-4 mr-2" />
-              Regression Tests
-            </Button>
-            
+          <div className="space-y-4">
             {isRunning && (
-              <Button 
-                variant="destructive" 
-                onClick={() => setIsRunning(false)}
-              >
-                <Square className="h-4 w-4 mr-2" />
-                Stop Tests
-              </Button>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Progress value={currentProgress} className="flex-1" />
+                  <span className="text-sm text-muted-foreground">{currentProgress}%</span>
+                </div>
+                
+                {runningTest && (
+                  <div className="text-sm text-muted-foreground">
+                    Currently running: {runningTest}
+                  </div>
+                )}
+              </div>
             )}
+            
+            <div className="flex flex-wrap gap-2">
+              <Button 
+                onClick={() => runTests()} 
+                disabled={isRunning}
+                className="flex items-center gap-2"
+              >
+                {isRunning ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Play className="h-4 w-4" />
+                )}
+                Run All Tests
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                onClick={() => runTests('smoke')} 
+                disabled={isRunning}
+              >
+                <Play className="h-4 w-4 mr-2" />
+                Smoke Tests
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                onClick={() => runTests('critical')} 
+                disabled={isRunning}
+              >
+                <Play className="h-4 w-4 mr-2" />
+                Critical Tests
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                onClick={() => runTests('regression')} 
+                disabled={isRunning}
+              >
+                <Play className="h-4 w-4 mr-2" />
+                Regression Tests
+              </Button>
+              
+              {isRunning && (
+                <Button 
+                  variant="destructive" 
+                  onClick={stopTests}
+                >
+                  <Square className="h-4 w-4 mr-2" />
+                  Stop Tests
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -341,6 +396,7 @@ export default function TestDashboard() {
       <Tabs defaultValue="results" className="space-y-4">
         <TabsList>
           <TabsTrigger value="results">Test Results</TabsTrigger>
+          <TabsTrigger value="videos">Test Videos</TabsTrigger>
           <TabsTrigger value="coverage">Coverage</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
@@ -383,6 +439,41 @@ export default function TestDashboard() {
                   </div>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="videos" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Video className="h-5 w-5" />
+                Test Execution Videos
+              </CardTitle>
+              <CardDescription>
+                Watch recorded test executions to understand failures and verify functionality
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {testResults
+                  .filter(result => result.status !== 'pending')
+                  .map((result) => (
+                    <TestVideoViewer
+                      key={result.id}
+                      videoPath={result.videoPath}
+                      testTitle={result.title}
+                      status={result.status}
+                    />
+                  ))}
+              </div>
+              
+              {testResults.filter(r => r.status !== 'pending').length === 0 && (
+                <div className="text-center text-muted-foreground py-8">
+                  <Monitor className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No test videos available. Run tests to see execution recordings.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
