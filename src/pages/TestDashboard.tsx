@@ -201,6 +201,7 @@ export default function TestDashboard() {
   useEffect(() => {
     setConnectionStatus(isConnected ? 'Connected' : 'Disconnected');
   }, [isConnected]);
+  const updateStats = (results: TestResult[]) => {
     const stats = {
       total: results.length,
       passed: results.filter(r => r.status === 'passed').length,
