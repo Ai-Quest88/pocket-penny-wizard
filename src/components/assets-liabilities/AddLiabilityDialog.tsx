@@ -214,6 +214,7 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
         <Button 
           variant="outline" 
           className="flex items-center gap-2"
+          data-testid="add-liability-button"
           onClick={() => {
             console.log("Add Liability dialog trigger clicked");
             setOpen(true);
@@ -238,7 +239,7 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
                 setSelectedEntityId(value);
               }}
             >
-              <SelectTrigger>
+              <SelectTrigger data-testid="liability-entity-select">
                 <SelectValue placeholder="Select entity" />
               </SelectTrigger>
               <SelectContent>
@@ -261,6 +262,7 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
                 setNewLiability({ ...newLiability, name: e.target.value });
               }}
               placeholder="e.g., Credit Card"
+              data-testid="liability-name-input"
             />
           </div>
 
@@ -273,7 +275,7 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
                 setNewLiability({ ...newLiability, type: value, category: liabilityCategoryGroups[value][0] });
               }}
             >
-              <SelectTrigger>
+              <SelectTrigger data-testid="liability-type-select">
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent>
@@ -357,6 +359,7 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
                   console.log("Current outstanding balance changed to:", openingBalance);
                   setNewLiability({ ...newLiability, openingBalance, amount: openingBalance });
                 }}
+                data-testid="liability-balance-input"
                 placeholder={
                   newLiability.type === "mortgage" ? "Enter current amount owed" : 
                   newLiability.type === "loan" ? "Enter current amount owed" : 
@@ -420,7 +423,7 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
             </Select>
           </div>
           
-            <Button onClick={handleAddLiability} className="w-full">
+            <Button onClick={handleAddLiability} className="w-full" data-testid="add-liability-submit-button">
               Add Liability
             </Button>
           </div>

@@ -33,12 +33,12 @@ export const EntityList = ({ entities, onDeleteEntity, onEditEntity, checkEntity
   return (
     <div className="space-y-4">
       {entities.map((entity) => (
-        <Card key={entity.id} className="p-6">
+        <Card key={entity.id} className="p-6" data-testid={`entity-card-${entity.name}`}>
           <div className="flex items-start justify-between">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="text-2xl">{getEntityIcon(entity.type)}</span>
-                <h3 className="font-medium">{entity.name}</h3>
+                <h3 className="font-medium" data-testid={`entity-name-${entity.name}`}>{entity.name}</h3>
               </div>
               <p className="text-sm text-muted-foreground capitalize">{entity.type.replace('_', ' ')}</p>
             </div>

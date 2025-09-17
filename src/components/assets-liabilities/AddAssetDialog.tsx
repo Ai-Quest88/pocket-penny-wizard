@@ -134,7 +134,7 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="flex items-center gap-2">
+        <Button className="flex items-center gap-2" data-testid="add-asset-button">
           <Plus className="h-4 w-4" />
           Add Asset
         </Button>
@@ -154,7 +154,7 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
               value={selectedEntityId}
               onValueChange={setSelectedEntityId}
             >
-              <SelectTrigger>
+              <SelectTrigger data-testid="asset-entity-select">
                 <SelectValue placeholder="Select entity" />
               </SelectTrigger>
               <SelectContent>
@@ -174,6 +174,7 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
               value={newAsset.name}
               onChange={(e) => setNewAsset({ ...newAsset, name: e.target.value })}
               placeholder="e.g., Savings Account"
+              data-testid="asset-name-input"
             />
           </div>
 
@@ -183,7 +184,7 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
               value={newAsset.type}
               onValueChange={(value: Asset["type"]) => setNewAsset({ ...newAsset, type: value })}
             >
-              <SelectTrigger>
+              <SelectTrigger data-testid="asset-type-select">
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent>
@@ -230,6 +231,7 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
               value={newAsset.value}
               onChange={(e) => setNewAsset({ ...newAsset, value: parseFloat(e.target.value) || 0 })}
               placeholder="0.00"
+              data-testid="asset-value-input"
             />
           </div>
 
@@ -288,7 +290,7 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
             </Select>
           </div>
           
-            <Button onClick={handleAddAsset} className="w-full">Add Asset</Button>
+            <Button onClick={handleAddAsset} className="w-full" data-testid="add-asset-submit-button">Add Asset</Button>
           </div>
         </ScrollArea>
       </DialogContent>

@@ -199,7 +199,7 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="flex items-center gap-2">
+        <Button className="flex items-center gap-2" data-testid="add-entity-button">
           <PlusCircle className="h-4 w-4" />
           Add Entity
         </Button>
@@ -219,7 +219,7 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
                 setEntityType(value);
               }}
             >
-              <SelectTrigger>
+              <SelectTrigger data-testid="entity-type-select">
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent>
@@ -238,6 +238,7 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder={entityType === "individual" ? "Full Name" : "Entity Name"}
+                data-testid="entity-name-input"
                 className={`pr-10 ${
                   formData.name.trim() && !nameValidation.isValid
                     ? "border-red-500 focus:border-red-500"
@@ -273,6 +274,7 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
               value={formData.countryOfResidence}
               onChange={(e) => setFormData({ ...formData, countryOfResidence: e.target.value })}
               placeholder="Country"
+              data-testid="entity-country-input"
             />
           </div>
 
@@ -325,6 +327,7 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
                   value={formData.registrationNumber}
                   onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
                   placeholder="Registration/License Number"
+                  data-testid="entity-registration-input"
                 />
               </div>
               <div className="space-y-2">
@@ -333,12 +336,13 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
                   type="date"
                   value={formData.incorporationDate}
                   onChange={(e) => setFormData({ ...formData, incorporationDate: e.target.value })}
+                  data-testid="entity-incorporation-date-input"
                 />
               </div>
             </>
           )}
 
-            <Button onClick={handleSubmit} className="w-full">
+            <Button onClick={handleSubmit} className="w-full" data-testid="add-entity-submit-button">
               Add Entity
             </Button>
           </div>

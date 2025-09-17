@@ -65,6 +65,7 @@ export const DeleteEntityDialog = ({ entity, onDeleteEntity, checkEntityDeletabi
           variant="ghost"
           size="icon"
           className="text-red-500 hover:text-red-600 hover:bg-red-50"
+          data-testid={`delete-entity-button-${entity.name}`}
         >
           <Trash2 className="h-4 w-4" />
         </Button>
