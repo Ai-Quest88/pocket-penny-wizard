@@ -17,7 +17,7 @@ export default defineConfig({
     ['allure-playwright', { outputFolder: 'test-results/allure-results' }]
   ],
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:8080',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'on', // Always record videos
@@ -31,8 +31,8 @@ export default defineConfig({
   globalSetup: './tests/setup/global-setup.ts',
   globalTeardown: './tests/setup/global-teardown.ts',
   webServer: {
-    command: 'vite',
-    port: 5173,
+    command: 'vite --port 8080',
+    port: 8080,
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
   },

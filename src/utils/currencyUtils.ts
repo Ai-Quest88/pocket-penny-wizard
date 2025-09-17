@@ -9,7 +9,7 @@ export interface Currency {
   flag?: string;
 }
 
-export const currencies: Currency[] = [
+export const CURRENCIES: Currency[] = [
   { code: "AUD", symbol: "A$", name: "Australian Dollar", flag: "🇦🇺" },
   { code: "USD", symbol: "$", name: "US Dollar", flag: "🇺🇸" },
   { code: "EUR", symbol: "€", name: "Euro", flag: "🇪🇺" },
@@ -33,7 +33,7 @@ export const currencies: Currency[] = [
 ];
 
 // Create a symbol map for easy lookup
-export const currencySymbols: Record<string, string> = currencies.reduce((acc, currency) => {
+export const currencySymbols: Record<string, string> = CURRENCIES.reduce((acc, currency) => {
   acc[currency.code] = currency.symbol;
   return acc;
 }, {} as Record<string, string>);
@@ -62,7 +62,7 @@ const fallbackRates: ExchangeRates = {
   THB: 33.0,
 };
 
-export const fetchExchangeRates = async (baseCurrency: string = "AUD"): Promise<ExchangeRates> => {
+export const getExchangeRates = async (baseCurrency: string = "AUD"): Promise<ExchangeRates> => {
   try {
     const response = await fetch(
       `https://open.er-api.com/v6/latest/${baseCurrency}`
@@ -144,20 +144,28 @@ export const convertAmount = (
   amount: number,
   fromCurrency: string,
   toCurrency: string,
-  rates: ExchangeRates
+  rates: ExchangeRates | { rates: ExchangeRates; base: string; timestamp: number }
 ): number => {
   if (fromCurrency === toCurrency) {
     return amount;
   }
   
-  if (!rates[fromCurrency] || !rates[toCurrency]) {
+  // Handle both formats: direct rates object or wrapped rates object
+  const actualRates = 'rates' in rates ? rates.rates : rates;
+  const baseCurrency = 'base' in rates ? rates.base : 'USD';
+  
+  // Handle base currency (rate is 1.0)
+  const fromRate = fromCurrency === baseCurrency ? 1.0 : actualRates[fromCurrency];
+  const toRate = toCurrency === baseCurrency ? 1.0 : actualRates[toCurrency];
+  
+  if (!fromRate || !toRate) {
     console.warn(`Missing exchange rate for ${fromCurrency} or ${toCurrency}`);
-    return amount;
+    return 0;
   }
   
   // Convert to base currency first, then to target currency
-  const amountInBase = amount / rates[fromCurrency];
-  const convertedAmount = amountInBase * rates[toCurrency];
+  const amountInBase = amount / fromRate;
+  const convertedAmount = amountInBase * toRate;
   
   return convertedAmount;
 };
@@ -172,7 +180,7 @@ export const formatCurrency = (
   } = {}
 ): string => {
   const { showSymbol = true, showCode = false, precision = 2 } = options;
-  const currency = currencies.find(c => c.code === currencyCode);
+  const currency = CURRENCIES.find(c => c.code === currencyCode);
   const symbol = currency?.symbol || currencyCode;
   
   // Format the number with commas for thousands separators
@@ -193,10 +201,10 @@ export const formatCurrency = (
 };
 
 export const getCurrencyByCode = (code: string): Currency | undefined => {
-  return currencies.find(c => c.code === code);
+  return CURRENCIES.find(c => c.code === code);
 };
 
 export const getPopularCurrencies = (): Currency[] => {
   const popularCodes = ["AUD", "USD", "EUR", "GBP", "JPY", "CAD", "CHF", "CNY"];
-  return currencies.filter(c => popularCodes.includes(c.code));
+  return CURRENCIES.filter(c => popularCodes.includes(c.code));
 };

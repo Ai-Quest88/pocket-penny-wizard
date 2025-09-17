@@ -7,6 +7,9 @@ export const COUNTRY_RULES: Record<string, CountryRule> = {
   'US': { countryCode: 'US', countryName: 'United States', currencyCode: 'USD', financialYearStartMonth: 1, financialYearStartDay: 1 },
 };
 
+// Export for tests
+export const SUPPORTED_COUNTRIES = Object.values(COUNTRY_RULES);
+
 /**
  * Get the current financial year for a given country
  */
@@ -104,4 +107,11 @@ export function getFinancialYearDisplayName(financialYear: FinancialYear, countr
     return `${financialYear.name} (${financialYear.startDate.getFullYear()}-${financialYear.endDate.getFullYear()})`;
   }
   return `${financialYear.name} (${financialYear.startDate.getFullYear()}-${financialYear.endDate.getFullYear()})`;
+}
+
+/**
+ * Get the financial year name (alias for tests)
+ */
+export function getFinancialYearName(financialYear: FinancialYear): string {
+  return financialYear.name;
 } 
