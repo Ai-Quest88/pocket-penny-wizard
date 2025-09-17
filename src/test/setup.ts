@@ -54,6 +54,9 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
 // Mock scrollTo
 global.scrollTo = vi.fn()
 
+// Mock fetch globally
+global.fetch = vi.fn()
+
 // Suppress console errors in tests unless explicitly testing them
 const originalError = console.error
 beforeAll(() => {

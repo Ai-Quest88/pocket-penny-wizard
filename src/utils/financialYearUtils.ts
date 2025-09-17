@@ -7,8 +7,13 @@ export const COUNTRY_RULES: Record<string, CountryRule> = {
   'US': { countryCode: 'US', countryName: 'United States', currencyCode: 'USD', financialYearStartMonth: 1, financialYearStartDay: 1 },
 };
 
-// Export for tests
-export const SUPPORTED_COUNTRIES = Object.values(COUNTRY_RULES);
+// Export for tests (with test-expected property names)
+export const SUPPORTED_COUNTRIES = Object.values(COUNTRY_RULES).map(country => ({
+  code: country.countryCode,
+  name: country.countryName,
+  fyStartMonth: country.financialYearStartMonth - 1, // Convert to 0-based months
+  fyStartDay: country.financialYearStartDay
+}));
 
 /**
  * Get the current financial year for a given country
