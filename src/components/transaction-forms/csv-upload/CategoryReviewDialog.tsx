@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCategoryHierarchy } from "@/hooks/useCategoryHierarchy";
 import { useCategories } from "@/hooks/useCategories";
+import { useCategoryManagement } from "@/hooks/useCategoryManagement";
 
 interface Transaction {
   description: string;
@@ -29,6 +30,7 @@ interface Transaction {
   asset_account_id?: string | null;
   liability_account_id?: string | null;
   aiConfidence?: number;
+  categorization_source?: 'user_rule' | 'system_rule' | 'ai' | 'fallback' | 'manual' | 'uncategorized';
 }
 
 interface TransactionReview extends Transaction {
@@ -54,6 +56,7 @@ export const CategoryReviewDialog = ({
 }: CategoryReviewDialogProps) => {
   const { session } = useAuth();
   const { categoryData } = useCategories();
+  const { flatCategories } = useCategoryManagement();
   const queryClient = useQueryClient();
   const [reviewedTransactions, setReviewedTransactions] = useState<TransactionReview[]>(() => 
     transactions.map((transaction, index) => ({
@@ -184,9 +187,9 @@ export const CategoryReviewDialog = ({
     };
   };
 
-  // Use user's categories if available, include uncategorized
-  const validCategories = userCategories.length > 0 
-    ? [...userCategories, 'Uncategorized']
+  // Get categories from category management hook for hierarchical display
+  const validCategories = flatCategories.length > 0 
+    ? [...flatCategories.map((cat: any) => cat.name), 'Uncategorized']
     : ['Uncategorized'];
 
   console.log('User categories:', userCategories);
@@ -416,18 +419,29 @@ export const CategoryReviewDialog = ({
                            <p>Change the category if needed</p>
                          </TooltipContent>
                        </Tooltip>
-                     </TableHead>
+                      </TableHead>
+                      <TableHead className="w-32">
+                        <Tooltip>
+                          <TooltipTrigger className="flex items-center gap-1 cursor-help">
+                            Source
+                            <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>How this transaction was categorized</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TableHead>
                     <TableHead className="w-24">
-                      <Tooltip>
-                        <TooltipTrigger className="flex items-center gap-1 cursor-help">
-                          Auto-Learn
-                          <HelpCircle className="h-3 w-3 text-muted-foreground" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Create a smart rule to automatically categorize similar future transactions</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TableHead>
+                       <Tooltip>
+                         <TooltipTrigger className="flex items-center gap-1 cursor-help">
+                           Auto-Learn
+                           <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                         </TooltipTrigger>
+                         <TooltipContent>
+                           <p>Create a smart rule to automatically categorize similar future transactions</p>
+                         </TooltipContent>
+                       </Tooltip>
+                     </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -480,6 +494,28 @@ export const CategoryReviewDialog = ({
                                 </Badge>
                               )}
                             </div>
+                           </TableCell>
+                          <TableCell>
+                            {(() => {
+                              const source = transaction.categorization_source || 'ai';
+                              const sourceConfig = {
+                                user_rule: { label: 'User Rule', color: 'bg-green-100 text-green-800', icon: '👤' },
+                                system_rule: { label: 'System Rule', color: 'bg-blue-100 text-blue-800', icon: '🔧' },
+                                ai: { label: 'AI', color: 'bg-purple-100 text-purple-800', icon: '🤖' },
+                                fallback: { label: 'Fallback', color: 'bg-orange-100 text-orange-800', icon: '📝' },
+                                manual: { label: 'Manual', color: 'bg-gray-100 text-gray-800', icon: '✋' },
+                                uncategorized: { label: 'Uncategorized', color: 'bg-red-100 text-red-800', icon: '❓' }
+                              };
+                              
+                              const config = sourceConfig[source] || sourceConfig.ai;
+                              
+                              return (
+                                <Badge variant="outline" className={`${config.color} text-xs`} title={`Categorized by: ${config.label}`}>
+                                  <span className="mr-1">{config.icon}</span>
+                                  {config.label}
+                                </Badge>
+                              );
+                            })()}
                           </TableCell>
                          <TableCell>
                            <Select
@@ -492,13 +528,40 @@ export const CategoryReviewDialog = ({
                              <SelectTrigger className="w-full h-8 bg-background border border-input">
                                <SelectValue placeholder="Override category" />
                              </SelectTrigger>
-                             <SelectContent className="max-h-48 overflow-y-auto z-[100] bg-background border border-input">
-                               {validCategories.map((category) => (
-                                 <SelectItem key={category} value={category}>
-                                   {category}
-                                 </SelectItem>
-                               ))}
-                             </SelectContent>
+                              <SelectContent className="max-h-48 overflow-y-auto z-[100] bg-background border border-input">
+                                {flatCategories.length > 0 ? (
+                                  <>
+                                    {/* Group categories by their groups */}
+                                    {Object.entries(
+                                      flatCategories.reduce((acc, cat) => {
+                                        if (!acc[cat.groupName]) acc[cat.groupName] = [];
+                                        acc[cat.groupName].push(cat);
+                                        return acc;
+                                      }, {} as Record<string, typeof flatCategories>)
+                                    ).map(([groupName, categories]) => (
+                                      <div key={groupName}>
+                                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-background border-b sticky top-0 z-10">
+                                          {groupName}
+                                        </div>
+                                        {categories.map((category) => (
+                                          <SelectItem key={category.name} value={category.name} className="pl-6">
+                                            {category.name}
+                                          </SelectItem>
+                                        ))}
+                                      </div>
+                                    ))}
+                                    <div className="border-t">
+                                      <SelectItem value="Uncategorized" className="pl-2">
+                                        Uncategorized
+                                      </SelectItem>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <SelectItem value="Uncategorized">
+                                    Uncategorized
+                                  </SelectItem>
+                                )}
+                              </SelectContent>
                            </Select>
                          </TableCell>
                         <TableCell>

@@ -125,7 +125,10 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
   });
 
   // Use centralized category management
-  const { flatCategories, isLoading: categoriesLoading } = useCategoryManagement();
+  const { groupedCategories, isLoading: categoriesLoading } = useCategoryManagement();
+  
+  console.log('=== HOOK DATA ===');
+  console.log('categoriesLoading:', categoriesLoading);
 
   const resetForm = () => {
     setAmount('')
@@ -206,10 +209,6 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
     }
   }
 
-  // Use categories from centralized management
-  const validCategories = flatCategories.length > 0 
-    ? flatCategories.map(cat => cat.name)
-    : ['Uncategorized'];
 
   // Enhanced filtering with comprehensive validation for currencies
   const validCurrencies = currencies
@@ -301,16 +300,28 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="category">Category {categoriesLoading && '(Loading...)'}</Label>
+              <Label htmlFor="category">Category {categoriesLoading && '(Loading...)'}  All Types v2</Label>
               <Select value={category} onValueChange={setCategory} disabled={categoriesLoading} required>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
+                  <SelectValue placeholder="Select category - All Types" />
                 </SelectTrigger>
-                <SelectContent>
-                  {validCategories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
+                <SelectContent className="max-h-80 bg-background border shadow-lg z-[100]">
+                  {groupedCategories?.map((group, groupIndex) => (
+                    <div key={group.id}>
+                      {groupIndex > 0 && <div className="h-px bg-border my-1 mx-2" />}
+                      <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide bg-muted/50 border-b border-border">
+                        {group.name} ({group.type})
+                      </div>
+                      {group.categories.map((category) => (
+                        <SelectItem 
+                          key={category.id} 
+                          value={category.name}
+                          className="pl-8 hover:bg-accent focus:bg-accent"
+                        >
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </div>
                   ))}
                 </SelectContent>
               </Select>

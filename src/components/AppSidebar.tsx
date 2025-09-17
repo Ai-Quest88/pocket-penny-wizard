@@ -1,5 +1,5 @@
 
-import { BarChart2, CreditCard, DollarSign, Home, Settings, Users, Wallet, List, Upload, FileText, TrendingUp, Calendar, Activity, PieChart, ArrowLeftRight, ChevronDown, Building2 } from "lucide-react"
+import { BarChart2, CreditCard, DollarSign, Home, Settings, Users, Wallet, List, Upload, FileText, TrendingUp, Calendar, Activity, PieChart, ArrowLeftRight, ChevronDown, Building2, TestTube } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -188,6 +188,19 @@ export function AppSidebar() {
                   >
                     <BarChart2 className="h-4 w-4" />
                     <span>Reports</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link 
+                    to="/test-dashboard"
+                    className="flex items-center gap-2"
+                    data-active={location.pathname === "/test-dashboard"}
+                  >
+                    <TestTube className="h-4 w-4" />
+                    <span>Tests</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { Progress } from "@/components/ui/progress";
+import { useCategoryManagement } from "@/hooks/useCategoryManagement";
 
 interface Transaction {
   id: string;
@@ -48,6 +49,7 @@ export const BulkEditActions = ({
   const { toast } = useToast();
   const { session } = useAuth();
   const queryClient = useQueryClient();
+  const { groupedCategories, isLoading: categoriesLoading } = useCategoryManagement();
 
   const handleBulkDelete = async () => {
     setIsDeleting(true);
@@ -120,9 +122,36 @@ export const BulkEditActions = ({
     try {
       const transactionIds = selectedTransactions.map(t => t.id);
       
+      // Find the category ID by name
+      const { data: categoryResult, error: categoryError } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('name', newCategory)
+        .eq('user_id', session?.user?.id)
+        .maybeSingle();
+
+      if (categoryError) {
+        console.error('Error finding category:', categoryError);
+        toast({
+          title: "Error",
+          description: "Failed to find category. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!categoryResult) {
+        toast({
+          title: "Error",
+          description: "Category not found. Please select a valid category.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       const { error } = await supabase
         .from('transactions')
-        .update({ category: newCategory })
+        .update({ category_id: categoryResult.id })
         .in('id', transactionIds);
 
       if (error) {
@@ -157,28 +186,6 @@ export const BulkEditActions = ({
 
   if (selectedTransactions.length === 0) return null;
 
-  // Fetch user's categories from database
-  const { data: userCategories = [] } = useQuery({
-    queryKey: ['user-categories', session?.user?.id],
-    queryFn: async () => {
-      if (!session?.user?.id) return [];
-
-      const { data: cats } = await supabase
-        .from('categories')
-        .select('name')
-        .eq('user_id', session.user.id)
-        .order('sort_order', { ascending: true });
-
-      return (cats || []).map((cat: any) => cat.name);
-    },
-    enabled: !!session?.user,
-  });
-
-  // Use user's categories if available, fallback to uncategorized
-  const validCategories = userCategories.length > 0 
-    ? userCategories
-    : ['Uncategorized'];
-
   return (
     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
       <div className="flex items-center justify-between gap-4">
@@ -202,19 +209,24 @@ export const BulkEditActions = ({
               <SelectTrigger className="w-[160px] h-8">
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
-              <SelectContent>
-                {validCategories.map((category) => {
-                  // Extra safety check
-                  if (!category || category.trim() === "") {
-                    console.error("Attempting to render empty category in BulkEditActions:", category);
-                    return null;
-                  }
-                  return (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  );
-                })}
+              <SelectContent className="max-h-80 bg-background border shadow-lg z-[100]">
+                {groupedCategories?.map((group, groupIndex) => (
+                  <div key={group.id}>
+                    {groupIndex > 0 && <div className="h-px bg-border my-1 mx-2" />}
+                    <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide bg-muted/50 border-b border-border">
+                      {group.name} ({group.type})
+                    </div>
+                    {group.categories.map((category) => (
+                      <SelectItem 
+                        key={category.id} 
+                        value={category.name}
+                        className="pl-8 hover:bg-accent focus:bg-accent"
+                      >
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </div>
+                ))}
               </SelectContent>
             </Select>
             

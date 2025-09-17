@@ -188,9 +188,27 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
         });
       }
 
+      // Find the category ID by name
+      let categoryId = null;
+      if (data.category) {
+        const { data: categoryResult, error: categoryError } = await supabase
+          .from('categories')
+          .select('id')
+          .eq('name', data.category)
+          .eq('user_id', session?.user?.id)
+          .single();
+
+        if (categoryError) {
+          console.error("Error finding category:", categoryError);
+          throw new Error("Failed to find category");
+        }
+        
+        categoryId = categoryResult?.id;
+      }
+
       const updateData = {
-        category_name: data.category, // Update category_name field in database
-        comment: data.comment || null,
+        category_id: categoryId, // Update category_id field in database
+        notes: data.comment || null, // Use notes field instead of comment
         updated_at: new Date().toISOString(),
       };
 
@@ -283,7 +301,6 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
               <CategorySelect
                 control={form.control}
                 name="category"
-                categoryType="expense"
                 showHierarchy={true}
               />
 

@@ -118,7 +118,7 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
   });
 
   // Use centralized category management
-  const { flatCategories, isLoading: categoriesLoading } = useCategoryManagement();
+  const { groupedCategories, isLoading: categoriesLoading } = useCategoryManagement();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -193,10 +193,6 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
     }
   }
 
-  // Use categories from centralized management
-  const validCategories = flatCategories.length > 0 
-    ? flatCategories.map(cat => cat.name)
-    : ['Uncategorized'];
 
   // Enhanced filtering with comprehensive validation for currencies
   const validCurrencies = currencies
@@ -294,11 +290,23 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
-                <SelectContent>
-                  {validCategories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
+                <SelectContent className="max-h-80 bg-background border shadow-lg z-[100]">
+                  {groupedCategories?.map((group, groupIndex) => (
+                    <div key={group.id}>
+                      {groupIndex > 0 && <div className="h-px bg-border my-1 mx-2" />}
+                      <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide bg-muted/50 border-b border-border">
+                        {group.name} ({group.type})
+                      </div>
+                      {group.categories.map((category) => (
+                        <SelectItem 
+                          key={category.id} 
+                          value={category.name}
+                          className="pl-8 hover:bg-accent focus:bg-accent"
+                        >
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </div>
                   ))}
                 </SelectContent>
               </Select>

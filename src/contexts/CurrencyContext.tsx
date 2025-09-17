@@ -56,18 +56,24 @@ export function CurrencyProvider({ children }: CurrencyProviderProps) {
     enabled: !!session?.user?.id,
   });
 
-  // Set display currency from user preference or localStorage
+  // Set display currency from user preference or localStorage, defaulting to AUD
   useEffect(() => {
-    if (userProfile?.currency_preference) {
+    // Clear any existing USD preference and force AUD
+    localStorage.removeItem('displayCurrency');
+    localStorage.setItem('displayCurrency', 'AUD');
+    
+    if (userProfile?.currency_preference && userProfile.currency_preference !== 'USD') {
       setDisplayCurrencyState(userProfile.currency_preference);
     } else {
-      // Fallback to localStorage or default
-      const savedCurrency = localStorage.getItem('displayCurrency');
-      if (savedCurrency && currencies.find(c => c.code === savedCurrency)) {
-        setDisplayCurrencyState(savedCurrency);
+      // Force AUD and update user preference
+      setDisplayCurrencyState('AUD');
+      if (session?.user?.id) {
+        updateUserCurrencyPreference('AUD').catch(error => {
+          console.error('Failed to update currency to AUD:', error);
+        });
       }
     }
-  }, [userProfile]);
+  }, [userProfile, session]);
 
   // Fetch exchange rates
   const { data: exchangeRates, isLoading: isRatesLoading } = useQuery({
@@ -97,7 +103,7 @@ export function CurrencyProvider({ children }: CurrencyProviderProps) {
       const { error } = await supabase
         .from('user_profiles')
         .upsert({
-          id: session.user.id,
+          user_id: session.user.id,
           email: session.user.email || '',
           currency_preference: currency,
         });

@@ -292,6 +292,59 @@ export type Database = {
           },
         ]
       }
+      categorization_logs: {
+        Row: {
+          amount: number
+          categorization_source: string
+          confidence: number | null
+          created_at: string | null
+          description: string
+          final_category: string | null
+          id: string
+          original_category: string | null
+          processing_time_ms: number | null
+          rule_id: string | null
+          transaction_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          categorization_source: string
+          confidence?: number | null
+          created_at?: string | null
+          description: string
+          final_category?: string | null
+          id?: string
+          original_category?: string | null
+          processing_time_ms?: number | null
+          rule_id?: string | null
+          transaction_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          categorization_source?: string
+          confidence?: number | null
+          created_at?: string | null
+          description?: string
+          final_category?: string | null
+          id?: string
+          original_category?: string | null
+          processing_time_ms?: number | null
+          rule_id?: string | null
+          transaction_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categorization_logs_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       category_discovery_sessions: {
         Row: {
           categories_created: number | null
@@ -605,6 +658,39 @@ export type Database = {
         }
         Relationships: []
       }
+      rule_change_history: {
+        Row: {
+          action: string
+          created_at: string | null
+          id: string
+          new_values: Json | null
+          old_values: Json | null
+          rule_id: string
+          rule_type: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          rule_id: string
+          rule_type: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          rule_id?: string
+          rule_type?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       system_categorization_rules: {
         Row: {
           category: string
@@ -648,6 +734,7 @@ export type Database = {
         Row: {
           amount: number
           asset_account_id: string | null
+          categorization_source: string | null
           category_id: string | null
           created_at: string | null
           currency: string | null
@@ -665,6 +752,7 @@ export type Database = {
         Insert: {
           amount: number
           asset_account_id?: string | null
+          categorization_source?: string | null
           category_id?: string | null
           created_at?: string | null
           currency?: string | null
@@ -682,6 +770,7 @@ export type Database = {
         Update: {
           amount?: number
           asset_account_id?: string | null
+          categorization_source?: string | null
           category_id?: string | null
           created_at?: string | null
           currency?: string | null
@@ -734,6 +823,45 @@ export type Database = {
           },
         ]
       }
+      user_categorization_rules: {
+        Row: {
+          category: string
+          conditions: Json | null
+          confidence: number | null
+          created_at: string | null
+          id: string
+          pattern: string
+          success_rate: number | null
+          updated_at: string | null
+          usage_count: number | null
+          user_id: string
+        }
+        Insert: {
+          category: string
+          conditions?: Json | null
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          pattern: string
+          success_rate?: number | null
+          updated_at?: string | null
+          usage_count?: number | null
+          user_id: string
+        }
+        Update: {
+          category?: string
+          conditions?: Json | null
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          pattern?: string
+          success_rate?: number | null
+          updated_at?: string | null
+          usage_count?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_profiles: {
         Row: {
           avatar_url: string | null
@@ -774,6 +902,10 @@ export type Database = {
         Returns: undefined
       }
       validate_entity_access: {
+        Args: { entity_user_id: string }
+        Returns: boolean
+      }
+      validate_entity_access_enhanced: {
         Args: { entity_user_id: string }
         Returns: boolean
       }

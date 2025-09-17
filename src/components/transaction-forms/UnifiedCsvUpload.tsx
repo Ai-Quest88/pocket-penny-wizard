@@ -9,7 +9,7 @@ import { AccountSelectionSection } from "./csv-upload/AccountSelectionSection";
 import { DuplicateReviewDialog } from "./csv-upload/DuplicateReviewDialog";
 import { CategoryReviewDialog } from "./csv-upload/CategoryReviewDialog";
 import { ProgressiveUpload } from "./ProgressiveUpload";
-import { useTransactionInsertion } from "./csv-upload/helpers/transactionInsertion";
+import { useTransactionProcessor } from "@/services/categorization";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -127,7 +127,7 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
   const { toast } = useToast();
   const { session } = useAuth();
   const queryClient = useQueryClient();
-  const transactionHelper = useTransactionInsertion();
+  const transactionProcessor = useTransactionProcessor();
 
   // Debug account selection
   console.log('UnifiedCsvUpload - Accounts:', accounts);
@@ -402,43 +402,29 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
 
   const continueUpload = async (userApprovedDuplicates?: number[], transactionsToProcess?: any[]) => {
     try {
-      console.log('🔄 Starting hierarchical AI categorization and upload...', userApprovedDuplicates);
+      console.log('🔄 Starting transaction upload to database...', userApprovedDuplicates);
       
       // Use passed transactions or fall back to pendingTransactions
       const transactionsForProcessing = transactionsToProcess || pendingTransactions;
       console.log('📦 Transactions to process:', transactionsForProcessing.length);
       
       setUploadProgress({
-        phase: 'categorizing',
-        currentStep: 1,
+        phase: 'saving',
+        currentStep: 2,
         totalSteps: 3,
-        message: 'Discovering categories with AI...',
+        message: 'Saving transactions to database...',
         processedTransactions: transactionsForProcessing
       });
 
-      // Use hierarchical AI categorization system
-      const result = await transactionHelper.processCsvUpload(transactionsForProcessing);
-      
-      // Count categorization results
-      const categories = transactionsForProcessing.map(t => t.category);
-      const categoryCounts = categories.reduce((acc, category) => {
-        acc[category] = (acc[category] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-      
-      const miscellaneousCount = categoryCounts['Uncategorized'] || 0;
-      const successfullyCategorizeed = categories.length - miscellaneousCount;
-      
-      console.log('📊 Categorization Summary:');
-      console.log(`  Successfully categorized: ${successfullyCategorizeed}/${categories.length}`);
-      console.log(`  Uncategorized: ${miscellaneousCount}/${categories.length}`);
-      console.log('  Category breakdown:', categoryCounts);
+      // Use the TransactionProcessor to insert transactions (they're already categorized)
+      const result = await transactionProcessor.processCsvUpload(transactionsForProcessing);
+      console.log('✅ processCsvUpload completed with result:', result);
       
       const uploadMessage = `${result.success} transactions processed, ${result.failed} failed`;
       const categorizationMessage = result.new_categories_created > 0 
         ? ` • ${result.new_categories_created} new categories created, ${result.categories_discovered} total categories discovered`
         : ` • Used existing categories for all transactions`;
-      
+
       toast({
         title: "Upload completed",
         description: uploadMessage + categorizationMessage,
@@ -529,56 +515,33 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
           amount: amount,
           date: formatDateForSupabase(dateStr),
           currency: currency,
-          category: 'Uncategorized', // Will be set by AI
           asset_account_id: selectedAccount?.accountType === 'asset' ? selectedAccountId : null,
           liability_account_id: selectedAccount?.accountType === 'liability' ? selectedAccountId : null,
         };
       });
 
-      console.log('Formatted transactions for AI categorization:', formattedTransactions.slice(0, 2));
+      console.log('🔄 Starting clean categorization flow for', formattedTransactions.length, 'transactions');
+      console.log('📝 Sample transaction:', formattedTransactions[0]);
 
-      // Call AI categorization first
-      console.log('🎯 Calling AI categorization for', formattedTransactions.length, 'transactions');
-      
-      const { data, error } = await supabase.functions.invoke('discover-categories', {
-        body: { 
-          transactions: formattedTransactions.map(t => ({
-            description: t.description,
-            amount: t.amount,
-            date: t.date
-          }))
-        }
-      });
+      // Use the clean categorization flow
+      const categorizer = new (await import('@/services/categorization')).TransactionCategorizer(session.user.id);
+      const discoveredCategories = await categorizer.categorizeTransactions(formattedTransactions);
 
-      if (error) {
-        console.error('AI categorization failed:', error);
-        toast({
-          title: "AI Categorization Failed",
-          description: "Using fallback categorization. You can still review and edit categories.",
-          variant: "destructive",
-        });
-      }
-
-      // Merge AI categorization results with formatted transactions
+      // Merge categorization results with formatted transactions
       const categorizedTransactions = formattedTransactions.map((transaction, index) => {
-        if (data?.success && data?.categorized_transactions?.[index]) {
-          const aiResult = data.categorized_transactions[index];
-          return {
-            ...transaction,
-            category: aiResult.category_name || 'Uncategorized',
-            category_id: aiResult.category_id || null,
-            aiConfidence: aiResult.confidence || 0.5
-          };
-        }
+        const categoryResult = discoveredCategories[index];
         return {
           ...transaction,
-          category: 'Uncategorized',
-          category_id: null,
-          aiConfidence: 0.3
+          category: categoryResult.category || 'Uncategorized',
+          category_id: null, // Will be resolved during insertion
+          aiConfidence: categoryResult.confidence || 0.5,
+          categorization_source: categoryResult.source,
+          group_name: categoryResult.group_name
         };
       });
 
-      console.log('AI categorized transactions preview:', categorizedTransactions.slice(0, 2));
+      console.log('✅ Categorization completed');
+      console.log('📝 Sample categorized transaction:', categorizedTransactions[0]);
 
       // Store categorized transactions and show category review dialog
       setPendingTransactions(categorizedTransactions);

@@ -2,12 +2,13 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCategoryManagement } from "@/hooks/useCategoryManagement";
 
 interface SearchFilters {
   searchTerm: string;
@@ -24,28 +25,15 @@ interface TransactionSearchProps {
 
 export const TransactionSearch = ({ onFiltersChange, totalResults, initialFilters }: TransactionSearchProps) => {
   const { session } = useAuth();
+  const { groupedCategories, isLoading: categoriesLoading } = useCategoryManagement();
+  
+  console.log('TransactionSearch render - categoriesLoading:', categoriesLoading, 'groupedCategories:', groupedCategories?.length);
+  
   const [filters, setFilters] = useState<SearchFilters>(initialFilters || {
     searchTerm: "",
     category: "",
     dateRange: "",
     amountRange: ""
-  });
-
-  // Fetch user's custom categories
-  const { data: userCategories = [] } = useQuery({
-    queryKey: ['user-categories', session?.user?.id],
-    queryFn: async () => {
-      if (!session?.user?.id) return [];
-
-      const { data } = await supabase
-        .from('categories')
-        .select('name')
-        .eq('user_id', session.user.id)
-        .order('sort_order', { ascending: true });
-
-      return data?.map(cat => cat.name) || [];
-    },
-    enabled: !!session?.user?.id,
   });
 
   // Sync with initialFilters changes
@@ -89,14 +77,26 @@ export const TransactionSearch = ({ onFiltersChange, totalResults, initialFilter
         
         <Select value={filters.category || "all"} onValueChange={(value) => updateFilters({ category: value === "all" ? "" : value })}>
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Category" />
+            <SelectValue placeholder="All Categories - GROUPED v2" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="max-h-80 bg-background border shadow-lg z-[100]">
             <SelectItem value="all">All Categories</SelectItem>
-            {userCategories.map((category) => (
-              <SelectItem key={category} value={category}>
-                {category}
-              </SelectItem>
+            {groupedCategories?.map((group, groupIndex) => (
+              <div key={group.id}>
+                {groupIndex > 0 && <div className="h-px bg-border my-1 mx-2" />}
+                <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide bg-muted/50 border-b border-border">
+                  {group.name} ({group.type})
+                </div>
+                {group.categories.map((category) => (
+                  <SelectItem 
+                    key={category.id} 
+                    value={category.name}
+                    className="pl-8 hover:bg-accent focus:bg-accent"
+                  >
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </div>
             ))}
           </SelectContent>
         </Select>

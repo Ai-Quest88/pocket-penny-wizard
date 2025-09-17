@@ -10,11 +10,11 @@ export interface Currency {
 }
 
 export const currencies: Currency[] = [
+  { code: "AUD", symbol: "A$", name: "Australian Dollar", flag: "🇦🇺" },
   { code: "USD", symbol: "$", name: "US Dollar", flag: "🇺🇸" },
   { code: "EUR", symbol: "€", name: "Euro", flag: "🇪🇺" },
   { code: "GBP", symbol: "£", name: "British Pound", flag: "🇬🇧" },
   { code: "JPY", symbol: "¥", name: "Japanese Yen", flag: "🇯🇵" },
-  { code: "AUD", symbol: "A$", name: "Australian Dollar", flag: "🇦🇺" },
   { code: "CAD", symbol: "C$", name: "Canadian Dollar", flag: "🇨🇦" },
   { code: "CHF", symbol: "Fr", name: "Swiss Franc", flag: "🇨🇭" },
   { code: "CNY", symbol: "¥", name: "Chinese Yuan", flag: "🇨🇳" },
@@ -62,7 +62,7 @@ const fallbackRates: ExchangeRates = {
   THB: 33.0,
 };
 
-export const fetchExchangeRates = async (baseCurrency: string = "USD"): Promise<ExchangeRates> => {
+export const fetchExchangeRates = async (baseCurrency: string = "AUD"): Promise<ExchangeRates> => {
   try {
     const response = await fetch(
       `https://open.er-api.com/v6/latest/${baseCurrency}`
@@ -197,6 +197,6 @@ export const getCurrencyByCode = (code: string): Currency | undefined => {
 };
 
 export const getPopularCurrencies = (): Currency[] => {
-  const popularCodes = ["USD", "EUR", "GBP", "JPY", "AUD", "CAD", "CHF", "CNY"];
+  const popularCodes = ["AUD", "USD", "EUR", "GBP", "JPY", "CAD", "CHF", "CNY"];
   return currencies.filter(c => popularCodes.includes(c.code));
 };
