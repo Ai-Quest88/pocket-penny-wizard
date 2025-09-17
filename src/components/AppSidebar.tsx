@@ -208,6 +208,19 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link 
+                    to="/e2e-tests"
+                    className="flex items-center gap-2"
+                    data-active={location.pathname === "/e2e-tests"}
+                  >
+                    <TestTube className="h-4 w-4" />
+                    <span>E2E Tests</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link 
                     to="/settings"
                     className="flex items-center gap-2"
                     data-active={location.pathname === "/settings"}

@@ -5,7 +5,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { currencies, getPopularCurrencies, Currency } from "@/utils/currencyUtils";
+import { CURRENCIES, getPopularCurrencies, Currency } from "@/utils/currencyUtils";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
@@ -25,7 +25,7 @@ export const CurrencySelector = ({
 }: CurrencySelectorProps) => {
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredCurrencies = currencies.filter(currency =>
+  const filteredCurrencies = CURRENCIES.filter(currency =>
     currency.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
     currency.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -35,7 +35,7 @@ export const CurrencySelector = ({
     ? filteredCurrencies.filter(c => !popularCurrencies.find(p => p.code === c.code))
     : filteredCurrencies;
 
-  const selectedCurrency = currencies.find(c => c.code === displayCurrency);
+  const selectedCurrency = CURRENCIES.find(c => c.code === displayCurrency);
 
   if (variant === "compact") {
     return (

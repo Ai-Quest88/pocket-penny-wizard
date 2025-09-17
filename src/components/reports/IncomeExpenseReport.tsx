@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import { format, startOfMonth, endOfMonth } from "date-fns"
 import { useState } from "react"
 import { CurrencySelector } from "@/components/transactions/CurrencySelector"
-import { fetchExchangeRates, convertAmount, formatCurrency } from "@/utils/currencyUtils"
+import { getExchangeRates, convertAmount, formatCurrency } from "@/utils/currencyUtils"
 
 interface CategoryData {
   category: string;
@@ -33,7 +33,7 @@ export function IncomeExpenseReport() {
 
   const { data: exchangeRates, isLoading: ratesLoading } = useQuery({
     queryKey: ["exchangeRates", displayCurrency],
-    queryFn: () => fetchExchangeRates(displayCurrency),
+    queryFn: () => getExchangeRates(displayCurrency),
     staleTime: 1000 * 60 * 60, // Cache for 1 hour
   });
 

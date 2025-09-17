@@ -24,7 +24,7 @@ import { FamilyMember, BusinessEntity } from "@/types/entities"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/contexts/AuthContext"
 import { useQuery } from "@tanstack/react-query"
-import { currencies } from "@/utils/currencyUtils"
+import { CURRENCIES } from "@/utils/currencyUtils"
 
 interface AddLiabilityDialogProps {
   onAddLiability: (liability: Omit<Liability, "id">) => void
@@ -406,7 +406,7 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
                 <SelectValue placeholder="Select currency" />
               </SelectTrigger>
               <SelectContent>
-                {currencies.map((currency) => (
+                {CURRENCIES.map((currency) => (
                   <SelectItem key={currency.code} value={currency.code}>
                     <div className="flex items-center gap-2">
                       <span>{currency.flag}</span>

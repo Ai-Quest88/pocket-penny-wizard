@@ -3,10 +3,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from './AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { 
-  fetchExchangeRates, 
+  getExchangeRates, 
   convertAmount, 
   formatCurrency, 
-  currencies, 
+  CURRENCIES, 
   currencySymbols,
   ExchangeRates 
 } from '@/utils/currencyUtils';
@@ -19,7 +19,7 @@ interface CurrencyContextType {
   convertAmount: (amount: number, fromCurrency: string, toCurrency?: string) => number;
   formatCurrency: (amount: number, currencyCode?: string) => string;
   updateUserCurrencyPreference: (currency: string) => Promise<void>;
-  availableCurrencies: typeof currencies;
+  availableCurrencies: typeof CURRENCIES;
   currencySymbols: typeof currencySymbols;
 }
 
@@ -78,7 +78,7 @@ export function CurrencyProvider({ children }: CurrencyProviderProps) {
   // Fetch exchange rates
   const { data: exchangeRates, isLoading: isRatesLoading } = useQuery({
     queryKey: ['exchangeRates', displayCurrency],
-    queryFn: () => fetchExchangeRates(displayCurrency),
+    queryFn: () => getExchangeRates(displayCurrency),
     staleTime: 1000 * 60 * 60, // Cache for 1 hour
     refetchInterval: 1000 * 60 * 60, // Refetch every hour
     retry: 3,
@@ -142,7 +142,7 @@ export function CurrencyProvider({ children }: CurrencyProviderProps) {
     convertAmount: convertAmountHelper,
     formatCurrency: formatCurrencyHelper,
     updateUserCurrencyPreference,
-    availableCurrencies: currencies,
+    availableCurrencies: CURRENCIES,
     currencySymbols,
   };
 

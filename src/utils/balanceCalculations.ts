@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { fetchExchangeRates, convertAmount, ExchangeRates } from "./currencyUtils";
+import { getExchangeRates, convertAmount, ExchangeRates } from "./currencyUtils";
 
 export interface AccountBalance {
   accountId: string;
@@ -21,7 +21,7 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
   let exchangeRates: ExchangeRates;
   
   try {
-    exchangeRates = await fetchExchangeRates(DEFAULT_CURRENCY);
+    exchangeRates = await getExchangeRates(DEFAULT_CURRENCY);
   } catch (error) {
     console.error('Failed to fetch exchange rates, using fallback:', error);
     exchangeRates = {}; // Will use original amounts if no rates available
