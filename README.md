@@ -205,6 +205,44 @@ npm run build
 # Deploy the dist/ folder to your hosting provider
 ```
 
+## 🧪 Testing
+
+This project uses a modern MCP-based testing approach for business scenarios:
+
+### Business Test Cases
+```bash
+# Run all business tests
+npm run test:mcp
+
+# Run specific test cases
+npm run test:mcp:entity        # Entity lifecycle test
+npm run test:mcp:financial     # Financial setup test
+npm run test:mcp:transaction   # Transaction management test
+```
+
+### Unit & Integration Tests
+```bash
+# Run unit tests
+npm run test:unit
+
+# Run integration tests
+npm run test:integration
+
+# Run component tests
+npm run test:component
+
+# Run all tests
+npm run test:all
+```
+
+### Test Philosophy
+- **Business-focused E2E** - Tests actual user workflows using Playwright MCP
+- **API testing** - Tests business logic via Supabase APIs
+- **Component testing** - Tests UI interactions in isolation
+- **No brittle selectors** - Uses MCP for reliable browser interaction
+
+See [`tests/README.md`](./tests/README.md) for detailed testing documentation.
+
 ## 🤝 Contributing
 
 1. Read the documentation in [`docs/`](./docs/) to understand the project
