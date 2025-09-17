@@ -92,12 +92,13 @@ export const actions = {
     ],
     // Create transaction
     createTransaction: (description, amount, currency = 'AUD', date = '2024-07-25', category = 'Groceries') => [
-        { action: 'click', selector: elements.transaction.addButton },
+        { action: 'click', selector: elements.transaction.addManualButton },
         { action: 'fill', selector: elements.transaction.descriptionInput, value: description },
         { action: 'fill', selector: elements.transaction.amountInput, value: amount },
+        { action: 'click', selector: elements.transaction.dateInput },
+        { action: 'wait', timeout: 1000 }, // Wait for date picker to open
         { action: 'click', selector: elements.transaction.currencySelect },
         { action: 'click', selector: currency === 'AUD' ? elements.transaction.audOption : elements.transaction.usdOption },
-        { action: 'fill', selector: elements.transaction.dateInput, value: date },
         { action: 'click', selector: elements.transaction.categorySelect },
         { action: 'click', selector: category === 'Groceries' ? elements.transaction.groceriesOption : elements.transaction.utilitiesOption },
         { action: 'click', selector: elements.transaction.submitButton },

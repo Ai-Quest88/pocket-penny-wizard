@@ -234,7 +234,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="transaction-list-container">
       <TransactionListHeader
         displayCurrency={displayCurrency}
         onCurrencyChange={setDisplayCurrency}

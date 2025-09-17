@@ -104,7 +104,7 @@ const Dashboard = () => {
               <div className="flex flex-col">
                 <span className="text-xs text-muted-foreground">Entity Filter</span>
                 <Select value={selectedEntityType} onValueChange={setSelectedEntityType}>
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-[180px]" data-testid="dashboard-entity-filter">
                     <SelectValue placeholder="Filter by entity" />
                   </SelectTrigger>
                   <SelectContent>
@@ -144,11 +144,11 @@ const Dashboard = () => {
         <Card className="p-6">
           <Tabs defaultValue="transactions" className="space-y-4">
             <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="transactions">Transactions</TabsTrigger>
-              <TabsTrigger value="budget">Budget</TabsTrigger>
-              <TabsTrigger value="cash-flow">Cash Flow</TabsTrigger>
-              <TabsTrigger value="categories">Categories</TabsTrigger>
-              <TabsTrigger value="historical">Net Worth History</TabsTrigger>
+              <TabsTrigger value="transactions" data-testid="dashboard-tab-transactions">Transactions</TabsTrigger>
+              <TabsTrigger value="budget" data-testid="dashboard-tab-budget">Budget</TabsTrigger>
+              <TabsTrigger value="cash-flow" data-testid="dashboard-tab-cash-flow">Cash Flow</TabsTrigger>
+              <TabsTrigger value="categories" data-testid="dashboard-tab-categories">Categories</TabsTrigger>
+              <TabsTrigger value="historical" data-testid="dashboard-tab-historical">Net Worth History</TabsTrigger>
             </TabsList>
             
             <TabsContent value="transactions" className="mt-6">

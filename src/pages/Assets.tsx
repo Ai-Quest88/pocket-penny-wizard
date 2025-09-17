@@ -259,8 +259,8 @@ const Assets = () => {
       <div className="max-w-7xl mx-auto space-y-8">
         <header className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold">Assets</h1>
-            <p className="text-muted-foreground">Manage your assets • All amounts in {displayCurrency}</p>
+            <h1 className="text-3xl font-bold" data-testid="assets-page-title">Assets</h1>
+            <p className="text-muted-foreground" data-testid="assets-page-subtitle">Manage your assets • All amounts in {displayCurrency}</p>
           </div>
           <AddAssetDialog onAddAsset={handleAddAsset} />
         </header>
@@ -269,6 +269,7 @@ const Assets = () => {
           title="Total Assets"
           value={formatCurrency(totalAssets)}
           className="bg-card"
+          data-testid="assets-total-card"
         />
 
         <AssetsList 

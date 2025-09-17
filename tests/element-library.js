@@ -1,9 +1,11 @@
 export const elements = {
     // Authentication
     login: {
-        emailInput: 'input[type="email"]',
-        passwordInput: 'input[type="password"]',
-        submitButton: 'button[type="submit"]'
+        emailInput: '[data-testid="login-email-input"]',
+        passwordInput: '[data-testid="login-password-input"]',
+        submitButton: '[data-testid="login-submit-button"]',
+        googleButton: '[data-testid="login-google-button"]',
+        toggleSignupButton: '[data-testid="login-toggle-signup-button"]'
     },
     // Entity Management
     entity: {
@@ -62,19 +64,55 @@ export const elements = {
     // Transaction Management
     transaction: {
         addButton: 'button:has-text("Add Transaction")',
-        descriptionInput: 'input[placeholder*="Description"]',
-        amountInput: 'input[placeholder*="Amount"]',
-        currencySelect: '[role="combobox"]',
+        descriptionInput: '[data-testid="transaction-description-input"]',
+        amountInput: '[data-testid="transaction-amount-input"]',
+        dateInput: '[data-testid="transaction-date-picker"]',
+        currencySelect: '[data-testid="transaction-currency-select"]',
+        categorySelect: '[data-testid="transaction-category-select"]',
         audOption: '[role="option"]:has-text("AUD")',
         usdOption: '[role="option"]:has-text("USD")',
         eurOption: '[role="option"]:has-text("EUR")',
-        dateInput: 'input[type="date"]',
-        categorySelect: 'select >> nth=1',
         groceriesOption: '[role="option"]:has-text("Groceries")',
         utilitiesOption: '[role="option"]:has-text("Utilities")',
         rentOption: '[role="option"]:has-text("Rent")',
         salaryOption: '[role="option"]:has-text("Salary")',
         investmentOption: '[role="option"]:has-text("Investment")',
-        submitButton: 'button:has-text("Add Transaction")'
+        submitButton: '[data-testid="transaction-submit-button"]',
+        findDuplicatesButton: '[data-testid="transactions-find-duplicates-button"]',
+        viewTransfersButton: '[data-testid="transactions-view-transfers-button"]',
+        addManualButton: '[data-testid="transactions-add-manual-button"]',
+        uploadCsvButton: '[data-testid="transactions-upload-csv-button"]'
+    },
+    // Navigation
+    sidebar: {
+        dashboardLink: '[data-testid="sidebar-dashboard-link"]',
+        entitiesLink: '[data-testid="sidebar-entities-link"]',
+        assetsLink: '[data-testid="sidebar-assets-link"]',
+        liabilitiesLink: '[data-testid="sidebar-liabilities-link"]',
+        transactionsLink: '[data-testid="sidebar-transactions-link"]'
+    },
+    // Pages
+    pages: {
+        entitiesTitle: '[data-testid="entities-page-title"]',
+        entitiesSubtitle: '[data-testid="entities-page-subtitle"]',
+        assetsTitle: '[data-testid="assets-page-title"]',
+        assetsSubtitle: '[data-testid="assets-page-subtitle"]',
+        assetsTotalCard: '[data-testid="assets-total-card"]',
+        liabilitiesTitle: '[data-testid="liabilities-page-title"]',
+        liabilitiesSubtitle: '[data-testid="liabilities-page-subtitle"]',
+        liabilitiesTotalCard: '[data-testid="liabilities-total-card"]'
+    },
+    // Dashboard
+    dashboard: {
+        entityFilter: '[data-testid="dashboard-entity-filter"]',
+        tabTransactions: '[data-testid="dashboard-tab-transactions"]',
+        tabBudget: '[data-testid="dashboard-tab-budget"]',
+        tabCashFlow: '[data-testid="dashboard-tab-cash-flow"]',
+        tabCategories: '[data-testid="dashboard-tab-categories"]',
+        tabHistorical: '[data-testid="dashboard-tab-historical"]'
+    },
+    // Transaction List
+    transactionList: {
+        container: '[data-testid="transaction-list-container"]'
     }
 };

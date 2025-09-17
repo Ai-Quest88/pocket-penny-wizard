@@ -144,6 +144,7 @@ const Login = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  data-testid="login-email-input"
                   className="bg-white/50 backdrop-blur-sm border-white/20 focus:border-primary/50"
                 />
               </div>
@@ -155,6 +156,7 @@ const Login = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  data-testid="login-password-input"
                   className={`bg-white/50 backdrop-blur-sm border-white/20 focus:border-primary/50 ${
                     errors.password ? "border-red-500" : ""
                   }`}
@@ -165,6 +167,7 @@ const Login = () => {
               </div>
               <Button 
                 type="submit" 
+                data-testid="login-submit-button"
                 className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity"
               >
                 {isSigningUp ? "Sign Up" : "Sign In"}
@@ -185,6 +188,7 @@ const Login = () => {
               type="button"
               variant="outline"
               onClick={loginWithGoogle}
+              data-testid="login-google-button"
               className="w-full bg-white/50 backdrop-blur-sm border-white/20 hover:bg-white/70"
             >
               <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
@@ -215,6 +219,7 @@ const Login = () => {
                   setIsSigningUp(!isSigningUp);
                   setErrors({});
                 }}
+                data-testid="login-toggle-signup-button"
                 className="text-sm text-muted-foreground hover:text-primary transition-colors"
               >
                 {isSigningUp

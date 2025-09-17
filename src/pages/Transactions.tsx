@@ -46,6 +46,7 @@ const Transactions = () => {
               variant="outline"
               className="flex items-center gap-2"
               onClick={() => setShowDuplicateDetector(true)}
+              data-testid="transactions-find-duplicates-button"
             >
               <Search className="h-4 w-4" />
               Find Duplicates
@@ -55,6 +56,7 @@ const Transactions = () => {
               <Button 
                 variant="outline"
                 className="flex items-center gap-2"
+                data-testid="transactions-view-transfers-button"
               >
                 <ArrowLeftRight className="h-4 w-4" />
                 View Transfers
@@ -65,6 +67,7 @@ const Transactions = () => {
               variant="outline"
               className="flex items-center gap-2"
               onClick={() => setIsManualDialogOpen(true)}
+              data-testid="transactions-add-manual-button"
             >
               <Plus className="h-4 w-4" />
               Add Manually
@@ -74,6 +77,7 @@ const Transactions = () => {
               <DialogTrigger asChild>
                 <Button 
                   className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+                  data-testid="transactions-upload-csv-button"
                 >
                   <Upload className="h-4 w-4" />
                   Upload CSV

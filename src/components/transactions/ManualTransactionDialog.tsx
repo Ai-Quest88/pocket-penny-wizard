@@ -256,6 +256,7 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
                       "w-full justify-start text-left font-normal",
                       !date && "text-muted-foreground"
                     )}
+                    data-testid="transaction-date-picker"
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {date ? format(date, "PPP") : <span>Pick a date</span>}
@@ -283,6 +284,7 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 required
+                data-testid="transaction-amount-input"
               />
             </div>
           </div>
@@ -295,6 +297,7 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               required
+              data-testid="transaction-description-input"
             />
           </div>
 
@@ -302,7 +305,7 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
             <div className="space-y-2">
               <Label htmlFor="category">Category {categoriesLoading && '(Loading...)'}  All Types v2</Label>
               <Select value={category} onValueChange={setCategory} disabled={categoriesLoading} required>
-                <SelectTrigger>
+                <SelectTrigger data-testid="transaction-category-select">
                   <SelectValue placeholder="Select category - All Types" />
                 </SelectTrigger>
                 <SelectContent className="max-h-80 bg-background border shadow-lg z-[100]">
@@ -330,7 +333,7 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
             <div className="space-y-2">
               <Label htmlFor="currency">Currency</Label>
               <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger>
+                <SelectTrigger data-testid="transaction-currency-select">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -390,6 +393,7 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
             <Button 
               type="submit" 
               disabled={isSubmitting || !amount || !description || !category || !account || allAccounts.length === 0}
+              data-testid="transaction-submit-button"
             >
               {isSubmitting ? 'Adding...' : 'Add Transaction'}
             </Button>

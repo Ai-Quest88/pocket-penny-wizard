@@ -266,8 +266,8 @@ const Liabilities = () => {
       <div className="max-w-7xl mx-auto space-y-8">
         <header className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold">Liabilities</h1>
-            <p className="text-muted-foreground">Manage your liabilities • All amounts in {displayCurrency}</p>
+            <h1 className="text-3xl font-bold" data-testid="liabilities-page-title">Liabilities</h1>
+            <p className="text-muted-foreground" data-testid="liabilities-page-subtitle">Manage your liabilities • All amounts in {displayCurrency}</p>
           </div>
           <AddLiabilityDialog onAddLiability={handleAddLiability} />
         </header>
@@ -276,6 +276,7 @@ const Liabilities = () => {
           title="Total Liabilities"
           value={formatCurrency(totalLiabilities)}
           className="bg-card"
+          data-testid="liabilities-total-card"
         />
 
         <LiabilitiesList 

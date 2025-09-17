@@ -9,11 +9,12 @@ interface DashboardCardProps {
     isPositive: boolean;
   };
   className?: string;
+  'data-testid'?: string;
 }
 
-export const DashboardCard = ({ title, value, trend, className }: DashboardCardProps) => {
+export const DashboardCard = ({ title, value, trend, className, 'data-testid': dataTestId }: DashboardCardProps) => {
   return (
-    <Card className={cn("p-6 animate-fadeIn", className)}>
+    <Card className={cn("p-6 animate-fadeIn", className)} data-testid={dataTestId}>
       <h3 className="text-sm font-medium text-text-muted mb-2">{title}</h3>
       <div className="flex items-end justify-between">
         <p className="text-2xl font-semibold text-text">{value}</p>
