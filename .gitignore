@@ -38,6 +38,31 @@ testsprite_tests/
 supabase/.temp/
 *.tmp
 
+# Playwright test artifacts
+test-results/
+playwright-report/
+playwright/.cache/
+test-output.json
+test-results.json
+
+# Vitest test artifacts
+coverage/
+.nyc_output/
+
+# Temporary directories
+tmp/
+temp/
+.tmp/
+
+# Test screenshots and videos
+screenshots/
+videos/
+*.png
+*.jpg
+*.jpeg
+*.mp4
+*.webm
+
 # Build artifacts
 dist/
 dist-ssr/
