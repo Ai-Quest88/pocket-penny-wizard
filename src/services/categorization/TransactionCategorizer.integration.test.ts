@@ -56,23 +56,22 @@ describe('TransactionCategorizer Integration', () => {
         currency: 'AUD'
       }
 
-      mockUserRulesCategorizer.categorize.mockResolvedValue({
-        category: 'Groceries',
-        confidence: 1.0,
-        source: 'user_rules'
-      })
+      mockUserRulesCategorizer.categorize.mockReturnValue('Groceries')
 
-      const result = await categorizer.categorizeTransaction(transaction)
+      const result = await categorizer.categorizeTransactions([transaction])
 
       expect(mockUserRulesCategorizer.categorize).toHaveBeenCalledWith(transaction)
       expect(mockSystemRulesCategorizer.categorize).not.toHaveBeenCalled()
       expect(mockAICategorizer.categorize).not.toHaveBeenCalled()
       expect(mockFallbackCategorizer.categorize).not.toHaveBeenCalled()
       
-      expect(result).toEqual({
+      expect(result).toHaveLength(1)
+      expect(result[0]).toEqual({
         category: 'Groceries',
-        confidence: 1.0,
-        source: 'user_rules'
+        confidence: 0.95,
+        is_new_category: false,
+        source: 'user_rule',
+        group_name: expect.any(String)
       })
     })
 
@@ -84,23 +83,22 @@ describe('TransactionCategorizer Integration', () => {
       }
 
       mockUserRulesCategorizer.categorize.mockResolvedValue(null)
-      mockSystemRulesCategorizer.categorize.mockResolvedValue({
-        category: 'Groceries',
-        confidence: 0.9,
-        source: 'system_rules'
-      })
+      mockSystemRulesCategorizer.categorize.mockReturnValue('Groceries')
 
-      const result = await categorizer.categorizeTransaction(transaction)
+      const result = await categorizer.categorizeTransactions([transaction])
 
       expect(mockUserRulesCategorizer.categorize).toHaveBeenCalledWith(transaction)
       expect(mockSystemRulesCategorizer.categorize).toHaveBeenCalledWith(transaction)
       expect(mockAICategorizer.categorize).not.toHaveBeenCalled()
       expect(mockFallbackCategorizer.categorize).not.toHaveBeenCalled()
       
-      expect(result).toEqual({
+      expect(result).toHaveLength(1)
+      expect(result[0]).toEqual({
         category: 'Groceries',
         confidence: 0.9,
-        source: 'system_rules'
+        is_new_category: false,
+        source: 'system_rule',
+        group_name: expect.any(String)
       })
     })
 
@@ -113,22 +111,23 @@ describe('TransactionCategorizer Integration', () => {
 
       mockUserRulesCategorizer.categorize.mockResolvedValue(null)
       mockSystemRulesCategorizer.categorize.mockResolvedValue(null)
-      mockAICategorizer.categorize.mockResolvedValue({
-        category: 'Entertainment',
-        confidence: 0.8,
-        source: 'ai'
-      })
+      mockAICategorizer.categorize.mockResolvedValue([{
+        category_name: 'Entertainment',
+        confidence: 0.8
+      }])
 
-      const result = await categorizer.categorizeTransaction(transaction)
+      const result = await categorizer.categorizeTransactions([transaction])
 
       expect(mockUserRulesCategorizer.categorize).toHaveBeenCalledWith(transaction)
       expect(mockSystemRulesCategorizer.categorize).toHaveBeenCalledWith(transaction)
       expect(mockAICategorizer.categorize).toHaveBeenCalledWith(transaction)
       expect(mockFallbackCategorizer.categorize).not.toHaveBeenCalled()
       
-      expect(result).toEqual({
+      expect(result).toHaveLength(1)
+      expect(result[0]).toEqual({
         category: 'Entertainment',
         confidence: 0.8,
+        is_new_category: true,
         source: 'ai'
       })
     })
@@ -143,23 +142,22 @@ describe('TransactionCategorizer Integration', () => {
       mockUserRulesCategorizer.categorize.mockResolvedValue(null)
       mockSystemRulesCategorizer.categorize.mockResolvedValue(null)
       mockAICategorizer.categorize.mockResolvedValue(null)
-      mockFallbackCategorizer.categorize.mockResolvedValue({
-        category: 'Uncategorized',
-        confidence: 0.1,
-        source: 'fallback'
-      })
+      mockFallbackCategorizer.categorize.mockReturnValue('Uncategorized')
 
-      const result = await categorizer.categorizeTransaction(transaction)
+      const result = await categorizer.categorizeTransactions([transaction])
 
       expect(mockUserRulesCategorizer.categorize).toHaveBeenCalledWith(transaction)
       expect(mockSystemRulesCategorizer.categorize).toHaveBeenCalledWith(transaction)
       expect(mockAICategorizer.categorize).toHaveBeenCalledWith(transaction)
       expect(mockFallbackCategorizer.categorize).toHaveBeenCalledWith(transaction)
       
-      expect(result).toEqual({
+      expect(result).toHaveLength(1)
+      expect(result[0]).toEqual({
         category: 'Uncategorized',
-        confidence: 0.1,
-        source: 'fallback'
+        confidence: 0.6,
+        is_new_category: false,
+        source: 'uncategorized',
+        group_name: expect.any(String)
       })
     })
 
@@ -173,18 +171,17 @@ describe('TransactionCategorizer Integration', () => {
       mockUserRulesCategorizer.categorize.mockRejectedValue(new Error('User rules error'))
       mockSystemRulesCategorizer.categorize.mockResolvedValue(null)
       mockAICategorizer.categorize.mockResolvedValue(null)
-      mockFallbackCategorizer.categorize.mockResolvedValue({
-        category: 'Uncategorized',
-        confidence: 0.1,
-        source: 'fallback'
-      })
+      mockFallbackCategorizer.categorize.mockReturnValue('Uncategorized')
 
-      const result = await categorizer.categorizeTransaction(transaction)
+      const result = await categorizer.categorizeTransactions([transaction])
 
-      expect(result).toEqual({
+      expect(result).toHaveLength(1)
+      expect(result[0]).toEqual({
         category: 'Uncategorized',
-        confidence: 0.1,
-        source: 'fallback'
+        confidence: 0.6,
+        is_new_category: false,
+        source: 'uncategorized',
+        group_name: expect.any(String)
       })
     })
   })
@@ -198,21 +195,21 @@ describe('TransactionCategorizer Integration', () => {
       ]
 
       mockUserRulesCategorizer.categorize
-        .mockResolvedValueOnce({ category: 'Groceries', confidence: 1.0, source: 'user_rules' })
-        .mockResolvedValueOnce({ category: 'Groceries', confidence: 1.0, source: 'user_rules' })
-        .mockResolvedValueOnce(null)
+        .mockReturnValueOnce('Groceries')
+        .mockReturnValueOnce('Groceries')
+        .mockReturnValueOnce(null)
 
       mockSystemRulesCategorizer.categorize
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce({ category: 'Entertainment', confidence: 0.8, source: 'system_rules' })
+        .mockReturnValueOnce(null)
+        .mockReturnValueOnce(null)
+        .mockReturnValueOnce('Entertainment')
 
-      const results = await categorizer.categorizeBatch(transactions)
+      const results = await categorizer.categorizeTransactions(transactions)
 
       expect(results).toHaveLength(3)
-      expect(results[0]).toEqual({ category: 'Groceries', confidence: 1.0, source: 'user_rules' })
-      expect(results[1]).toEqual({ category: 'Groceries', confidence: 1.0, source: 'user_rules' })
-      expect(results[2]).toEqual({ category: 'Entertainment', confidence: 0.8, source: 'system_rules' })
+      expect(results[0]).toEqual({ category: 'Groceries', confidence: 0.95, is_new_category: false, source: 'user_rule', group_name: expect.any(String) })
+      expect(results[1]).toEqual({ category: 'Groceries', confidence: 0.95, is_new_category: false, source: 'user_rule', group_name: expect.any(String) })
+      expect(results[2]).toEqual({ category: 'Entertainment', confidence: 0.9, is_new_category: false, source: 'system_rule', group_name: expect.any(String) })
     })
 
     it('should handle batch processing with AI fallback', async () => {
@@ -223,16 +220,16 @@ describe('TransactionCategorizer Integration', () => {
 
       mockUserRulesCategorizer.categorize.mockResolvedValue(null)
       mockSystemRulesCategorizer.categorize.mockResolvedValue(null)
-      mockAICategorizer.categorizeBatch.mockResolvedValue([
-        { category: 'Entertainment', confidence: 0.8, source: 'ai' },
-        { category: 'Transportation', confidence: 0.7, source: 'ai' }
+      mockAICategorizer.categorize.mockResolvedValue([
+        { category_name: 'Entertainment', confidence: 0.8 },
+        { category_name: 'Transportation', confidence: 0.7 }
       ])
 
-      const results = await categorizer.categorizeBatch(transactions)
+      const results = await categorizer.categorizeTransactions(transactions)
 
       expect(results).toHaveLength(2)
-      expect(results[0]).toEqual({ category: 'Entertainment', confidence: 0.8, source: 'ai' })
-      expect(results[1]).toEqual({ category: 'Transportation', confidence: 0.7, source: 'ai' })
+      expect(results[0]).toEqual({ category: 'Entertainment', confidence: 0.8, is_new_category: true, source: 'ai' })
+      expect(results[1]).toEqual({ category: 'Transportation', confidence: 0.7, is_new_category: true, source: 'ai' })
     })
   })
 
@@ -251,7 +248,7 @@ describe('TransactionCategorizer Integration', () => {
       )
 
       const startTime = Date.now()
-      const results = await categorizer.categorizeBatch(transactions)
+      const results = await categorizer.categorizeTransactions(transactions)
       const endTime = Date.now()
 
       expect(results).toHaveLength(100)

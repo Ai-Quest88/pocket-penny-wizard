@@ -68,5 +68,13 @@ export const businessOperations: BusinessOperations = {
   
   verifyEntityDeleted: (name: string): TestStep[] => [
     { action: 'verify', selector: `text="${name}"`, shouldBe: 'hidden' }
+  ],
+
+  verifyAssetDeleted: (name: string): TestStep[] => [
+    { action: 'verify', selector: `text="${name}"`, shouldBe: 'hidden' }
+  ],
+
+  verifyLiabilityDeleted: (name: string): TestStep[] => [
+    { action: 'verify', selector: `text="${name}"`, shouldBe: 'hidden' }
   ]
 };

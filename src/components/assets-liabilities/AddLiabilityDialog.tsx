@@ -405,7 +405,7 @@ export function AddLiabilityDialog({ onAddLiability }: AddLiabilityDialogProps) 
               value={newLiability.currency}
               onValueChange={(value) => setNewLiability({ ...newLiability, currency: value })}
             >
-              <SelectTrigger>
+              <SelectTrigger data-testid="liability-currency-select">
                 <SelectValue placeholder="Select currency" />
               </SelectTrigger>
               <SelectContent>

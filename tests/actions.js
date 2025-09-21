@@ -2,7 +2,7 @@ import { elements } from './element-library.js';
 export const actions = {
     // Login workflow
     login: (email = 'test@example.com', password = 'password123') => [
-        { action: 'navigate', url: 'http://localhost:8081/login' },
+        { action: 'navigate', url: 'http://localhost:8080/login' },
         { action: 'fill', selector: elements.login.emailInput, value: email },
         { action: 'fill', selector: elements.login.passwordInput, value: password },
         { action: 'click', selector: elements.login.submitButton },
@@ -10,7 +10,7 @@ export const actions = {
     ],
     // Navigate to page
     navigateTo: (page) => [
-        { action: 'navigate', url: `http://localhost:8081/${page}` }
+        { action: 'navigate', url: `http://localhost:8080/${page}` }
     ],
     // Create company entity
     createCompanyEntity: (name, country = 'Australia', registration = '123456789', date = '2024-01-01') => [
@@ -100,21 +100,36 @@ export const actions = {
         { action: 'click', selector: elements.transaction.currencySelect },
         { action: 'click', selector: currency === 'AUD' ? elements.transaction.audOption : elements.transaction.usdOption },
         { action: 'click', selector: elements.transaction.categorySelect },
+        { action: 'wait', timeout: 2000 }, // Wait for categories to load
         { action: 'click', selector: category === 'Groceries' ? elements.transaction.groceriesOption : elements.transaction.utilitiesOption },
         { action: 'click', selector: elements.transaction.submitButton },
         { action: 'wait', timeout: 1000 }
     ],
-    // Edit entity
-    editEntity: (oldName, newName) => [
-        { action: 'click', selector: `div:has(h3:has-text("${oldName}")) button[variant="ghost"] >> nth=0` },
-        { action: 'fill', selector: elements.entity.nameInput, value: newName },
-        { action: 'click', selector: elements.entity.updateButton },
-        { action: 'wait', timeout: 2000 }
-    ],
+  // Edit entity
+  editEntity: (oldName, newName) => [
+    { action: 'click', selector: `[data-testid="edit-entity-button-${oldName}"]` },
+    { action: 'fill', selector: elements.entity.nameInput, value: newName },
+    { action: 'click', selector: elements.entity.updateButton },
+    { action: 'wait', timeout: 2000 }
+  ],
     // Delete entity
     deleteEntity: (name) => [
-        { action: 'click', selector: `div:has(h3:has-text("${name}")) button[variant="ghost"] >> nth=1` },
+        { action: 'click', selector: `[data-testid="delete-entity-button-${name}"]` },
         { action: 'click', selector: elements.entity.deleteButton },
+        { action: 'wait', timeout: 2000 }
+    ],
+
+    // Delete asset
+    deleteAsset: (name) => [
+        { action: 'click', selector: `div:has(h3:has-text("${name}")) button.text-red-500` },
+        { action: 'click', selector: elements.asset.deleteButton },
+        { action: 'wait', timeout: 2000 }
+    ],
+
+    // Delete liability
+    deleteLiability: (name) => [
+        { action: 'click', selector: `div:has(h3:has-text("${name}")) button.text-red-500` },
+        { action: 'click', selector: elements.liability.deleteButton },
         { action: 'wait', timeout: 2000 }
     ]
 };

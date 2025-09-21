@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '../../test/utils/test-utils'
-import DashboardCard from './DashboardCard'
+import { render, screen } from '../test/utils/test-utils'
+import { DashboardCard } from './DashboardCard'
 
 describe('DashboardCard', () => {
   it('should render with title and value', () => {

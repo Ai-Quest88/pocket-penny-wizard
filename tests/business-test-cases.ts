@@ -11,7 +11,10 @@ export const businessTestCases: Record<string, TestCase> = {
       ...actions.login(),
       ...actions.navigateTo('entities'),
       ...actions.createCompanyEntity('Test Company'),
-      ...businessOperations.verifyEntityExists('Test Company')
+      ...businessOperations.verifyEntityExists('Test Company'),
+      // Cleanup
+      ...actions.deleteEntity('Test Company'),
+      ...businessOperations.verifyEntityDeleted('Test Company')
     ]
   },
   
@@ -50,7 +53,17 @@ export const businessTestCases: Record<string, TestCase> = {
       ...actions.navigateTo('assets'),
       ...businessOperations.verifyAssetExists('Savings Account'),
       ...actions.navigateTo('liabilities'),
-      ...businessOperations.verifyLiabilityExists('Home Loan')
+      ...businessOperations.verifyLiabilityExists('Home Loan'),
+      // Cleanup
+      ...actions.navigateTo('liabilities'),
+      ...actions.deleteLiability('Home Loan'),
+      ...businessOperations.verifyLiabilityDeleted('Home Loan'),
+      ...actions.navigateTo('assets'),
+      ...actions.deleteAsset('Savings Account'),
+      ...businessOperations.verifyAssetDeleted('Savings Account'),
+      ...actions.navigateTo('entities'),
+      ...actions.deleteEntity('Test Company'),
+      ...businessOperations.verifyEntityDeleted('Test Company')
     ]
   },
   
@@ -119,7 +132,18 @@ export const businessTestCases: Record<string, TestCase> = {
       ...businessOperations.verifyEntityExists('My Business'),
       ...businessOperations.verifyAssetExists('Business Account'),
       ...businessOperations.verifyLiabilityExists('Office Mortgage'),
-      ...businessOperations.verifyTransactionExists('Initial Investment')
+      ...businessOperations.verifyTransactionExists('Initial Investment'),
+      
+      // Cleanup
+      ...actions.navigateTo('liabilities'),
+      ...actions.deleteLiability('Office Mortgage'),
+      ...businessOperations.verifyLiabilityDeleted('Office Mortgage'),
+      ...actions.navigateTo('assets'),
+      ...actions.deleteAsset('Business Account'),
+      ...businessOperations.verifyAssetDeleted('Business Account'),
+      ...actions.navigateTo('entities'),
+      ...actions.deleteEntity('My Business'),
+      ...businessOperations.verifyEntityDeleted('My Business')
     ]
   },
   
@@ -144,7 +168,24 @@ export const businessTestCases: Record<string, TestCase> = {
       ...businessOperations.verifyAssetExists('Company Account'),
       ...businessOperations.verifyAssetExists('Personal Account'),
       ...businessOperations.verifyLiabilityExists('Company Mortgage'),
-      ...businessOperations.verifyLiabilityExists('Personal Credit Card')
+      ...businessOperations.verifyLiabilityExists('Personal Credit Card'),
+      
+      // Cleanup
+      ...actions.navigateTo('liabilities'),
+      ...actions.deleteLiability('Personal Credit Card'),
+      ...businessOperations.verifyLiabilityDeleted('Personal Credit Card'),
+      ...actions.deleteLiability('Company Mortgage'),
+      ...businessOperations.verifyLiabilityDeleted('Company Mortgage'),
+      ...actions.navigateTo('assets'),
+      ...actions.deleteAsset('Personal Account'),
+      ...businessOperations.verifyAssetDeleted('Personal Account'),
+      ...actions.deleteAsset('Company Account'),
+      ...businessOperations.verifyAssetDeleted('Company Account'),
+      ...actions.navigateTo('entities'),
+      ...actions.deleteEntity('John Smith'),
+      ...businessOperations.verifyEntityDeleted('John Smith'),
+      ...actions.deleteEntity('My Company'),
+      ...businessOperations.verifyEntityDeleted('My Company')
     ]
   }
 };

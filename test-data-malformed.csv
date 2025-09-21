@@ -1,0 +1,5 @@
+Date,Description,Amount
+2024-01-25,Valid Transaction,100.00
+2024-01-26,Missing Amount
+2024-01-27,Invalid Amount,not-a-number
+2024-01-28,Valid Transaction 2,200.00

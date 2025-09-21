@@ -272,7 +272,7 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
               value={newAsset.currency}
               onValueChange={(value) => setNewAsset({ ...newAsset, currency: value })}
             >
-              <SelectTrigger>
+              <SelectTrigger data-testid="asset-currency-select">
                 <SelectValue placeholder="Select currency" />
               </SelectTrigger>
               <SelectContent>

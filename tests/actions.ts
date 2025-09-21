@@ -5,7 +5,7 @@ import { elements } from './element-library.js';
 export const actions: ActionLibrary = {
   // Login workflow
   login: (email: string = 'test@example.com', password: string = 'password123'): TestStep[] => [
-    { action: 'navigate', url: 'http://localhost:8081/login' },
+    { action: 'navigate', url: 'http://localhost:8080/login' },
     { action: 'fill', selector: elements.login.emailInput, value: email },
     { action: 'fill', selector: elements.login.passwordInput, value: password },
     { action: 'click', selector: elements.login.submitButton },
@@ -14,7 +14,7 @@ export const actions: ActionLibrary = {
   
   // Navigate to page
   navigateTo: (page: string): TestStep[] => [
-    { action: 'navigate', url: `http://localhost:8081/${page}` }
+    { action: 'navigate', url: `http://localhost:8080/${page}` }
   ],
   
   // Create company entity
@@ -49,13 +49,16 @@ export const actions: ActionLibrary = {
   // Create bank account asset
   createBankAccount: (name: string, balance: string = '10000', currency: string = 'AUD', entityName: string = 'Test Company'): TestStep[] => [
     { action: 'click', selector: elements.asset.addButton },
+    { action: 'wait', timeout: 1000 }, // Wait for dialog to open
     { action: 'click', selector: elements.asset.entitySelect },
+    { action: 'wait', timeout: 1000 }, // Wait for entity options to load
     { action: 'click', selector: `[role="option"]:has-text("${entityName}")` },
     { action: 'click', selector: elements.asset.typeSelect },
     { action: 'click', selector: elements.asset.cashOption },
     { action: 'fill', selector: elements.asset.nameInput, value: name },
     { action: 'fill', selector: elements.asset.balanceInput, value: balance },
     { action: 'click', selector: elements.asset.currencySelect },
+    { action: 'wait', timeout: 2000 }, // Wait for currency options to load
     { action: 'click', selector: currency === 'AUD' ? elements.asset.audOption : elements.asset.usdOption },
     { action: 'click', selector: elements.asset.submitButton },
     { action: 'wait', timeout: 1000 }
@@ -130,7 +133,7 @@ export const actions: ActionLibrary = {
   
   // Edit entity
   editEntity: (oldName: string, newName: string): TestStep[] => [
-    { action: 'click', selector: `div:has(h3:has-text("${oldName}")) button[variant="ghost"] >> nth=0` },
+    { action: 'click', selector: `[data-testid="edit-entity-button-${oldName}"]` },
     { action: 'fill', selector: elements.entity.nameInput, value: newName },
     { action: 'click', selector: elements.entity.updateButton },
     { action: 'wait', timeout: 2000 }
@@ -138,8 +141,22 @@ export const actions: ActionLibrary = {
   
   // Delete entity
   deleteEntity: (name: string): TestStep[] => [
-    { action: 'click', selector: `div:has(h3:has-text("${name}")) button[variant="ghost"] >> nth=1` },
+    { action: 'click', selector: `[data-testid="delete-entity-button-${name}"]` },
     { action: 'click', selector: elements.entity.deleteButton },
+    { action: 'wait', timeout: 2000 }
+  ],
+
+  // Delete asset
+  deleteAsset: (name: string): TestStep[] => [
+    { action: 'click', selector: `div:has(h3:has-text("${name}")) button.text-red-500` },
+    { action: 'click', selector: elements.asset.deleteButton },
+    { action: 'wait', timeout: 2000 }
+  ],
+
+  // Delete liability
+  deleteLiability: (name: string): TestStep[] => [
+    { action: 'click', selector: `div:has(h3:has-text("${name}")) button.text-red-500` },
+    { action: 'click', selector: elements.liability.deleteButton },
     { action: 'wait', timeout: 2000 }
   ]
 };

@@ -3,12 +3,38 @@
 import { chromium } from 'playwright';
 import { MCPTestExecutor } from '../tests/mcp-test-executor.js';
 import { businessTestCases } from '../tests/business-test-cases.js';
+import { execSync } from 'child_process';
+
+// Function to clean up any existing browser processes
+function cleanupBrowserProcesses() {
+  try {
+    // Kill any existing Chrome/Chromium processes (macOS/Linux)
+    execSync('pkill -f "chrome\\|chromium" || true', { stdio: 'ignore' });
+  } catch (error) {
+    // Ignore errors if no processes to kill
+  }
+}
 
 async function runMCPTests() {
   console.log('🧪 Starting MCP Test Execution...');
+  console.log('🧹 Cleaning up any existing browser instances...');
   
-  const browser = await chromium.launch({ headless: false });
-  const page = await browser.newPage();
+  // Clean up any existing browser processes
+  cleanupBrowserProcesses();
+  
+  // Launch browser with explicit settings for visibility
+  const browser = await chromium.launch({ 
+    headless: false,
+    slowMo: 500, // Slow down actions so you can see them
+    devtools: false,
+    args: ['--start-maximized'] // Start maximized for better visibility
+  });
+  
+  const context = await browser.newContext({
+    viewport: { width: 1280, height: 720 }
+  });
+  
+  const page = await context.newPage();
 
   const executor = new MCPTestExecutor(page);
   
@@ -56,7 +82,13 @@ async function runMCPTests() {
     console.error('💥 Test execution failed:', error);
     process.exit(1);
   } finally {
-    await browser.close();
+    console.log('🧹 Cleaning up browser...');
+    try {
+      await browser.close();
+      console.log('✅ Browser cleanup completed');
+    } catch (error) {
+      console.error('⚠️ Browser cleanup warning:', error.message);
+    }
   }
 }
 

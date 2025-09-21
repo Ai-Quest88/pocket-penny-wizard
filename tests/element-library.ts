@@ -42,11 +42,12 @@ export const elements: ElementLibrary = {
     otherOption: '[role="option"]:has-text("Other")',
     nameInput: '[data-testid="asset-name-input"]',
     balanceInput: '[data-testid="asset-value-input"]',
-    currencySelect: '[role="combobox"]:has-text("AUD")',
-    audOption: '[role="option"]:has-text("AUD")',
-    usdOption: '[role="option"]:has-text("USD")',
-    eurOption: '[role="option"]:has-text("EUR")',
-    submitButton: '[data-testid="add-asset-submit-button"]'
+    currencySelect: '[data-testid="asset-currency-select"]',
+    audOption: '[role="option"]:has-text("🇦🇺 A$ AUD - Australian Dollar")',
+    usdOption: '[role="option"]:has-text("🇺🇸 $ USD - US Dollar")',
+    eurOption: '[role="option"]:has-text("🇪🇺 € EUR - Euro")',
+    submitButton: '[data-testid="add-asset-submit-button"]',
+    deleteButton: 'button:has-text("Delete")'
   },
   
   // Liability Management
@@ -61,11 +62,12 @@ export const elements: ElementLibrary = {
     studentLoanOption: '[role="option"]:has-text("Student Loan")',
     nameInput: '[data-testid="liability-name-input"]',
     balanceInput: '[data-testid="liability-balance-input"]',
-    currencySelect: '[role="combobox"]:has-text("AUD")',
-    audOption: '[role="option"]:has-text("AUD")',
-    usdOption: '[role="option"]:has-text("USD")',
-    eurOption: '[role="option"]:has-text("EUR")',
-    submitButton: '[data-testid="add-liability-submit-button"]'
+    currencySelect: '[data-testid="liability-currency-select"]',
+    audOption: '[role="option"]:has-text("🇦🇺 A$ AUD - Australian Dollar")',
+    usdOption: '[role="option"]:has-text("🇺🇸 $ USD - US Dollar")',
+    eurOption: '[role="option"]:has-text("🇪🇺 € EUR - Euro")',
+    submitButton: '[data-testid="add-liability-submit-button"]',
+    deleteButton: 'button:has-text("Delete")'
   },
   
   // Transaction Management
@@ -76,14 +78,14 @@ export const elements: ElementLibrary = {
     dateInput: '[data-testid="transaction-date-picker"]',
     currencySelect: '[data-testid="transaction-currency-select"]',
     categorySelect: '[data-testid="transaction-category-select"]',
-    audOption: '[role="option"]:has-text("AUD")',
-    usdOption: '[role="option"]:has-text("USD")',
-    eurOption: '[role="option"]:has-text("EUR")',
-    groceriesOption: '[role="option"]:has-text("Groceries")',
-    utilitiesOption: '[role="option"]:has-text("Utilities")',
-    rentOption: '[role="option"]:has-text("Rent")',
+    audOption: '[role="option"]:has-text("AUD - Australian Dollar")',
+    usdOption: '[role="option"]:has-text("USD - US Dollar")',
+    eurOption: '[role="option"]:has-text("EUR - Euro")',
+    groceriesOption: '[role="option"]:has-text("Food & Dining")',
+    utilitiesOption: '[role="option"]:has-text("Other Expenses")',
+    rentOption: '[role="option"]:has-text("Housing")',
     salaryOption: '[role="option"]:has-text("Salary")',
-    investmentOption: '[role="option"]:has-text("Investment")',
+    investmentOption: '[role="option"]:has-text("Investment Income")',
     submitButton: '[data-testid="transaction-submit-button"]',
     findDuplicatesButton: '[data-testid="transactions-find-duplicates-button"]',
     viewTransfersButton: '[data-testid="transactions-view-transfers-button"]',

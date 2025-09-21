@@ -16,9 +16,19 @@ export class MCPTestExecutor {
     console.log(`📊 Steps: ${testCase.steps.length}`);
 
     try {
-      // Reset browser state before each test
-      await this.page.goto('about:blank');
-      await this.page.waitForTimeout(1000);
+      // Clear all cookies and local storage to ensure fresh session
+      await this.page.context().clearCookies();
+      
+      // Navigate to the app first, then clear storage
+      await this.page.goto('http://localhost:8080');
+      await this.page.waitForLoadState('networkidle');
+      
+      // Clear storage after navigation
+      await this.page.evaluate(() => {
+        localStorage.clear();
+        sessionStorage.clear();
+      });
+      await this.page.waitForTimeout(500);
       
       for (let i = 0; i < testCase.steps.length; i++) {
         const step = testCase.steps[i];
