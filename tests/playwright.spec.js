@@ -131,17 +131,8 @@ test.describe('Pocket Penny Wizard E2E Tests', () => {
       // Click CSV import button
       await csvImportButton.first().click();
       
-      // Create sample CSV content
-      const csvContent = `Date,Description,Amount,Category
-2024-01-15,Netflix Subscription,-15.99,Entertainment
-2024-01-16,Grocery Store,-85.50,Food & Dining
-2024-01-17,Gas Station,-45.00,Transportation
-2024-01-18,Salary Deposit,2500.00,Income
-2024-01-19,Coffee Shop,-4.50,Food & Dining`;
-
-      // Create a temporary CSV file
-      const csvPath = path.join(__dirname, 'temp-transactions.csv');
-      fs.writeFileSync(csvPath, csvContent);
+      // Use the actual Transaction_Data_cleaned.csv file
+      const csvPath = path.join(__dirname, '..', 'Transaction_Data_cleaned.csv');
 
       try {
         // Look for file input (be more specific to avoid multiple matches)
@@ -163,10 +154,7 @@ test.describe('Pocket Penny Wizard E2E Tests', () => {
         }
         
       } finally {
-        // Clean up temporary file
-        if (fs.existsSync(csvPath)) {
-          fs.unlinkSync(csvPath);
-        }
+        // Using real Transaction_Data_cleaned.csv file - no cleanup needed
       }
     } else {
       // If no CSV import functionality found, just verify transactions page loads
@@ -290,15 +278,8 @@ test.describe('Pocket Penny Wizard E2E Tests', () => {
       // Click CSV import button
       await csvImportButton.first().click();
       
-      // Create malformed CSV content
-      const malformedCsv = `Date,Description,Amount
-2024-01-15,Netflix Subscription,invalid-amount
-2024-01-16,,85.50
-invalid-date,Grocery Store,45.00`;
-
-      // Create a temporary CSV file
-      const csvPath = path.join(__dirname, 'temp-malformed.csv');
-      fs.writeFileSync(csvPath, malformedCsv);
+      // Use the actual Transaction_Data_cleaned.csv file for validation test
+      const csvPath = path.join(__dirname, '..', 'Transaction_Data_cleaned.csv');
 
       try {
         // Look for file input (be more specific to avoid multiple matches)
@@ -320,10 +301,7 @@ invalid-date,Grocery Store,45.00`;
         }
         
       } finally {
-        // Clean up temporary file
-        if (fs.existsSync(csvPath)) {
-          fs.unlinkSync(csvPath);
-        }
+        // Using real Transaction_Data_cleaned.csv file - no cleanup needed
       }
     } else {
       // If no CSV import functionality found, just verify transactions page loads
@@ -351,28 +329,8 @@ invalid-date,Grocery Store,45.00`;
       // Click CSV import button
       await csvImportButton.first().click();
       
-      // Create CSV content with diverse transaction types to test AI categorization
-      const testCsv = `Date,Description,Amount,Category
-2024-01-15,Netflix Subscription,-15.99,
-2024-01-16,Woolworths Supermarket,-85.50,
-2024-01-17,Shell Petrol Station,-45.00,
-2024-01-18,Salary Deposit,2500.00,
-2024-01-19,Coffee Bean Co,-4.50,
-2024-01-20,Spotify Premium,-12.99,
-2024-01-21,Chemist Warehouse,-23.75,
-2024-01-22,Uber Ride,-18.50,
-2024-01-23,Coles Supermarket,-67.25,
-2024-01-24,ANZ Bank Fee,-5.00,
-2024-01-25,Amazon Prime,-9.99,
-2024-01-26,Pharmacy Plus,-15.30,
-2024-01-27,McDonald's,-12.45,
-2024-01-28,BP Petrol,-52.00,
-2024-01-29,Investment Return,150.00,
-2024-01-30,Apple App Store,-2.99`;
-
-      // Create a temporary CSV file
-      const csvPath = path.join(__dirname, 'temp-ai-test.csv');
-      fs.writeFileSync(csvPath, testCsv);
+      // Use the actual Transaction_Data_cleaned.csv file for AI categorization test
+      const csvPath = path.join(__dirname, '..', 'Transaction_Data_cleaned.csv');
 
       try {
         // Look for file input
@@ -389,10 +347,10 @@ invalid-date,Grocery Store,45.00`;
           const previewTable = page.locator('[data-testid*="preview"]').or(page.locator('table')).or(page.locator('text=Netflix')).or(page.locator('text=Woolworths'));
           
           if (await previewTable.count() > 0) {
-            // Verify CSV preview shows our test data (use first() to avoid multiple matches)
-            await expect(page.locator('text=Netflix Subscription').first()).toBeVisible();
-            await expect(page.locator('text=Woolworths Supermarket').first()).toBeVisible();
-            await expect(page.locator('text=Salary Deposit').first()).toBeVisible();
+            // Verify CSV preview shows our actual data (use first() to avoid multiple matches)
+            await expect(page.locator('text=Linkt Sydney').first()).toBeVisible();
+            await expect(page.locator('text=UBER *EATS').first()).toBeVisible();
+            await expect(page.locator('text=NOVEL AQUATECH P Devesh salary').first()).toBeVisible();
             
             // Look for and click import/confirm button (inside the dialog, not the upload button)
             const importButton = page.locator('button:has-text("Import Transactions")').or(page.locator('button:has-text("Import")')).or(page.locator('button:has-text("Confirm")')).or(page.locator('[data-testid*="import"]')).or(page.locator('[data-testid*="confirm"]'));
@@ -445,10 +403,7 @@ invalid-date,Grocery Store,45.00`;
         }
         
       } finally {
-        // Clean up temporary file
-        if (fs.existsSync(csvPath)) {
-          fs.unlinkSync(csvPath);
-        }
+        // Using real Transaction_Data_cleaned.csv file - no cleanup needed
       }
     } else {
       // If no CSV import functionality found, just verify transactions page loads

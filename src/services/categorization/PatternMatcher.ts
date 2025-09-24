@@ -4,17 +4,6 @@ export class PatternMatcher {
     const lowerDescription = description.toLowerCase();
     const lowerPattern = pattern.toLowerCase();
 
-    // TEST: Special debugging for salary pattern
-    if (pattern.toLowerCase() === 'salary') {
-      console.log('🎯 SPECIAL DEBUG FOR SALARY PATTERN:');
-      console.log(`   Description: "${description}"`);
-      console.log(`   Lower description: "${lowerDescription}"`);
-      console.log(`   Pattern: "${pattern}"`);
-      console.log(`   Lower pattern: "${lowerPattern}"`);
-      console.log(`   Contains salary? ${lowerDescription.includes('salary')}`);
-      console.log(`   Ends with salary? ${lowerDescription.endsWith('salary')}`);
-    }
-
     // Strategy 1: Exact substring match
     if (lowerDescription.includes(lowerPattern)) {
       console.log('✅ Matched using exact substring');
@@ -24,7 +13,8 @@ export class PatternMatcher {
     // Strategy 2: Word boundary matching
     const words = lowerDescription.split(/\s+/);
     for (const word of words) {
-      if (word.includes(lowerPattern) || lowerPattern.includes(word)) {
+      if (word.includes(lowerPattern)) {
+        console.log(`✅ Matched using word boundary: "${word}" contains "${lowerPattern}"`);
         return true;
       }
     }
@@ -44,7 +34,8 @@ export class PatternMatcher {
     for (const patternWord of patternWords) {
       if (patternWord.length >= 3) {
         for (const descWord of descWords) {
-          if (descWord.includes(patternWord) || patternWord.includes(descWord)) {
+          if (descWord.includes(patternWord)) {
+            console.log(`✅ Matched using word similarity: "${descWord}" contains "${patternWord}"`);
             return true;
           }
         }
