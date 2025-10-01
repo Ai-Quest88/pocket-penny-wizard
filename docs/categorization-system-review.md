@@ -143,8 +143,8 @@ CSV Upload → Unified Categorization → Priority System → Auto-Learning → 
 
 2. **Database Migration**
    - Create system_keyword_rules table with existing patterns
-   - Add user_categorization_preferences table for learning
    - Enhance transactions table with categorization metadata
+   - **Note**: No user_categorization_preferences table needed - preferences derived from transactions
 
 3. **Code Migration**
    - Replace ImprovedHybridCategorizer with SmartCategorizer

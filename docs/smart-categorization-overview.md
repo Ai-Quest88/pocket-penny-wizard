@@ -105,8 +105,8 @@ VALUES (ARRAY['new merchant'], 'New Category', 0.9);
 
 ### **Phase 1: Database Foundation (Week 1)**
 - Create `system_keyword_rules` table
-- Create `user_categorization_preferences` table
 - Enhance `transactions` table with categorization metadata
+- **Note**: No `user_categorization_preferences` table needed - preferences derived from transactions
 - Migrate existing hard-coded rules to database
 
 ### **Phase 2: Core Implementation (Week 2)**

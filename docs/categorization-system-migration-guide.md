@@ -43,14 +43,13 @@ supabase db diff
 SELECT COUNT(*) FROM system_keyword_rules WHERE is_active = true;
 -- Should return ~30+ rules
 
--- Check user_categorization_preferences table
-SELECT * FROM user_categorization_preferences LIMIT 5;
-
 -- Check enhanced transactions table
 SELECT categorization_source, categorization_confidence 
 FROM transactions 
 WHERE categorization_source IS NOT NULL 
 LIMIT 10;
+
+-- Note: No user_categorization_preferences table - preferences derived from transactions
 ```
 
 ### **Step 2: Code Migration**
@@ -180,18 +179,11 @@ SET
 WHERE categorization_source IS NULL;
 ```
 
-#### **2. Build User History**
+#### **2. Build User History (No Migration Needed)**
 ```sql
--- Create initial user preferences from existing transactions
-INSERT INTO user_categorization_preferences (user_id, category_name, usage_count)
-SELECT 
-  t.user_id,
-  c.name as category_name,
-  COUNT(*) as usage_count
-FROM transactions t
-JOIN categories c ON t.category_id = c.id
-WHERE t.category_id IS NOT NULL
-GROUP BY t.user_id, c.name;
+-- Note: User history is derived directly from existing transactions table
+-- No separate user_categorization_preferences table needed!
+-- The UserHistoryMatcher will query transactions table directly for user patterns
 ```
 
 ### **System Keyword Rules Population**
@@ -270,13 +262,14 @@ npm run dev
 #### **2. Database Rollback**
 ```sql
 -- Remove new tables (if needed)
-DROP TABLE IF EXISTS user_categorization_preferences;
 DROP TABLE IF EXISTS system_keyword_rules;
 
 -- Remove new columns (if needed)
 ALTER TABLE transactions DROP COLUMN IF EXISTS categorization_source;
 ALTER TABLE transactions DROP COLUMN IF EXISTS categorization_confidence;
 ALTER TABLE transactions DROP COLUMN IF EXISTS categorization_reasoning;
+
+-- Note: No user_categorization_preferences table to drop
 ```
 
 #### **3. Feature Flag Rollback**

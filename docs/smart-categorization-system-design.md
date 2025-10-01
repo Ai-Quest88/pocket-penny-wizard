@@ -123,10 +123,11 @@ INSERT INTO system_keyword_rules (keywords, category_name, confidence, priority)
 ```typescript
 class AICategorizer {
   async categorize(transaction: TransactionData, userId: string) {
-    // Enhanced AI prompt with user context
+    // Enhanced AI prompt with user context derived from transactions
+    const userContext = await this.getUserContextFromTransactions(userId);
     const prompt = `
       Categorize this Australian transaction for a user with these preferences:
-      - Previous categories: ${await this.getUserCategoryPreferences(userId)}
+      - Previous categories: ${userContext.mostUsedCategories}
       - Transaction: "${transaction.description}" - $${transaction.amount}
       - Date: ${transaction.date}
       
@@ -136,6 +137,18 @@ class AICategorizer {
     
     const response = await this.callGeminiAPI(prompt);
     return this.parseAIResponse(response);
+  }
+
+  private async getUserContextFromTransactions(userId: string) {
+    const { data } = await supabase
+      .from('transactions')
+      .select('category_id, categories(name)')
+      .eq('user_id', userId)
+      .not('category_id', 'is', null);
+    
+    // Count usage and return most used categories
+    // No separate preferences table needed!
+    return this.analyzeCategoryUsage(data);
   }
 }
 ```
@@ -174,19 +187,12 @@ CREATE TABLE system_keyword_rules (
 CREATE INDEX idx_system_keyword_rules_keywords ON system_keyword_rules 
 USING GIN (keywords);
 
--- User categorization preferences (new)
-CREATE TABLE user_categorization_preferences (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  category_name TEXT NOT NULL,
-  usage_count INTEGER DEFAULT 0,
-  last_used TIMESTAMP DEFAULT NOW(),
-  created_at TIMESTAMP DEFAULT NOW()
-);
+-- Index for active rules
+CREATE INDEX idx_system_keyword_rules_active ON system_keyword_rules 
+(is_active, priority) WHERE is_active = true;
 
--- Index for user preferences
-CREATE INDEX idx_user_preferences_user_category ON user_categorization_preferences 
-(user_id, category_name);
+-- Note: User preferences are derived directly from transactions table
+-- No separate user_categorization_preferences table needed!
 ```
 
 ## Implementation Benefits
@@ -205,11 +211,12 @@ CREATE INDEX idx_user_preferences_user_category ON user_categorization_preferenc
 - **No hard-coded rules**: All rules stored in database
 - **Easy updates**: New keywords added without code changes
 - **Self-improving**: System gets better with usage
+- **Simplified architecture**: Only 2 tables needed (transactions + system_keyword_rules)
 
 ### **4. Performance**
 - **Fast lookups**: Database indexes for quick keyword matching
 - **Reduced AI calls**: Only use AI when necessary
-- **Caching potential**: User preferences can be cached
+- **Caching potential**: User history can be cached from transactions table
 
 ## User Experience Flow
 

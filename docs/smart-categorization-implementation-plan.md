@@ -62,22 +62,11 @@ CREATE INDEX idx_transactions_user_history ON transactions
 (user_id, date DESC) WHERE category_id IS NOT NULL;
 ```
 
-#### **1.3 Create User Preferences Table**
+#### **1.3 User Preferences (Derived from Transactions)**
 ```sql
--- File: supabase/migrations/20250117000006_create_user_categorization_preferences.sql
-CREATE TABLE user_categorization_preferences (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  category_name TEXT NOT NULL,
-  usage_count INTEGER DEFAULT 0,
-  last_used TIMESTAMP DEFAULT NOW(),
-  created_at TIMESTAMP DEFAULT NOW(),
-  UNIQUE(user_id, category_name)
-);
-
--- Index for user preferences
-CREATE INDEX idx_user_preferences_user_category ON user_categorization_preferences 
-(user_id, category_name);
+-- Note: User preferences are derived directly from transactions table
+-- No separate user_categorization_preferences table needed!
+-- User history and preferences are calculated on-demand from existing transaction data
 ```
 
 #### **1.4 Populate System Keyword Rules**
@@ -140,9 +129,8 @@ INSERT INTO system_keyword_rules (keywords, category_name, confidence, priority)
 #### **2.1 Add RLS Policies**
 ```sql
 -- File: supabase/migrations/20250117000008_add_rls_policies_smart_categorization.sql
--- Enable RLS on new tables
+-- Enable RLS on system_keyword_rules table
 ALTER TABLE system_keyword_rules ENABLE ROW LEVEL SECURITY;
-ALTER TABLE user_categorization_preferences ENABLE ROW LEVEL SECURITY;
 
 -- System keyword rules: Public read access to active rules
 CREATE POLICY "Allow public read access to active system keyword rules"
@@ -150,11 +138,8 @@ ON system_keyword_rules
 FOR SELECT
 USING (is_active = TRUE);
 
--- User preferences: User can only access their own preferences
-CREATE POLICY "Users can access their own categorization preferences"
-ON user_categorization_preferences
-FOR ALL
-USING (auth.uid() = user_id);
+-- Note: No RLS policies needed for user preferences since they're derived from transactions table
+-- which already has proper user-based RLS policies
 ```
 
 #### **2.2 Test Database Setup**
@@ -242,7 +227,15 @@ export class AICategorizer {
   }
 
   private async getUserCategoryPreferences(userId: string): Promise<string[]> {
-    // Get user's most used categories
+    // Get user's most used categories from transactions table
+    const { data } = await supabase
+      .from('transactions')
+      .select('category_id, categories(name)')
+      .eq('user_id', userId)
+      .not('category_id', 'is', null);
+    
+    // Count usage and return most used categories
+    return this.analyzeCategoryUsage(data);
   }
 
   private buildEnhancedPrompt(transaction: TransactionData, userPreferences: string[]): string {
