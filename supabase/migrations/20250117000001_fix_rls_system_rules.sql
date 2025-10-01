@@ -32,3 +32,5 @@ CREATE POLICY "Allow public read access to system category groups"
 ON category_groups
 FOR SELECT
 USING (true); -- Allow read access to all category groups for now
+
+
