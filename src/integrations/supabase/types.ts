@@ -733,6 +733,7 @@ export type Database = {
       system_keyword_rules: {
         Row: {
           category_name: string
+          category_type: string | null
           confidence: number
           created_at: string
           id: string
@@ -743,6 +744,7 @@ export type Database = {
         }
         Insert: {
           category_name: string
+          category_type?: string | null
           confidence?: number
           created_at?: string
           id?: string
@@ -753,6 +755,7 @@ export type Database = {
         }
         Update: {
           category_name?: string
+          category_type?: string | null
           confidence?: number
           created_at?: string
           id?: string
