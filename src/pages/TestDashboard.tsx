@@ -248,7 +248,7 @@ export default function TestDashboard() {
         ws.close();
       }
     };
-  }, [toast, updateStats]);
+  }, [toast]);
 
   // Update stats whenever test results change
   useEffect(() => {
