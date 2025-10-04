@@ -4,41 +4,34 @@ export class PatternMatcher {
     const lowerDescription = description.toLowerCase();
     const lowerPattern = pattern.toLowerCase();
 
-    // Strategy 1: Exact substring match
-    if (lowerDescription.includes(lowerPattern)) {
-      console.log('✅ Matched using exact substring');
+    // Strategy 1: Whole word matching using regex word boundaries
+    // This prevents "interest" from matching "disinterest" or "interesting"
+    const escapedPattern = lowerPattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const wordBoundaryRegex = new RegExp(`\\b${escapedPattern}\\b`, 'i');
+    
+    if (wordBoundaryRegex.test(lowerDescription)) {
+      console.log('✅ Matched using whole word boundary');
       return true;
     }
 
-    // Strategy 2: Word boundary matching
-    const words = lowerDescription.split(/\s+/);
-    for (const word of words) {
-      if (word.includes(lowerPattern)) {
-        console.log(`✅ Matched using word boundary: "${word}" contains "${lowerPattern}"`);
-        return true;
-      }
-    }
-
-    // Strategy 3: Cleaned text matching
+    // Strategy 2: Cleaned text matching with word boundaries
     const cleanDescription = this.cleanText(lowerDescription);
     const cleanPattern = this.cleanText(lowerPattern);
 
-    if (cleanDescription.includes(cleanPattern)) {
+    const cleanWordBoundaryRegex = new RegExp(`\\b${cleanPattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+    if (cleanWordBoundaryRegex.test(cleanDescription)) {
+      console.log('✅ Matched using cleaned word boundary');
       return true;
     }
 
-    // Strategy 4: Word similarity matching
-    const patternWords = cleanPattern.split(/\s+/);
-    const descWords = cleanDescription.split(/\s+/);
-    
-    for (const patternWord of patternWords) {
-      if (patternWord.length >= 3) {
-        for (const descWord of descWords) {
-          if (descWord.includes(patternWord)) {
-            console.log(`✅ Matched using word similarity: "${descWord}" contains "${patternWord}"`);
-            return true;
-          }
-        }
+    // Strategy 3: Multi-word pattern matching
+    // For patterns like "transfer to", "uber eats", etc.
+    const patternWords = cleanPattern.split(/\s+/).filter(w => w.length > 0);
+    if (patternWords.length > 1) {
+      const multiWordRegex = new RegExp(patternWords.join('\\s+'), 'i');
+      if (multiWordRegex.test(cleanDescription)) {
+        console.log('✅ Matched using multi-word pattern');
+        return true;
       }
     }
 
