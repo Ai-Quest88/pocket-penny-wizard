@@ -730,10 +730,44 @@ export type Database = {
         }
         Relationships: []
       }
+      system_keyword_rules: {
+        Row: {
+          category_name: string
+          confidence: number
+          created_at: string
+          id: string
+          is_active: boolean
+          keywords: string[]
+          priority: number
+          updated_at: string
+        }
+        Insert: {
+          category_name: string
+          confidence?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          keywords: string[]
+          priority?: number
+          updated_at?: string
+        }
+        Update: {
+          category_name?: string
+          confidence?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          keywords?: string[]
+          priority?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number
           asset_account_id: string | null
+          categorization_confidence: number | null
           categorization_source: string | null
           category_id: string | null
           created_at: string | null
@@ -752,6 +786,7 @@ export type Database = {
         Insert: {
           amount: number
           asset_account_id?: string | null
+          categorization_confidence?: number | null
           categorization_source?: string | null
           category_id?: string | null
           created_at?: string | null
@@ -770,6 +805,7 @@ export type Database = {
         Update: {
           amount?: number
           asset_account_id?: string | null
+          categorization_confidence?: number | null
           categorization_source?: string | null
           category_id?: string | null
           created_at?: string | null
