@@ -124,7 +124,7 @@ const getUserCategories = async (userId: string): Promise<string[]> => {
 
 // Google Gemini models to use (only flash for better free tier limits)
 const geminiModels = [
-  'gemini-1.5-flash'
+  'gemini-2.0-flash-exp' // Using the latest experimental model
 ];
 
 let currentModelIndex = 0;
