@@ -1,2 +1,13 @@
-
 project_id = "nqqbvlvuzyctmysablzw"
+
+[functions.categorize-transaction]
+verify_jwt = true
+
+[functions.discover-categories]
+verify_jwt = true
+
+[functions.group-categories]
+verify_jwt = true
+
+[functions.test-runner]
+verify_jwt = false

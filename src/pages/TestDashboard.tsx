@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -49,7 +49,7 @@ export default function TestDashboard() {
   const [currentProgress, setCurrentProgress] = useState(0);
   const [runningTest, setRunningTest] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
-  const [isConnected, setIsConnected] = useState(true);
+  const [isConnected, setIsConnected] = useState(false);
   const [testStats, setTestStats] = useState<TestStats>({
     total: 0,
     passed: 0,
@@ -59,6 +59,24 @@ export default function TestDashboard() {
     successRate: 0
   });
   const { toast } = useToast();
+  const wsRef = useRef<WebSocket | null>(null);
+
+  const updateStats = useCallback((results: TestResult[]) => {
+    const stats = {
+      total: results.length,
+      passed: results.filter(r => r.status === 'passed').length,
+      failed: results.filter(r => r.status === 'failed').length,
+      running: results.filter(r => r.status === 'running').length,
+      pending: results.filter(r => r.status === 'pending').length,
+      successRate: 0
+    };
+    
+    if (stats.total > 0) {
+      stats.successRate = Math.round((stats.passed / stats.total) * 100);
+    }
+    
+    setTestStats(stats);
+  }, []);
 
   const mockTestData: TestResult[] = [
     {
@@ -111,97 +129,126 @@ export default function TestDashboard() {
     }
   ];
 
+  // Connect to WebSocket on mount
   useEffect(() => {
-    setTestResults(mockTestData);
-    updateStats(mockTestData);
-  }, []);
+    const wsUrl = 'wss://nqqbvlvuzyctmysablzw.supabase.co/functions/v1/test-runner';
+    console.log('Connecting to WebSocket:', wsUrl);
+    
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
 
-  const updateStats = useCallback((results: TestResult[]) => {
-    const stats = {
-      total: results.length,
-      passed: results.filter(r => r.status === 'passed').length,
-      failed: results.filter(r => r.status === 'failed').length,
-      running: results.filter(r => r.status === 'running').length,
-      pending: results.filter(r => r.status === 'pending').length,
-      successRate: 0
+    ws.onopen = () => {
+      console.log('WebSocket connected');
+      setIsConnected(true);
+      toast({
+        title: "Connected",
+        description: "Test runner connected successfully",
+      });
     };
-    
-    if (stats.total > 0) {
-      stats.successRate = Math.round((stats.passed / stats.total) * 100);
-    }
-    
-    setTestStats(stats);
-  }, []);
 
-  const simulateTestExecution = useCallback(async (category?: string) => {
-    console.log('Starting test simulation...', category);
-    setIsRunning(true);
-    setCurrentProgress(0);
-    
-    const filteredTests = category 
-      ? mockTestData.filter(test => test.category === category)
-      : mockTestData;
+    ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        console.log('WebSocket message:', message);
 
-    console.log('Tests to run:', filteredTests.length);
+        switch (message.type) {
+          case 'CONNECTED':
+            setTestResults(mockTestData);
+            updateStats(mockTestData);
+            break;
 
-    // Reset all tests to pending
-    setTestResults(mockTestData);
+          case 'TEST_START':
+            setIsRunning(true);
+            setCurrentProgress(0);
+            setTestResults(mockTestData);
+            break;
 
-    toast({
-      title: "Tests Started",
-      description: `Running ${filteredTests.length} tests...`,
-    });
-
-    // Execute tests progressively
-    for (let i = 0; i < filteredTests.length; i++) {
-      const test = filteredTests[i];
-      console.log('Running test:', test.title);
-      
-      setRunningTest(test.title);
-      setCurrentProgress(Math.round((i / filteredTests.length) * 100));
-
-      // Update test to running status
-      setTestResults(prev => prev.map(t => 
-        t.title === test.title 
-          ? { ...t, status: 'running' as const }
-          : t
-      ));
-
-      // Simulate test execution time
-      await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 2000));
-
-      // Test result (80% pass rate)
-      const passed = Math.random() > 0.2;
-      const duration = 1500 + Math.random() * 3000;
-
-      console.log('Test completed:', test.title, passed ? 'PASSED' : 'FAILED');
-
-      // Update test to final status
-      setTestResults(prev => prev.map(t => 
-        t.title === test.title 
-          ? { 
-              ...t, 
-              status: passed ? 'passed' as const : 'failed' as const,
-              duration: Math.round(duration),
-              error: passed ? undefined : 'Assertion failed: Expected element to be visible',
-              videoPath: passed ? 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' : undefined,
-              timestamp: Date.now()
+          case 'TEST_UPDATE':
+            if (message.status === 'running') {
+              setRunningTest(message.testTitle);
+              setCurrentProgress(message.progress || 0);
+              setTestResults(prev => prev.map(t => 
+                t.title === message.testTitle 
+                  ? { ...t, status: 'running' as const }
+                  : t
+              ));
+            } else {
+              setTestResults(prev => prev.map(t => 
+                t.title === message.testTitle 
+                  ? { 
+                      ...t, 
+                      status: message.status as 'passed' | 'failed',
+                      duration: message.duration || 0,
+                      error: message.error,
+                      videoPath: message.videoPath,
+                      timestamp: message.timestamp
+                    }
+                  : t
+              ));
+              setCurrentProgress(message.progress || 0);
             }
-          : t
-      ));
-    }
+            break;
 
-    // Test completion
-    console.log('All tests completed');
-    setCurrentProgress(100);
-    setRunningTest(null);
-    setIsRunning(false);
+          case 'TEST_COMPLETE':
+            setIsRunning(false);
+            setRunningTest(null);
+            setCurrentProgress(100);
+            toast({
+              title: "Tests Completed",
+              description: `Finished running ${message.totalTests} tests`,
+            });
+            break;
 
-    toast({
-      title: "Tests Completed",
-      description: `Finished running ${filteredTests.length} tests`,
-    });
-  }, [toast]);
+          case 'TEST_STOPPED':
+            setIsRunning(false);
+            setRunningTest(null);
+            toast({
+              title: "Tests Stopped",
+              description: message.message,
+              variant: "destructive"
+            });
+            break;
+
+          case 'ERROR':
+            console.error('WebSocket error:', message.error);
+            toast({
+              title: "Error",
+              description: message.error,
+              variant: "destructive"
+            });
+            break;
+        }
+      } catch (error) {
+        console.error('Failed to parse WebSocket message:', error);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      setIsConnected(false);
+      toast({
+        title: "Connection Error",
+        description: "Failed to connect to test runner",
+        variant: "destructive"
+      });
+    };
+
+    ws.onclose = () => {
+      console.log('WebSocket disconnected');
+      setIsConnected(false);
+      toast({
+        title: "Disconnected",
+        description: "Test runner disconnected",
+        variant: "destructive"
+      });
+    };
+
+    return () => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
+    };
+  }, [toast, updateStats]);
 
   // Update stats whenever test results change
   useEffect(() => {
@@ -209,18 +256,36 @@ export default function TestDashboard() {
   }, [testResults, updateStats]);
 
   const handleRunTests = async (category?: string) => {
-    if (isRunning) return;
-    simulateTestExecution(category);
+    if (isRunning || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      if (!isConnected) {
+        toast({
+          title: "Not Connected",
+          description: "Test runner is not connected",
+          variant: "destructive"
+        });
+      }
+      return;
+    }
+
+    console.log('Sending RUN_TESTS command with category:', category);
+    wsRef.current.send(JSON.stringify({
+      type: 'RUN_TESTS',
+      category
+    }));
+
+    toast({
+      title: "Tests Started",
+      description: category ? `Running ${category} tests...` : "Running all tests...",
+    });
   };
 
   const handleStopTests = () => {
-    setIsRunning(false);
-    setRunningTest(null);
-    toast({
-      title: "Tests Stopped",
-      description: "Test execution was stopped",
-      variant: "destructive"
-    });
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+
+    console.log('Sending STOP_TESTS command');
+    wsRef.current.send(JSON.stringify({
+      type: 'STOP_TESTS'
+    }));
   };
 
   const getStatusIcon = (status: string) => {
