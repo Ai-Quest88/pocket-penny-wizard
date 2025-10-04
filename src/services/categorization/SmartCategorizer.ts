@@ -67,25 +67,55 @@ export class SmartCategorizer {
       uncategorized: 0
     };
 
-    for (const transaction of transactions) {
-      const result = await this.categorizeTransaction(transaction);
-      results.push(result);
-
-      // Update stats
-      switch (result.source) {
-        case 'user_history':
-          stats.userHistory++;
-          break;
-        case 'system_keywords':
-          stats.systemKeywords++;
-          break;
-        case 'ai':
-          stats.ai++;
-          break;
-        case 'uncategorized':
-          stats.uncategorized++;
-          break;
+    // First pass: Try user history and system keywords for all transactions
+    const needsAI: { index: number; transaction: TransactionData }[] = [];
+    
+    for (let i = 0; i < transactions.length; i++) {
+      const transaction = transactions[i];
+      
+      // Tier 1: User History Lookup
+      const userHistoryResult = await this.userHistoryMatcher.findSimilarTransaction(transaction);
+      if (userHistoryResult) {
+        results[i] = userHistoryResult;
+        stats.userHistory++;
+        continue;
       }
+
+      // Tier 2: System Keyword Rules
+      const systemKeywordResult = await this.systemKeywordMatcher.findKeywordMatch(transaction);
+      if (systemKeywordResult) {
+        results[i] = systemKeywordResult;
+        stats.systemKeywords++;
+        continue;
+      }
+
+      // Mark for batch AI processing
+      needsAI.push({ index: i, transaction });
+    }
+
+    // Second pass: Batch AI categorization for remaining transactions
+    if (needsAI.length > 0) {
+      console.log(`🎯 Batch processing ${needsAI.length} transactions with AI`);
+      const aiTransactions = needsAI.map(item => item.transaction);
+      const aiResults = await this.aiCategorizer.batchCategorize(aiTransactions);
+      
+      needsAI.forEach((item, aiIndex) => {
+        const aiResult = aiResults[aiIndex];
+        if (aiResult) {
+          results[item.index] = aiResult;
+          stats.ai++;
+        } else {
+          // Final fallback: Uncategorized
+          results[item.index] = {
+            category: 'Uncategorized',
+            confidence: 0.5,
+            is_new_category: false,
+            source: 'uncategorized',
+            group_name: 'Other'
+          };
+          stats.uncategorized++;
+        }
+      });
     }
 
     const totalTime = Date.now() - startTime;

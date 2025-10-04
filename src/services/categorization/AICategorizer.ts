@@ -8,6 +8,46 @@ export class AICategorizer {
     this.userId = userId;
   }
 
+  /**
+   * Batch categorize multiple transactions at once to avoid rate limits
+   */
+  async batchCategorize(transactions: TransactionData[]): Promise<(CategoryDiscoveryResult | null)[]> {
+    try {
+      console.log(`🤖 AICategorizer: Batch processing ${transactions.length} transactions`);
+      
+      // Get user context from transactions table
+      const userContext = await this.getUserContextFromTransactions();
+      
+      // Use the categorize-transaction edge function in batch mode
+      const { data, error } = await supabase.functions.invoke('categorize-transaction', {
+        body: { 
+          batchMode: true,
+          descriptions: transactions.map(t => t.description),
+          userId: this.userId,
+          userContext: userContext
+        }
+      });
+
+      if (!error && data?.categories && Array.isArray(data.categories)) {
+        console.log(`✅ AI batch categorization successful: ${data.categories.length} categories returned`);
+        
+        return data.categories.map((category: string) => ({
+          category: category,
+          confidence: 0.75,
+          is_new_category: true,
+          source: 'ai' as const,
+          group_name: this.getGroupName(category)
+        }));
+      }
+
+      console.error('❌ AI batch categorization failed:', error);
+      return transactions.map(() => null);
+    } catch (error) {
+      console.error('AICategorizer batch error:', error);
+      return transactions.map(() => null);
+    }
+  }
+
   async categorize(transaction: TransactionData): Promise<CategoryDiscoveryResult | null> {
     try {
       console.log(`🤖 AICategorizer: Processing "${transaction.description}"`);
