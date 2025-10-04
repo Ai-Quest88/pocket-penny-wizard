@@ -1,35 +1,103 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { TransactionData } from './types';
-
-export interface AICategoryResult {
-  category_name: string;
-  confidence: number;
-}
+import type { TransactionData, CategoryDiscoveryResult } from './types';
 
 export class AICategorizer {
-  async categorize(transactions: TransactionData[], userId?: string): Promise<AICategoryResult[]> {
-    console.log('🤖 AICategorizer: Processing', transactions.length, 'transactions');
-    
-    // Use the categorize-transaction edge function with batch mode
-    const { data, error } = await supabase.functions.invoke('categorize-transaction', {
-      body: { 
-        batchMode: true,
-        descriptions: transactions.map(t => t.description),
-        userId: userId || ''
-      }
-    });
+  private userId: string;
 
-    if (!error && data?.categories) {
-      console.log('✅ AI categorization successful:', data.categories.length, 'categories returned');
+  constructor(userId: string) {
+    this.userId = userId;
+  }
+
+  async categorize(transaction: TransactionData): Promise<CategoryDiscoveryResult | null> {
+    try {
+      console.log(`🤖 AICategorizer: Processing "${transaction.description}"`);
       
-      // Convert the response to match our expected format
-      return data.categories.map((categoryName: string, index: number) => ({
-        category_name: categoryName,
-        confidence: 0.85 // Default confidence for AI categorization
-      }));
-    }
+      // Get user context from transactions table
+      const userContext = await this.getUserContextFromTransactions();
+      
+      // Use the categorize-transaction edge function
+      const { data, error } = await supabase.functions.invoke('categorize-transaction', {
+        body: { 
+          batchMode: false,
+          description: transaction.description,
+          amount: transaction.amount,
+          date: transaction.date,
+          userId: this.userId,
+          userContext: userContext
+        }
+      });
 
-    console.error('❌ AI categorization failed:', error);
-    throw new Error(error?.message || 'AI categorization failed');
+      if (!error && data?.category) {
+        console.log(`✅ AI categorization successful: ${data.category}`);
+        
+        return {
+          category: data.category,
+          confidence: data.confidence || 0.75,
+          is_new_category: true,
+          source: 'ai',
+          group_name: this.getGroupName(data.category)
+        };
+      }
+
+      console.error('❌ AI categorization failed:', error);
+      return null;
+    } catch (error) {
+      console.error('AICategorizer error:', error);
+      return null;
+    }
+  }
+
+  private async getUserContextFromTransactions() {
+    try {
+      // Get user's most used categories from transactions
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('category_id, categories(name)')
+        .eq('user_id', this.userId)
+        .not('category_id', 'is', null)
+        .limit(50);
+
+      if (error || !data) {
+        return { mostUsedCategories: [] };
+      }
+
+      // Count category usage
+      const categoryCounts: Record<string, number> = {};
+      data.forEach(tx => {
+        const categoryName = tx.categories?.name;
+        if (categoryName) {
+          categoryCounts[categoryName] = (categoryCounts[categoryName] || 0) + 1;
+        }
+      });
+
+      // Return most used categories
+      const mostUsedCategories = Object.entries(categoryCounts)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 10)
+        .map(([category]) => category);
+
+      return { mostUsedCategories };
+    } catch (error) {
+      console.error('Error getting user context:', error);
+      return { mostUsedCategories: [] };
+    }
+  }
+
+  private getGroupName(categoryName: string): string {
+    const groupMapping: Record<string, string> = {
+      'Salary': 'Income',
+      'Investment Income': 'Income',
+      'Transportation': 'Expenses',
+      'Food & Dining': 'Expenses',
+      'Housing': 'Expenses',
+      'Healthcare': 'Expenses',
+      'Entertainment': 'Expenses',
+      'Account Transfer': 'Transfer',
+      'Telecommunications': 'Expenses',
+      'Shopping': 'Expenses',
+      'Other Expenses': 'Expenses'
+    };
+    
+    return groupMapping[categoryName] || 'Other';
   }
 }

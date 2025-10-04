@@ -115,12 +115,49 @@ export const handlers = [
     })
   }),
 
+  // Supabase Database endpoints for smart categorization
+  http.get('https://test.supabase.co/rest/v1/system_keyword_rules', () => {
+    return HttpResponse.json([
+      {
+        id: 'rule-1',
+        keywords: ['uber eats', 'ubereats'],
+        category_name: 'Food & Dining',
+        confidence: 0.95,
+        priority: 1,
+        is_active: true
+      },
+      {
+        id: 'rule-2',
+        keywords: ['woolworths', 'coles'],
+        category_name: 'Food & Dining',
+        confidence: 0.90,
+        priority: 1,
+        is_active: true
+      },
+      {
+        id: 'rule-3',
+        keywords: ['netflix'],
+        category_name: 'Entertainment',
+        confidence: 0.90,
+        priority: 1,
+        is_active: true
+      }
+    ])
+  }),
+
   // Supabase Edge Functions
   http.post('https://test.supabase.co/functions/v1/categorize-transaction', () => {
     return HttpResponse.json({
-      category: 'Groceries',
-      source: 'gemini_ai',
-      confidence: 0.95
+      categories: [
+        {
+          category_name: 'Entertainment',
+          confidence: 0.8
+        },
+        {
+          category_name: 'Transportation', 
+          confidence: 0.7
+        }
+      ]
     })
   }),
 

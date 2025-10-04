@@ -14,7 +14,7 @@ export interface CategoryDiscoveryResult {
   confidence: number;
   is_new_category: boolean;
   group_name?: string;
-  source: 'user_rule' | 'system_rule' | 'ai' | 'fallback' | 'uncategorized';
+  source: 'user_history' | 'system_keywords' | 'ai' | 'uncategorized' | 'user_rule' | 'system_rule' | 'fallback';
 }
 
 export interface CategorizationRule {

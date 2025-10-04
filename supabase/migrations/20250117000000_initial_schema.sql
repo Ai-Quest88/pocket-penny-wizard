@@ -82,14 +82,14 @@ CREATE TABLE IF NOT EXISTS liabilities (
   credit_limit NUMERIC
 );
 
--- Create transactions table
+-- Create transactions table (without category_id reference initially)
 CREATE TABLE IF NOT EXISTS transactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) NOT NULL,
   description TEXT NOT NULL,
   amount NUMERIC NOT NULL,
   currency TEXT NOT NULL,
-  category_id UUID REFERENCES categories(id),
+  category_id UUID, -- Will be updated to reference categories after categories table is created
   category_name TEXT, -- For display purposes and backwards compatibility
   date DATE NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
@@ -375,4 +375,9 @@ CREATE TRIGGER update_categories_updated_at
 CREATE TRIGGER update_merchants_updated_at 
     BEFORE UPDATE ON merchants 
     FOR EACH ROW 
-    EXECUTE FUNCTION update_updated_at_column(); 
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Add foreign key constraint for transactions.category_id after categories table is created
+ALTER TABLE transactions 
+ADD CONSTRAINT fk_transactions_category_id 
+FOREIGN KEY (category_id) REFERENCES categories(id); 

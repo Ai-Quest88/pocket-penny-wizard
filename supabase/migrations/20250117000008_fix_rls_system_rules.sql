@@ -1,15 +1,15 @@
--- Fix RLS policies for system_categorization_rules table
--- This allows the app to read system categorization rules using the anon key
+-- Fix RLS policies for system_keyword_rules table
+-- This allows the app to read system keyword rules using the anon key
 
 -- Enable RLS if not already enabled
-ALTER TABLE system_categorization_rules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE system_keyword_rules ENABLE ROW LEVEL SECURITY;
 
 -- Drop existing policies if they exist
-DROP POLICY IF EXISTS "Allow public read access to active system categorization rules" ON system_categorization_rules;
+DROP POLICY IF EXISTS "Allow public read access to active system keyword rules" ON system_keyword_rules;
 
 -- Create policy to allow public read access to active system rules
-CREATE POLICY "Allow public read access to active system categorization rules"
-ON system_categorization_rules
+CREATE POLICY "Allow public read access to active system keyword rules"
+ON system_keyword_rules
 FOR SELECT
 USING (is_active = true);
 
@@ -21,7 +21,7 @@ DROP POLICY IF EXISTS "Allow public read access to system categories" ON categor
 CREATE POLICY "Allow public read access to system categories"
 ON categories
 FOR SELECT
-USING (is_system = true);
+USING (true);
 
 -- Allow public read access to category groups for system categories
 ALTER TABLE category_groups ENABLE ROW LEVEL SECURITY;

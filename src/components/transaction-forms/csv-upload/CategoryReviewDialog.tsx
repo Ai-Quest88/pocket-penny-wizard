@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Brain, CheckCircle, AlertCircle, Clock, HelpCircle } from "lucide-react";
 import { addUserCategoryRule } from "@/utils/transactionCategories";
+import { CategorizationSourceBadge } from '../CategorizationSourceBadge';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,7 +31,8 @@ interface Transaction {
   asset_account_id?: string | null;
   liability_account_id?: string | null;
   aiConfidence?: number;
-  categorization_source?: 'user_rule' | 'system_rule' | 'ai' | 'fallback' | 'manual' | 'uncategorized';
+  categorization_source?: 'user_history' | 'system_keywords' | 'ai' | 'uncategorized' | 'user_rule' | 'system_rule' | 'fallback' | 'manual';
+  categorization_confidence?: number;
 }
 
 interface TransactionReview extends Transaction {
@@ -496,26 +498,10 @@ export const CategoryReviewDialog = ({
                             </div>
                            </TableCell>
                           <TableCell>
-                            {(() => {
-                              const source = transaction.categorization_source || 'ai';
-                              const sourceConfig = {
-                                user_rule: { label: 'User Rule', color: 'bg-green-100 text-green-800', icon: '👤' },
-                                system_rule: { label: 'System Rule', color: 'bg-blue-100 text-blue-800', icon: '🔧' },
-                                ai: { label: 'AI', color: 'bg-purple-100 text-purple-800', icon: '🤖' },
-                                fallback: { label: 'Fallback', color: 'bg-orange-100 text-orange-800', icon: '📝' },
-                                manual: { label: 'Manual', color: 'bg-gray-100 text-gray-800', icon: '✋' },
-                                uncategorized: { label: 'Uncategorized', color: 'bg-red-100 text-red-800', icon: '❓' }
-                              };
-                              
-                              const config = sourceConfig[source] || sourceConfig.ai;
-                              
-                              return (
-                                <Badge variant="outline" className={`${config.color} text-xs`} title={`Categorized by: ${config.label}`}>
-                                  <span className="mr-1">{config.icon}</span>
-                                  {config.label}
-                                </Badge>
-                              );
-                            })()}
+                            <CategorizationSourceBadge
+                              source={transaction.categorization_source || 'ai'}
+                              confidence={transaction.categorization_confidence || transaction.aiConfidence || 0.5}
+                            />
                           </TableCell>
                          <TableCell>
                            <Select

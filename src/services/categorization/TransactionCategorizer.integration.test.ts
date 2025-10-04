@@ -1,187 +1,130 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { TransactionCategorizer } from './TransactionCategorizer'
-import { AICategorizer } from './AICategorizer'
-import { FallbackCategorizer } from './FallbackCategorizer'
-import { SystemRulesCategorizer } from './SystemRulesCategorizer'
-import { UserRulesCategorizer } from './UserRulesCategorizer'
+import { SmartCategorizer } from './SmartCategorizer'
+import { ImprovedHybridCategorizer } from './ImprovedHybridCategorizer'
+import { featureFlags } from './FeatureFlags'
 
-// Mock the AI categorizer
-vi.mock('./AICategorizer')
-vi.mock('./FallbackCategorizer')
-vi.mock('./SystemRulesCategorizer')
-vi.mock('./UserRulesCategorizer')
+// Mock the new categorization system
+vi.mock('./SmartCategorizer')
+vi.mock('./ImprovedHybridCategorizer')
+vi.mock('./FeatureFlags', () => ({
+  featureFlags: {
+    shouldUseSmartCategorization: vi.fn()
+  }
+}))
 
 describe('TransactionCategorizer Integration', () => {
   let categorizer: TransactionCategorizer
-  let mockAICategorizer: any
-  let mockFallbackCategorizer: any
-  let mockSystemRulesCategorizer: any
-  let mockUserRulesCategorizer: any
+  let mockSmartCategorizer: any
+  let mockImprovedCategorizer: any
 
   beforeEach(() => {
     vi.clearAllMocks()
     
     // Setup mocks
-    mockAICategorizer = {
-      categorize: vi.fn(),
-      categorizeBatch: vi.fn()
+    mockSmartCategorizer = {
+      categorizeTransactions: vi.fn()
     }
     
-    mockFallbackCategorizer = {
-      categorize: vi.fn()
-    }
-    
-    mockSystemRulesCategorizer = {
-      categorize: vi.fn()
-    }
-    
-    mockUserRulesCategorizer = {
-      categorize: vi.fn()
+    mockImprovedCategorizer = {
+      categorizeTransactions: vi.fn()
     }
 
     // Mock the constructors
-    vi.mocked(AICategorizer).mockImplementation(() => mockAICategorizer)
-    vi.mocked(FallbackCategorizer).mockImplementation(() => mockFallbackCategorizer)
-    vi.mocked(SystemRulesCategorizer).mockImplementation(() => mockSystemRulesCategorizer)
-    vi.mocked(UserRulesCategorizer).mockImplementation(() => mockUserRulesCategorizer)
+    vi.mocked(SmartCategorizer).mockImplementation(() => mockSmartCategorizer)
+    vi.mocked(ImprovedHybridCategorizer).mockImplementation(() => mockImprovedCategorizer)
+
+    // Mock feature flags to use smart categorization by default
+    vi.mocked(featureFlags.shouldUseSmartCategorization).mockReturnValue(true)
 
     categorizer = new TransactionCategorizer('test-user-id')
   })
 
   describe('categorizeTransaction', () => {
-    it('should prioritize user rules over system rules', async () => {
+    it('should use smart categorization when feature flag is enabled', async () => {
       const transaction = {
         description: 'COLES SUPERMARKET',
-        amount: -50.00,
+        amount: -45.50,
         currency: 'AUD'
       }
 
-      mockUserRulesCategorizer.categorize.mockReturnValue('Groceries')
-
-      const result = await categorizer.categorizeTransactions([transaction])
-
-      expect(mockUserRulesCategorizer.categorize).toHaveBeenCalledWith(transaction)
-      expect(mockSystemRulesCategorizer.categorize).not.toHaveBeenCalled()
-      expect(mockAICategorizer.categorize).not.toHaveBeenCalled()
-      expect(mockFallbackCategorizer.categorize).not.toHaveBeenCalled()
-      
-      expect(result).toHaveLength(1)
-      expect(result[0]).toEqual({
-        category: 'Groceries',
-        confidence: 0.95,
+      // Mock smart categorizer to return a category
+      mockSmartCategorizer.categorizeTransactions.mockResolvedValue([{
+        category: 'Food & Dining',
+        confidence: 0.90,
         is_new_category: false,
-        source: 'user_rule',
-        group_name: expect.any(String)
-      })
-    })
-
-    it('should fall back to system rules when user rules fail', async () => {
-      const transaction = {
-        description: 'WOOLWORTHS',
-        amount: -75.00,
-        currency: 'AUD'
-      }
-
-      mockUserRulesCategorizer.categorize.mockResolvedValue(null)
-      mockSystemRulesCategorizer.categorize.mockReturnValue('Groceries')
-
-      const result = await categorizer.categorizeTransactions([transaction])
-
-      expect(mockUserRulesCategorizer.categorize).toHaveBeenCalledWith(transaction)
-      expect(mockSystemRulesCategorizer.categorize).toHaveBeenCalledWith(transaction)
-      expect(mockAICategorizer.categorize).not.toHaveBeenCalled()
-      expect(mockFallbackCategorizer.categorize).not.toHaveBeenCalled()
-      
-      expect(result).toHaveLength(1)
-      expect(result[0]).toEqual({
-        category: 'Groceries',
-        confidence: 0.9,
-        is_new_category: false,
-        source: 'system_rule',
-        group_name: expect.any(String)
-      })
-    })
-
-    it('should fall back to AI when system rules fail', async () => {
-      const transaction = {
-        description: 'UNKNOWN MERCHANT',
-        amount: -25.00,
-        currency: 'AUD'
-      }
-
-      mockUserRulesCategorizer.categorize.mockResolvedValue(null)
-      mockSystemRulesCategorizer.categorize.mockResolvedValue(null)
-      mockAICategorizer.categorize.mockResolvedValue([{
-        category_name: 'Entertainment',
-        confidence: 0.8
+        source: 'system_keywords',
+        group_name: 'Expenses'
       }])
 
       const result = await categorizer.categorizeTransactions([transaction])
 
-      expect(mockUserRulesCategorizer.categorize).toHaveBeenCalledWith(transaction)
-      expect(mockSystemRulesCategorizer.categorize).toHaveBeenCalledWith(transaction)
-      expect(mockAICategorizer.categorize).toHaveBeenCalledWith(transaction)
-      expect(mockFallbackCategorizer.categorize).not.toHaveBeenCalled()
-      
-      expect(result).toHaveLength(1)
+      expect(mockSmartCategorizer.categorizeTransactions).toHaveBeenCalledWith([transaction])
       expect(result[0]).toEqual({
-        category: 'Entertainment',
-        confidence: 0.8,
-        is_new_category: true,
-        source: 'ai'
+        category: 'Food & Dining',
+        confidence: 0.90,
+        is_new_category: false,
+        source: 'system_keywords',
+        group_name: 'Expenses'
       })
     })
 
-    it('should fall back to fallback categorizer when all else fails', async () => {
+    it('should use improved hybrid categorization when feature flag is disabled', async () => {
+      // Mock feature flags to use improved categorization
+      vi.mocked(featureFlags.shouldUseSmartCategorization).mockReturnValue(false)
+
       const transaction = {
-        description: 'COMPLETELY UNKNOWN',
-        amount: -10.00,
+        description: 'WOOLWORTHS',
+        amount: -32.00,
         currency: 'AUD'
       }
 
-      mockUserRulesCategorizer.categorize.mockResolvedValue(null)
-      mockSystemRulesCategorizer.categorize.mockResolvedValue(null)
-      mockAICategorizer.categorize.mockResolvedValue(null)
-      mockFallbackCategorizer.categorize.mockReturnValue('Uncategorized')
+      // Mock improved categorizer to return a category with old source type
+      mockImprovedCategorizer.categorizeTransactions.mockResolvedValue([{
+        category: 'Food & Dining',
+        confidence: 0.85,
+        is_new_category: false,
+        source: 'keyword_match', // This will be mapped to 'system_keywords'
+        group_name: 'Expenses'
+      }])
 
       const result = await categorizer.categorizeTransactions([transaction])
 
-      expect(mockUserRulesCategorizer.categorize).toHaveBeenCalledWith(transaction)
-      expect(mockSystemRulesCategorizer.categorize).toHaveBeenCalledWith(transaction)
-      expect(mockAICategorizer.categorize).toHaveBeenCalledWith(transaction)
-      expect(mockFallbackCategorizer.categorize).toHaveBeenCalledWith(transaction)
-      
-      expect(result).toHaveLength(1)
+      expect(mockImprovedCategorizer.categorizeTransactions).toHaveBeenCalledWith([transaction])
       expect(result[0]).toEqual({
-        category: 'Uncategorized',
-        confidence: 0.6,
+        category: 'Food & Dining',
+        confidence: 0.85,
         is_new_category: false,
-        source: 'uncategorized',
-        group_name: expect.any(String)
+        source: 'system_keywords',
+        group_name: 'Expenses'
       })
     })
 
     it('should handle errors gracefully', async () => {
       const transaction = {
         description: 'ERROR TRANSACTION',
-        amount: -100.00,
+        amount: -10.00,
         currency: 'AUD'
       }
 
-      mockUserRulesCategorizer.categorize.mockRejectedValue(new Error('User rules error'))
-      mockSystemRulesCategorizer.categorize.mockResolvedValue(null)
-      mockAICategorizer.categorize.mockResolvedValue(null)
-      mockFallbackCategorizer.categorize.mockReturnValue('Uncategorized')
+      // Mock smart categorizer to return uncategorized (handles errors internally)
+      mockSmartCategorizer.categorizeTransactions.mockResolvedValue([{
+        category: 'Uncategorized',
+        confidence: 0.5,
+        is_new_category: false,
+        source: 'uncategorized',
+        group_name: 'Other'
+      }])
 
       const result = await categorizer.categorizeTransactions([transaction])
 
       expect(result).toHaveLength(1)
       expect(result[0]).toEqual({
         category: 'Uncategorized',
-        confidence: 0.6,
+        confidence: 0.5,
         is_new_category: false,
         source: 'uncategorized',
-        group_name: expect.any(String)
+        group_name: 'Other'
       })
     })
   })
@@ -189,70 +132,139 @@ describe('TransactionCategorizer Integration', () => {
   describe('categorizeBatch', () => {
     it('should categorize multiple transactions efficiently', async () => {
       const transactions = [
-        { description: 'COLES', amount: -50.00, currency: 'AUD' },
-        { description: 'WOOLWORTHS', amount: -75.00, currency: 'AUD' },
-        { description: 'UNKNOWN', amount: -25.00, currency: 'AUD' }
+        { description: 'COLES', amount: -45.50, currency: 'AUD' },
+        { description: 'WOOLWORTHS', amount: -32.00, currency: 'AUD' },
+        { description: 'NETFLIX', amount: -15.99, currency: 'AUD' }
       ]
 
-      mockUserRulesCategorizer.categorize
-        .mockReturnValueOnce('Groceries')
-        .mockReturnValueOnce('Groceries')
-        .mockReturnValueOnce(null)
-
-      mockSystemRulesCategorizer.categorize
-        .mockReturnValueOnce(null)
-        .mockReturnValueOnce(null)
-        .mockReturnValueOnce('Entertainment')
+      mockSmartCategorizer.categorizeTransactions.mockResolvedValue([
+        {
+          category: 'Food & Dining',
+          confidence: 0.90,
+          is_new_category: false,
+          source: 'system_keywords',
+          group_name: 'Expenses'
+        },
+        {
+          category: 'Food & Dining',
+          confidence: 0.90,
+          is_new_category: false,
+          source: 'system_keywords',
+          group_name: 'Expenses'
+        },
+        {
+          category: 'Entertainment',
+          confidence: 0.90,
+          is_new_category: false,
+          source: 'system_keywords',
+          group_name: 'Expenses'
+        }
+      ])
 
       const results = await categorizer.categorizeTransactions(transactions)
 
       expect(results).toHaveLength(3)
-      expect(results[0]).toEqual({ category: 'Groceries', confidence: 0.95, is_new_category: false, source: 'user_rule', group_name: expect.any(String) })
-      expect(results[1]).toEqual({ category: 'Groceries', confidence: 0.95, is_new_category: false, source: 'user_rule', group_name: expect.any(String) })
-      expect(results[2]).toEqual({ category: 'Entertainment', confidence: 0.9, is_new_category: false, source: 'system_rule', group_name: expect.any(String) })
+      expect(results[0]).toEqual({ 
+        category: 'Food & Dining', 
+        confidence: 0.90, 
+        is_new_category: false,
+        source: 'system_keywords',
+        group_name: 'Expenses'
+      })
+      expect(results[1]).toEqual({ 
+        category: 'Food & Dining', 
+        confidence: 0.90, 
+        is_new_category: false,
+        source: 'system_keywords',
+        group_name: 'Expenses'
+      })
+      expect(results[2]).toEqual({ 
+        category: 'Entertainment', 
+        confidence: 0.90, 
+        is_new_category: false,
+        source: 'system_keywords',
+        group_name: 'Expenses'
+      })
     })
 
     it('should handle batch processing with AI fallback', async () => {
       const transactions = [
-        { description: 'UNKNOWN1', amount: -25.00, currency: 'AUD' },
-        { description: 'UNKNOWN2', amount: -30.00, currency: 'AUD' }
+        { description: 'UNKNOWN MERCHANT 1', amount: -25.00, currency: 'AUD' },
+        { description: 'UNKNOWN MERCHANT 2', amount: -35.00, currency: 'AUD' }
       ]
 
-      mockUserRulesCategorizer.categorize.mockResolvedValue(null)
-      mockSystemRulesCategorizer.categorize.mockResolvedValue(null)
-      mockAICategorizer.categorize.mockResolvedValue([
-        { category_name: 'Entertainment', confidence: 0.8 },
-        { category_name: 'Transportation', confidence: 0.7 }
+      mockSmartCategorizer.categorizeTransactions.mockResolvedValue([
+        {
+          category: 'Entertainment',
+          confidence: 0.8,
+          is_new_category: true,
+          source: 'ai',
+          group_name: 'Expenses'
+        },
+        {
+          category: 'Transportation',
+          confidence: 0.7,
+          is_new_category: true,
+          source: 'ai',
+          group_name: 'Expenses'
+        }
       ])
 
       const results = await categorizer.categorizeTransactions(transactions)
 
       expect(results).toHaveLength(2)
-      expect(results[0]).toEqual({ category: 'Entertainment', confidence: 0.8, is_new_category: true, source: 'ai' })
-      expect(results[1]).toEqual({ category: 'Transportation', confidence: 0.7, is_new_category: true, source: 'ai' })
+      expect(results[0]).toEqual({ 
+        category: 'Entertainment', 
+        confidence: 0.8, 
+        is_new_category: true,
+        source: 'ai',
+        group_name: 'Expenses'
+      })
+      expect(results[1]).toEqual({ 
+        category: 'Transportation', 
+        confidence: 0.7, 
+        is_new_category: true,
+        source: 'ai',
+        group_name: 'Expenses'
+      })
     })
   })
 
   describe('performance', () => {
     it('should handle large batches efficiently', async () => {
+      const startTime = Date.now()
+      
+      // Create 100 test transactions
       const transactions = Array.from({ length: 100 }, (_, i) => ({
         description: `TRANSACTION_${i}`,
         amount: -Math.random() * 100,
         currency: 'AUD'
       }))
 
-      mockUserRulesCategorizer.categorize.mockResolvedValue(null)
-      mockSystemRulesCategorizer.categorize.mockResolvedValue(null)
-      mockAICategorizer.categorizeBatch.mockResolvedValue(
-        transactions.map(() => ({ category: 'Uncategorized', confidence: 0.1, source: 'ai' }))
+      // Mock smart categorizer to return uncategorized for all
+      mockSmartCategorizer.categorizeTransactions.mockResolvedValue(
+        transactions.map(() => ({
+          category: 'Uncategorized',
+          confidence: 0.5,
+          is_new_category: false,
+          source: 'uncategorized',
+          group_name: 'Other'
+        }))
       )
 
-      const startTime = Date.now()
       const results = await categorizer.categorizeTransactions(transactions)
       const endTime = Date.now()
+      const processingTime = endTime - startTime
 
       expect(results).toHaveLength(100)
-      expect(endTime - startTime).toBeLessThan(5000) // Should complete within 5 seconds
+      expect(processingTime).toBeLessThan(5000) // Should complete within 5 seconds
+      
+      // All results should be uncategorized
+      results.forEach(result => {
+        expect(result.category).toBe('Uncategorized')
+        expect(result.confidence).toBe(0.5)
+        expect(result.source).toBe('uncategorized')
+      })
     })
   })
 })

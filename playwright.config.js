@@ -28,10 +28,10 @@ export default defineConfig({
       },
     },
   ],
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:8080',
-    reuseExistingServer: true, // Don't restart if already running
-    timeout: 120000,
-  },
+  // webServer: {
+  //   command: 'npm run dev',
+  //   url: 'http://localhost:8080',
+  //   reuseExistingServer: true, // Don't restart if already running
+  //   timeout: 120000,
+  // },
 });

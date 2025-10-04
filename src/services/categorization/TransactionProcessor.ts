@@ -108,7 +108,9 @@ export class TransactionProcessor {
             currency: transaction.currency || 'AUD',
             notes: transaction.comment,
             user_id: this.userId,
-            categorization_source: category.source
+            categorization_source: category.source,
+            categorization_confidence: category.confidence,
+            categorization_reasoning: this.generateReasoning(category)
           });
 
         if (error) {
@@ -125,5 +127,26 @@ export class TransactionProcessor {
 
     console.log(`✅ Transaction insertion completed: ${success} successful, ${failed} failed`);
     return { success, failed };
+  }
+
+  private generateReasoning(category: CategoryDiscoveryResult): string {
+    switch (category.source) {
+      case 'user_history':
+        return `Categorized based on similar transaction in user history (${Math.round(category.confidence * 100)}% confidence)`;
+      case 'system_keywords':
+        return `Categorized using system keyword rules (${Math.round(category.confidence * 100)}% confidence)`;
+      case 'ai':
+        return `Categorized by AI analysis (${Math.round(category.confidence * 100)}% confidence)`;
+      case 'uncategorized':
+        return 'No categorization found - requires manual review';
+      case 'user_rule':
+        return `Categorized by user-defined rule (${Math.round(category.confidence * 100)}% confidence)`;
+      case 'system_rule':
+        return `Categorized by system rule (${Math.round(category.confidence * 100)}% confidence)`;
+      case 'fallback':
+        return `Categorized using fallback method (${Math.round(category.confidence * 100)}% confidence)`;
+      default:
+        return `Categorized by ${category.source} (${Math.round(category.confidence * 100)}% confidence)`;
+    }
   }
 }
