@@ -64,7 +64,8 @@ export class AICategorizer {
       // Count category usage
       const categoryCounts: Record<string, number> = {};
       data.forEach(tx => {
-        const categoryName = tx.categories?.name;
+        const categories = tx.categories as any;
+        const categoryName = categories?.name;
         if (categoryName) {
           categoryCounts[categoryName] = (categoryCounts[categoryName] || 0) + 1;
         }

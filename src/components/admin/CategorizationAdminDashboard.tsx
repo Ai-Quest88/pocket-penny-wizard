@@ -138,7 +138,7 @@ export const CategorizationAdminDashboard: React.FC = () => {
                     {systemMetrics.userHistoryHitRate.toFixed(1)}%
                   </div>
                   <div className="text-sm text-gray-600">User History Hit Rate</div>
-                  <div className="text-xs text-gray-500">Target: >60%</div>
+                  <div className="text-xs text-gray-500">Target: &gt;60%</div>
                 </CardContent>
               </Card>
 
@@ -148,7 +148,7 @@ export const CategorizationAdminDashboard: React.FC = () => {
                     {systemMetrics.systemKeywordHitRate.toFixed(1)}%
                   </div>
                   <div className="text-sm text-gray-600">System Keywords Hit Rate</div>
-                  <div className="text-xs text-gray-500">Target: >25%</div>
+                  <div className="text-xs text-gray-500">Target: &gt;25%</div>
                 </CardContent>
               </Card>
 

@@ -499,7 +499,7 @@ export const CategoryReviewDialog = ({
                            </TableCell>
                           <TableCell>
                             <CategorizationSourceBadge
-                              source={transaction.categorization_source || 'ai'}
+                              source={(transaction.categorization_source as any) || 'ai'}
                               confidence={transaction.categorization_confidence || transaction.aiConfidence || 0.5}
                             />
                           </TableCell>

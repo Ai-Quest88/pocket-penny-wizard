@@ -49,12 +49,14 @@ export class UserHistoryMatcher {
         );
         
         if (similarity > 0.7) {
+          const categories = historicalTx.categories as any;
+          const categoryName = categories?.name || 'Unknown';
           const result: CategoryDiscoveryResult = {
-            category: historicalTx.categories?.name || 'Unknown',
+            category: categoryName,
             confidence: Math.min(similarity + 0.1, 0.95), // Boost confidence slightly
             is_new_category: false,
             source: 'user_history',
-            group_name: this.getGroupName(historicalTx.categories?.name || 'Unknown')
+            group_name: this.getGroupName(categoryName)
           };
 
           console.log(`✅ UserHistoryMatcher: Found match "${historicalTx.description}" -> "${result.category}" (${(similarity * 100).toFixed(1)}% similarity)`);
