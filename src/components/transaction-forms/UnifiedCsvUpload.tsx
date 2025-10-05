@@ -5,7 +5,6 @@ import { ColumnMappingSection } from "./csv-upload/ColumnMappingSection";
 import { PreviewTable } from "./csv-upload/PreviewTable";
 
 import { AccountSelectionSection } from "./csv-upload/AccountSelectionSection";
-import { CurrencySelectionSection } from "./csv-upload/CurrencySelectionSection";
 import { DuplicateReviewDialog } from "./csv-upload/DuplicateReviewDialog";
 import { CategoryReviewDialog } from "./csv-upload/CategoryReviewDialog";
 import { ProgressiveUpload } from "./ProgressiveUpload";
@@ -116,7 +115,6 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
   const [mappings, setMappings] = useState<Record<string, string>>(initialMappings);
   
   const [isProcessing, setIsProcessing] = useState(false);
-  const [selectedCurrency, setSelectedCurrency] = useState<string>('AUD');
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [showDuplicateReview, setShowDuplicateReview] = useState(false);
   const [showCategoryReview, setShowCategoryReview] = useState(false);
@@ -258,6 +256,9 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
     });
 
     try {
+      // Get selected account for currency
+      const selectedAccount = selectedAccountId ? accounts.find(acc => acc.id === selectedAccountId) : null;
+      
       // Process transactions with proper schema mapping
       const processedTransactions = [];
       
@@ -293,7 +294,7 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
           description: transaction.description,
           amount: Number(transaction.amount),
           date: transaction.date,
-          currency: transaction.currency || selectedCurrency,
+          currency: transaction.currency || selectedAccount?.currency || 'AUD',
           asset_account_id: transaction.asset_account_id || null,
           liability_account_id: transaction.liability_account_id || null,
           category_id: categoryId,
@@ -487,10 +488,8 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
         const amountStr = String(getValue(row, mappings.amount, '0'));
         const amount = parseFloat(amountStr.replace(/[^-\d.]/g, ''));
         const dateStr = getValue(row, mappings.date, '');
-        const currency = selectedCurrency;
-
-        // Get the selected account details
         const selectedAccount = selectedAccountId ? accounts.find(acc => acc.id === selectedAccountId) : null;
+        const currency = selectedAccount?.currency || 'AUD';
 
         return {
           user_id: session.user.id,
@@ -605,11 +604,6 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
             onAccountChange={setSelectedAccountId}
           />
           
-          <CurrencySelectionSection
-            selectedCurrency={selectedCurrency}
-            onCurrencyChange={setSelectedCurrency}
-          />
-          
           <ColumnMappingSection
             headers={headers}
             mappings={mappings}
@@ -631,9 +625,16 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
               description: mappings.description,
               amount: mappings.amount,
               date: mappings.date,
-              currency: selectedCurrency,
+              currency: selectedAccountId 
+                ? accounts.find(acc => acc.id === selectedAccountId)?.currency || 'AUD'
+                : 'AUD',
             }}
-            defaultSettings={{ ...initialSettings, currency: selectedCurrency }}
+            defaultSettings={{ 
+              ...initialSettings, 
+              currency: selectedAccountId 
+                ? accounts.find(acc => acc.id === selectedAccountId)?.currency || 'AUD'
+                : 'AUD'
+            }}
             selectedAccount={selectedAccountId ? accounts.find(acc => acc.id === selectedAccountId) : null}
           />
           
