@@ -97,9 +97,9 @@ export const PreviewTable = ({ data, mappings, defaultSettings, selectedAccount 
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="min-w-[100px]">Date</TableHead>
                 <TableHead className="min-w-[120px]">Description</TableHead>
                 <TableHead className="min-w-[80px]">Amount</TableHead>
-                <TableHead className="min-w-[100px]">Date</TableHead>
                 <TableHead className="min-w-[80px]">Currency</TableHead>
                 
                 <TableHead className="min-w-[120px]">Account</TableHead>
@@ -112,14 +112,14 @@ export const PreviewTable = ({ data, mappings, defaultSettings, selectedAccount 
                 
                 return (
                   <TableRow key={index}>
+                    <TableCell className="font-mono max-w-[120px] truncate">
+                      {getValue(row, mappings.date, '')}
+                    </TableCell>
                     <TableCell className="max-w-[200px] truncate" title={description}>
                       {description}
                     </TableCell>
                     <TableCell className="max-w-[100px] truncate text-right">
                       {getValue(row, mappings.amount, '0')}
-                    </TableCell>
-                    <TableCell className="font-mono max-w-[120px] truncate">
-                      {getValue(row, mappings.date, '')}
                     </TableCell>
                     <TableCell className="max-w-[80px] truncate">
                       {getValue(row, mappings.currency, defaultSettings.currency)}
