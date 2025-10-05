@@ -611,15 +611,6 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
             onMappingChange={handleMappingChange}
           />
           
-          <div className="px-4 py-3 mb-4 bg-yellow-50 border border-yellow-200 rounded-md">
-            <h4 className="text-sm font-medium text-yellow-800">Column Mapping Status</h4>
-            <div className="mt-1 text-xs text-yellow-700 space-y-1">
-              <p>Description column: {mappings.description || "Not mapped"}</p>
-              <p>Amount column: {mappings.amount || "Not mapped"}</p>
-              <p>Date column: {mappings.date || "Not mapped"}</p>
-            </div>
-          </div>
-          
           <PreviewTable
             data={parsedData}
             mappings={{
