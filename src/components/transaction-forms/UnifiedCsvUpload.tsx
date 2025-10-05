@@ -4,7 +4,6 @@ import { ColumnMappingSection } from "./csv-upload/ColumnMappingSection";
 
 import { PreviewTable } from "./csv-upload/PreviewTable";
 
-import { AutoMappingAlert } from "./csv-upload/AutoMappingAlert";
 import { AccountSelectionSection } from "./csv-upload/AccountSelectionSection";
 import { DuplicateReviewDialog } from "./csv-upload/DuplicateReviewDialog";
 import { CategoryReviewDialog } from "./csv-upload/CategoryReviewDialog";
@@ -116,7 +115,6 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
   const [mappings, setMappings] = useState<Record<string, string>>(initialMappings);
   
   const [isProcessing, setIsProcessing] = useState(false);
-  const [autoMappedColumns, setAutoMappedColumns] = useState<{ [key: string]: string }>({});
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [showDuplicateReview, setShowDuplicateReview] = useState(false);
   const [showCategoryReview, setShowCategoryReview] = useState(false);
@@ -155,13 +153,6 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
     setHeaders(testHeaders);
     
     // Auto-map the columns since we know the structure
-    const autoMappings = {
-      description: 'description',
-      amount: 'amount', 
-      date: 'date'
-    };
-    
-    setAutoMappedColumns(autoMappings);
     setMappings({
       ...mappings,
       description: 'description',
@@ -202,8 +193,6 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
     const autoMappings = autoMapColumns(fileHeaders, stringData);
     console.log('Enhanced auto-mapping result:', autoMappings);
     
-    setAutoMappedColumns(autoMappings);
-    
     // Automatically apply the detected mappings
     const newMappings = {
       ...mappings,
@@ -220,14 +209,6 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
   };
 
 
-  const handleAcceptAutoMapping = () => {
-    setMappings(prev => ({
-      ...prev,
-      description: autoMappedColumns.description || prev.description,
-      amount: autoMappedColumns.amount || prev.amount,
-      date: autoMappedColumns.date || prev.date,
-    }));
-  };
 
   const isValidConfiguration = (): boolean => {
     console.log('🔍 Validation check:', {
@@ -620,11 +601,6 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
           <AccountSelectionSection
             selectedAccountId={selectedAccountId}
             onAccountChange={setSelectedAccountId}
-          />
-          
-          <AutoMappingAlert 
-            autoMappedColumns={autoMappedColumns}
-            onAcceptMapping={handleAcceptAutoMapping}
           />
           
           <ColumnMappingSection
