@@ -571,6 +571,11 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
     <div className="space-y-6">
       <h3 className="text-lg font-medium">Upload Transaction Data</h3>
       
+      <AccountSelectionSection
+        selectedAccountId={selectedAccountId}
+        onAccountChange={setSelectedAccountId}
+      />
+      
       <FileUploadSection 
         onFileUpload={handleFileUpload}
         isProcessing={isProcessing}
@@ -599,10 +604,6 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
       
       {parsedData.length > 0 && (
         <>
-          <AccountSelectionSection
-            selectedAccountId={selectedAccountId}
-            onAccountChange={setSelectedAccountId}
-          />
           
           <ColumnMappingSection
             headers={headers}
