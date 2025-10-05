@@ -37,7 +37,7 @@ import Login from "./pages/Login"
 import AuthCallback from "./pages/AuthCallback"
 import Entities from "./pages/Entities"
 import Households from "./pages/Households"
-import Admin from "./pages/Admin"
+
 
 
 
@@ -204,7 +204,7 @@ const AppRoutes = () => {
                   <Route path="reports/trends" element={<Reports />} />
                   <Route path="reports/timeline" element={<Reports />} />
                   <Route path="reports/digest" element={<Reports />} />
-                  <Route path="admin" element={<Admin />} />
+                  
                   <Route path="notifications" element={<Notifications />} />
                   <Route path="settings" element={<Settings />} />
                   <Route index element={<Dashboard />} />
