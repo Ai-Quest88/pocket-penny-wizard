@@ -617,6 +617,11 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
       
       {parsedData.length > 0 && (
         <>
+          <AccountSelectionSection
+            selectedAccountId={selectedAccountId}
+            onAccountChange={setSelectedAccountId}
+          />
+          
           <AutoMappingAlert 
             autoMappedColumns={autoMappedColumns}
             onAcceptMapping={handleAcceptAutoMapping}
@@ -626,11 +631,6 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
             headers={headers}
             mappings={mappings}
             onMappingChange={handleMappingChange}
-          />
-          
-          <AccountSelectionSection
-            selectedAccountId={selectedAccountId}
-            onAccountChange={setSelectedAccountId}
           />
           
           <div className="px-4 py-3 mb-4 bg-yellow-50 border border-yellow-200 rounded-md">
