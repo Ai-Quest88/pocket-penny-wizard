@@ -138,13 +138,15 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
       }
 
       // Prepare transaction data with appropriate account field
+      const parsedAmount = parseFloat(amount);
       const transactionData = {
         user_id: session.user.id,
         description,
-        amount: parseFloat(amount),
+        amount: parsedAmount,
         category: category,
         date: format(date, 'yyyy-MM-dd'),
         currency,
+        type: parsedAmount >= 0 ? 'income' : 'expense',
         comment: comment || null,
         asset_account_id: selectedAccount.accountType === 'asset' ? account : null,
         liability_account_id: selectedAccount.accountType === 'liability' ? account : null
