@@ -78,7 +78,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
         .from('transactions')
         .select(`
           *,
-          assets!transactions_asset_account_id_fkey(name),
+          assets!fk_transactions_asset_account(name),
           liabilities!transactions_liability_account_id_fkey(name),
           categories(name)
         `)
