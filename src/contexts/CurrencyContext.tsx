@@ -47,7 +47,9 @@ export function CurrencyProvider({ children }: CurrencyProviderProps) {
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-        console.error('Error fetching user profile:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error fetching user profile:', error);
+        }
         return null;
       }
 
@@ -69,7 +71,9 @@ export function CurrencyProvider({ children }: CurrencyProviderProps) {
       setDisplayCurrencyState('AUD');
       if (session?.user?.id) {
         updateUserCurrencyPreference('AUD').catch(error => {
-          console.error('Failed to update currency to AUD:', error);
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Failed to update currency to AUD:', error);
+          }
         });
       }
     }
@@ -91,7 +95,9 @@ export function CurrencyProvider({ children }: CurrencyProviderProps) {
     // Update user preference in database if logged in
     if (session?.user?.id) {
       updateUserCurrencyPreference(currency).catch(error => {
-        console.error('Failed to update user currency preference:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Failed to update user currency preference:', error);
+        }
       });
     }
   };
@@ -113,7 +119,9 @@ export function CurrencyProvider({ children }: CurrencyProviderProps) {
       // Invalidate user profile query to refresh
       queryClient.invalidateQueries({ queryKey: ['user-profile', session.user.id] });
     } catch (error) {
-      console.error('Error updating currency preference:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error updating currency preference:', error);
+      }
       throw error;
     }
   };

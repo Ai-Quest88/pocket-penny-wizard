@@ -1,12 +1,25 @@
 // Data Protection Utilities for Sensitive Information
 import { supabase } from "@/integrations/supabase/client";
 
-// Simple XOR encryption for client-side data protection
-// Note: This is basic protection, real encryption should be server-side
+// ⚠️ DEPRECATED: This XOR encryption is NOT cryptographically secure
+// It provides only basic obfuscation and should NOT be relied upon for security
+// 
+// SECURITY WARNING: Client-side encryption can be easily reversed.
+// For production use, sensitive data should be encrypted server-side using:
+// - PostgreSQL pgcrypto extension
+// - Supabase Vault for column encryption
+// - Proper key management systems
+//
+// This implementation remains only for backward compatibility.
+// TODO: Migrate to server-side encryption
 const ENCRYPTION_KEY = "ENTITY_DATA_PROTECTION_2024";
 
 export const encryptSensitiveData = (data: string): string => {
   if (!data) return data;
+  
+  if (process.env.NODE_ENV === 'development') {
+    console.warn("⚠️ Using deprecated client-side encryption. Migrate to server-side encryption for production.");
+  }
   
   let encrypted = "";
   for (let i = 0; i < data.length; i++) {
@@ -27,7 +40,10 @@ export const decryptSensitiveData = (encryptedData: string): string => {
       decrypted += String.fromCharCode(charCode);
     }
     return decrypted;
-  } catch {
+  } catch (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.error("Failed to decrypt data:", error);
+    }
     return encryptedData; // Return as-is if decryption fails
   }
 };
@@ -121,7 +137,9 @@ export const logSensitiveDataAccess = async (action: string, entityId: string, d
     // In production, this could be sent to an audit service
     // await auditService.log({ userId: user.id, action, entityId, dataType, timestamp: new Date() });
   } catch (error) {
-    console.error('Failed to log sensitive data access:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Failed to log sensitive data access:', error);
+    }
   }
 };
 
