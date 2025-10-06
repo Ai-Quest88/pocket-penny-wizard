@@ -141,7 +141,5 @@ export const AccountSelectionSection = ({
             </SelectItem>}
         </SelectContent>
       </Select>
-      
-      {selectedAccountId}
     </div>;
 };
