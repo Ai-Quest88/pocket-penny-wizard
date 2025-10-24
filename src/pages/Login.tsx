@@ -107,8 +107,10 @@ const Login = () => {
         {/* Left column - AI Image */}
         <div className="w-full lg:w-1/2 flex justify-center lg:justify-end">
           <img 
-            src="/lovable-uploads/422cbd9a-d7b1-4e06-83ab-3b705ffa7b76.png"
-            alt="AI Financial Analysis"
+            src="/lovable-uploads/422cbd9a-d7b1-4e06-83ab-3b705ffa7b76.png" 
+            alt="AI Financial Analysis" 
+            width="1920"
+            height="1920"
             className="max-w-full lg:max-w-[600px] h-auto rounded-lg shadow-2xl animate-fadeIn"
           />
         </div>
