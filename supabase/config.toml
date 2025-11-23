@@ -1,5 +1,8 @@
 project_id = "nqqbvlvuzyctmysablzw"
 
+[functions.analyze-transactions]
+verify_jwt = true
+
 [functions.categorize-transaction]
 verify_jwt = true
 

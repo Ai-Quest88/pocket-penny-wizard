@@ -1,66 +1,115 @@
 import { Card } from "@/components/ui/card"
-import { Lightbulb } from "lucide-react"
+import { Lightbulb, AlertCircle, TrendingUp, TrendingDown, Info } from "lucide-react"
+import { useQuery } from "@tanstack/react-query"
+import { supabase } from "@/integrations/supabase/client"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
-interface Insight {
-  id: string
+interface AIInsight {
+  type: 'warning' | 'savings' | 'trend' | 'recommendation'
   title: string
   description: string
-  type: "positive" | "negative" | "neutral"
+  confidence: number
+  impact: 'high' | 'medium' | 'low'
+  actionable: boolean
 }
 
-// Dummy insights data
-const dummyInsights: Insight[] = [
-  {
-    id: "budget-housing",
-    title: "Housing Budget",
-    description: "You're currently under budget for housing expenses this month.",
-    type: "positive"
-  },
-  {
-    id: "spending-food",
-    title: "Food Expenses",
-    description: "Food expenses have increased by 15% compared to last month.",
-    type: "negative"
-  },
-  {
-    id: "transport-savings",
-    title: "Transport Savings",
-    description: "You've reduced transport costs by using public transit more.",
-    type: "positive"
-  },
-  {
-    id: "entertainment-budget",
-    title: "Entertainment Spending",
-    description: "Entertainment spending is within the planned budget.",
-    type: "neutral"
-  }
-]
+const getInsightColor = (type: string, impact: string) => {
+  if (type === 'warning') return 'border-l-red-500 bg-red-50/50 dark:bg-red-950/20'
+  if (type === 'savings') return 'border-l-green-500 bg-green-50/50 dark:bg-green-950/20'
+  if (type === 'trend') return 'border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20'
+  return 'border-l-purple-500 bg-purple-50/50 dark:bg-purple-950/20'
+}
+
+const getInsightIcon = (type: string) => {
+  if (type === 'warning') return <AlertCircle className="h-4 w-4 text-red-500" />
+  if (type === 'savings') return <TrendingDown className="h-4 w-4 text-green-500" />
+  if (type === 'trend') return <TrendingUp className="h-4 w-4 text-blue-500" />
+  return <Info className="h-4 w-4 text-purple-500" />
+}
 
 export const SmartInsights = () => {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['smart-insights'],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke('analyze-transactions', {
+        body: { dateRange: 90 }
+      })
+
+      if (error) throw error
+      return data as { insights: AIInsight[], summary: any, analyzedTransactions: number }
+    },
+    refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes
+  })
+
   return (
     <Card className="p-6 space-y-6">
       <div className="flex items-center gap-2">
         <Lightbulb className="h-5 w-5 text-yellow-500" />
         <h2 className="text-2xl font-semibold">Smart Insights</h2>
+        {data && (
+          <span className="text-xs text-muted-foreground ml-auto">
+            Based on {data.analyzedTransactions} transactions
+          </span>
+        )}
       </div>
       
-      <div className="grid gap-4">
-        {dummyInsights.map((insight) => (
-          <Card
-            key={insight.id}
-            className={`p-4 border-l-4 ${
-              insight.type === "positive"
-                ? "border-l-green-500 bg-green-50/50"
-                : insight.type === "negative"
-                ? "border-l-red-500 bg-red-50/50"
-                : "border-l-blue-500 bg-blue-50/50"
-            }`}
-          >
-            <h3 className="font-semibold mb-1">{insight.title}</h3>
-            <p className="text-sm text-muted-foreground">{insight.description}</p>
-          </Card>
-        ))}
-      </div>
+      {isLoading && (
+        <div className="space-y-4">
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
+        </div>
+      )}
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Failed to load insights. Please try again later.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {data && data.insights.length === 0 && (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            Not enough transaction data to generate insights. Add more transactions to get personalized financial advice.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {data && data.insights.length > 0 && (
+        <div className="grid gap-4">
+          {data.insights.map((insight, index) => (
+            <Card
+              key={index}
+              className={`p-4 border-l-4 ${getInsightColor(insight.type, insight.impact)}`}
+            >
+              <div className="flex items-start gap-2">
+                {getInsightIcon(insight.type)}
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="font-semibold">{insight.title}</h3>
+                    {insight.impact === 'high' && (
+                      <span className="text-xs bg-background px-2 py-0.5 rounded-full border">
+                        High Impact
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground">{insight.description}</p>
+                  {insight.actionable && (
+                    <p className="text-xs text-muted-foreground mt-2 italic">
+                      💡 This is actionable - consider taking steps to address it
+                    </p>
+                  )}
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
     </Card>
   )
 }
