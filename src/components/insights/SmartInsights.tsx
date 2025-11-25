@@ -32,11 +32,31 @@ export const SmartInsights = () => {
   const { data, isLoading, error } = useQuery({
     queryKey: ['smart-insights'],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('analyze-transactions', {
-        body: { dateRange: 90 }
-      })
+      // Ensure we send the authenticated user's JWT to the edge function
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+      if (sessionError || !sessionData.session) {
+        throw new Error('User is not authenticated')
+      }
 
-      if (error) throw error
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-transactions`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${sessionData.session.access_token}`,
+          },
+          body: JSON.stringify({ dateRange: 90 })
+        }
+      )
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('analyze-transactions error:', response.status, errorText)
+        throw new Error(`Failed to load insights: ${response.status}`)
+      }
+
+      const data = await response.json()
       return data as { insights: AIInsight[], summary: any, analyzedTransactions: number }
     },
     refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes
