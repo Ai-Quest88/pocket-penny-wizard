@@ -187,6 +187,19 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link 
+                    to="/analytics"
+                    className="flex items-center gap-2"
+                    data-active={location.pathname === "/analytics"}
+                  >
+                    <Activity className="h-4 w-4" />
+                    <span>Analytics</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link 
                     to="/reports"
                     className="flex items-center gap-2"
                     data-active={location.pathname.startsWith("/reports")}
