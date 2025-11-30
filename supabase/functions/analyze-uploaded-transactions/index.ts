@@ -74,12 +74,45 @@ Total transactions: ${transactions.length}`;
       throw new Error('Content was blocked by Gemini safety filters');
     }
     
-    // Extract the summary text
-    const summary = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    // Extract the summary text if present
+    const summaryFromGemini = data.candidates?.[0]?.content?.parts?.[0]?.text;
     
+    let summary = summaryFromGemini;
+
+    // Fallback: if Gemini returned no visible text (e.g. only internal "thoughts" tokens),
+    // generate a simple statistical summary directly in the function so the user still
+    // gets useful output instead of an error.
     if (!summary) {
-      console.error('No summary text found in response. Full response:', data);
-      throw new Error('Gemini API returned no text content');
+      console.warn('No summary text found in response, generating fallback summary. Full response:', data);
+
+      const totalCount = transactions.length;
+      const amounts = transactions.map((t: any) => Number(t.amount) || 0);
+      const incomeTotal = amounts.filter(a => a > 0).reduce((a, b) => a + b, 0);
+      const expenseTotal = amounts.filter(a => a < 0).reduce((a, b) => a + b, 0);
+
+      const dates = transactions
+        .map((t: any) => t.date)
+        .filter((d: any) => typeof d === 'string' && d.trim().length > 0)
+        .sort();
+
+      const dateRange = dates.length > 0
+        ? `${dates[0]} to ${dates[dates.length - 1]}`
+        : 'Unknown (no valid dates found)';
+
+      const sortedByAmount = [...transactions].sort((a: any, b: any) => Math.abs(b.amount) - Math.abs(a.amount));
+      const topSample = sortedByAmount.slice(0, 3).map((t: any) => `${t.date || 'N/A'} - ${t.description || 'No description'}: $${t.amount}`);
+
+      summary = [
+        'AI summary was unavailable from Gemini, so a basic statistical summary was generated instead.',
+        '',
+        `1. Total transaction count: ${totalCount}`,
+        `2. Date range: ${dateRange}`,
+        `3. Total income (positive amounts): $${incomeTotal.toFixed(2)}`,
+        `4. Total expenses (negative amounts): $${expenseTotal.toFixed(2)}`,
+        topSample.length > 0
+          ? `5. Largest transactions (by absolute amount):\n   - ${topSample.join('\n   - ')}`
+          : '5. Largest transactions: Not enough data to determine.',
+      ].join('\n');
     }
 
     console.log('✅ Analysis complete');
