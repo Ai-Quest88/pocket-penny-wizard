@@ -37,6 +37,7 @@ import Login from "./pages/Login"
 import AuthCallback from "./pages/AuthCallback"
 import Entities from "./pages/Entities"
 import Households from "./pages/Households"
+import CFO from "./pages/CFO"
 
 
 
@@ -192,6 +193,7 @@ const AppRoutes = () => {
 
                   
                   <Route path="analytics" element={<Analytics />} />
+                  <Route path="cfo" element={<CFO />} />
                   <Route path="accounts" element={<Accounts />} />
                   <Route path="entities" element={<Entities />} />
                   <Route path="households" element={<Households />} />

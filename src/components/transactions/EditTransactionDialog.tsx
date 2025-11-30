@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { userLearningService } from "@/services/UserLearningService";
 // Legacy categoryBuckets removed - now using centralized category management
 import { TransactionInfo } from "./TransactionInfo";
 import { CategorySelect } from "./CategorySelect";
@@ -174,6 +175,24 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
     setIsSubmitting(true);
 
     try {
+      // Capture learning if category was changed
+      if (data.category !== transaction.category && session?.user?.id) {
+        try {
+          await userLearningService.recordCorrection(
+            session.user.id,
+            transaction.id,
+            transaction.category,
+            data.category,
+            transaction.description,
+            transaction.amount
+          );
+          console.log('Learning captured for category correction');
+        } catch (learningError) {
+          console.error('Failed to capture learning:', learningError);
+          // Don't fail the update if learning capture fails
+        }
+      }
+
       // Check if category was changed and user wants to create rule
       if (data.category !== transaction.category && transaction.description && data.createRule) {
         console.log(`Category changed from "${transaction.category}" to "${data.category}" for "${transaction.description}"`);
