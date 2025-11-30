@@ -67,7 +67,20 @@ Total transactions: ${transactions.length}`;
     }
 
     const data = await response.json();
-    const summary = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Unable to generate summary.';
+    console.log('Gemini API full response:', JSON.stringify(data, null, 2));
+    
+    // Check if content was blocked by safety filters
+    if (data.candidates?.[0]?.finishReason === 'SAFETY') {
+      throw new Error('Content was blocked by Gemini safety filters');
+    }
+    
+    // Extract the summary text
+    const summary = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!summary) {
+      console.error('No summary text found in response. Full response:', data);
+      throw new Error('Gemini API returned no text content');
+    }
 
     console.log('✅ Analysis complete');
 
