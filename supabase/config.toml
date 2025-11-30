@@ -9,6 +9,15 @@ verify_jwt = true
 [functions.chat-assistant]
 verify_jwt = true
 
+[functions.compile-user-knowledge]
+verify_jwt = true
+
+[functions.cfo-chat]
+verify_jwt = true
+
+[functions.generate-cfo-alerts]
+verify_jwt = true
+
 [functions.discover-categories]
 verify_jwt = true
 
