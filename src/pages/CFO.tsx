@@ -3,6 +3,7 @@ import { CFODashboard } from "@/components/cfo/CFODashboard";
 import { CFOAlerts } from "@/components/cfo/CFOAlerts";
 import { GoalTracker } from "@/components/cfo/GoalTracker";
 import { PersonalCFOChat } from "@/components/cfo/PersonalCFOChat";
+import { TransactionFileAnalyzer } from "@/components/cfo/TransactionFileAnalyzer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Brain, Target, Bell, MessageSquare, Upload } from "lucide-react";
 import { UnifiedCsvUpload } from "@/components/transaction-forms/UnifiedCsvUpload";
@@ -93,23 +94,31 @@ const CFO = () => {
         </TabsContent>
 
         <TabsContent value="upload">
-          <Card className="p-6">
-            <div className="space-y-4">
-              <div>
-                <h2 className="text-2xl font-bold mb-2">Upload Transactions</h2>
-                <p className="text-muted-foreground">
-                  Upload your transactions from CSV, Excel, or PDF files. The AI will automatically categorize them and update your financial knowledge.
-                </p>
-              </div>
-              <UnifiedCsvUpload onComplete={handleUploadComplete} />
-              {isCompiling && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
-                  Updating AI knowledge...
+          <div className="space-y-6">
+            <Card className="p-6">
+              <TransactionFileAnalyzer />
+            </Card>
+            
+            <div id="upload-section">
+              <Card className="p-6">
+                <div className="space-y-4">
+                  <div>
+                    <h2 className="text-2xl font-bold mb-2">Upload & Save Transactions</h2>
+                    <p className="text-muted-foreground">
+                      Upload your transactions from CSV files. The AI will automatically categorize them and save to your account.
+                    </p>
+                  </div>
+                  <UnifiedCsvUpload onComplete={handleUploadComplete} />
+                  {isCompiling && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+                      Updating AI knowledge...
+                    </div>
+                  )}
                 </div>
-              )}
+              </Card>
             </div>
-          </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="goals">
