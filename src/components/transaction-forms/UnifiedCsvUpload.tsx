@@ -242,99 +242,66 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
     reviewedTransactions: any[], 
     shouldCreateRules: boolean = false
   ) => {
-    console.log('Category review completed, saving to database...', { count: reviewedTransactions.length });
+    console.log('🤖 Category review completed, processing with AI categorization...', { count: reviewedTransactions.length });
     
     setShowCategoryReview(false);
     setIsProcessing(true);
     
     setUploadProgress({
-      phase: 'saving',
-      currentStep: 2,
+      phase: 'categorizing',
+      currentStep: 1,
       totalSteps: 2,
-      message: 'Saving transactions to database...',
-      processedTransactions: reviewedTransactions
+      message: 'Analyzing and categorizing transactions with AI...',
+      processedTransactions: []
     });
 
     try {
       // Get selected account for currency
       const selectedAccount = selectedAccountId ? accounts.find(acc => acc.id === selectedAccountId) : null;
       
-      // Process transactions with proper schema mapping
-      const processedTransactions = [];
-      
-      for (const transaction of reviewedTransactions) {
-        // Get the final category (either user-selected or AI-suggested)
-        const finalCategory = transaction.userCategory || transaction.category || 'Uncategorized';
-        
-        // Find the category ID from the database
-        let categoryId = null;
-        if (finalCategory && finalCategory !== 'Uncategorized') {
-          const { data: categoryData } = await supabase
-            .from('categories')
-            .select('id')
-            .eq('user_id', session?.user?.id)
-            .eq('name', finalCategory)
-            .single();
-          
-          categoryId = categoryData?.id || null;
-        }
+      // Format transactions for the TransactionProcessor
+      const transactionsForProcessing = reviewedTransactions.map(transaction => ({
+        date: transaction.date,
+        description: transaction.description,
+        amount: Number(transaction.amount),
+        currency: transaction.currency || selectedAccount?.currency || 'AUD',
+        asset_account_id: transaction.asset_account_id || null,
+        liability_account_id: transaction.liability_account_id || null,
+        comment: transaction.notes || null,
+      }));
 
-        // Ensure we have a valid account reference (asset or liability)
-        const hasAssetAccount = !!transaction.asset_account_id;
-        const hasLiabilityAccount = !!transaction.liability_account_id;
-        
-        if (!hasAssetAccount && !hasLiabilityAccount) {
-          console.error('Skipping transaction without any account assignment:', transaction);
-          continue; // Skip transactions without proper account assignment
-        }
+      console.log('🤖 Sending transactions to AI categorizer:', transactionsForProcessing.length);
 
-        // Create the properly formatted transaction for the database
-        const processedTransaction = {
-          user_id: session?.user?.id,
-          description: transaction.description,
-          amount: Number(transaction.amount),
-          date: transaction.date,
-          currency: transaction.currency || selectedAccount?.currency || 'AUD',
-          asset_account_id: transaction.asset_account_id || null,
-          liability_account_id: transaction.liability_account_id || null,
-          category_id: categoryId,
-          type: Number(transaction.amount) >= 0 ? 'income' : 'expense',
-          notes: null,
-        };
-        
-        processedTransactions.push(processedTransaction);
-      }
+      setUploadProgress({
+        phase: 'saving',
+        currentStep: 2,
+        totalSteps: 2,
+        message: 'Saving transactions with AI categories to database...',
+        processedTransactions: []
+      });
 
-      console.log('Inserting transactions:', processedTransactions.slice(0, 2));
+      // Use the TransactionProcessor to categorize and insert transactions
+      const result = await transactionProcessor.processCsvUpload(transactionsForProcessing);
 
-      const { data: insertedTransactions, error: insertError } = await supabase
-        .from('transactions')
-        .insert(processedTransactions)
-        .select();
-
-      if (insertError) {
-        console.error('Database insertion error:', insertError);
-        throw insertError;
-      }
-
-      console.log('Transactions inserted successfully:', insertedTransactions?.length);
+      console.log('✅ AI categorization complete:', result);
 
       setUploadProgress({
         phase: 'complete',
         currentStep: 2,
         totalSteps: 2,
-        message: `Successfully uploaded ${processedTransactions.length} transactions!`,
-        processedTransactions: insertedTransactions || []
+        message: `Successfully uploaded ${result.success} transactions! AI discovered ${result.categories_discovered} categories.`,
+        processedTransactions: []
       });
 
       toast({
         title: "Success! 🎉",
-        description: `${processedTransactions.length} transactions uploaded successfully.`,
+        description: `${result.success} transactions uploaded and categorized by AI. ${result.new_categories_created} new categories created.`,
       });
 
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
 
       // Complete the upload process
       setTimeout(() => {
@@ -348,16 +315,17 @@ export const UnifiedCsvUpload = ({ onComplete }: UnifiedCsvUploadProps) => {
         setSelectedAccountId(null);
         setPendingTransactions([]);
         
+        // Call onComplete to trigger AI knowledge compilation
         if (onComplete) {
           onComplete();
         }
       }, 2000);
 
     } catch (error) {
-      console.error('Error saving transactions:', error);
+      console.error('❌ Error processing transactions:', error);
       toast({
-        title: "Database Error",
-        description: `Failed to save transactions: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        title: "Upload Failed",
+        description: `Failed to process transactions: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
       setUploadProgress(null);
