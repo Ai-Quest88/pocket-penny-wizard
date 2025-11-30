@@ -417,6 +417,45 @@ export type Database = {
         }
         Relationships: []
       }
+      cfo_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string | null
+          data: Json | null
+          id: string
+          is_dismissed: boolean | null
+          is_read: boolean | null
+          message: string
+          severity: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string | null
+          data?: Json | null
+          id?: string
+          is_dismissed?: boolean | null
+          is_read?: boolean | null
+          message: string
+          severity: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string | null
+          data?: Json | null
+          id?: string
+          is_dismissed?: boolean | null
+          is_read?: boolean | null
+          message?: string
+          severity?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       entities: {
         Row: {
           address: string | null
@@ -768,6 +807,7 @@ export type Database = {
       }
       transactions: {
         Row: {
+          ai_reasoning: string | null
           amount: number
           asset_account_id: string | null
           categorization_confidence: number | null
@@ -781,12 +821,15 @@ export type Database = {
           is_reconciled: boolean | null
           liability_account_id: string | null
           notes: string | null
+          original_ai_category_id: string | null
           reference: string | null
           type: string
           updated_at: string | null
+          user_corrected: boolean | null
           user_id: string
         }
         Insert: {
+          ai_reasoning?: string | null
           amount: number
           asset_account_id?: string | null
           categorization_confidence?: number | null
@@ -800,12 +843,15 @@ export type Database = {
           is_reconciled?: boolean | null
           liability_account_id?: string | null
           notes?: string | null
+          original_ai_category_id?: string | null
           reference?: string | null
           type: string
           updated_at?: string | null
+          user_corrected?: boolean | null
           user_id: string
         }
         Update: {
+          ai_reasoning?: string | null
           amount?: number
           asset_account_id?: string | null
           categorization_confidence?: number | null
@@ -819,9 +865,11 @@ export type Database = {
           is_reconciled?: boolean | null
           liability_account_id?: string | null
           notes?: string | null
+          original_ai_category_id?: string | null
           reference?: string | null
           type?: string
           updated_at?: string | null
+          user_corrected?: boolean | null
           user_id?: string
         }
         Relationships: [
@@ -900,6 +948,199 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_category_corrections: {
+        Row: {
+          amount: number | null
+          corrected_category: string
+          created_at: string | null
+          description: string
+          id: string
+          merchant_pattern: string | null
+          original_category: string | null
+          transaction_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          corrected_category: string
+          created_at?: string | null
+          description: string
+          id?: string
+          merchant_pattern?: string | null
+          original_category?: string | null
+          transaction_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          corrected_category?: string
+          created_at?: string | null
+          description?: string
+          id?: string
+          merchant_pattern?: string | null
+          original_category?: string | null
+          transaction_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_category_corrections_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_financial_goals: {
+        Row: {
+          ai_recommendations: Json | null
+          created_at: string | null
+          current_amount: number | null
+          id: string
+          name: string
+          priority: number | null
+          status: string | null
+          target_amount: number
+          target_date: string | null
+          type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          ai_recommendations?: Json | null
+          created_at?: string | null
+          current_amount?: number | null
+          id?: string
+          name: string
+          priority?: number | null
+          status?: string | null
+          target_amount: number
+          target_date?: string | null
+          type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          ai_recommendations?: Json | null
+          created_at?: string | null
+          current_amount?: number | null
+          id?: string
+          name?: string
+          priority?: number | null
+          status?: string | null
+          target_amount?: number
+          target_date?: string | null
+          type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_financial_profile: {
+        Row: {
+          accuracy_score: number | null
+          corrections_count: number | null
+          created_at: string | null
+          financial_goals_summary: string | null
+          id: string
+          knowledge_document: Json
+          last_advice_given: Json | null
+          last_compiled_at: string | null
+          preferred_savings_rate: number | null
+          risk_tolerance: string | null
+          spending_personality: string | null
+          total_transactions_analyzed: number | null
+          typical_monthly_expenses: number | null
+          typical_monthly_income: number | null
+          user_id: string
+        }
+        Insert: {
+          accuracy_score?: number | null
+          corrections_count?: number | null
+          created_at?: string | null
+          financial_goals_summary?: string | null
+          id?: string
+          knowledge_document?: Json
+          last_advice_given?: Json | null
+          last_compiled_at?: string | null
+          preferred_savings_rate?: number | null
+          risk_tolerance?: string | null
+          spending_personality?: string | null
+          total_transactions_analyzed?: number | null
+          typical_monthly_expenses?: number | null
+          typical_monthly_income?: number | null
+          user_id: string
+        }
+        Update: {
+          accuracy_score?: number | null
+          corrections_count?: number | null
+          created_at?: string | null
+          financial_goals_summary?: string | null
+          id?: string
+          knowledge_document?: Json
+          last_advice_given?: Json | null
+          last_compiled_at?: string | null
+          preferred_savings_rate?: number | null
+          risk_tolerance?: string | null
+          spending_personality?: string | null
+          total_transactions_analyzed?: number | null
+          typical_monthly_expenses?: number | null
+          typical_monthly_income?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_merchant_mappings: {
+        Row: {
+          average_amount: number | null
+          created_at: string | null
+          id: string
+          last_used_at: string | null
+          merchant_pattern: string
+          normalized_name: string | null
+          preferred_category_id: string | null
+          times_confirmed: number | null
+          times_used: number | null
+          typical_frequency: string | null
+          user_id: string
+        }
+        Insert: {
+          average_amount?: number | null
+          created_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          merchant_pattern: string
+          normalized_name?: string | null
+          preferred_category_id?: string | null
+          times_confirmed?: number | null
+          times_used?: number | null
+          typical_frequency?: string | null
+          user_id: string
+        }
+        Update: {
+          average_amount?: number | null
+          created_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          merchant_pattern?: string
+          normalized_name?: string | null
+          preferred_category_id?: string | null
+          times_confirmed?: number | null
+          times_used?: number | null
+          typical_frequency?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_merchant_mappings_preferred_category_id_fkey"
+            columns: ["preferred_category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_profiles: {
         Row: {
