@@ -1,52 +1,15 @@
 // Data Protection Utilities for Sensitive Information
-import { supabase } from "@/integrations/supabase/client";
-
-// ⚠️ DEPRECATED: This XOR encryption is NOT cryptographically secure
-// It provides only basic obfuscation and should NOT be relied upon for security
 // 
-// SECURITY WARNING: Client-side encryption can be easily reversed.
-// For production use, sensitive data should be encrypted server-side using:
-// - PostgreSQL pgcrypto extension
-// - Supabase Vault for column encryption
-// - Proper key management systems
+// SECURITY NOTE: Sensitive entity data (email, phone, address, tax_identifier)
+// is protected via Row Level Security (RLS) policies on the entities table.
+// The validate_entity_access_enhanced() function ensures users can only access
+// their own data. No client-side encryption is needed or secure.
 //
-// This implementation remains only for backward compatibility.
-// TODO: Migrate to server-side encryption
-const ENCRYPTION_KEY = "ENTITY_DATA_PROTECTION_2024";
+// For additional protection of highly sensitive data at rest, consider using:
+// - PostgreSQL pgcrypto extension (server-side)
+// - Supabase Vault for column encryption (server-side)
 
-export const encryptSensitiveData = (data: string): string => {
-  if (!data) return data;
-  
-  if (process.env.NODE_ENV === 'development') {
-    console.warn("⚠️ Using deprecated client-side encryption. Migrate to server-side encryption for production.");
-  }
-  
-  let encrypted = "";
-  for (let i = 0; i < data.length; i++) {
-    const charCode = data.charCodeAt(i) ^ ENCRYPTION_KEY.charCodeAt(i % ENCRYPTION_KEY.length);
-    encrypted += String.fromCharCode(charCode);
-  }
-  return btoa(encrypted); // Base64 encode
-};
-
-export const decryptSensitiveData = (encryptedData: string): string => {
-  if (!encryptedData) return encryptedData;
-  
-  try {
-    const decoded = atob(encryptedData); // Base64 decode
-    let decrypted = "";
-    for (let i = 0; i < decoded.length; i++) {
-      const charCode = decoded.charCodeAt(i) ^ ENCRYPTION_KEY.charCodeAt(i % ENCRYPTION_KEY.length);
-      decrypted += String.fromCharCode(charCode);
-    }
-    return decrypted;
-  } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error("Failed to decrypt data:", error);
-    }
-    return encryptedData; // Return as-is if decryption fails
-  }
-};
+import { supabase } from "@/integrations/supabase/client";
 
 // Data masking functions
 export const maskEmail = (email: string): string => {
@@ -143,26 +106,14 @@ export const logSensitiveDataAccess = async (action: string, entityId: string, d
   }
 };
 
-// Secure data retrieval with automatic decryption
+// Pass-through function for entity data retrieval
+// RLS policies ensure only authorized users can access their own data
 export const getSecureEntityData = (rawEntity: any) => {
-  if (!rawEntity) return rawEntity;
-
-  return {
-    ...rawEntity,
-    email: rawEntity.email ? decryptSensitiveData(rawEntity.email) : rawEntity.email,
-    phone: rawEntity.phone ? decryptSensitiveData(rawEntity.phone) : rawEntity.phone,
-    address: rawEntity.address ? decryptSensitiveData(rawEntity.address) : rawEntity.address,
-    tax_identifier: rawEntity.tax_identifier ? decryptSensitiveData(rawEntity.tax_identifier) : rawEntity.tax_identifier,
-  };
+  return rawEntity;
 };
 
-// Prepare data for secure storage
+// Pass-through function for entity data storage
+// RLS policies ensure only authorized users can store their own data
 export const prepareEntityDataForStorage = (entityData: any) => {
-  return {
-    ...entityData,
-    email: entityData.email ? encryptSensitiveData(entityData.email) : entityData.email,
-    phone: entityData.phone ? encryptSensitiveData(entityData.phone) : entityData.phone,
-    address: entityData.address ? encryptSensitiveData(entityData.address) : entityData.address,
-    tax_identifier: entityData.tax_identifier ? encryptSensitiveData(entityData.tax_identifier) : entityData.tax_identifier,
-  };
+  return entityData;
 };
