@@ -344,10 +344,9 @@ export function AIUniversalUpload({ onComplete }: AIUniversalUploadProps) {
     try {
       const categoryIdMap = getCategoryIdMap();
 
-      // Determine if it's an asset or liability account
-      const isAssetAccount = selectedAccount?.type && ['checking', 'savings', 'investment', 'cash'].includes(selectedAccount.type);
-
       // Prepare transactions for insert
+      // Note: asset_account_id and liability_account_id are for linking to assets/liabilities tables,
+      // not the accounts table, so we leave them null for now
       const transactionsToInsert = editedTransactions.map(tx => {
         const categoryId = categoryIdMap.get(tx.category);
         const transactionType = tx.amount >= 0 ? 'income' : 'expense';
@@ -360,8 +359,6 @@ export function AIUniversalUpload({ onComplete }: AIUniversalUploadProps) {
           type: transactionType,
           category_id: categoryId || null,
           currency: selectedAccount?.currency || 'USD',
-          asset_account_id: isAssetAccount ? selectedAccountId : null,
-          liability_account_id: !isAssetAccount ? selectedAccountId : null,
           categorization_source: 'ai',
           categorization_confidence: tx.confidence,
           ai_reasoning: tx.reasoning
