@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Upload, FileText, Image, FileSpreadsheet, Loader2, Sparkles, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Upload, FileText, Image, FileSpreadsheet, Loader2, Sparkles, AlertCircle, CheckCircle2, FlaskConical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
@@ -48,6 +48,19 @@ const ACCEPTED_FILE_TYPES = {
 };
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+// Sample test data for quick testing
+const SAMPLE_CSV_DATA = `Date,Description,Amount
+2024-01-15,Woolworths Supermarket,-85.50
+2024-01-16,Shell Petrol Station,-67.20
+2024-01-17,Salary Payment,5000.00
+2024-01-18,Netflix Subscription,-17.99
+2024-01-19,Coffee Shop Purchase,-6.50
+2024-01-20,Electric Bill Payment,-156.78
+2024-01-21,Amazon Online Shopping,-89.99
+2024-01-22,Uber Ride,-24.50
+2024-01-23,Pharmacy Health Store,-32.45
+2024-01-24,Restaurant Dinner,-78.00`;
 
 export function AIUniversalUpload({ onComplete }: AIUniversalUploadProps) {
   const { session } = useAuth();
@@ -232,6 +245,79 @@ export function AIUniversalUpload({ onComplete }: AIUniversalUploadProps) {
     }
   }, [selectedAccountId, selectedAccount, getAllCategories]);
 
+  const handleTestUpload = async () => {
+    if (!selectedAccountId) {
+      toast.error("Please select an account first");
+      return;
+    }
+
+    setIsProcessing(true);
+    setProcessingProgress(10);
+    setProcessingStatus("Loading sample data...");
+    setResult(null);
+    setUploadedFileName("sample-transactions.csv");
+
+    try {
+      setProcessingProgress(30);
+      setProcessingStatus("Sending to AI for extraction...");
+
+      const categories = getAllCategories().map(c => ({
+        name: c.name,
+        type: c.type
+      }));
+
+      setProcessingProgress(50);
+      setProcessingStatus("AI is extracting transactions...");
+
+      const { data, error } = await supabase.functions.invoke('ai-process-file', {
+        body: {
+          fileContent: SAMPLE_CSV_DATA,
+          fileType: 'csv',
+          mimeType: 'text/csv',
+          userCategories: categories,
+          accountCurrency: selectedAccount?.currency || 'USD'
+        }
+      });
+
+      setProcessingProgress(90);
+
+      if (error) {
+        console.error('Edge function error:', error);
+        toast.error("Failed to process test data");
+        setResult({
+          success: false,
+          transactions: [],
+          summary: '',
+          detectedFormat: '',
+          warnings: [],
+          error: error.message
+        });
+        return;
+      }
+
+      const processingResult = data as ProcessingResult;
+      
+      if (!processingResult.success) {
+        toast.error(processingResult.error || "Failed to extract transactions");
+        setResult(processingResult);
+        return;
+      }
+
+      setProcessingProgress(100);
+      setProcessingStatus("Complete!");
+      setResult(processingResult);
+      setEditedTransactions(processingResult.transactions);
+      
+      toast.success(`Extracted ${processingResult.transactions.length} test transactions`);
+
+    } catch (error) {
+      console.error('Test upload error:', error);
+      toast.error("Failed to process test data");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: ACCEPTED_FILE_TYPES,
@@ -384,6 +470,20 @@ export function AIUniversalUpload({ onComplete }: AIUniversalUploadProps) {
                 </p>
               </>
             )}
+          </div>
+
+          {/* Test Upload Button */}
+          <div className="flex justify-center pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleTestUpload}
+              disabled={isProcessing || !selectedAccountId}
+              className="gap-2"
+            >
+              <FlaskConical className="h-4 w-4" />
+              Test with Sample Data
+            </Button>
           </div>
         </CardContent>
       </Card>
