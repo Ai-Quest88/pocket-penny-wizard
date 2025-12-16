@@ -27,5 +27,8 @@ verify_jwt = true
 [functions.group-categories]
 verify_jwt = true
 
+[functions.ai-process-file]
+verify_jwt = true
+
 [functions.test-runner]
 verify_jwt = false
