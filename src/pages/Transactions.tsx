@@ -1,15 +1,13 @@
-
 import { Button } from "@/components/ui/button"
-import { PlusCircle, ArrowLeftRight, Upload, Plus, Search } from "lucide-react"
+import { PlusCircle, ArrowLeftRight, Upload, Plus, Search, Sparkles } from "lucide-react"
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { UnifiedCsvUpload } from "@/components/transaction-forms/UnifiedCsvUpload"
+import { AIUniversalUpload } from "@/components/transaction-forms/AIUniversalUpload"
 import { ManualTransactionDialog } from "@/components/transactions/ManualTransactionDialog"
 import { TransactionList } from "@/components/TransactionList"
 import { DuplicateDetector } from "@/components/transactions/DuplicateDetector"
 import { useAuth } from "@/contexts/AuthContext"
 import { useNavigate, Link } from "react-router-dom"
-
 const Transactions = () => {
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [isManualDialogOpen, setIsManualDialogOpen] = useState(false);
@@ -79,16 +77,19 @@ const Transactions = () => {
                   className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
                   data-testid="transactions-upload-csv-button"
                 >
-                  <Upload className="h-4 w-4" />
-                  Upload CSV
+                  <Sparkles className="h-4 w-4" />
+                  AI Upload
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Upload Transactions</DialogTitle>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                    AI-Powered Transaction Upload
+                  </DialogTitle>
                 </DialogHeader>
-                <div className="mt-6">
-                  <UnifiedCsvUpload onComplete={handleTransactionUploadSuccess} />
+                <div className="mt-4">
+                  <AIUniversalUpload onComplete={handleTransactionUploadSuccess} />
                 </div>
               </DialogContent>
             </Dialog>
