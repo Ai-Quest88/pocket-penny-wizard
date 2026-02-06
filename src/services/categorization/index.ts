@@ -3,6 +3,10 @@ import { TransactionProcessor } from './TransactionProcessor';
 
 export { TransactionProcessor } from './TransactionProcessor';
 export { TransactionCategorizer } from './TransactionCategorizer';
+export { AIExtractor } from './AIExtractor';
+export { LearnedPatternMatcher } from './LearnedPatternMatcher';
+export type { ExtractedTransaction, ExtractionProgress, ExtractionResult } from './AIExtractor';
+export type { LearnedPattern, PatternMatchResult } from './LearnedPatternMatcher';
 export type { TransactionData, CategoryDiscoveryResult, CategorizationStats } from './types';
 
 // Hook for using the clean transaction processor

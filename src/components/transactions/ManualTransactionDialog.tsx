@@ -22,9 +22,9 @@ interface ManualTransactionDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = ({ 
-  open, 
-  onOpenChange 
+export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = ({
+  open,
+  onOpenChange
 }) => {
   const [date, setDate] = useState<Date>(new Date())
   const [amount, setAmount] = useState('')
@@ -126,7 +126,7 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
 
   // Use centralized category management
   const { groupedCategories, isLoading: categoriesLoading } = useCategoryManagement();
-  
+
   console.log('=== HOOK DATA ===');
   console.log('categoriesLoading:', categoriesLoading);
 
@@ -142,7 +142,7 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!amount || !description || !category || !account) {
       return
     }
@@ -152,9 +152,21 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
     try {
       // Find the selected account to determine if it's an asset or liability
       const selectedAccount = allAccounts.find(acc => acc.id === account);
-      
+
       if (!selectedAccount) {
         throw new Error('Selected account not found');
+      }
+
+      // Find the category object to get its ID
+      let categoryId = null;
+      if (groupedCategories) {
+        for (const group of groupedCategories) {
+          const found = group.categories.find(c => c.name === category);
+          if (found) {
+            categoryId = found.id;
+            break;
+          }
+        }
       }
 
       // Prepare transaction data with appropriate account field
@@ -162,7 +174,9 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
         user_id: session.user.id,
         description,
         amount: parseFloat(amount),
-        category,
+        // category: category, // REMOVED: Column does not exist in DB
+        category_name: category, // Explicitly set category_name as per schema
+        category_id: categoryId, // Set the foreign key
         date: format(date, 'yyyy-MM-dd'),
         currency,
         comment: comment || null,
@@ -193,7 +207,7 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
       await queryClient.invalidateQueries({ queryKey: ['transactions'] });
       await queryClient.invalidateQueries({ queryKey: ['assets'] });
       await queryClient.invalidateQueries({ queryKey: ['liabilities'] });
-      
+
       // Reset form and close dialog
       resetForm()
       onOpenChange(false)
@@ -213,18 +227,18 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
   // Enhanced filtering with comprehensive validation for currencies
   const validCurrencies = currencies
     .filter(curr => {
-      const isValid = curr && 
-        curr.code && 
+      const isValid = curr &&
+        curr.code &&
         curr.name &&
-        typeof curr.code === 'string' && 
+        typeof curr.code === 'string' &&
         typeof curr.name === 'string' &&
         curr.code.trim().length > 0 &&
         curr.name.trim().length > 0;
-      
+
       if (!isValid) {
         console.warn("Filtering out invalid currency:", curr);
       }
-      
+
       return isValid;
     })
     .map(curr => ({
@@ -243,7 +257,7 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
             Add Transaction Manually
           </DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-6 mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -316,8 +330,8 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
                         {group.name} ({group.type})
                       </div>
                       {group.categories.map((category) => (
-                        <SelectItem 
-                          key={category.id} 
+                        <SelectItem
+                          key={category.id}
                           value={category.name}
                           className="pl-8 hover:bg-accent focus:bg-accent"
                         >
@@ -390,8 +404,8 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
             <Button type="button" variant="outline" onClick={resetForm}>
               Clear
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={isSubmitting || !amount || !description || !category || !account || allAccounts.length === 0}
               data-testid="transaction-submit-button"
             >

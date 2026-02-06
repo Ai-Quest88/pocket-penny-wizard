@@ -122,7 +122,7 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!amount || !description || !category || !account) {
       return
     }
@@ -132,9 +132,21 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
     try {
       // Find the selected account to determine if it's an asset or liability
       const selectedAccount = allAccounts.find(acc => acc.id === account);
-      
+
       if (!selectedAccount) {
         throw new Error('Selected account not found');
+      }
+
+      // Find the category object to get its ID
+      let categoryId = null;
+      if (groupedCategories) {
+        for (const group of groupedCategories) {
+          const found = group.categories.find(c => c.name === category);
+          if (found) {
+            categoryId = found.id;
+            break;
+          }
+        }
       }
 
       // Prepare transaction data with appropriate account field
@@ -143,7 +155,9 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
         user_id: session.user.id,
         description,
         amount: parsedAmount,
-        category: category,
+        // category: category, // REMOVED: Column does not exist in DB
+        category_name: category,
+        category_id: categoryId,
         date: format(date, 'yyyy-MM-dd'),
         currency,
         type: parsedAmount >= 0 ? 'income' : 'expense',
@@ -175,7 +189,7 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
       await queryClient.invalidateQueries({ queryKey: ['transactions'] });
       await queryClient.invalidateQueries({ queryKey: ['assets'] });
       await queryClient.invalidateQueries({ queryKey: ['liabilities'] });
-      
+
       // Reset form
       setAmount('')
       setDescription('')
@@ -199,18 +213,18 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
   // Enhanced filtering with comprehensive validation for currencies
   const validCurrencies = currencies
     .filter(curr => {
-      const isValid = curr && 
-        curr.code && 
+      const isValid = curr &&
+        curr.code &&
         curr.name &&
-        typeof curr.code === 'string' && 
+        typeof curr.code === 'string' &&
         typeof curr.name === 'string' &&
         curr.code.trim().length > 0 &&
         curr.name.trim().length > 0;
-      
+
       if (!isValid) {
         console.warn("Filtering out invalid currency:", curr);
       }
-      
+
       return isValid;
     })
     .map(curr => ({
@@ -300,8 +314,8 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
                         {group.name} ({group.type})
                       </div>
                       {group.categories.map((category) => (
-                        <SelectItem 
-                          key={category.id} 
+                        <SelectItem
+                          key={category.id}
                           value={category.name}
                           className="pl-8 hover:bg-accent focus:bg-accent"
                         >
@@ -381,8 +395,8 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
             }}>
               Clear
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={isSubmitting || !amount || !description || !category || !account || allAccounts.length === 0}
             >
               {isSubmitting ? 'Adding...' : 'Add Transaction'}

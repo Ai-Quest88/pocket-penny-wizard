@@ -1,8 +1,10 @@
 import { Button } from "@/components/ui/button"
-import { PlusCircle, ArrowLeftRight, Upload, Plus, Search, Sparkles } from "lucide-react"
+import { PlusCircle, ArrowLeftRight, Upload, Plus, Search, Sparkles, Settings2 } from "lucide-react"
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { AIUniversalUpload } from "@/components/transaction-forms/AIUniversalUpload"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { SimpleUpload } from "@/components/transaction-forms/SimpleUpload"
+import { UnifiedCsvUpload } from "@/components/transaction-forms/UnifiedCsvUpload"
 import { ManualTransactionDialog } from "@/components/transactions/ManualTransactionDialog"
 import { TransactionList } from "@/components/TransactionList"
 import { DuplicateDetector } from "@/components/transactions/DuplicateDetector"
@@ -81,16 +83,31 @@ const Transactions = () => {
                   AI Upload
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
                     <Sparkles className="h-5 w-5 text-primary" />
                     AI-Powered Transaction Upload
                   </DialogTitle>
                 </DialogHeader>
-                <div className="mt-4">
-                  <AIUniversalUpload onComplete={handleTransactionUploadSuccess} />
-                </div>
+                <Tabs defaultValue="simple" className="mt-4">
+                  <TabsList className="grid w-full grid-cols-2 mb-4">
+                    <TabsTrigger value="simple" className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4" />
+                      AI-Powered (Recommended)
+                    </TabsTrigger>
+                    <TabsTrigger value="advanced" className="flex items-center gap-2">
+                      <Settings2 className="h-4 w-4" />
+                      Advanced
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="simple">
+                    <SimpleUpload onComplete={handleTransactionUploadSuccess} />
+                  </TabsContent>
+                  <TabsContent value="advanced">
+                    <UnifiedCsvUpload onComplete={handleTransactionUploadSuccess} />
+                  </TabsContent>
+                </Tabs>
               </DialogContent>
             </Dialog>
 

@@ -24,10 +24,8 @@ const buildCorsHeaders = (origin: string | null) => {
   } as Record<string, string>;
 };
 
-// Use Google Gemini API instead of Groq
 const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
 
-// Create Supabase service client for database access
 const createServiceSupabaseClient = () => {
   return createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
@@ -35,210 +33,193 @@ const createServiceSupabaseClient = () => {
   );
 };
 
-// Function to seed default categories if user has none  
-const seedDefaultCategories = async (userId: string): Promise<void> => {
+// Simplified category result with confidence
+interface CategoryResult {
+  category: string;
+  confidence: number;
+}
+
+// Check learned patterns first (highest priority)
+const checkLearnedPatterns = async (userId: string, description: string): Promise<CategoryResult | null> => {
   try {
-    console.log('Seeding default categories for user:', userId);
     const supabaseClient = createServiceSupabaseClient();
-    const { data, error } = await supabaseClient.rpc('seed_default_categories');
-    if (error) {
-      console.error('Error seeding categories:', error);
-    } else {
-      console.log('Successfully seeded default categories');
+    const normalizedDesc = normalizeDescription(description);
+    
+    const { data, error } = await supabaseClient
+      .from('learned_patterns')
+      .select('category_name, pattern')
+      .eq('user_id', userId);
+    
+    if (error || !data || data.length === 0) {
+      return null;
     }
+    
+    // Find best matching pattern using fuzzy match
+    for (const pattern of data) {
+      if (fuzzyMatch(normalizedDesc, pattern.pattern)) {
+        console.log(`✓ Learned pattern match: "${pattern.pattern}" -> ${pattern.category_name}`);
+        return {
+          category: pattern.category_name,
+          confidence: 0.95 // High confidence for learned patterns
+        };
+      }
+    }
+    
+    return null;
   } catch (error) {
-    console.error('Error calling seed function:', error);
+    console.error('Error checking learned patterns:', error);
+    return null;
   }
 };
 
-// Function to get user's custom categories
+// Normalize description for pattern matching
+const normalizeDescription = (description: string): string => {
+  return description
+    .toLowerCase()
+    .replace(/[0-9]+/g, '') // Remove numbers (like reference IDs)
+    .replace(/\s+/g, ' ')   // Normalize whitespace
+    .trim();
+};
+
+// Fuzzy match for descriptions
+const fuzzyMatch = (description: string, pattern: string): boolean => {
+  const normalizedPattern = pattern.toLowerCase().trim();
+  const normalizedDesc = description.toLowerCase().trim();
+  
+  // Exact substring match
+  if (normalizedDesc.includes(normalizedPattern) || normalizedPattern.includes(normalizedDesc)) {
+    return true;
+  }
+  
+  // Word-based matching (at least 80% of pattern words found)
+  const patternWords = normalizedPattern.split(/\s+/).filter(w => w.length > 2);
+  const descWords = normalizedDesc.split(/\s+/);
+  
+  if (patternWords.length === 0) return false;
+  
+  const matchedWords = patternWords.filter(pw => 
+    descWords.some(dw => dw.includes(pw) || pw.includes(dw))
+  );
+  
+  return matchedWords.length / patternWords.length >= 0.8;
+};
+
+// Function to get user's categories
 const getUserCategories = async (userId: string): Promise<string[]> => {
   try {
-    console.log('Fetching categories for userId:', userId);
-    
-    // Use service role client to bypass RLS
     const supabaseClient = createServiceSupabaseClient();
     
-    // Get categories directly for the user
     const { data, error } = await supabaseClient
       .from('categories')
       .select('name')
       .eq('user_id', userId)
       .order('sort_order', { ascending: true });
 
-    console.log('Categories query result:', { data, error });
-
-    if (error) {
-      console.error('Error fetching user categories:', error);
-      // Return basic categories as fallback
-      return [
-        'Food & Dining', 'Shopping', 'Transportation', 'Bills & Utilities', 
-        'Entertainment', 'Healthcare', 'Income', 'Transfer', 'Uncategorized'
-      ];
+    if (error || !data || data.length === 0) {
+      return getDefaultCategories();
     }
 
-    const userCategories = data?.map(cat => cat.name) || [];
-    console.log('Raw user categories from DB:', userCategories);
-    
-    // If no categories found, try to seed them first
-    if (userCategories.length === 0) {
-      console.log('No categories found, attempting to seed default categories');
-      await seedDefaultCategories(userId);
-      
-      // Try fetching again after seeding
-      const { data: newData, error: newError } = await supabaseClient
-        .from('categories')
-        .select('name')
-        .eq('user_id', userId)
-        .order('sort_order', { ascending: true });
-      
-      if (newError || !newData || newData.length === 0) {
-        console.log('Still no categories after seeding, returning basic categories');
-        return [
-          'Food & Dining', 'Shopping', 'Transportation', 'Bills & Utilities', 
-          'Entertainment', 'Healthcare', 'Income', 'Transfer', 'Uncategorized'
-        ];
-      }
-      
-      const seededCategories = newData.map(cat => cat.name);
-      console.log('Successfully seeded categories:', seededCategories);
-      return seededCategories;
-    }
-    
-    // Always include 'Uncategorized' as a fallback option
+    const userCategories = data.map(cat => cat.name);
     if (!userCategories.includes('Uncategorized')) {
       userCategories.push('Uncategorized');
     }
 
-    console.log('Final user categories array:', userCategories);
     return userCategories;
   } catch (error) {
     console.error('Error in getUserCategories:', error);
-    // Return basic categories as fallback
-    return [
-      'Food & Dining', 'Shopping', 'Transportation', 'Bills & Utilities', 
-      'Entertainment', 'Healthcare', 'Income', 'Transfer', 'Uncategorized'
-    ];
+    return getDefaultCategories();
   }
 };
 
-// Google Gemini models to use (only flash for better free tier limits)
-const geminiModels = [
-  'gemini-2.0-flash-exp' // Using the latest experimental model
+const getDefaultCategories = (): string[] => [
+  'Food & Dining', 'Groceries', 'Shopping', 'Transportation', 'Fuel',
+  'Bills & Utilities', 'Entertainment', 'Healthcare', 'Income', 
+  'Transfer', 'Subscriptions', 'Fast Food', 'Tolls', 'Uncategorized'
 ];
 
-let currentModelIndex = 0;
+const GEMINI_MODEL = 'gemini-2.0-flash-exp';
 
-const getNextModel = () => {
-  const model = geminiModels[currentModelIndex];
-  currentModelIndex = (currentModelIndex + 1) % geminiModels.length;
-  return model;
-};
-
-const createEnhancedPrompt = (input: string[] | string, availableCategories: string[], isBatch: boolean = false) => {
+// Create AI categorization prompt with confidence scoring
+const createCategorizationPrompt = (descriptions: string[], availableCategories: string[], userContext?: { mostUsedCategories?: string[] }) => {
   const categoriesText = availableCategories.join(', ');
+  const transactionsList = descriptions.map((desc, index) => `${index + 1}. "${desc}"`).join('\n');
   
-  if (isBatch && Array.isArray(input)) {
-    const transactionsList = input.map((desc, index) => `${index + 1}. "${desc}"`).join('\n');
-    
-    return `You are a financial transaction categorization AI. Categorize each transaction in the list into exactly one of these categories:
+  const contextHint = userContext?.mostUsedCategories?.length 
+    ? `\nUser's frequently used categories: ${userContext.mostUsedCategories.slice(0, 5).join(', ')}`
+    : '';
+
+  return `You are a financial transaction categorization AI for Australian users. Categorize each transaction and rate your confidence.
 
 AVAILABLE CATEGORIES:
 ${categoriesText}
+${contextHint}
 
-ABSOLUTE RULES - THESE CANNOT BE BROKEN:
-1. You MUST only choose from the exact categories listed above
-2. You CANNOT create new category names like "Gas & Fuel" or combine categories
-3. For fuel stations (Shell, BP, Caltex, Ampol, 7-Eleven), use "Fuel" if available, otherwise use "Gas"
-4. For McDonald's, KFC, Subway → use "Fast Food" 
-5. For Coles, Woolworths, IGA, ALDI → use "Supermarket"
-6. For public transport (Opal, Myki) → use "Public Transport"
-7. If uncertain, use "Uncategorized"
+CATEGORIZATION RULES:
+1. ONLY use categories from the list above - never create new ones
+2. Australian merchants:
+   - Woolworths, Coles, IGA, ALDI → Groceries or Supermarket
+   - Shell, BP, Caltex, Ampol, 7-Eleven → Fuel
+   - McDonald's, KFC, Subway, Hungry Jack's → Fast Food
+   - Linkt, Etoll, toll → Tolls
+   - Opal, Myki, Metro → Public Transport
+   - Netflix, Spotify, Disney+ → Subscriptions or Entertainment
+3. If uncertain, use "Uncategorized"
 
-CRITICAL: Every response MUST be a category from the AVAILABLE CATEGORIES list above. No exceptions.
+CONFIDENCE SCORING:
+- 0.9-1.0: Exact merchant match, very clear category
+- 0.7-0.9: High confidence based on keywords
+- 0.5-0.7: Moderate confidence, multiple categories possible
+- Below 0.5: Low confidence, use Uncategorized
 
-Return ONLY a valid JSON array with objects containing "index" and "category" fields. No markdown, no explanations.
+Return ONLY valid JSON array (no markdown):
+[{"index": 1, "category": "Groceries", "confidence": 0.95}]
 
-TRANSACTIONS TO CATEGORIZE:
-${transactionsList}
-
-Required JSON format:
-[
-  {"index": 1, "category": "Groceries"},
-  {"index": 2, "category": "Tolls"}
-]`;
-  } else {
-    return `You are a financial transaction categorization AI. Categorize this transaction into exactly one of these categories:
-
-AVAILABLE CATEGORIES:
-${categoriesText}
-
-CRITICAL AUSTRALIAN-SPECIFIC RULES:
-1. "Linkt", "toll", "e-toll", "etoll" → Tolls
-2. McDonald's, KFC, Subway → Fast Food  
-3. Coles, Woolworths, IGA, ALDI → Supermarket
-4. Shell, BP, Caltex, Ampol, 7-Eleven (fuel stations) → Fuel
-5. Netflix, Spotify → Streaming Services
-6. Government, ATO → Legal Fees
-
-YOU MUST ONLY USE CATEGORIES FROM THE AVAILABLE CATEGORIES LIST ABOVE. DO NOT CREATE NEW CATEGORY NAMES.
-
-Transaction: "${input}"
-
-Return only the category name, nothing else.`;
-  }
+TRANSACTIONS:
+${transactionsList}`;
 };
 
 // Helper function to chunk array into smaller batches
-const chunkArray = (array: string[], chunkSize: number): string[][] => {
-  const chunks: string[][] = [];
+const chunkArray = <T>(array: T[], chunkSize: number): T[][] => {
+  const chunks: T[][] = [];
   for (let i = 0; i < array.length; i += chunkSize) {
     chunks.push(array.slice(i, i + chunkSize));
   }
   return chunks;
 };
 
-// Process a single batch of transactions using Google Gemini
-const processBatch = async (batch: string[], userId: string): Promise<string[]> => {
-  const userCategories = await getUserCategories(userId);
-  console.log('Available user categories:', userCategories);
-  const prompt = createEnhancedPrompt(batch, userCategories, true);
-  const model = getNextModel();
-  
-  console.log(`Processing batch of ${batch.length} transactions with Gemini model: ${model}`);
+// Process batch with AI, returning categories with confidence scores
+const processAIBatch = async (
+  descriptions: string[], 
+  userCategories: string[],
+  userContext?: { mostUsedCategories?: string[] }
+): Promise<CategoryResult[]> => {
+  const prompt = createCategorizationPrompt(descriptions, userCategories, userContext);
   
   const requestBody = {
     contents: [{
-      parts: [{
-        text: prompt
-      }]
+      parts: [{ text: prompt }]
     }],
     generationConfig: {
       temperature: 0.1,
       topK: 1,
       topP: 0.8,
-      maxOutputTokens: 2048,
+      maxOutputTokens: 4096,
     }
   };
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(requestBody)
-  });
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiApiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody)
+    }
+  );
 
   if (!response.ok) {
-    let errorDetails = `HTTP ${response.status}: ${response.statusText}`;
-    try {
-      const errorBody = await response.text();
-      console.error('Gemini API Error Details (Batch):', errorBody);
-      errorDetails += ` - ${errorBody}`;
-    } catch (parseError) {
-      console.error('Could not parse Gemini API error response (Batch):', parseError);
-    }
-    throw new Error(`Gemini API error: ${errorDetails}`);
+    const errorBody = await response.text();
+    console.error('Gemini API Error:', errorBody);
+    throw new Error(`Gemini API error: ${response.status}`);
   }
 
   const data = await response.json();
@@ -248,80 +229,107 @@ const processBatch = async (batch: string[], userId: string): Promise<string[]> 
     throw new Error('No content in Gemini response');
   }
 
+  // Clean markdown formatting
+  content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+  
   try {
-    // Clean up the response - remove markdown formatting if present
-    content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    
-    console.log('Raw AI response content:', content);
-    
     const parsed = JSON.parse(content);
-    console.log('Parsed AI response:', parsed);
     
-    if (Array.isArray(parsed)) {
-      // Sort by index to ensure correct order
-      const sortedParsed = parsed.sort((a, b) => (a.index || 0) - (b.index || 0));
-      
-      const categories = sortedParsed.map((item, index) => {
-        const category = item.category?.trim();
-        console.log(`Processing item ${index + 1}: AI suggested "${category}"`);
-        
-        // Try exact match first
-        if (category && userCategories.includes(category)) {
-          console.log(`✓ Exact match found: "${category}"`);
-          return category;
-        }
-        
-        // Try case-insensitive match
-        const lowerCategory = category?.toLowerCase();
-        const matchedCategory = userCategories.find(cat => 
-          cat.toLowerCase() === lowerCategory
-        );
-        
-        if (matchedCategory) {
-          console.log(`✓ Case-insensitive match found: "${matchedCategory}" for "${category}"`);
-          return matchedCategory;
-        }
-        
-        // Try partial match for common variations
-        if (lowerCategory) {
-          const partialMatch = userCategories.find(cat => {
-            const lowerCat = cat.toLowerCase();
-            return lowerCat.includes(lowerCategory) || lowerCategory.includes(lowerCat);
-          });
-          
-          if (partialMatch) {
-            console.log(`✓ Partial match found: "${partialMatch}" for "${category}"`);
-            return partialMatch;
-          }
-        }
-        
-        console.log(`✗ No match found for "${category}", defaulting to Uncategorized`);
-        return 'Uncategorized';
-      });
-      
-      // Ensure we have the right number of categories
-      while (categories.length < batch.length) {
-        categories.push('Uncategorized');
-      }
-      
-      console.log(`Batch processing completed: ${categories.length} categories returned`);
-      return categories.slice(0, batch.length); // Ensure exact match
-    } else {
+    if (!Array.isArray(parsed)) {
       throw new Error('Response is not an array');
     }
-  } catch (parseError) {
-    console.error('Failed to parse batch response as JSON:', parseError);
-    console.error('Raw content:', content);
     
-    // Fallback for batch processing
-    const fallbackCategories = batch.map(() => 'Uncategorized');
-    return fallbackCategories;
+    // Sort by index and map to CategoryResult
+    const sorted = parsed.sort((a: any, b: any) => (a.index || 0) - (b.index || 0));
+    
+    return sorted.map((item: any, idx: number) => {
+      const category = item.category?.trim();
+      let confidence = Number(item.confidence) || 0.7;
+      
+      // Validate category exists in user's list
+      const validCategory = findMatchingCategory(category, userCategories);
+      
+      if (!validCategory) {
+        return { category: 'Uncategorized', confidence: 0.3 };
+      }
+      
+      // Adjust confidence if we had to fuzzy match
+      if (validCategory !== category) {
+        confidence = Math.min(confidence, 0.8);
+      }
+      
+      return { category: validCategory, confidence };
+    });
+  } catch (parseError) {
+    console.error('Failed to parse AI response:', parseError);
+    return descriptions.map(() => ({ category: 'Uncategorized', confidence: 0.3 }));
   }
+};
+
+// Find matching category with fallback strategies
+const findMatchingCategory = (category: string | undefined, userCategories: string[]): string | null => {
+  if (!category) return null;
+  
+  // Exact match
+  if (userCategories.includes(category)) {
+    return category;
+  }
+  
+  // Case-insensitive match
+  const lowerCategory = category.toLowerCase();
+  const caseMatch = userCategories.find(c => c.toLowerCase() === lowerCategory);
+  if (caseMatch) return caseMatch;
+  
+  // Partial match
+  const partialMatch = userCategories.find(c => {
+    const lower = c.toLowerCase();
+    return lower.includes(lowerCategory) || lowerCategory.includes(lower);
+  });
+  if (partialMatch) return partialMatch;
+  
+  return null;
+};
+
+// Process batch with learned patterns first, then AI for remaining
+const processBatchWithLearning = async (
+  descriptions: string[],
+  userId: string,
+  userContext?: { mostUsedCategories?: string[] }
+): Promise<CategoryResult[]> => {
+  const results: (CategoryResult | null)[] = new Array(descriptions.length).fill(null);
+  const needsAI: { index: number; description: string }[] = [];
+  
+  // First pass: Check learned patterns
+  for (let i = 0; i < descriptions.length; i++) {
+    const learnedResult = await checkLearnedPatterns(userId, descriptions[i]);
+    if (learnedResult) {
+      results[i] = learnedResult;
+    } else {
+      needsAI.push({ index: i, description: descriptions[i] });
+    }
+  }
+  
+  console.log(`Learned patterns: ${descriptions.length - needsAI.length}, Need AI: ${needsAI.length}`);
+  
+  // Second pass: AI for remaining
+  if (needsAI.length > 0) {
+    const userCategories = await getUserCategories(userId);
+    const aiDescriptions = needsAI.map(n => n.description);
+    const aiResults = await processAIBatch(aiDescriptions, userCategories, userContext);
+    
+    needsAI.forEach((item, idx) => {
+      results[item.index] = aiResults[idx];
+    });
+  }
+  
+  // Ensure all results have values
+  return results.map(r => r || { category: 'Uncategorized', confidence: 0.3 });
 };
 
 serve(async (req) => {
   const origin = req.headers.get('origin');
   const corsHeaders = buildCorsHeaders(origin);
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -330,7 +338,10 @@ serve(async (req) => {
     const body = await req.json();
     
     if (body.testMode) {
-      return new Response(JSON.stringify({ success: true, message: 'Google Gemini AI categorization ready' }), {
+      return new Response(JSON.stringify({ 
+        success: true, 
+        message: 'AI categorization with learning ready (Gemini)' 
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
@@ -339,48 +350,55 @@ serve(async (req) => {
       throw new Error('GEMINI_API_KEY not configured');
     }
 
-    // Handle batch processing with chunking
+    const userId = body.userId || '';
+    const userContext = body.userContext as { mostUsedCategories?: string[] } | undefined;
+
+    // Handle batch processing
     if (body.batchMode && body.descriptions && Array.isArray(body.descriptions)) {
-      console.log(`Processing ${body.descriptions.length} transactions in chunks of 100 using Google Gemini`);
+      console.log(`Processing ${body.descriptions.length} transactions with learning + AI`);
       
-      const BATCH_SIZE = 100; // Optimal batch size for 100% accuracy with Google Gemini free tier
+      const BATCH_SIZE = 50; // Smaller batches for better accuracy
       const chunks = chunkArray(body.descriptions, BATCH_SIZE);
-      const allCategories: string[] = [];
+      const allResults: CategoryResult[] = [];
       
-      console.log(`Split into ${chunks.length} chunks`);
+      let learnedCount = 0;
+      let aiCount = 0;
       
-      // Process each chunk sequentially to avoid rate limits
       for (let i = 0; i < chunks.length; i++) {
-        const chunk = chunks[i];
-        console.log(`Processing chunk ${i + 1}/${chunks.length} with ${chunk.length} transactions`);
+        console.log(`Processing chunk ${i + 1}/${chunks.length}`);
         
         try {
-          const chunkCategories = await processBatch(chunk, body.userId);
-          allCategories.push(...chunkCategories);
+          const chunkResults = await processBatchWithLearning(chunks[i], userId, userContext);
+          allResults.push(...chunkResults);
           
-          // Small delay between chunks to avoid rate limits
+          // Count sources
+          chunkResults.forEach(r => {
+            if (r.confidence >= 0.95) learnedCount++;
+            else aiCount++;
+          });
+          
+          // Rate limit delay
           if (i < chunks.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Slightly longer delay for Gemini
+            await new Promise(resolve => setTimeout(resolve, 500));
           }
         } catch (chunkError) {
-          console.error(`Error processing chunk ${i + 1}:`, chunkError);
-          // Add fallback categories for failed chunk
-          const fallbackCategories = chunk.map(() => 'Uncategorized');
-          allCategories.push(...fallbackCategories);
+          console.error(`Chunk ${i + 1} error:`, chunkError);
+          allResults.push(...chunks[i].map(() => ({ category: 'Uncategorized', confidence: 0.3 })));
         }
       }
       
-      console.log(`Chunked batch processing completed: ${allCategories.length} total categories`);
-      console.log('Final categories array (first 10):', allCategories.slice(0, 10));
+      console.log(`Complete: ${allResults.length} categorized (${learnedCount} learned, ${aiCount} AI)`);
       
       return new Response(JSON.stringify({ 
-        categories: allCategories,
-        source: 'gemini_ai_batch_chunked',
-        chunksProcessed: chunks.length,
-        debug: {
-          totalTransactions: body.descriptions.length,
-          totalCategories: allCategories.length,
-          sampleCategories: allCategories.slice(0, 10)
+        categories: allResults.map(r => r.category),
+        confidences: allResults.map(r => r.confidence),
+        results: allResults,
+        source: 'gemini_ai_with_learning',
+        stats: {
+          total: allResults.length,
+          learnedPatterns: learnedCount,
+          aiCategorized: aiCount,
+          lowConfidence: allResults.filter(r => r.confidence < 0.7).length
         }
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -392,75 +410,38 @@ serve(async (req) => {
       throw new Error('Description is required');
     }
 
-    const userCategories = await getUserCategories(body.userId || '');
-    const prompt = createEnhancedPrompt(body.description, userCategories, false);
-    const model = getNextModel();
-    
-    console.log(`Categorizing single transaction with Gemini model: ${model}`);
-    
-    const requestBody = {
-      contents: [{
-        parts: [{
-          text: prompt
-        }]
-      }],
-      generationConfig: {
-        temperature: 0.1,
-        topK: 1,
-        topP: 0.8,
-        maxOutputTokens: 50,
-      }
-    };
-
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody)
-    });
-
-    if (!response.ok) {
-      // Enhanced error logging for single transaction processing
-      let errorDetails = `HTTP ${response.status}: ${response.statusText}`;
-      try {
-        const errorBody = await response.text();
-        console.error('Gemini API Error Details (Single):', errorBody);
-        console.error('Failed transaction description:', body.description);
-        console.error('Model used:', model);
-        errorDetails += ` - ${errorBody}`;
-      } catch (parseError) {
-        console.error('Could not parse Gemini API error response (Single):', parseError);
-      }
-      throw new Error(`Gemini API error: ${errorDetails}`);
-    }
-
-    const data = await response.json();
-    const category = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-
-    if (category && userCategories.includes(category)) {
+    // Check learned patterns first
+    const learnedResult = await checkLearnedPatterns(userId, body.description);
+    if (learnedResult) {
       return new Response(JSON.stringify({ 
-        category,
-        source: 'gemini_ai',
-        model: model 
+        category: learnedResult.category,
+        confidence: learnedResult.confidence,
+        source: 'learned_pattern'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
+    // Fall back to AI
+    const userCategories = await getUserCategories(userId);
+    const aiResults = await processAIBatch([body.description], userCategories, userContext);
+    const result = aiResults[0] || { category: 'Uncategorized', confidence: 0.3 };
+
     return new Response(JSON.stringify({ 
-      category: 'Uncategorized',
-      source: 'fallback' 
+      category: result.category,
+      confidence: result.confidence,
+      source: 'gemini_ai'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
-    console.error('Error in categorize-transaction function:', error);
+    console.error('Categorization error:', error);
     return new Response(JSON.stringify({ 
       category: 'Uncategorized',
+      confidence: 0.3,
       source: 'error',
-      error: error.message 
+      error: (error as Error).message 
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

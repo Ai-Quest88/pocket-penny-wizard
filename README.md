@@ -243,6 +243,16 @@ npm run test:all
 
 See [`tests/README.md`](./tests/README.md) for detailed testing documentation.
 
+### Task Master MCP Setup
+
+1. The `.cursor/mcp.json` file is already configured in this repo with Task Master MCP using Cursor's built-in Claude Code models (no API keys required).
+2. In Cursor, open **Settings → MCP**, enable `task-master-ai`, and reload the AI pane so the server starts.
+3. In the Cursor chat pane, configure the models: "Change the main model to claude-code/sonnet; change research to claude-code/sonnet; change fallback to claude-code/sonnet."
+4. Initialize Task Master: "Initialize taskmaster-ai in my project"
+5. Test with a quick prompt (e.g. "Taskmaster, list open issues in this repo") to confirm it's working.
+
+**Note**: This setup uses Cursor's Claude Code models which don't require your own API keys. If you want to use other providers (OpenAI, Anthropic, etc.), you can add their API keys to the `env` section in `.cursor/mcp.json`.
+
 ## 🤝 Contributing
 
 1. Read the documentation in [`docs/`](./docs/) to understand the project
