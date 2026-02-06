@@ -173,13 +173,15 @@ export const SimpleUpload = ({ onComplete }: SimpleUploadProps) => {
         // Find category ID
         let categoryId = null;
         if (finalCategory && finalCategory !== 'Uncategorized') {
-          const { data: catData } = await supabase
+          const { data: catData, error: catError } = await supabase
             .from('categories')
             .select('id')
             .eq('user_id', session.user.id)
             .eq('name', finalCategory)
-            .single();
-          categoryId = catData?.id || null;
+            .maybeSingle();
+          if (!catError && catData) {
+            categoryId = catData.id;
+          }
         }
 
         transactionsToSave.push({
@@ -524,7 +526,6 @@ export const SimpleUpload = ({ onComplete }: SimpleUploadProps) => {
 
   return null;
 };
-
 
 
 
