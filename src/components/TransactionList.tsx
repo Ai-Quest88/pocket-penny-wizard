@@ -7,8 +7,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Card } from './ui/card';
 import { Skeleton } from './ui/skeleton';
+import { EmptyState } from './EmptyState';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 
 export interface Transaction {
   id: string;
@@ -45,6 +47,8 @@ interface TransactionListProps {
   initialCategoryFilter?: string | string[];
   filterCategory?: string | string[];
   onTransactionSelect?: (transaction: Transaction) => void;
+  /** When provided, empty state button calls this instead of navigating. Used on Transactions page to open upload dialog. */
+  onAddTransactionsClick?: () => void;
 }
 
 export const TransactionList: React.FC<TransactionListProps> = ({
@@ -54,12 +58,14 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   readOnly = false,
   initialCategoryFilter,
   filterCategory,
-  onTransactionSelect
+  onTransactionSelect,
+  onAddTransactionsClick,
 }) => {
   const { session } = useAuth();
   const { toast } = useToast();
   const { displayCurrency, setDisplayCurrency } = useCurrency();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [selectedTransactions, setSelectedTransactions] = useState<string[]>([]);
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
     searchTerm: "",
@@ -72,15 +78,13 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     if (!session?.user?.id) return [];
 
     try {
-      console.log('Fetching transactions for user:', session.user.id);
-      
       let query = supabase
         .from('transactions')
         .select(`
           *,
-          assets!fk_transactions_asset_account(name),
+          assets!transactions_asset_account_id_fkey(name),
           liabilities!transactions_liability_account_id_fkey(name),
-          categories(name)
+          categories!fk_transactions_category_id(name)
         `)
         .eq('user_id', session.user.id);
 
@@ -109,13 +113,11 @@ export const TransactionList: React.FC<TransactionListProps> = ({
        // Transform the data to include account names and map category data
       const transformedData = data?.map((transaction: any) => ({
         ...transaction,
-        category: transaction.categories?.name || 'Uncategorized', // Use category name from join
-        asset_account_name: transaction.assets?.name,
-        liability_account_name: transaction.liabilities?.name,
-        // The type field should already be included in the transaction data from the database
+        category: transaction.category_display_name || transaction.categories?.name || 'Uncategorized',
+        asset_account_name: transaction.asset_account_name || transaction.assets?.name,
+        liability_account_name: transaction.liability_account_name || transaction.liabilities?.name,
       })) || [];
 
-      console.log(`Fetched ${transformedData.length} transactions`);
       return transformedData;
     } catch (error) {
       console.error('Error fetching transactions:', error);
@@ -128,11 +130,14 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     }
   };
 
-  const { data: transactions = [], isLoading: loading, refetch } = useQuery({
+  const { data: fetchedTransactions = [], isLoading: fetchLoading, refetch } = useQuery({
     queryKey: ['transactions', session?.user?.id, accountId, entityId],
     queryFn: fetchTransactions,
     enabled: !!session?.user?.id,
   });
+
+  const transactions = fetchedTransactions;
+  const loading = fetchLoading;
 
   const handleTransactionUpdate = (updatedTransaction: Transaction) => {
     // Invalidate and refetch the transactions query
@@ -229,6 +234,28 @@ export const TransactionList: React.FC<TransactionListProps> = ({
           <Skeleton className="h-8 w-48" />
           <Skeleton className="h-64 w-full" />
         </div>
+      </Card>
+    );
+  }
+
+  if (filtered.length === 0) {
+    const isUncategorizedView = filterCategory === "Uncategorized" || (Array.isArray(filterCategory) && filterCategory.includes("Uncategorized"));
+    return (
+      <Card className="p-8">
+        {isUncategorizedView ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <p className="text-muted-foreground">All set – every transaction has a category.</p>
+          </div>
+        ) : (
+          <EmptyState
+            title="Your transaction history starts here"
+            description="Upload a bank statement or add a transaction to start tracking your spending."
+            primaryAction={{
+              label: "Import bank statement",
+              onClick: onAddTransactionsClick ?? (() => navigate("/transactions?openUpload=1")),
+            }}
+          />
+        )}
       </Card>
     );
   }

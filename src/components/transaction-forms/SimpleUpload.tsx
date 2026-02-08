@@ -48,6 +48,8 @@ export const SimpleUpload = ({ onComplete }: SimpleUploadProps) => {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<ProcessedTransaction[]>([]);
   const [fileName, setFileName] = useState('');
+  const [savedCount, setSavedCount] = useState(0);
+  const [categorizedCount, setCategorizedCount] = useState(0);
   
   const { session } = useAuth();
   const { accounts } = useAccounts();
@@ -225,14 +227,22 @@ export const SimpleUpload = ({ onComplete }: SimpleUploadProps) => {
       setProgressMessage('Complete!');
       setPhase('complete');
 
+      const count = inserted?.length ?? transactions.length;
+      const categorized = transactions.filter((t) => t.category && t.category !== "Uncategorized").length;
+      setSavedCount(count);
+      setCategorizedCount(categorized);
       toast({
-        title: "Upload Successful! 🎉",
-        description: `${inserted?.length || transactions.length} transactions saved. ${corrections.length > 0 ? `Learned ${corrections.length} new patterns.` : ''}`,
+        title: "Done",
+        description: categorized < count
+          ? `${count} transactions added. ${categorized} categorized. View list.`
+          : `${count} transactions added. View list.`,
       });
 
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['sidebar-transaction-count'] });
+      queryClient.invalidateQueries({ queryKey: ['transaction-count'] });
 
       // Auto-reset after delay
       setTimeout(() => {
@@ -241,7 +251,7 @@ export const SimpleUpload = ({ onComplete }: SimpleUploadProps) => {
         setFileName('');
         setSelectedAccountId(null);
         onComplete?.();
-      }, 2000);
+      }, 4000);
 
     } catch (error) {
       console.error('Save error:', error);
@@ -500,24 +510,47 @@ export const SimpleUpload = ({ onComplete }: SimpleUploadProps) => {
   }
 
   if (phase === 'saving' || phase === 'complete') {
+    const needsReview = savedCount - categorizedCount;
     return (
       <Card className="w-full max-w-4xl mx-auto">
         <CardContent className="py-12">
           <div className="flex flex-col items-center gap-6">
             {phase === 'saving' ? (
-              <Loader2 className="h-10 w-10 text-blue-600 animate-spin" />
+              <>
+                <Loader2 className="h-10 w-10 text-blue-600 animate-spin" />
+                <div className="text-center space-y-2">
+                  <h3 className="text-lg font-semibold">Saving transactions...</h3>
+                  <p className="text-sm text-muted-foreground">{progressMessage}</p>
+                </div>
+                <Progress value={progress} className="w-80" />
+              </>
             ) : (
-              <div className="p-4 bg-green-100 rounded-full">
-                <CheckCircle className="h-10 w-10 text-green-600" />
-              </div>
+              <>
+                <div className="p-4 bg-green-100 rounded-full">
+                  <CheckCircle className="h-10 w-10 text-green-600" />
+                </div>
+                <div className="text-center space-y-2">
+                  <h3 className="text-xl font-bold">
+                    {savedCount} transactions imported!
+                  </h3>
+                  <p className="text-sm text-muted-foreground max-w-md">
+                    Your spending is already being analyzed. Head to your dashboard to see the breakdown.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  {categorizedCount > 0 && (
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                      {categorizedCount} categorized
+                    </Badge>
+                  )}
+                  {needsReview > 0 && (
+                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                      {needsReview} need review
+                    </Badge>
+                  )}
+                </div>
+              </>
             )}
-            <div className="text-center space-y-2">
-              <h3 className="text-lg font-semibold">
-                {phase === 'saving' ? 'Saving transactions...' : 'Upload Complete!'}
-              </h3>
-              <p className="text-sm text-muted-foreground">{progressMessage}</p>
-            </div>
-            <Progress value={progress} className="w-80" />
           </div>
         </CardContent>
       </Card>

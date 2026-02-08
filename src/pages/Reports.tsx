@@ -1,6 +1,6 @@
-
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { EmptyState } from "@/components/EmptyState"
 import { NetWorthReport } from "@/components/reports/NetWorthReport"
 import { AssetsReport } from "@/components/reports/AssetsReport"
 import { LiabilitiesReport } from "@/components/reports/LiabilitiesReport"
@@ -9,12 +9,28 @@ import { CashFlowReport } from "@/components/reports/CashFlowReport"
 import { TrendsReport } from "@/components/reports/TrendsReport"
 import { TimelineReport } from "@/components/reports/TimelineReport"
 import { DigestReport } from "@/components/reports/DigestReport"
-import { useLocation } from "react-router-dom"
+import { useLocation, useNavigate } from "react-router-dom"
 import { useEffect, useState } from "react"
-
+import { useQuery } from "@tanstack/react-query"
+import { useAuth } from "@/contexts/AuthContext"
+import { supabase } from "@/integrations/supabase/client"
 export default function Reports() {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { session } = useAuth()
   const [activeTab, setActiveTab] = useState("net-worth")
+
+  const { data: transactionCount = 0 } = useQuery({
+    queryKey: ["reports-transaction-count", session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return 0
+      const { count } = await supabase.from("transactions").select("*", { count: "exact", head: true }).eq("user_id", session.user.id)
+      return count ?? 0
+    },
+    enabled: !!session?.user?.id,
+  })
+
+  const hasData = transactionCount > 0
 
   useEffect(() => {
     // Set active tab based on current route
@@ -37,10 +53,17 @@ export default function Reports() {
     <div className="p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         <header className="space-y-2">
-          <h1 className="text-3xl font-bold text-text">Financial Reports</h1>
-          <p className="text-text-muted">Comprehensive analysis of your financial position and performance</p>
+          <h1 className="text-3xl font-bold text-text">Reports</h1>
+          <p className="text-text-muted">Spending and income over time</p>
         </header>
 
+        {!hasData ? (
+          <EmptyState
+            title="Your reports are waiting"
+            description="Once you add transactions, you'll see spending breakdowns, cash flow trends, and more."
+            primaryAction={{ label: "Import bank statement", onClick: () => navigate("/transactions?openUpload=1") }}
+          />
+        ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="net-worth">Net Worth</TabsTrigger>
@@ -97,6 +120,7 @@ export default function Reports() {
             </Card>
           </TabsContent>
         </Tabs>
+        )}
       </div>
     </div>
   )

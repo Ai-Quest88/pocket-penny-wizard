@@ -8,7 +8,7 @@ import { CurrencyProvider } from "./contexts/CurrencyContext"
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "./components/AppSidebar"
 import { Button } from "@/components/ui/button"
-import { User, LogOut, Settings as SettingsIcon, Bell, HelpCircle } from "lucide-react"
+import { User, LogOut, Settings as SettingsIcon, Bell } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import {
   DropdownMenu,
@@ -38,6 +38,7 @@ import AuthCallback from "./pages/AuthCallback"
 import Entities from "./pages/Entities"
 import Households from "./pages/Households"
 import CFO from "./pages/CFO"
+import { useAutoSetup } from "./hooks/useAutoSetup"
 
 
 
@@ -46,9 +47,19 @@ const queryClient = new QueryClient()
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuth()
-  
+  const { isSetupComplete, isSettingUp } = useAutoSetup()
+
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />
+  }
+
+  if (isSettingUp || !isSetupComplete) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-3">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
+        <p className="text-sm text-muted-foreground">Setting up your account...</p>
+      </div>
+    )
   }
 
   return <>{children}</>
@@ -107,10 +118,6 @@ const UserMenu = () => {
             <DropdownMenuItem onClick={() => navigate('/settings')}>
               <SettingsIcon className="mr-2 h-4 w-4" />
               <span>Settings</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <HelpCircle className="mr-2 h-4 w-4" />
-              <span>Help & Support</span>
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
@@ -188,6 +195,7 @@ const AppRoutes = () => {
                 <Routes>
                   <Route path="dashboard" element={<Dashboard />} />
                   <Route path="transactions" element={<Transactions />} />
+                  <Route path="transactions/import" element={<Navigate to="/transactions?openUpload=1" replace />} />
                   <Route path="transactions/uncategorized" element={<UncategorizedTransactions />} />
                   <Route path="transactions/transfers" element={<TransferTransactions />} />
 
@@ -222,7 +230,6 @@ const AppRoutes = () => {
 };
 
 const App = () => {
-  console.log("App component rendering");
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
