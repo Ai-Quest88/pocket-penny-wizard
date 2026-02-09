@@ -1,9 +1,19 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+
+// Local session type (replaces Supabase Session)
+interface Session {
+  access_token: string;
+  user: {
+    id: string;
+    email: string;
+    full_name?: string;
+    [key: string]: any;
+  };
+}
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -23,10 +33,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    console.log("AuthProvider: Starting auth check");
-    // Check active sessions and set the initial state
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log("AuthProvider: Session check complete", !!session);
       setSession(session);
       setIsAuthenticated(!!session);
       setIsLoading(false);
@@ -70,10 +77,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const loginWithGoogle = async () => {
     try {
-      console.log('Current origin:', window.location.origin);
-      console.log('Full redirect URL:', `${window.location.origin}/auth/callback`);
-      
-      // Try without the redirectTo option to use Supabase default
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google'
       });
@@ -82,8 +85,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.error('Supabase OAuth error:', error);
         throw error;
       }
-      
-      console.log('OAuth initiation successful, redirecting to Google...');
     } catch (error: any) {
       console.error('Google login error:', error);
       toast({

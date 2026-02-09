@@ -1,5 +1,5 @@
 
-import { BarChart2, CreditCard, DollarSign, Home, Settings, Users, Wallet, List, Activity, ArrowLeftRight, ChevronDown, ChevronRight, Building2, Brain, Landmark } from "lucide-react"
+import { BarChart2, CreditCard, DollarSign, Home, Settings, Users, Wallet, List, Activity, ArrowLeftRight, ChevronDown, Building2, Brain, Landmark } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -13,7 +13,6 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Link, useLocation } from "react-router-dom"
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
@@ -26,8 +25,6 @@ export function AppSidebar() {
   const [isTransactionsOpen, setIsTransactionsOpen] = useState(
     location.pathname.startsWith("/transactions")
   )
-  const [isMoreOpen, setIsMoreOpen] = useState(false)
-
   const { data: transactionCount = 0 } = useQuery({
     queryKey: ["sidebar-transaction-count", session?.user?.id],
     queryFn: async () => {
@@ -108,17 +105,11 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        {transactionCount > 0 && <Collapsible open={isMoreOpen} onOpenChange={setIsMoreOpen} className="group/collapsible">
+        {transactionCount > 0 && (
           <SidebarGroup>
-            <CollapsibleTrigger asChild>
-              <SidebarGroupLabel className="flex items-center gap-2 cursor-pointer hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md py-2 px-2 text-xs text-muted-foreground">
-                <ChevronRight className={`h-4 w-4 transition-transform ${isMoreOpen ? "rotate-90" : ""}`} />
-                More
-              </SidebarGroupLabel>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <SidebarGroupContent>
-                <SidebarMenu>
+            <SidebarGroupLabel className="text-xs text-muted-foreground">More</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
                       <Link to="/entities" className="flex items-center gap-2" data-active={location.pathname === "/entities"} data-testid="sidebar-entities-link">
@@ -164,9 +155,8 @@ export function AppSidebar() {
                   </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
-            </CollapsibleContent>
           </SidebarGroup>
-        </Collapsible>}
+        )}
       </SidebarContent>
     </Sidebar>
   )

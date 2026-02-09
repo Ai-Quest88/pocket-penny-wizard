@@ -61,15 +61,11 @@ describe('CSV Parser', () => {
     })
 
     it('should handle malformed CSV gracefully', () => {
+      // Rows with fewer than 3 columns are rejected as insufficient for a transaction
       const csvData = 'Date,Description,Amount\n2024-01-01,Test Transaction'
       const result = parseCSV(csvData)
       
-      expect(result).toHaveLength(1)
-      expect(result[0]).toEqual({
-        Date: '2024-01-01',
-        Description: 'Test Transaction',
-        Amount: undefined
-      })
+      expect(result).toHaveLength(0)
     })
   })
 
@@ -269,7 +265,9 @@ describe('CSV Parser', () => {
         '2024-01-01',
         '01/01/2024',
         '1/1/2024',
-        '2024-12-31'
+        '2024-12-31',
+        '15-01-2024',   // DD-MM-YYYY with dashes
+        '01.01.2024',   // DD.MM.YYYY with dots
       ]
       
       validDates.forEach(date => {
@@ -305,6 +303,93 @@ describe('CSV Parser', () => {
         const result = validateTransactionData(transaction)
         expect(result.isValid).toBe(true)
       })
+    })
+
+    it('should accept any valid 3-letter currency code', () => {
+      const validCurrencies = ['AUD', 'NZD', 'INR', 'SGD', 'HKD', 'MYR', 'THB', 'KRW']
+      
+      validCurrencies.forEach(currency => {
+        const transaction = {
+          date: '2024-01-01',
+          description: 'Test Transaction',
+          amount: '100.00',
+          currency
+        }
+        const result = validateTransactionData(transaction)
+        expect(result.isValid).toBe(true)
+      })
+    })
+
+    it('should reject non-3-letter currency codes', () => {
+      const invalidCurrencies = ['AUSD', 'AU', 'A', '123', 'au1']
+      
+      invalidCurrencies.forEach(currency => {
+        const transaction = {
+          date: '2024-01-01',
+          description: 'Test Transaction',
+          amount: '100.00',
+          currency
+        }
+        const result = validateTransactionData(transaction)
+        expect(result.isValid).toBe(false)
+        expect(result.errors).toContain('Invalid currency code')
+      })
+    })
+  })
+
+  describe('parseCSV - Australian bank formats', () => {
+    it('should parse DD/MM/YYYY dates correctly', () => {
+      const csvData = 'Date,Description,Amount\n15/01/2024,Woolworths,-85.50'
+      const result = parseCSV(csvData)
+      
+      expect(result).toHaveLength(1)
+      expect(result[0].Date).toBe('2024-01-15')
+    })
+
+    it('should parse DD-MM-YYYY dates with dashes', () => {
+      const csvData = 'Date,Description,Amount\n15-01-2024,Coles Supermarket,-65.20'
+      const result = parseCSV(csvData)
+      
+      expect(result).toHaveLength(1)
+      expect(result[0].Date).toBe('2024-01-15')
+    })
+
+    it('should handle negative amounts', () => {
+      const csvData = 'Date,Description,Amount\n2024-01-01,Expense,-50.00'
+      const result = parseCSV(csvData)
+      
+      expect(result).toHaveLength(1)
+      expect(result[0].Amount).toBe('-50.00')
+    })
+
+    it('should handle parenthesized negative amounts', () => {
+      const csvData = 'Date,Description,Amount\n2024-01-01,Bank Fee,(25.00)'
+      const result = parseCSV(csvData)
+      
+      expect(result).toHaveLength(1)
+      expect(result[0].Amount).toBe('-25.00')
+    })
+
+    it('should handle amounts with currency symbols', () => {
+      const csvData = 'Date,Description,Amount\n2024-01-01,Purchase,$150.00'
+      const result = parseCSV(csvData)
+      
+      expect(result).toHaveLength(1)
+      expect(result[0].Amount).toBe('150.00')
+    })
+
+    it('should handle multi-row Australian bank CSV', () => {
+      const csvData = `Date,Description,Amount
+15/01/2024,WOOLWORTHS TOWN HALL,-85.50
+16/01/2024,SALARY PAYMENT,3500.00
+17/01/2024,LINKT TOLL,-4.20
+18/01/2024,COLES EXPRESS,-42.10`
+      
+      const result = parseCSV(csvData)
+      expect(result).toHaveLength(4)
+      expect(result[0].Description).toBe('WOOLWORTHS TOWN HALL')
+      expect(result[1].Amount).toBe('3500.00')
+      expect(result[2].Date).toBe('2024-01-17')
     })
   })
 })

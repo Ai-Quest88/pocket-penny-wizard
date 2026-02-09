@@ -291,10 +291,10 @@ export const EntityManager = () => {
     editEntityMutation.mutate({ entityId, updatedEntity });
   };
 
-  // Check if entity can be deleted (has no associated assets/transactions)
+  // Check if entity can be deleted (has no associated assets/liabilities/accounts)
   const checkEntityDeletability = async (entityId: string): Promise<{ canDelete: boolean; reason?: string; blockingAssets?: Array<{ id: string; name: string; type: string }> }> => {
     try {
-      // Check if entity has associated assets with full details
+      // Check associated assets
       const { data: assets, error: assetsError } = await supabase
         .from('assets')
         .select('id, name, type')
@@ -302,11 +302,38 @@ export const EntityManager = () => {
 
       if (assetsError) throw assetsError;
 
-      if (assets && assets.length > 0) {
+      // Check associated liabilities
+      const { data: liabilities, error: liabilitiesError } = await supabase
+        .from('liabilities')
+        .select('id, name, type')
+        .eq('entity_id', entityId);
+
+      if (liabilitiesError) throw liabilitiesError;
+
+      // Check associated accounts
+      const { data: accounts, error: accountsError } = await supabase
+        .from('accounts')
+        .select('id, name, type')
+        .eq('entity_id', entityId);
+
+      if (accountsError) throw accountsError;
+
+      const blockingItems = [
+        ...(assets || []).map(a => ({ ...a, type: `Asset: ${a.type}` })),
+        ...(liabilities || []).map(l => ({ ...l, type: `Liability: ${l.type}` })),
+        ...(accounts || []).map(a => ({ ...a, type: `Account: ${a.type}` })),
+      ];
+
+      if (blockingItems.length > 0) {
+        const parts = [];
+        if (assets && assets.length > 0) parts.push(`${assets.length} asset${assets.length > 1 ? 's' : ''}`);
+        if (liabilities && liabilities.length > 0) parts.push(`${liabilities.length} liabilit${liabilities.length > 1 ? 'ies' : 'y'}`);
+        if (accounts && accounts.length > 0) parts.push(`${accounts.length} account${accounts.length > 1 ? 's' : ''}`);
+
         return { 
           canDelete: false, 
-          reason: `This entity has ${assets.length} associated asset${assets.length > 1 ? 's' : ''}. Please delete or transfer the assets first.`,
-          blockingAssets: assets
+          reason: `This entity has ${parts.join(', ')}. Please delete or transfer them first.`,
+          blockingAssets: blockingItems
         };
       }
 

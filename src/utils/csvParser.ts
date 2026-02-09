@@ -33,7 +33,7 @@ const parseDate = (dateStr: string): string | null => {
   const cleanDate = dateStr.trim().replace(/"/g, '');
   
   // Try YYYY-MM-DD format first (ISO format) - prioritize this format
-  const isoMatch = cleanDate.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+  const isoMatch = cleanDate.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
   if (isoMatch) {
     const [, year, month, day] = isoMatch;
     const yearNum = parseInt(year);
@@ -50,8 +50,8 @@ const parseDate = (dateStr: string): string | null => {
     }
   }
 
-  // Try DD/MM/YYYY format (Australian/UK format)
-  const ddmmyyyyMatch = cleanDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  // Try DD/MM/YYYY or DD-MM-YYYY format (Australian/UK format)
+  const ddmmyyyyMatch = cleanDate.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})$/);
   if (ddmmyyyyMatch) {
     const [, day, month, year] = ddmmyyyyMatch;
     const dayNum = parseInt(day);
@@ -69,7 +69,7 @@ const parseDate = (dateStr: string): string | null => {
   }
 
   // Try MM/DD/YYYY format (US format) as last resort
-  const mmddyyyyMatch = cleanDate.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  const mmddyyyyMatch = cleanDate.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
   if (mmddyyyyMatch) {
     const [, month, day, year] = mmddyyyyMatch;
     const dayNum = parseInt(day);
@@ -91,8 +91,16 @@ const parseDate = (dateStr: string): string | null => {
 const parseAmount = (amountStr: string): string | null => {
   if (!amountStr || amountStr.trim() === '') return null;
   
-  // Remove quotes, commas, extra spaces, and any currency symbols
-  const cleanAmount = amountStr.trim().replace(/[",+\s]/g, '');
+  let cleanAmount = amountStr.trim();
+  
+  // Handle parenthesized negatives: (123.45) -> -123.45
+  const parenMatch = cleanAmount.match(/^\((.+)\)$/);
+  if (parenMatch) {
+    cleanAmount = '-' + parenMatch[1];
+  }
+  
+  // Remove quotes, commas, extra spaces, currency symbols ($, £, €, etc.)
+  cleanAmount = cleanAmount.replace(/[",$£€¥₹+\s]/g, '');
   const amount = parseFloat(cleanAmount);
   
   return isNaN(amount) ? null : cleanAmount;
@@ -347,7 +355,7 @@ const parseCSVInternal = (content: string): ParseResult => {
     };
   }
 
-  // Detect currency from content - default to AUD for Australian data
+  // Detect currency from content - default to AUD (Australian-first product)
   const detectedCurrency = detectCurrency(content) || 'AUD';
 
   // Parse first row to check for headers
@@ -584,13 +592,17 @@ export const parseExcelFile = async (
   const csvString = XLSX.utils.sheet_to_csv(worksheet);
   const result = parseCSVInternal(csvString);
   
-  if (result.errors.length > 0) {
+  if (result.errors && result.errors.length > 0 && (!result.transactions || result.transactions.length === 0)) {
     throw new Error(`Excel parsing errors: ${result.errors.map(e => e.message).join(', ')}`);
+  }
+  
+  if (!result.transactions || result.transactions.length === 0) {
+    throw new Error('No valid transactions found in Excel file');
   }
   
   return result.transactions.map(tx => ({
     date: tx.date,
-    amount: parseFloat(tx.amount),
+    amount: parseFloat(tx.amount) || 0,
     description: tx.description,
     category: tx.category,
     currency: tx.currency || defaultCurrency,
@@ -682,10 +694,10 @@ export const validateTransactionData = (transaction: { Date?: string; Descriptio
     }
   }
   
-  // Validate currency (optional)
+  // Validate currency (optional) — accept any 3-letter ISO 4217 code
   if (currency && currency.trim() !== '') {
-    const validCurrencies = ['USD', 'EUR', 'GBP', 'AUD', 'CAD', 'JPY', 'CHF', 'CNY'];
-    if (!validCurrencies.includes(currency.toUpperCase())) {
+    const trimmedCurrency = currency.trim().toUpperCase();
+    if (!/^[A-Z]{3}$/.test(trimmedCurrency)) {
       errors.push('Invalid currency code');
     }
   }

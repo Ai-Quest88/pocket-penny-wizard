@@ -58,7 +58,7 @@ export const validateEmail = (email: string): { isValid: boolean; message: strin
 
 export const validatePhone = (phone: string): { isValid: boolean; message: string } => {
   if (!phone) return { isValid: true, message: '' };
-  const phoneRegex = /^[\+]?[\d\s\-\(\)]{10,}$/;
+  const phoneRegex = /^[+]?[\d\s\-()]{10,}$/;
   return {
     isValid: phoneRegex.test(phone),
     message: phoneRegex.test(phone) ? '' : 'Please enter a valid phone number'

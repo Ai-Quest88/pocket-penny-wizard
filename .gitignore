@@ -67,3 +67,29 @@ videos/
 dist/
 dist-ssr/
 *.local
+
+dev-debug.log
+# Dependency directories
+# Environment variables
+.env
+.vscode
+# OS specific
+
+# Task files
+# tasks.json
+# tasks/ 
+
+# Server
+server/node_modules/
+server/dist/
+server/.env
+
+# Taskmaster local files
+.taskmaster/config.json
+.taskmaster/state.json
+.taskmaster/tasks/
+.taskmaster/templates/
+
+# Cursor IDE local files
+.cursor/commands/
+.cursor/rules/

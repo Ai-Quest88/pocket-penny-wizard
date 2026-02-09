@@ -2,9 +2,13 @@
 import { DashboardCard } from "@/components/DashboardCard"
 import { AssetsList } from "@/components/assets-liabilities/AssetsList"
 import { AddAssetDialog } from "@/components/assets-liabilities/AddAssetDialog"
+import { EmptyState } from "@/components/EmptyState"
+import { Button } from "@/components/ui/button"
+import { Plus } from "lucide-react"
 import { Asset } from "@/types/assets-liabilities"
 import { useToast } from "@/components/ui/use-toast"
 import { supabase } from "@/integrations/supabase/client"
+import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useAuth } from "@/contexts/AuthContext"
 import { useAccountBalances } from "@/hooks/useAccountBalances"
@@ -16,6 +20,7 @@ const Assets = () => {
   const queryClient = useQueryClient()
   const { session } = useAuth()
   const { formatCurrency, displayCurrency, convertAmount } = useCurrency()
+  const [addDialogOpen, setAddDialogOpen] = useState(false)
   
   // First fetch account balances (these are converted to display currency)
   const { data: accountBalances = [], isLoading: balancesLoading } = useAccountBalances()
@@ -262,9 +267,23 @@ const Assets = () => {
             <h1 className="text-3xl font-bold" data-testid="assets-page-title">Assets</h1>
             <p className="text-muted-foreground" data-testid="assets-page-subtitle">Manage your assets • All amounts in {displayCurrency}</p>
           </div>
-          <AddAssetDialog onAddAsset={handleAddAsset} />
+          <div className="flex items-center gap-2">
+            <AddAssetDialog onAddAsset={handleAddAsset} open={addDialogOpen} onOpenChange={setAddDialogOpen} />
+            <Button onClick={() => setAddDialogOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Add account
+            </Button>
+          </div>
         </header>
 
+        {transformedAssets.length === 0 ? (
+          <EmptyState
+            title="No accounts yet"
+            description="Add your first account to track balances."
+            primaryAction={{ label: "Add account", onClick: () => setAddDialogOpen(true) }}
+          />
+        ) : (
+        <>
         <DashboardCard
           title="Total Assets"
           value={formatCurrency(totalAssets)}
@@ -277,6 +296,8 @@ const Assets = () => {
           onEditAsset={handleEditAsset} 
           onDeleteAsset={handleDeleteAsset}
         />
+        </>
+        )}
       </div>
     </div>
   )

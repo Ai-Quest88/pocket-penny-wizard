@@ -236,7 +236,7 @@ export function DuplicateDetector({ onClose }: DuplicateDetectorProps) {
             <AlertTriangle className="h-12 w-12 text-green-500 mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">No Duplicates Found!</h3>
             <p className="text-muted-foreground">
-              Your transactions look clean. No duplicate transactions were detected at the {confidenceFilter} confidence level.
+              No duplicates found. You're good.
             </p>
           </CardContent>
         </Card>

@@ -4,6 +4,8 @@ import {
   getFinancialYearForDate,
   isDateInFinancialYear,
   getFinancialYearName,
+  getCurrencyForCountry,
+  getAvailableCountries,
   SUPPORTED_COUNTRIES
 } from './financialYearUtils'
 
@@ -164,6 +166,48 @@ describe('Financial Year Utils', () => {
       }
       
       expect(getFinancialYearName(fy)).toBe('FY25')
+    })
+  })
+
+  describe('getCurrencyForCountry', () => {
+    it('should return AUD for AU', () => {
+      expect(getCurrencyForCountry('AU')).toBe('AUD')
+    })
+
+    it('should return INR for IN', () => {
+      expect(getCurrencyForCountry('IN')).toBe('INR')
+    })
+
+    it('should return USD for US', () => {
+      expect(getCurrencyForCountry('US')).toBe('USD')
+    })
+
+    it('should default to AUD for unknown country code', () => {
+      expect(getCurrencyForCountry('XX')).toBe('AUD')
+    })
+
+    it('should default to AUD for freeform text like "Australia"', () => {
+      // This was a known bug - freeform text doesn't match country codes
+      expect(getCurrencyForCountry('Australia')).toBe('AUD')
+    })
+  })
+
+  describe('getAvailableCountries', () => {
+    it('should return all supported countries', () => {
+      const countries = getAvailableCountries()
+      expect(countries.length).toBeGreaterThanOrEqual(3)
+    })
+
+    it('should include Australia', () => {
+      const countries = getAvailableCountries()
+      expect(countries.find(c => c.countryCode === 'AU')).toBeDefined()
+    })
+
+    it('should include currency codes', () => {
+      const countries = getAvailableCountries()
+      countries.forEach(c => {
+        expect(c.currencyCode).toBeTruthy()
+      })
     })
   })
 

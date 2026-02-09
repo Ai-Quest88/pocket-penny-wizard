@@ -16,12 +16,6 @@ const TransferTransactions = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Redirect to login if not authenticated
-  if (!isAuthenticated) {
-    navigate('/login');
-    return null;
-  }
-
   // Query specifically for transfer transactions
   const { data: transferStats } = useQuery({
     queryKey: ['transfer-stats', session?.user?.id],
@@ -165,6 +159,12 @@ const TransferTransactions = () => {
       });
     }
   };
+
+  // Redirect to login if not authenticated (after all hooks)
+  if (!isAuthenticated) {
+    navigate('/login');
+    return null;
+  }
 
   return (
     <div className="p-8 min-h-screen bg-background">

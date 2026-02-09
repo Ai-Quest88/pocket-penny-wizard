@@ -18,7 +18,8 @@ export const actions = {
         { action: 'click', selector: elements.entity.typeSelect },
         { action: 'click', selector: elements.entity.companyOption },
         { action: 'fill', selector: elements.entity.nameInput, value: name },
-        { action: 'fill', selector: elements.entity.countryInput, value: country },
+        { action: 'click', selector: elements.entity.countryInput },
+        { action: 'click', selector: `[role="option"]:has-text("${country}")` },
         { action: 'fill', selector: elements.entity.registrationInput, value: registration },
         { action: 'fill', selector: elements.entity.dateInput, value: date },
         { action: 'click', selector: elements.entity.submitButton },
@@ -30,7 +31,8 @@ export const actions = {
         { action: 'click', selector: elements.entity.typeSelect },
         { action: 'click', selector: elements.entity.individualOption },
         { action: 'fill', selector: elements.entity.nameInput, value: name },
-        { action: 'fill', selector: elements.entity.countryInput, value: country },
+        { action: 'click', selector: elements.entity.countryInput },
+        { action: 'click', selector: `[role="option"]:has-text("${country}")` },
         { action: 'click', selector: elements.entity.submitButton },
         { action: 'wait', timeout: 2000 }
     ],
@@ -105,13 +107,13 @@ export const actions = {
         { action: 'click', selector: elements.transaction.submitButton },
         { action: 'wait', timeout: 1000 }
     ],
-  // Edit entity
-  editEntity: (oldName, newName) => [
-    { action: 'click', selector: `[data-testid="edit-entity-button-${oldName}"]` },
-    { action: 'fill', selector: elements.entity.nameInput, value: newName },
-    { action: 'click', selector: elements.entity.updateButton },
-    { action: 'wait', timeout: 2000 }
-  ],
+    // Edit entity
+    editEntity: (oldName, newName) => [
+        { action: 'click', selector: `[data-testid="edit-entity-button-${oldName}"]` },
+        { action: 'fill', selector: elements.entity.nameInput, value: newName },
+        { action: 'click', selector: elements.entity.updateButton },
+        { action: 'wait', timeout: 2000 }
+    ],
     // Delete entity
     deleteEntity: (name) => [
         { action: 'click', selector: `[data-testid="delete-entity-button-${name}"]` },

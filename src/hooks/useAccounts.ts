@@ -25,51 +25,21 @@ export const useAccounts = () => {
     queryFn: async () => {
       if (!session?.user) return [];
 
-      // Fetch assets
+      // Fetch assets (Express returns flat fields with entity_name from JOIN)
       const { data: assets, error: assetsError } = await supabase
         .from('assets')
-        .select(`
-          id,
-          name,
-          type,
-          category,
-          account_number,
-          value,
-          currency,
-          entity_id,
-          entities!inner(
-            id,
-            name,
-            type
-          )
-        `)
-        .eq('user_id', session.user.id)
-        .order('name');
+        .select('*')
+        .eq('user_id', session.user.id);
 
       if (assetsError) {
         console.error('Error fetching cash accounts:', assetsError);
       }
 
-      // Fetch liabilities (debt accounts)
+      // Fetch liabilities
       const { data: liabilities, error: liabilitiesError } = await supabase
         .from('liabilities')
-        .select(`
-          id,
-          name,
-          type,
-          category,
-          account_number,
-          amount,
-          currency,
-          entity_id,
-          entities!inner(
-            id,
-            name,
-            type
-          )
-        `)
-        .eq('user_id', session.user.id)
-        .order('name');
+        .select('*')
+        .eq('user_id', session.user.id);
 
       if (liabilitiesError) {
         console.error('Error fetching liability accounts:', liabilitiesError);
@@ -79,16 +49,16 @@ export const useAccounts = () => {
 
       // Transform assets into account format with calculated balances
       if (assets) {
-        assets.forEach(asset => {
-          const calculatedBalance = calculatedBalances.find(b => b.accountId === asset.id);
+        (assets as any[]).forEach((asset: any) => {
+          const calculatedBalance = calculatedBalances.find((b: any) => b.accountId === asset.id);
           allAccounts.push({
             id: asset.id,
             name: asset.name,
-            type: asset.category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
-            entityName: asset.entities?.[0]?.name || 'Unknown',
-            entityType: asset.entities?.[0]?.type || 'Unknown',
+            type: (asset.category || asset.type || 'bank_account').replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+            entityName: asset.entity_name || 'Unknown',
+            entityType: 'individual',
             accountNumber: asset.account_number,
-            currentBalance: calculatedBalance?.calculatedBalance || Number(asset.value),
+            currentBalance: calculatedBalance?.calculatedBalance || Number(asset.value) || 0,
             accountType: 'asset',
             currency: asset.currency,
           });
@@ -97,16 +67,16 @@ export const useAccounts = () => {
 
       // Transform liabilities into account format with calculated balances
       if (liabilities) {
-        liabilities.forEach(liability => {
-          const calculatedBalance = calculatedBalances.find(b => b.accountId === liability.id);
+        (liabilities as any[]).forEach((liability: any) => {
+          const calculatedBalance = calculatedBalances.find((b: any) => b.accountId === liability.id);
           allAccounts.push({
             id: liability.id,
             name: liability.name,
-            type: liability.category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
-            entityName: liability.entities?.[0]?.name || 'Unknown',
-            entityType: liability.entities?.[0]?.type || 'Unknown',
+            type: (liability.category || liability.type || 'credit_card').replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+            entityName: liability.entity_name || 'Unknown',
+            entityType: 'individual',
             accountNumber: liability.account_number,
-            currentBalance: calculatedBalance?.calculatedBalance || Number(liability.amount),
+            currentBalance: calculatedBalance?.calculatedBalance || Number(liability.amount) || 0,
             accountType: 'liability',
             currency: liability.currency,
           });

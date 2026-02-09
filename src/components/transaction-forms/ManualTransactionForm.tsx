@@ -23,7 +23,7 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
   const [amount, setAmount] = useState('')
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState('')
-  const [currency, setCurrency] = useState('USD')
+  const [currency, setCurrency] = useState('AUD')
   const [account, setAccount] = useState('')
   const [comment, setComment] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -38,50 +38,22 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
     queryFn: async () => {
       if (!session?.user) return [];
 
-      // Fetch cash assets (savings, checking accounts)
+      // Fetch all assets (Express returns flat fields with entity_name from JOIN)
       const { data: assets, error: assetsError } = await supabase
         .from('assets')
-        .select(`
-          id,
-          name,
-          type,
-          category,
-          account_number,
-          value,
-          entities!inner(
-            id,
-            name,
-            type
-          )
-        `)
-        .eq('user_id', session.user.id)
-        .eq('type', 'cash')
-        .in('category', ['savings_account', 'checking_account', 'term_deposit'])
-        .order('name');
+        .select('*')
+        .eq('user_id', session.user.id);
 
       if (assetsError) {
         console.error('Error fetching assets:', assetsError);
         throw assetsError;
       }
 
-      // Fetch liabilities (credit cards, loans)
+      // Fetch all liabilities
       const { data: liabilities, error: liabilitiesError } = await supabase
         .from('liabilities')
-        .select(`
-          id,
-          name,
-          type,
-          category,
-          account_number,
-          amount,
-          entities!inner(
-            id,
-            name,
-            type
-          )
-        `)
-        .eq('user_id', session.user.id)
-        .order('name');
+        .select('*')
+        .eq('user_id', session.user.id);
 
       if (liabilitiesError) {
         console.error('Error fetching liabilities:', liabilitiesError);
@@ -90,23 +62,23 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
 
       // Combine assets and liabilities into one list
       const combinedAccounts = [
-        ...assets.map(asset => ({
+        ...(assets || []).map((asset: any) => ({
           id: asset.id,
           name: asset.name,
-          type: asset.category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          type: (asset.category || asset.type || 'bank_account').replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
           accountNumber: asset.account_number,
-          entityName: asset.entities?.[0]?.name || 'Unknown',
-          entityType: asset.entities?.[0]?.type || 'Unknown',
+          entityName: asset.entity_name || 'Unknown',
+          entityType: 'individual',
           accountType: 'asset' as const,
           displayType: 'Asset'
         })),
-        ...liabilities.map(liability => ({
+        ...(liabilities || []).map((liability: any) => ({
           id: liability.id,
           name: liability.name,
-          type: liability.category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          type: (liability.category || liability.type || 'credit_card').replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
           accountNumber: liability.account_number,
-          entityName: liability.entities?.[0]?.name || 'Unknown',
-          entityType: liability.entities?.[0]?.type || 'Unknown',
+          entityName: liability.entity_name || 'Unknown',
+          entityType: 'individual',
           accountType: 'liability' as const,
           displayType: 'Liability'
         }))
@@ -176,7 +148,6 @@ export const ManualTransactionForm: React.FC<ManualTransactionFormProps> = ({ on
         throw error;
       }
 
-      console.log("Successfully inserted transaction:", data);
 
       toast({
         title: "Success",

@@ -118,7 +118,6 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
   // Reset form when transaction changes
   useEffect(() => {
     if (transaction) {
-      console.log("Resetting form with transaction:", transaction);
       form.reset({
         category: transaction.category || "",
         comment: transaction.comment || "",
@@ -171,7 +170,6 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
   const onSubmit = async (data: EditTransactionData) => {
     if (!transaction) return;
 
-    console.log("Submitting transaction update:", data);
     setIsSubmitting(true);
 
     try {
@@ -186,7 +184,6 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
             transaction.description,
             transaction.amount
           );
-          console.log('Learning captured for category correction');
         } catch (learningError) {
           console.error('Failed to capture learning:', learningError);
           // Don't fail the update if learning capture fails
@@ -195,8 +192,6 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
 
       // Check if category was changed and user wants to create rule
       if (data.category !== transaction.category && transaction.description && data.createRule) {
-        console.log(`Category changed from "${transaction.category}" to "${data.category}" for "${transaction.description}"`);
-        
         // Add the user-defined rule for future similar transactions
         // Legacy rule creation removed
         
@@ -231,8 +226,6 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
         updated_at: new Date().toISOString(),
       };
 
-      console.log("Update data:", updateData);
-
       const { data: result, error } = await supabase
         .from('transactions')
         .update(updateData)
@@ -244,7 +237,6 @@ export const EditTransactionDialog = ({ transaction, open, onOpenChange }: EditT
         throw error;
       }
 
-      console.log("Transaction updated successfully:", result);
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
 
       toast({

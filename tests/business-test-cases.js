@@ -1,5 +1,13 @@
 import { actions } from './actions.js';
 import { businessOperations } from './business-operations.js';
+
+const timestamp = Date.now();
+const companyName = `Test Company ${timestamp}`;
+const updatedCompanyName = `Updated Test Company ${timestamp}`;
+const individualName = `John Smith ${timestamp}`;
+const myAppName = `My Company ${timestamp}`;
+const myBusinessName = `My Business ${timestamp}`;
+
 export const businessTestCases = {
     entityLifecycle: {
         name: "Entity Creation Test",
@@ -7,8 +15,8 @@ export const businessTestCases = {
         steps: [
             ...actions.login(),
             ...actions.navigateTo('entities'),
-            ...actions.createCompanyEntity('Test Company'),
-            ...businessOperations.verifyEntityExists('Test Company')
+            ...actions.createCompanyEntity(companyName),
+            ...businessOperations.verifyEntityExists(companyName)
         ]
     },
     entityCrud: {
@@ -17,14 +25,14 @@ export const businessTestCases = {
         steps: [
             ...actions.login(),
             ...actions.navigateTo('entities'),
-            ...actions.createCompanyEntity('Test Company'),
-            ...businessOperations.verifyEntityExists('Test Company'),
+            ...actions.createCompanyEntity(companyName),
+            ...businessOperations.verifyEntityExists(companyName),
             // Edit entity
-            ...actions.editEntity('Test Company', 'Updated Test Company'),
-            ...businessOperations.verifyEntityExists('Updated Test Company'),
+            ...actions.editEntity(companyName, updatedCompanyName),
+            ...businessOperations.verifyEntityExists(updatedCompanyName),
             // Delete entity
-            ...actions.deleteEntity('Updated Test Company'),
-            ...businessOperations.verifyEntityDeleted('Updated Test Company')
+            ...actions.deleteEntity(updatedCompanyName),
+            ...businessOperations.verifyEntityDeleted(updatedCompanyName)
         ]
     },
     financialSetup: {
@@ -33,13 +41,13 @@ export const businessTestCases = {
         steps: [
             ...actions.login(),
             ...actions.navigateTo('entities'),
-            ...actions.createCompanyEntity('Test Company'),
+            ...actions.createCompanyEntity(companyName),
             ...actions.navigateTo('assets'),
-            ...actions.createBankAccount('Savings Account', '10000'),
+            ...actions.createBankAccount('Savings Account', '10000', 'AUD', companyName),
             ...actions.navigateTo('liabilities'),
-            ...actions.createMortgage('Home Loan', '300000'),
+            ...actions.createMortgage('Home Loan', '300000', 'AUD', companyName),
             ...actions.navigateTo('entities'),
-            ...businessOperations.verifyEntityExists('Test Company'),
+            ...businessOperations.verifyEntityExists(companyName),
             ...actions.navigateTo('assets'),
             ...businessOperations.verifyAssetExists('Savings Account'),
             ...actions.navigateTo('liabilities'),
@@ -94,15 +102,15 @@ export const businessTestCases = {
         steps: [
             ...actions.login(),
             ...actions.navigateTo('entities'),
-            ...actions.createCompanyEntity('My Business'),
+            ...actions.createCompanyEntity(myBusinessName),
             ...actions.navigateTo('assets'),
-            ...actions.createBankAccount('Business Account', '50000'),
+            ...actions.createBankAccount('Business Account', '50000', 'AUD', myBusinessName),
             ...actions.navigateTo('liabilities'),
-            ...actions.createMortgage('Office Mortgage', '400000'),
+            ...actions.createMortgage('Office Mortgage', '400000', 'AUD', myBusinessName),
             ...actions.navigateTo('transactions'),
             ...actions.createTransaction('Initial Investment', '10000'),
             // Verify onboarding complete
-            ...businessOperations.verifyEntityExists('My Business'),
+            ...businessOperations.verifyEntityExists(myBusinessName),
             ...businessOperations.verifyAssetExists('Business Account'),
             ...businessOperations.verifyLiabilityExists('Office Mortgage'),
             ...businessOperations.verifyTransactionExists('Initial Investment')
@@ -114,17 +122,17 @@ export const businessTestCases = {
         steps: [
             ...actions.login(),
             ...actions.navigateTo('entities'),
-            ...actions.createCompanyEntity('My Company'),
-            ...actions.createIndividualEntity('John Smith'),
+            ...actions.createCompanyEntity(myAppName),
+            ...actions.createIndividualEntity(individualName),
             ...actions.navigateTo('assets'),
-            ...actions.createBankAccount('Company Account', '100000'),
-            ...actions.createBankAccount('Personal Account', '50000'),
+            ...actions.createBankAccount('Company Account', '100000', 'AUD', myAppName),
+            ...actions.createBankAccount('Personal Account', '50000', 'AUD', individualName),
             ...actions.navigateTo('liabilities'),
-            ...actions.createMortgage('Company Mortgage', '500000'),
-            ...actions.createCreditCard('Personal Credit Card', '5000'),
+            ...actions.createMortgage('Company Mortgage', '500000', 'AUD', myAppName),
+            ...actions.createCreditCard('Personal Credit Card', '5000', 'AUD', individualName),
             // Verify multi-entity setup
-            ...businessOperations.verifyEntityExists('My Company'),
-            ...businessOperations.verifyEntityExists('John Smith'),
+            ...businessOperations.verifyEntityExists(myAppName),
+            ...businessOperations.verifyEntityExists(individualName),
             ...businessOperations.verifyAssetExists('Company Account'),
             ...businessOperations.verifyAssetExists('Personal Account'),
             ...businessOperations.verifyLiabilityExists('Company Mortgage'),

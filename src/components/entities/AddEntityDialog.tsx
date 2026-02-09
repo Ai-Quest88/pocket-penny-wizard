@@ -26,6 +26,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { SecureEntityForm } from "./SecureEntityForm";
+import { getAvailableCountries } from "@/utils/financialYearUtils";
 
 
 interface AddEntityDialogProps {
@@ -270,12 +271,21 @@ export function AddEntityDialog({ onAddEntity }: AddEntityDialogProps) {
 
           <div className="space-y-2">
             <Label>Country of Residence</Label>
-            <Input
+            <Select
               value={formData.countryOfResidence}
-              onChange={(e) => setFormData({ ...formData, countryOfResidence: e.target.value })}
-              placeholder="Country"
-              data-testid="entity-country-input"
-            />
+              onValueChange={(value: string) => setFormData({ ...formData, countryOfResidence: value })}
+            >
+              <SelectTrigger data-testid="entity-country-input">
+                <SelectValue placeholder="Select country" />
+              </SelectTrigger>
+              <SelectContent>
+                {getAvailableCountries().map((country) => (
+                  <SelectItem key={country.countryCode} value={country.countryCode}>
+                    {country.countryName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
 

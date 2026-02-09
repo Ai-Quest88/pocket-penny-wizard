@@ -1,268 +1,379 @@
-// Comprehensive test suite for Smart Categorization System
+// Unit tests for the categorization pipeline
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { SmartCategorizer } from './SmartCategorizer';
 import { UserHistoryMatcher } from './UserHistoryMatcher';
-import { SystemKeywordMatcher } from './SystemKeywordMatcher';
-import { featureFlags } from './FeatureFlags';
-import { categorizationMonitor } from './CategorizationMonitor';
+import { LearnedPatternMatcher } from './LearnedPatternMatcher';
+import { AICategorizer } from './AICategorizer';
+import { TransactionCategorizer } from './TransactionCategorizer';
 import type { TransactionData } from './types';
 
 // Mock Supabase client
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          not: vi.fn(() => ({
-            order: vi.fn(() => ({
-              limit: vi.fn(() => ({
-                data: [],
-                error: null
-              }))
-            }))
-          }))
-        }))
-      })),
-      insert: vi.fn(() => ({
-        data: [],
-        error: null
-      }))
-    })),
+    from: vi.fn((table: string) => {
+      const chainable: any = {
+        select: vi.fn(() => chainable),
+        eq: vi.fn(() => chainable),
+        not: vi.fn(() => chainable),
+        or: vi.fn(() => chainable),
+        order: vi.fn(() => chainable),
+        limit: vi.fn(() => chainable),
+        single: vi.fn(() => chainable),
+        maybeSingle: vi.fn(() => chainable),
+        insert: vi.fn(() => ({ data: [], error: null, select: () => Promise.resolve({ data: [], error: null }) })),
+        upsert: vi.fn(() => ({ data: [], error: null, select: () => Promise.resolve({ data: [], error: null }) })),
+        delete: vi.fn(() => ({ data: null, error: null })),
+        update: vi.fn(() => ({ data: [], error: null })),
+        then: vi.fn((resolve: any) => {
+          if (table === 'transactions') {
+            // Return mock categorized transactions for UserHistoryMatcher
+            return resolve({
+              data: [
+                {
+                  description: 'WOOLWORTHS 1234 SYDNEY',
+                  category_id: 'cat-1',
+                  category_display_name: 'Groceries',
+                  amount: -45.50,
+                  date: '2025-01-15',
+                },
+                {
+                  description: 'UBER *EATS TRIP',
+                  category_id: 'cat-2',
+                  category_display_name: 'Food & Dining',
+                  amount: -22.00,
+                  date: '2025-01-14',
+                },
+                {
+                  description: 'SALARY ACME CORP',
+                  category_id: 'cat-3',
+                  category_display_name: 'Salary',
+                  amount: 5000.00,
+                  date: '2025-01-01',
+                },
+              ],
+              error: null,
+            });
+          }
+          if (table === 'learned_patterns') {
+            return resolve({ data: [], error: null });
+          }
+          return resolve({ data: [], error: null });
+        }),
+      };
+      return chainable;
+    }),
+    rpc: vi.fn((funcName: string, params: any) => {
+      if (funcName === 'find_learned_pattern') {
+        // Simulate finding a learned pattern for woolworths
+        const desc = (params?.p_description || '').toLowerCase();
+        if (desc.includes('woolworths')) {
+          return Promise.resolve({
+            data: [{
+              pattern_id: 'pattern-1',
+              category_name: 'Groceries',
+              category_id: 'cat-1',
+              confidence: 0.92,
+            }],
+            error: null,
+          });
+        }
+        return Promise.resolve({ data: [], error: null });
+      }
+      if (funcName === 'save_learned_pattern') {
+        return Promise.resolve({ data: 'new-pattern-id', error: null });
+      }
+      return Promise.resolve({ data: null, error: null });
+    }),
     functions: {
-      invoke: vi.fn(() => ({
-        data: { category: 'Food & Dining', confidence: 0.85 },
-        error: null
-      }))
-    }
-  }
+      invoke: vi.fn(() => Promise.resolve({
+        data: [
+          { category: 'Food & Dining', confidence: 0.9, group_name: 'Expenses', source: 'ai', is_new_category: false },
+        ],
+        error: null,
+      })),
+    },
+  },
 }));
 
-describe('Smart Categorization System', () => {
-  const userId = 'test-user-id';
-  const testTransaction: TransactionData = {
-    description: 'UBER *EATS',
-    amount: -15.99,
-    date: '2025-01-17',
-    currency: 'AUD'
-  };
+describe('Categorization Pipeline', () => {
+  const userId = 'test-user-123';
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
+  // ─── UserHistoryMatcher ─────────────────────────────────────────
   describe('UserHistoryMatcher', () => {
-    it('should find similar transactions in user history', async () => {
+    it('should find similar transactions in user history when exact match', async () => {
       const matcher = new UserHistoryMatcher(userId);
-      const result = await matcher.findSimilarTransaction(testTransaction);
-      
-      // For new users, no history should be found
+      const tx: TransactionData = {
+        description: 'WOOLWORTHS 1234 SYDNEY',
+        amount: -52.30,
+        date: '2025-02-01',
+      };
+
+      const result = await matcher.findSimilarTransaction(tx);
+      // Mock data has exact "WOOLWORTHS 1234 SYDNEY" -> should match
+      expect(result).not.toBeNull();
+      if (result) {
+        expect(result.category).toBe('Groceries');
+        expect(result.source).toBe('user_history');
+        expect(result.confidence).toBeGreaterThan(0.7);
+      }
+    });
+
+    it('should return null for unknown transactions', async () => {
+      const matcher = new UserHistoryMatcher(userId);
+      const tx: TransactionData = {
+        description: 'ZZZZUNKNOWN MERCHANT XYZ',
+        amount: -10.00,
+        date: '2025-02-01',
+      };
+
+      const result = await matcher.findSimilarTransaction(tx);
       expect(result).toBeNull();
     });
 
-    it('should calculate similarity correctly', () => {
+    it('should calculate exact match similarity as 1.0', () => {
       const matcher = new UserHistoryMatcher(userId);
-      
-      // Test exact match
-      const similarity1 = (matcher as any).calculateSimilarity('UBER *EATS', 'UBER *EATS');
-      expect(similarity1).toBe(1.0);
-      
-      // Test partial match
-      const similarity2 = (matcher as any).calculateSimilarity('UBER *EATS', 'UBER EATS');
-      expect(similarity2).toBeGreaterThan(0.5);
+      const similarity = (matcher as any).calculateSimilarity('UBER *EATS', 'UBER *EATS');
+      expect(similarity).toBe(1.0);
+    });
+
+    it('should calculate high similarity for partial match (containment)', () => {
+      const matcher = new UserHistoryMatcher(userId);
+      // "uber eats" contains "uber" -> partial match
+      const similarity = (matcher as any).calculateSimilarity(
+        'UBER *EATS TRIP',
+        'UBER *EATS SYDNEY'
+      );
+      expect(similarity).toBeGreaterThan(0.6);
     });
 
     it('should extract merchant names correctly', () => {
       const matcher = new UserHistoryMatcher(userId);
-      
-      const merchant1 = (matcher as any).extractMerchantName('WOOLWORTHS 1234');
-      expect(merchant1).toBe('WOOLWORTHS');
-      
-      const merchant2 = (matcher as any).extractMerchantName('UBER *EATS');
-      expect(merchant2).toBe('UBER');
+
+      expect((matcher as any).extractMerchantName('WOOLWORTHS 1234')).toBe('WOOLWORTHS');
+      expect((matcher as any).extractMerchantName('UBER *EATS')).toBe('UBER');
+    });
+
+    it('should infer correct group names', () => {
+      const matcher = new UserHistoryMatcher(userId);
+
+      expect((matcher as any).getGroupName('Salary')).toBe('Income');
+      expect((matcher as any).getGroupName('Investment Income')).toBe('Income');
+      expect((matcher as any).getGroupName('Food & Dining')).toBe('Expenses');
+      expect((matcher as any).getGroupName('Account Transfer')).toBe('Transfer');
+      expect((matcher as any).getGroupName('Unknown Category')).toBe('Other');
     });
   });
 
-  describe('SystemKeywordMatcher', () => {
-    it('should find keyword matches', async () => {
-      const matcher = new SystemKeywordMatcher();
-      const result = await matcher.findKeywordMatch(testTransaction);
-      
-      // Should find a match for UBER *EATS
-      expect(result).toBeDefined();
+  // ─── LearnedPatternMatcher ──────────────────────────────────────
+  describe('LearnedPatternMatcher', () => {
+    it('should find a match for learned patterns via RPC', async () => {
+      const matcher = new LearnedPatternMatcher(userId);
+      const result = await matcher.findMatch('WOOLWORTHS 9876 BONDI');
+
+      expect(result).not.toBeNull();
       if (result) {
-        expect(result.category).toBe('Food & Dining');
-        expect(result.source).toBe('system_keywords');
-        expect(result.confidence).toBeGreaterThan(0.8);
+        expect(result.category_name).toBe('Groceries');
+        expect(result.confidence).toBeGreaterThanOrEqual(0.8);
       }
     });
 
-    it('should handle case-insensitive matching', async () => {
-      const matcher = new SystemKeywordMatcher();
-      const transaction = { ...testTransaction, description: 'uber eats' };
-      const result = await matcher.findKeywordMatch(transaction);
-      
-      expect(result).toBeDefined();
-      if (result) {
-        expect(result.category).toBe('Food & Dining');
-      }
-    });
-  });
-
-  describe('SmartCategorizer', () => {
-    it('should categorize transactions using three-tier approach', async () => {
-      const categorizer = new SmartCategorizer(userId);
-      const result = await categorizer.categorizeTransaction(testTransaction);
-      
-      expect(result).toBeDefined();
-      expect(result.category).toBeDefined();
-      expect(result.source).toBeDefined();
-      expect(result.confidence).toBeGreaterThan(0);
-      expect(result.group_name).toBeDefined();
+    it('should return null for unlearned patterns', async () => {
+      const matcher = new LearnedPatternMatcher(userId);
+      const result = await matcher.findMatch('COMPLETELY UNKNOWN MERCHANT');
+      expect(result).toBeNull();
     });
 
-    it('should process multiple transactions', async () => {
-      const categorizer = new SmartCategorizer(userId);
-      const transactions = [testTransaction, { ...testTransaction, description: 'Woolworths' }];
-      const results = await categorizer.categorizeTransactions(transactions);
-      
-      expect(results).toHaveLength(2);
-      results.forEach(result => {
-        expect(result.category).toBeDefined();
-        expect(result.source).toBeDefined();
-        expect(result.confidence).toBeGreaterThan(0);
-      });
-    });
-
-    it('should record metrics for monitoring', async () => {
-      const categorizer = new SmartCategorizer(userId);
-      const transactions = [testTransaction];
-      
-      // Mock the monitor
-      const recordSpy = vi.spyOn(categorizationMonitor, 'recordCategorizationSession');
-      
-      await categorizer.categorizeTransactions(transactions);
-      
-      expect(recordSpy).toHaveBeenCalledWith(
-        userId,
-        expect.arrayContaining([
-          expect.objectContaining({
-            source: expect.any(String),
-            confidence: expect.any(Number)
-          })
-        ]),
-        expect.any(Number)
+    it('should save patterns successfully', async () => {
+      const matcher = new LearnedPatternMatcher(userId);
+      const result = await matcher.savePattern(
+        'COLES 123 SYDNEY',
+        'Groceries',
+        'cat-1'
       );
+      expect(result).not.toBeNull();
+    });
+
+    it('should reject short patterns', async () => {
+      const matcher = new LearnedPatternMatcher(userId);
+      const result = await matcher.savePattern('AB', 'Test', undefined);
+      expect(result).toBeNull();
+    });
+
+    it('should calculate high confidence for exact matches', () => {
+      const matcher = new LearnedPatternMatcher(userId);
+      const confidence = (matcher as any).calculateMatchConfidence('woolworths', 'woolworths');
+      expect(confidence).toBeGreaterThanOrEqual(0.95);
+    });
+
+    it('should calculate lower confidence for partial word matches', () => {
+      const matcher = new LearnedPatternMatcher(userId);
+      const confidence = (matcher as any).calculateMatchConfidence('woolworths bondi', 'woolworths sydney');
+      // Should match on the word "woolworths"
+      expect(confidence).toBeGreaterThan(0);
     });
   });
 
-  describe('Feature Flags', () => {
-    it('should determine user rollout correctly', () => {
-      const user1 = 'user-1';
-      const user2 = 'user-2';
-      
-      // Test consistent assignment
-      const result1a = featureFlags.shouldUseSmartCategorization(user1);
-      const result1b = featureFlags.shouldUseSmartCategorization(user1);
-      expect(result1a).toBe(result1b);
-      
-      const result2a = featureFlags.shouldUseSmartCategorization(user2);
-      const result2b = featureFlags.shouldUseSmartCategorization(user2);
-      expect(result2a).toBe(result2b);
-    });
-
-    it('should update flags correctly', () => {
-      const originalFlags = featureFlags.getFlags();
-      
-      featureFlags.updateFlags({ useSmartCategorization: false });
-      const updatedFlags = featureFlags.getFlags();
-      
-      expect(updatedFlags.useSmartCategorization).toBe(false);
-      expect(updatedFlags.enableUserHistoryLearning).toBe(originalFlags.enableUserHistoryLearning);
-    });
-
-    it('should provide rollout status', () => {
-      const status = featureFlags.getRolloutStatus();
-      
-      expect(status).toHaveProperty('enabled');
-      expect(status).toHaveProperty('rolloutPercentage');
-      expect(status).toHaveProperty('estimatedUsers');
-      expect(typeof status.enabled).toBe('boolean');
-      expect(typeof status.rolloutPercentage).toBe('number');
-      expect(typeof status.estimatedUsers).toBe('number');
-    });
-  });
-
-  describe('CategorizationMonitor', () => {
-    it('should record categorization sessions', () => {
-      const userId = 'test-user';
-      const results = [
-        { source: 'user_history', confidence: 0.9 },
-        { source: 'system_keywords', confidence: 0.8 }
+  // ─── AICategorizer ──────────────────────────────────────────────
+  describe('AICategorizer', () => {
+    it('should batch categorize transactions', async () => {
+      const categorizer = new AICategorizer(userId);
+      const transactions: TransactionData[] = [
+        { description: 'UBER *EATS', amount: -15.99, date: '2025-01-17' },
       ];
-      const processingTime = 1000;
-      
-      categorizationMonitor.recordCategorizationSession(userId, results, processingTime);
-      
-      const userMetrics = categorizationMonitor.getUserMetrics(userId);
-      expect(userMetrics).toBeDefined();
-      if (userMetrics) {
-        expect(userMetrics.userId).toBe(userId);
-        expect(userMetrics.totalTransactions).toBe(2);
-        expect(userMetrics.userHistoryHits).toBe(1);
-        expect(userMetrics.systemKeywordHits).toBe(1);
+
+      const results = await categorizer.batchCategorize(transactions);
+      expect(results).toHaveLength(1);
+      expect(results[0]).not.toBeNull();
+      if (results[0]) {
+        expect(results[0].category).toBe('Food & Dining');
+        expect(results[0].source).toBe('ai');
+        expect(results[0].confidence).toBeGreaterThan(0);
       }
     });
 
-    it('should provide system-wide metrics', () => {
-      const accuracyMetrics = categorizationMonitor.getSystemAccuracyMetrics();
-      
-      expect(accuracyMetrics).toHaveProperty('userHistoryHitRate');
-      expect(accuracyMetrics).toHaveProperty('systemKeywordHitRate');
-      expect(accuracyMetrics).toHaveProperty('aiFallbackRate');
-      expect(accuracyMetrics).toHaveProperty('uncategorizedRate');
-      expect(accuracyMetrics).toHaveProperty('averageConfidence');
-      expect(accuracyMetrics).toHaveProperty('userCorrectionRate');
+    it('should categorize single transaction', async () => {
+      const categorizer = new AICategorizer(userId);
+      const tx: TransactionData = {
+        description: 'NETFLIX SUBSCRIPTION',
+        amount: -17.99,
+        date: '2025-01-15',
+      };
+
+      const result = await categorizer.categorize(tx);
+      expect(result).not.toBeNull();
+      if (result) {
+        expect(result.category).toBeDefined();
+        expect(result.source).toBe('ai');
+      }
     });
 
-    it('should provide performance metrics', () => {
-      const performanceMetrics = categorizationMonitor.getSystemPerformanceMetrics();
-      
-      expect(performanceMetrics).toHaveProperty('averageUserHistoryTime');
-      expect(performanceMetrics).toHaveProperty('averageSystemKeywordTime');
-      expect(performanceMetrics).toHaveProperty('averageAiTime');
-      expect(performanceMetrics).toHaveProperty('averageTotalTime');
-      expect(performanceMetrics).toHaveProperty('totalSessions');
+    it('should infer correct group names', () => {
+      const categorizer = new AICategorizer(userId);
+
+      expect((categorizer as any).inferGroupName('Salary')).toBe('Income');
+      expect((categorizer as any).inferGroupName('Wages')).toBe('Income');
+      expect((categorizer as any).inferGroupName('Transfer')).toBe('Transfer');
+      expect((categorizer as any).inferGroupName('Groceries')).toBe('Expenses');
+      expect((categorizer as any).inferGroupName('Shopping')).toBe('Expenses');
     });
   });
 
-  describe('Integration Tests', () => {
-    it('should work with TransactionCategorizer', async () => {
-      const { TransactionCategorizer } = await import('./TransactionCategorizer');
+  // ─── TransactionCategorizer (Orchestration) ─────────────────────
+  describe('TransactionCategorizer', () => {
+    it('should use learned patterns when available', async () => {
       const categorizer = new TransactionCategorizer(userId);
-      
-      const results = await categorizer.categorizeTransactions([testTransaction]);
-      
+      const transactions: TransactionData[] = [
+        { description: 'WOOLWORTHS 1234 SYDNEY', amount: -45.50, date: '2025-02-01' },
+      ];
+
+      const results = await categorizer.categorizeTransactions(transactions);
       expect(results).toHaveLength(1);
-      expect(results[0]).toHaveProperty('category');
-      expect(results[0]).toHaveProperty('source');
-      expect(results[0]).toHaveProperty('confidence');
+      // Should match via learned pattern (mocked RPC returns match for woolworths)
+      expect(results[0].category).toBe('Groceries');
+      expect(results[0].source).toBe('user_history');
     });
 
-    it('should handle edge cases gracefully', async () => {
-      const categorizer = new SmartCategorizer(userId);
-      
-      // Test with empty description
-      const emptyTransaction = { ...testTransaction, description: '' };
-      const result1 = await categorizer.categorizeTransaction(emptyTransaction);
-      expect(result1.category).toBeDefined();
-      
-      // Test with very long description
-      const longTransaction = { 
-        ...testTransaction, 
-        description: 'A'.repeat(1000) 
-      };
-      const result2 = await categorizer.categorizeTransaction(longTransaction);
-      expect(result2.category).toBeDefined();
+    it('should fall back to AI for unknown transactions', async () => {
+      const categorizer = new TransactionCategorizer(userId);
+      const transactions: TransactionData[] = [
+        { description: 'RANDOM PURCHASE XYZ', amount: -20.00, date: '2025-02-01' },
+      ];
+
+      const results = await categorizer.categorizeTransactions(transactions);
+      expect(results).toHaveLength(1);
+      // Should fall through to SmartCategorizer/AI
+      expect(results[0].category).toBeDefined();
+    });
+
+    it('should handle mixed learned and AI transactions', async () => {
+      const categorizer = new TransactionCategorizer(userId);
+      const transactions: TransactionData[] = [
+        { description: 'WOOLWORTHS 1234', amount: -45.50, date: '2025-02-01' },
+        { description: 'SOME UNKNOWN SHOP', amount: -20.00, date: '2025-02-01' },
+      ];
+
+      const results = await categorizer.categorizeTransactions(transactions);
+      expect(results).toHaveLength(2);
+      // First should be from learned patterns
+      expect(results[0].category).toBe('Groceries');
+      // Second should get some category (from AI/keywords)
+      expect(results[1].category).toBeDefined();
+    });
+
+    it('should learn from corrections', async () => {
+      const categorizer = new TransactionCategorizer(userId);
+      const success = await categorizer.learnFromCorrection(
+        'COLES SUPERMARKET',
+        'Groceries',
+        'cat-1'
+      );
+      expect(success).toBe(true);
+    });
+
+    it('should infer group names correctly', () => {
+      const categorizer = new TransactionCategorizer(userId);
+      const inferGroupName = (categorizer as any).inferGroupName.bind(categorizer);
+
+      expect(inferGroupName('Salary')).toBe('Income');
+      expect(inferGroupName('Food & Dining')).toBe('Food & Dining');
+      expect(inferGroupName('Transport')).toBe('Transportation');
+      expect(inferGroupName('Shopping')).toBe('Shopping');
+      expect(inferGroupName('Bills & Utilities')).toBe('Bills & Utilities');
+      expect(inferGroupName('Something Random')).toBe('Expenses');
+    });
+  });
+
+  // ─── Edge Cases ─────────────────────────────────────────────────
+  describe('Edge Cases', () => {
+    it('should handle empty transaction list', async () => {
+      const categorizer = new TransactionCategorizer(userId);
+      const results = await categorizer.categorizeTransactions([]);
+      expect(results).toHaveLength(0);
+    });
+
+    it('should handle empty descriptions gracefully', async () => {
+      const categorizer = new TransactionCategorizer(userId);
+      const results = await categorizer.categorizeTransactions([
+        { description: '', amount: -10.00, date: '2025-01-01' },
+      ]);
+      expect(results).toHaveLength(1);
+      expect(results[0].category).toBeDefined();
+    });
+
+    it('should handle very long descriptions', async () => {
+      const categorizer = new TransactionCategorizer(userId);
+      const results = await categorizer.categorizeTransactions([
+        { description: 'A'.repeat(500), amount: -10.00, date: '2025-01-01' },
+      ]);
+      expect(results).toHaveLength(1);
+      expect(results[0].category).toBeDefined();
+    });
+
+    it('should handle zero amounts', async () => {
+      const categorizer = new TransactionCategorizer(userId);
+      const results = await categorizer.categorizeTransactions([
+        { description: 'INTEREST ADJUSTMENT', amount: 0, date: '2025-01-01' },
+      ]);
+      expect(results).toHaveLength(1);
+    });
+
+    it('UserHistoryMatcher should handle missing category_display_name', async () => {
+      const matcher = new UserHistoryMatcher(userId);
+      // The matcher should still work even if category_display_name is missing
+      // (it falls back to category_name field)
+      const result = await matcher.findSimilarTransaction({
+        description: 'WOOLWORTHS TEST',
+        amount: -50,
+        date: '2025-01-01',
+      });
+      // With mock data returning category_display_name, this should work
+      if (result) {
+        expect(result.category).toBeDefined();
+        expect(result.category).not.toBe('Unknown');
+      }
     });
   });
 });

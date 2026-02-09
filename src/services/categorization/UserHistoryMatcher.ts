@@ -15,19 +15,11 @@ export class UserHistoryMatcher {
       console.log(`🧠 UserHistoryMatcher: Looking for similar transaction to "${transaction.description}"`);
       
       // Query user's transaction history for similar patterns
+      // Express returns flat fields including category_display_name from JOIN
       const { data, error } = await supabase
         .from('transactions')
-        .select(`
-          description,
-          category_id,
-          categories(name),
-          amount,
-          date,
-          categorization_source,
-          categorization_confidence
-        `)
+        .select('*')
         .eq('user_id', this.userId)
-        .not('category_id', 'is', null)
         .order('date', { ascending: false })
         .limit(100);
 
@@ -41,16 +33,21 @@ export class UserHistoryMatcher {
         return null;
       }
 
+      // Filter to only categorized transactions (client-side since Express doesn't support .not())
+      const categorized = data.filter((tx: any) => tx.category_id);
+      
       // Find similar descriptions using fuzzy matching
-      for (const historicalTx of data) {
+      for (const historicalTx of categorized) {
         const similarity = this.calculateSimilarity(
           transaction.description, 
           historicalTx.description
         );
         
         if (similarity > 0.7) {
-          const categories = historicalTx.categories as any;
-          const categoryName = categories?.name || 'Unknown';
+          // Express returns category_display_name (flat) or category_name, not nested categories object
+          const categoryName = (historicalTx as any).category_display_name 
+            || (historicalTx as any).category_name 
+            || 'Unknown';
           const result: CategoryDiscoveryResult = {
             category: categoryName,
             confidence: Math.min(similarity + 0.1, 0.95), // Boost confidence slightly

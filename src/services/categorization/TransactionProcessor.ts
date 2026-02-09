@@ -106,7 +106,7 @@ export class TransactionProcessor {
             category_id: categoryId,
             type: transactionType,
             currency: transaction.currency || 'AUD',
-            notes: transaction.comment,
+            comment: transaction.comment,
             user_id: this.userId,
             categorization_source: category.source,
             categorization_confidence: category.confidence,
@@ -114,7 +114,7 @@ export class TransactionProcessor {
           });
 
         if (error) {
-          console.error('🚨 Transaction insertion failed:', error);
+          console.error('🚨 Transaction insertion failed:', JSON.stringify(error));
           failed++;
         } else {
           success++;

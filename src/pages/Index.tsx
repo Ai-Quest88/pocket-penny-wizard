@@ -16,7 +16,7 @@ const Index = () => {
             <h1 className="text-3xl font-bold">Dashboard</h1>
             <p className="text-muted-foreground">Welcome back!</p>
           </div>
-          <Button onClick={() => navigate("/transactions/import")}>
+          <Button onClick={() => navigate("/transactions?openUpload=1")}>
             <PlusCircle className="w-4 h-4 mr-2" />
             Import Transactions
           </Button>

@@ -1,6 +1,9 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { TransactionData, CategoryDiscoveryResult } from './types';
 
+const MAX_RETRIES = 1;
+const RETRY_DELAY_MS = 1000;
+
 export class AICategorizer {
   private userId: string;
 
@@ -9,87 +12,129 @@ export class AICategorizer {
   }
 
   /**
-   * Batch categorize multiple transactions at once to avoid rate limits
+   * Batch categorize multiple transactions at once.
+   * Sends as {transactions: [{description}]} to match Express /api/ai/categorize shape.
+   * Express returns [{category, confidence, group_name, source, is_new_category}].
    */
   async batchCategorize(transactions: TransactionData[]): Promise<(CategoryDiscoveryResult | null)[]> {
     try {
-      console.log(`🤖 AICategorizer: Batch processing ${transactions.length} transactions`);
-      
-      // Get user context from transactions table
-      const userContext = await this.getUserContextFromTransactions();
-      
-      // Use the categorize-transaction edge function in batch mode
-      const { data, error } = await supabase.functions.invoke('categorize-transaction', {
-        body: { 
-          batchMode: true,
-          descriptions: transactions.map(t => t.description),
-          userId: this.userId,
-          userContext: userContext
-        }
-      });
+      console.log(`[AICategorizer] Batch processing ${transactions.length} transactions`);
 
-      if (!error && data?.categories && Array.isArray(data.categories)) {
-        console.log(`✅ AI batch categorization successful: ${data.categories.length} categories returned`);
-        
-        return data.categories.map((category: string) => ({
-          category: category,
-          confidence: 0.75,
-          is_new_category: true,
-          source: 'ai' as const,
-          group_name: this.getGroupName(category)
-        }));
+      // Get user context for better categorization
+      const userContext = await this.getUserContextFromTransactions();
+
+      // Shape the request to match Express /api/ai/categorize endpoint
+      const payload = {
+        transactions: transactions.map(t => ({
+          description: t.description,
+          amount: t.amount,
+          date: t.date,
+        })),
+        userContext,
+      };
+
+      const result = await this.invokeWithRetry(payload);
+      if (!result) {
+        console.warn('[AICategorizer] Batch failed after retries, returning nulls');
+        return transactions.map(() => null);
       }
 
-      console.error('❌ AI batch categorization failed:', error);
-      return transactions.map(() => null);
+      // Express returns an array of {category, confidence, group_name, source, is_new_category}
+      const categories: any[] = Array.isArray(result) ? result : [];
+      console.log(`[AICategorizer] Batch success: ${categories.length} categories returned`);
+
+      return transactions.map((_, i) => {
+        const cat = categories[i];
+        if (!cat?.category) return null;
+        return {
+          category: cat.category,
+          confidence: typeof cat.confidence === 'number' ? cat.confidence : 0.75,
+          is_new_category: cat.is_new_category ?? true,
+          source: 'ai' as const,
+          group_name: cat.group_name || this.inferGroupName(cat.category),
+        };
+      });
     } catch (error) {
-      console.error('AICategorizer batch error:', error);
+      console.error('[AICategorizer] Batch error:', error instanceof Error ? error.message : error);
       return transactions.map(() => null);
     }
   }
 
+  /**
+   * Categorize a single transaction.
+   */
   async categorize(transaction: TransactionData): Promise<CategoryDiscoveryResult | null> {
     try {
-      console.log(`🤖 AICategorizer: Processing "${transaction.description}"`);
-      
-      // Get user context from transactions table
+      console.log(`[AICategorizer] Processing "${transaction.description}"`);
+
       const userContext = await this.getUserContextFromTransactions();
-      
-      // Use the categorize-transaction edge function
-      const { data, error } = await supabase.functions.invoke('categorize-transaction', {
-        body: { 
-          batchMode: false,
+
+      const payload = {
+        transactions: [{
           description: transaction.description,
           amount: transaction.amount,
           date: transaction.date,
-          userId: this.userId,
-          userContext: userContext
-        }
-      });
+        }],
+        userContext,
+      };
 
-      if (!error && data?.category) {
-        console.log(`✅ AI categorization successful: ${data.category}`);
-        
-        return {
-          category: data.category,
-          confidence: data.confidence || 0.75,
-          is_new_category: true,
-          source: 'ai',
-          group_name: this.getGroupName(data.category)
-        };
+      const result = await this.invokeWithRetry(payload);
+      if (!result) {
+        console.warn(`[AICategorizer] Failed for "${transaction.description}" after retries`);
+        return null;
       }
 
-      console.error('❌ AI categorization failed:', error);
-      return null;
+      const categories: any[] = Array.isArray(result) ? result : [];
+      const cat = categories[0];
+      if (!cat?.category) return null;
+
+      console.log(`[AICategorizer] Success: "${transaction.description}" -> ${cat.category}`);
+      return {
+        category: cat.category,
+        confidence: typeof cat.confidence === 'number' ? cat.confidence : 0.75,
+        is_new_category: cat.is_new_category ?? true,
+        source: 'ai',
+        group_name: cat.group_name || this.inferGroupName(cat.category),
+      };
     } catch (error) {
-      console.error('AICategorizer error:', error);
+      console.error(`[AICategorizer] Error for "${transaction.description}":`, error instanceof Error ? error.message : error);
       return null;
     }
   }
 
+  /**
+   * Invoke the categorize-transaction function with retry logic.
+   * Returns the parsed response data or null on failure.
+   */
+  private async invokeWithRetry(payload: any, attempt = 0): Promise<any[] | null> {
+    const { data, error } = await supabase.functions.invoke('categorize-transaction', {
+      body: payload,
+    });
+
+    if (!error && data) {
+      // Express may return the array directly or wrapped
+      if (Array.isArray(data)) return data;
+      if (Array.isArray(data.categories)) return data.categories;
+      // Single result wrapped
+      if (data.category) return [data];
+      return data;
+    }
+
+    if (attempt < MAX_RETRIES) {
+      console.warn(`[AICategorizer] Attempt ${attempt + 1} failed, retrying in ${RETRY_DELAY_MS}ms...`, error?.message);
+      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+      return this.invokeWithRetry(payload, attempt + 1);
+    }
+
+    console.error(`[AICategorizer] All ${MAX_RETRIES + 1} attempts failed:`, error?.message);
+    return null;
+  }
+
+  /**
+   * Fetch user's most-used categories to provide context to the AI.
+   */
   private async getUserContextFromTransactions() {
     try {
-      // Get user's most used categories from transactions
       const { data, error } = await supabase
         .from('transactions')
         .select('category_id, categories(name)')
@@ -101,7 +146,6 @@ export class AICategorizer {
         return { mostUsedCategories: [] };
       }
 
-      // Count category usage
       const categoryCounts: Record<string, number> = {};
       data.forEach(tx => {
         const categories = tx.categories as any;
@@ -111,34 +155,33 @@ export class AICategorizer {
         }
       });
 
-      // Return most used categories
       const mostUsedCategories = Object.entries(categoryCounts)
-        .sort(([,a], [,b]) => b - a)
+        .sort(([, a], [, b]) => b - a)
         .slice(0, 10)
         .map(([category]) => category);
 
       return { mostUsedCategories };
     } catch (error) {
-      console.error('Error getting user context:', error);
+      console.error('[AICategorizer] Error getting user context:', error);
       return { mostUsedCategories: [] };
     }
   }
 
-  private getGroupName(categoryName: string): string {
-    const groupMapping: Record<string, string> = {
-      'Salary': 'Income',
-      'Investment Income': 'Income',
-      'Transportation': 'Expenses',
-      'Food & Dining': 'Expenses',
-      'Housing': 'Expenses',
-      'Healthcare': 'Expenses',
-      'Entertainment': 'Expenses',
-      'Account Transfer': 'Transfer',
-      'Telecommunications': 'Expenses',
-      'Shopping': 'Expenses',
-      'Other Expenses': 'Expenses'
-    };
-    
-    return groupMapping[categoryName] || 'Other';
+  /**
+   * Infer group name from category if the AI response doesn't include one.
+   */
+  private inferGroupName(categoryName: string): string {
+    const lower = categoryName.toLowerCase();
+
+    // Income indicators
+    if (/salary|wages|income|dividend|interest.*income|freelance|bonus|refund|reimbursement/.test(lower)) {
+      return 'Income';
+    }
+    // Transfer indicators
+    if (/transfer|tfr|xfer/.test(lower)) {
+      return 'Transfer';
+    }
+    // Everything else is likely an expense
+    return 'Expenses';
   }
 }

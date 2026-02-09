@@ -30,12 +30,18 @@ import { CURRENCIES } from "@/utils/currencyUtils"
 
 interface AddAssetDialogProps {
   onAddAsset: (asset: Omit<Asset, "id">) => void
+  /** When provided, dialog is controlled by parent (no trigger rendered). */
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
-export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
+export function AddAssetDialog({ onAddAsset, open: controlledOpen, onOpenChange: controlledOnOpenChange }: AddAssetDialogProps) {
   const { session } = useAuth()
   const { toast } = useToast()
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isControlled = controlledOpen !== undefined && controlledOnOpenChange != null
+  const open = isControlled ? controlledOpen : internalOpen
+  const setOpen = isControlled ? controlledOnOpenChange! : setInternalOpen
   const [selectedEntityId, setSelectedEntityId] = useState<string>("")
   const [openingBalanceDate, setOpeningBalanceDate] = useState<string>(
     new Date().toISOString().split('T')[0]
@@ -133,12 +139,14 @@ export function AddAssetDialog({ onAddAsset }: AddAssetDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="flex items-center gap-2" data-testid="add-asset-button">
-          <Plus className="h-4 w-4" />
-          Add Asset
-        </Button>
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          <Button className="flex items-center gap-2" data-testid="add-asset-button">
+            <Plus className="h-4 w-4" />
+            Add Asset
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-lg max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Add New Asset</DialogTitle>

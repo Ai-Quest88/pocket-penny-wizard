@@ -44,17 +44,11 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
   const [assetsResponse, liabilitiesResponse] = await Promise.all([
     supabase
       .from('assets')
-      .select(`
-        id, name, type, category, account_number, value, opening_balance, opening_balance_date, currency,
-        entities!inner(name, type)
-      `)
+      .select('*')
       .eq('user_id', userId),
     supabase
       .from('liabilities')
-      .select(`
-        id, name, type, category, account_number, amount, opening_balance, opening_balance_date, currency,
-        entities!inner(name, type)
-      `)
+      .select('*')
       .eq('user_id', userId)
   ]);
 
@@ -121,7 +115,7 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
     balances.push({
       accountId: asset.id,
       accountName: asset.name,
-      entityName: asset.entities?.[0]?.name || 'Unknown',
+      entityName: asset.entity_name || 'Unknown',
       accountType: 'asset',
       openingBalance,
       transactionSum,
@@ -180,7 +174,7 @@ export const calculateAccountBalances = async (userId: string): Promise<AccountB
     balances.push({
       accountId: liability.id,
       accountName: liability.name,
-      entityName: liability.entities?.[0]?.name || 'Unknown',
+      entityName: liability.entity_name || 'Unknown',
       accountType: 'liability',
       openingBalance,
       transactionSum,

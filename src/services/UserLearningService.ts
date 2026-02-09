@@ -159,7 +159,7 @@ export class UserLearningService {
     if (!description) return 'UNKNOWN';
 
     // Clean up description
-    let cleaned = description.toUpperCase()
+    const cleaned = description.toUpperCase()
       .replace(/[0-9]+/g, '') // Remove numbers
       .replace(/\*/g, ' ') // Replace * with space
       .replace(/\s+/g, ' ') // Collapse whitespace

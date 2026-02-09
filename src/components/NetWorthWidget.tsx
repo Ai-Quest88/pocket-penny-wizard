@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui/card"
-import { DollarSign, TrendingUp, TrendingDown } from "lucide-react"
+import { DollarSign } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { useAuth } from "@/contexts/AuthContext"
 import { useCurrency } from "@/contexts/CurrencyContext"
@@ -76,13 +76,6 @@ export function NetWorthWidget({ entityId }: NetWorthWidgetProps) {
   };
 
   const netWorth = netWorthData.totalAssets - netWorthData.totalLiabilities;
-  
-  // For demo purposes, assume 5% growth from previous period
-  const previousNetWorth = netWorth * 0.95;
-  const netWorthChange = previousNetWorth > 0 
-    ? ((netWorth - previousNetWorth) / previousNetWorth) * 100 
-    : 0;
-  const isPositiveChange = netWorthChange >= 0;
 
   if (isLoading) {
     return (
@@ -138,18 +131,6 @@ export function NetWorthWidget({ entityId }: NetWorthWidgetProps) {
             <span className="text-2xl font-bold">
               {formatCurrency(netWorth)}
             </span>
-            {netWorthChange !== 0 && (
-              <div className={`flex items-center ${isPositiveChange ? 'text-green-500' : 'text-red-500'}`}>
-                {isPositiveChange ? (
-                  <TrendingUp className="h-4 w-4" />
-                ) : (
-                  <TrendingDown className="h-4 w-4" />
-                )}
-                <span className="text-sm ml-1">
-                  {Math.abs(netWorthChange).toFixed(1)}%
-                </span>
-              </div>
-            )}
           </div>
         </div>
 

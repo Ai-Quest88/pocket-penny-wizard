@@ -124,7 +124,7 @@ export const isValidCategoryName = (name: string): boolean => {
   return typeof name === 'string' && 
          name.trim().length > 0 && 
          name.trim().length <= 100 &&
-         !/[<>\"'&]/.test(name); // Avoid potentially dangerous characters
+         !/[<>"'&]/.test(name); // Avoid potentially dangerous characters
 };
 
 /**
@@ -133,6 +133,6 @@ export const isValidCategoryName = (name: string): boolean => {
 export const normalizeCategoryName = (name: string): string => {
   return name.trim()
              .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-             .replace(/[<>\"'&]/g, '') // Remove dangerous characters
+             .replace(/[<>"'&]/g, '') // Remove dangerous characters
              .slice(0, 100); // Limit length
 };

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,6 +22,7 @@ import { Pencil, Info } from "lucide-react";
 import { IndividualEntity, BusinessEntity, EntityType } from "@/types/entities";
 import { useToast } from "@/hooks/use-toast";
 import { SecureEntityForm } from "./SecureEntityForm";
+import { getAvailableCountries } from "@/utils/financialYearUtils";
 
 interface EditEntityDialogProps {
   entity: IndividualEntity | BusinessEntity;
@@ -33,7 +34,7 @@ export function EditEntityDialog({ entity, onEditEntity }: EditEntityDialogProps
   const [open, setOpen] = useState(false);
   const [entityType, setEntityType] = useState<EntityType>(entity.type);
 
-  const [formData, setFormData] = useState({
+  const getInitialFormData = () => ({
     name: entity.name,
     type: entity.type as EntityType,
     description: entity.description || "",
@@ -46,6 +47,16 @@ export function EditEntityDialog({ entity, onEditEntity }: EditEntityDialogProps
     phone: (entity as any).phone || "",
     address: (entity as any).address || "",
   });
+
+  const [formData, setFormData] = useState(getInitialFormData());
+
+  // Reset form data when dialog opens or entity changes
+  useEffect(() => {
+    if (open) {
+      setFormData(getInitialFormData());
+      setEntityType(entity.type);
+    }
+  }, [open, entity]);
 
   const handleSubmit = () => {
     if (!formData.name || !formData.countryOfResidence) {
@@ -137,11 +148,21 @@ export function EditEntityDialog({ entity, onEditEntity }: EditEntityDialogProps
 
           <div className="space-y-2">
             <Label>Country of Residence</Label>
-            <Input
+            <Select
               value={formData.countryOfResidence}
-              onChange={(e) => setFormData({ ...formData, countryOfResidence: e.target.value })}
-              placeholder="Country"
-            />
+              onValueChange={(value: string) => setFormData({ ...formData, countryOfResidence: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select country" />
+              </SelectTrigger>
+              <SelectContent>
+                {getAvailableCountries().map((country) => (
+                  <SelectItem key={country.countryCode} value={country.countryCode}>
+                    {country.countryName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <SecureEntityForm

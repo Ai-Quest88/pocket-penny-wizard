@@ -30,7 +30,7 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
   const [amount, setAmount] = useState('')
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState('')
-  const [currency, setCurrency] = useState('USD')
+  const [currency, setCurrency] = useState('AUD')
   const [account, setAccount] = useState('')
   const [comment, setComment] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -46,25 +46,17 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
       if (!session?.user) return [];
 
       // Fetch cash assets (savings, checking accounts)
-      const { data: assets, error: assetsError } = await supabase
+      const { data: allAssets, error: assetsError } = await supabase
         .from('assets')
-        .select(`
-          id,
-          name,
-          type,
-          category,
-          account_number,
-          value,
-          entities!inner(
-            id,
-            name,
-            type
-          )
-        `)
+        .select('*')
         .eq('user_id', session.user.id)
         .eq('type', 'cash')
-        .in('category', ['savings_account', 'checking_account', 'term_deposit'])
         .order('name');
+
+      // Filter by category client-side (Express query builder doesn't handle .in())
+      const assets = (allAssets || []).filter(a =>
+        ['savings_account', 'checking_account', 'term_deposit'].includes(a.category)
+      );
 
       if (assetsError) {
         console.error('Error fetching assets:', assetsError);
@@ -74,19 +66,7 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
       // Fetch liabilities (credit cards, loans)
       const { data: liabilities, error: liabilitiesError } = await supabase
         .from('liabilities')
-        .select(`
-          id,
-          name,
-          type,
-          category,
-          account_number,
-          amount,
-          entities!inner(
-            id,
-            name,
-            type
-          )
-        `)
+        .select('*')
         .eq('user_id', session.user.id)
         .order('name');
 
@@ -102,8 +82,8 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
           name: asset.name,
           type: asset.category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
           accountNumber: asset.account_number,
-          entityName: asset.entities?.[0]?.name || 'Unknown',
-          entityType: asset.entities?.[0]?.type || 'Unknown',
+          entityName: asset.entity_name || 'Unknown',
+          entityType: asset.entity_type || 'Unknown',
           accountType: 'asset' as const,
           displayType: 'Asset'
         })),
@@ -112,8 +92,8 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
           name: liability.name,
           type: liability.category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
           accountNumber: liability.account_number,
-          entityName: liability.entities?.[0]?.name || 'Unknown',
-          entityType: liability.entities?.[0]?.type || 'Unknown',
+          entityName: liability.entity_name || 'Unknown',
+          entityType: liability.entity_type || 'Unknown',
           accountType: 'liability' as const,
           displayType: 'Liability'
         }))
@@ -126,9 +106,6 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
 
   // Use centralized category management
   const { groupedCategories, isLoading: categoriesLoading } = useCategoryManagement();
-
-  console.log('=== HOOK DATA ===');
-  console.log('categoriesLoading:', categoriesLoading);
 
   const resetForm = () => {
     setAmount('')
@@ -193,8 +170,6 @@ export const ManualTransactionDialog: React.FC<ManualTransactionDialogProps> = (
         console.error('Error inserting transaction:', error);
         throw error;
       }
-
-      console.log("Successfully inserted transaction:", data);
 
       toast({
         title: "Success",
